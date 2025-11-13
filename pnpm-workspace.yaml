@@ -1,0 +1,14 @@
+# pnpm Workspace Configuration
+# Definiuje workspace'y dla monorepo
+
+packages:
+  - 'apps/*'
+  - 'packages/*'
+
+# AI Note: 
+# - Wszystkie aplikacje w apps/ są workspace'ami
+# - Wszystkie pakiety w packages/ są workspace'ami
+# - Używaj pnpm --filter <workspace> do uruchamiania komend w konkretnym workspace
+# - Przykład: pnpm --filter api dev
+
+

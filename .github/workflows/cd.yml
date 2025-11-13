@@ -1,0 +1,226 @@
+name: CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy'
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+
+env:
+  NODE_VERSION: '18'
+  PNPM_VERSION: '8.15.0'
+  REGISTRY: ghcr.io
+  IMAGE_NAME_API: ${{ github.repository }}/api
+  IMAGE_NAME_ADMIN: ${{ github.repository }}/admin
+
+jobs:
+  determine-environment:
+    name: Determine Environment
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.set-env.outputs.environment }}
+      should-deploy: ${{ steps.set-env.outputs.should-deploy }}
+    steps:
+      - name: Set environment
+        id: set-env
+        run: |
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "environment=staging" >> $GITHUB_OUTPUT
+            echo "should-deploy=true" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            echo "environment=production" >> $GITHUB_OUTPUT
+            echo "should-deploy=true" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "environment=${{ github.event.inputs.environment }}" >> $GITHUB_OUTPUT
+            echo "should-deploy=true" >> $GITHUB_OUTPUT
+          else
+            echo "environment=none" >> $GITHUB_OUTPUT
+            echo "should-deploy=false" >> $GITHUB_OUTPUT
+          fi
+
+  build-and-push:
+    name: Build and Push Docker Images
+    runs-on: ubuntu-latest
+    needs: determine-environment
+    if: needs.determine-environment.outputs.should-deploy == 'true'
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata for API
+        id: meta-api
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_API }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Extract metadata for Admin
+        id: meta-admin
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_ADMIN }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push API image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./apps/api/Dockerfile
+          push: true
+          tags: ${{ steps.meta-api.outputs.tags }}
+          labels: ${{ steps.meta-api.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            NODE_ENV=production
+
+      - name: Build and push Admin image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./apps/admin/Dockerfile
+          push: true
+          tags: ${{ steps.meta-admin.outputs.tags }}
+          labels: ${{ steps.meta-admin.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
+
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [determine-environment, build-and-push]
+    if: needs.determine-environment.outputs.environment == 'staging'
+    environment:
+      name: staging
+      url: https://staging.example.com
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to staging
+        run: |
+          echo "🚀 Deploying to staging environment..."
+          echo "API Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_API }}:main"
+          echo "Admin Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_ADMIN }}:main"
+          # Add your deployment commands here
+          # Example: kubectl, docker-compose, terraform, etc.
+          # kubectl set image deployment/api api=${{ env.REGISTRY }}/${{ env.IMAGE_NAME_API }}:main
+          # kubectl set image deployment/admin admin=${{ env.REGISTRY }}/${{ env.IMAGE_NAME_ADMIN }}:main
+
+      - name: Run smoke tests
+        run: |
+          echo "🧪 Running smoke tests..."
+          # Add smoke test commands here
+          # curl -f https://staging-api.example.com/api/v1/health || exit 1
+          # curl -f https://staging.example.com || exit 1
+
+      - name: Notify deployment
+        if: success()
+        run: |
+          echo "✅ Staging deployment successful!"
+          # Add notification logic (Slack, Discord, email, etc.)
+
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [determine-environment, build-and-push]
+    if: needs.determine-environment.outputs.environment == 'production'
+    environment:
+      name: production
+      url: https://example.com
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get version tag
+        id: get_version
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            VERSION=${GITHUB_REF#refs/tags/v}
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "tag_name=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=latest" >> $GITHUB_OUTPUT
+            echo "tag_name=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Deploy to production
+        run: |
+          echo "🚀 Deploying to production environment..."
+          echo "Version: ${{ steps.get_version.outputs.version }}"
+          echo "API Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_API }}:${{ steps.get_version.outputs.version }}"
+          echo "Admin Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_ADMIN }}:${{ steps.get_version.outputs.version }}"
+          # Add your deployment commands here
+          # Example: kubectl, docker-compose, terraform, etc.
+          # kubectl set image deployment/api api=${{ env.REGISTRY }}/${{ env.IMAGE_NAME_API }}:${{ steps.get_version.outputs.version }}
+          # kubectl set image deployment/admin admin=${{ env.REGISTRY }}/${{ env.IMAGE_NAME_ADMIN }}:${{ steps.get_version.outputs.version }}
+
+      - name: Run smoke tests
+        run: |
+          echo "🧪 Running smoke tests..."
+          # Add smoke test commands here
+          # curl -f https://api.example.com/api/v1/health || exit 1
+          # curl -f https://example.com || exit 1
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.get_version.outputs.tag_name }}
+          name: Release ${{ steps.get_version.outputs.tag_name }}
+          body: |
+            Production deployment for version ${{ steps.get_version.outputs.version }}
+            
+            **Changes:**
+            - See commit history
+            
+            **Docker Images:**
+            - API: `${{ env.REGISTRY }}/${{ env.IMAGE_NAME_API }}:${{ steps.get_version.outputs.version }}`
+            - Admin: `${{ env.REGISTRY }}/${{ env.IMAGE_NAME_ADMIN }}:${{ steps.get_version.outputs.version }}`
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Notify deployment
+        if: success()
+        run: |
+          echo "✅ Production deployment successful!"
+          # Add notification logic (Slack, Discord, email, etc.)

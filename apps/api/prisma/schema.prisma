@@ -1,0 +1,179 @@
+// Prisma Schema - Multi-Tenant Headless CMS
+// AI Note: Zawsze dodawaj tenantId do każdego modelu dla izolacji danych
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Tenant model - organizacje korzystające z platformy
+model Tenant {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  plan      String   @default("free") // free, professional, enterprise
+  settings  Json     @default("{}")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  users         User[]
+  contentTypes  ContentType[]
+  contentEntries ContentEntry[]
+  collections   Collection[]
+  collectionItems CollectionItem[]
+  mediaFiles    MediaFile[]
+  memberships  UserTenant[]
+
+  @@map("tenants")
+}
+
+// User model - użytkownicy w systemie
+model User {
+  id        String   @id @default(uuid())
+  tenantId  String
+  email     String
+  passwordHash String
+  role      String   @default("viewer") // super_admin, tenant_admin, editor, viewer
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  // Optional memberships table to enable multi-tenant users (forward-compatible)
+  memberships UserTenant[]
+
+  @@unique([tenantId, email])
+  @@index([tenantId])
+  @@map("users")
+}
+
+// ContentType model - definicje typów treści
+model ContentType {
+  id        String   @id @default(uuid())
+  tenantId  String
+  name      String
+  slug      String
+  schema    Json     // Zod schema jako JSON
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  contentEntries ContentEntry[]
+
+  @@unique([tenantId, slug])
+  @@index([tenantId])
+  @@map("content_types")
+}
+
+// ContentEntry model - wpisy treści
+model ContentEntry {
+  id            String   @id @default(uuid())
+  tenantId      String
+  contentTypeId String
+  data          Json     // Dane treści zgodne ze schematem ContentType
+  status        String   @default("draft") // draft, published, archived
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  tenant      Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  contentType ContentType @relation(fields: [contentTypeId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, contentTypeId])
+  @@index([tenantId, status])
+  @@index([tenantId, createdAt])
+  @@map("content_entries")
+}
+
+// Collection model - kolekcje treści (rozszerzenie ContentType z wersjonowaniem)
+model Collection {
+  id        String   @id @default(uuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  slug      String
+  name      String
+  schemaJson Json    // Zod schema jako JSON
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items CollectionItem[]
+
+  @@unique([tenantId, slug])
+  @@index([tenantId])
+  @@map("collections")
+}
+
+// CollectionItem model - elementy kolekcji z wersjonowaniem
+model CollectionItem {
+  id           String      @id @default(uuid())
+  tenantId      String
+  tenant        Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  collectionId  String
+  collection    Collection  @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  status        ItemStatus  @default(DRAFT)
+  data          Json        // Walidowane względem Collection.schemaJson
+  createdById   String?
+  updatedById   String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  version       Int         @default(1)
+  publishedAt   DateTime?
+  etag          String      @default("")
+
+  @@index([tenantId, collectionId])
+  @@index([tenantId, status])
+  @@index([tenantId, createdAt])
+  @@index([collectionId, status])
+  @@map("collection_items")
+}
+
+enum ItemStatus {
+  DRAFT
+  PUBLISHED
+}
+
+// MediaFile model - pliki multimedialne (obrazy, video, dokumenty)
+model MediaFile {
+  id          String   @id @default(uuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  filename    String   // Oryginalna nazwa pliku
+  url         String   // URL do pliku (S3/CDN)
+  mimeType    String   // MIME type (image/jpeg, video/mp4, etc.)
+  size        Int      // Rozmiar w bajtach
+  width       Int?     // Szerokość (dla obrazów)
+  height      Int?     // Wysokość (dla obrazów)
+  alt         String?  // Tekst alternatywny (dla obrazów)
+  metadata    Json     @default("{}") // Dodatkowe metadane (EXIF, etc.)
+  uploadedById String? // ID użytkownika który przesłał plik
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([tenantId, mimeType])
+  @@index([tenantId, createdAt])
+  @@map("media_files")
+}
+
+// UserTenant join table — forward-compatible multi-tenant membership
+model UserTenant {
+  id       String @id @default(uuid())
+  userId   String @map("user_id")
+  tenantId String @map("tenant_id")
+  role     String @default("viewer")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, tenantId])
+  @@index([tenantId])
+  @@index([userId])
+  @@map("user_tenants")
+}

@@ -1,0 +1,108 @@
+import {
+  Controller,
+  UseGuards,
+  UseInterceptors,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Param,
+  Body,
+  Query,
+  Headers,
+  HttpCode,
+  HttpStatus,
+  Res,
+} from '@nestjs/common';
+import { Response } from 'express';
+import { TenantGuard } from '../../../common/tenant/tenant.guard';
+import { AuthGuard } from '../../../common/auth/guards/auth.guard';
+import { RolesGuard } from '../../../common/auth/guards/roles.guard';
+import { PermissionsGuard } from '../../../common/auth/guards/permissions.guard';
+import { Roles } from '../../../common/auth/decorators/roles.decorator';
+import { Permissions } from '../../../common/auth/decorators/permissions.decorator';
+import { CurrentTenant } from '../../../common/decorators/current-tenant.decorator';
+import { CurrentUser } from '../../../common/auth/decorators/current-user.decorator';
+import { ETagInterceptor } from '../../../common/interceptors/etag.interceptor';
+import { Role, Permission } from '../../../common/auth/roles.enum';
+import { CollectionItemsService } from '../services/items.service';
+import { ItemQueryDtoSchema, UpsertItemDtoSchema } from '../dto';
+
+/**
+ * CollectionItemsController - RESTful API dla Collection Items
+ * AI Note: Wszystkie endpointy wymagają autentykacji i X-Tenant-ID header
+ */
+@UseGuards(AuthGuard, TenantGuard, RolesGuard, PermissionsGuard)
+@UseInterceptors(ETagInterceptor)
+@Controller('collections/:slug/items')
+export class CollectionItemsController {
+  constructor(private readonly itemsService: CollectionItemsService) {}
+
+  @Get()
+  @Permissions(Permission.ITEMS_READ)
+  async list(
+    @CurrentTenant() tenantId: string,
+    @Param('slug') slug: string,
+    @Query() query: unknown
+  ) {
+    const dto = ItemQueryDtoSchema.parse(query);
+    return this.itemsService.list(tenantId, slug, dto);
+  }
+
+  @Post()
+  @Permissions(Permission.ITEMS_WRITE)
+  create(
+    @CurrentTenant() tenantId: string,
+    @Param('slug') slug: string,
+    @Body() body: unknown,
+    @CurrentUser() user: { id: string }
+  ) {
+    const dto = UpsertItemDtoSchema.parse(body);
+    return this.itemsService.create(tenantId, slug, dto, user.id);
+  }
+
+  @Get(':id')
+  @Permissions(Permission.ITEMS_READ)
+  async get(
+    @CurrentTenant() tenantId: string,
+    @Param('slug') slug: string,
+    @Param('id') id: string,
+    @Headers('if-none-match') ifNoneMatch: string | undefined,
+    @Res() res: Response
+  ) {
+    const item = await this.itemsService.get(tenantId, slug, id);
+    
+    // ETag support - 304 Not Modified
+    if (ifNoneMatch && ifNoneMatch === item.etag) {
+      return res.status(HttpStatus.NOT_MODIFIED).send();
+    }
+
+    return item;
+  }
+
+  @Put(':id')
+  @Permissions(Permission.ITEMS_WRITE)
+  update(
+    @CurrentTenant() tenantId: string,
+    @Param('slug') slug: string,
+    @Param('id') id: string,
+    @Body() body: unknown,
+    @CurrentUser() user: { id: string }
+  ) {
+    const dto = UpsertItemDtoSchema.parse(body);
+    return this.itemsService.update(tenantId, slug, id, dto, user.id);
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.OK)
+  @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN)
+  @Permissions(Permission.ITEMS_DELETE)
+  remove(
+    @CurrentTenant() tenantId: string,
+    @Param('slug') slug: string,
+    @Param('id') id: string
+  ) {
+    return this.itemsService.remove(tenantId, slug, id);
+  }
+}
+

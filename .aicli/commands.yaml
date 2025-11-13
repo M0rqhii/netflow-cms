@@ -1,0 +1,1061 @@
+# AI CLI Commands Configuration
+# Multi-Tenant Headless CMS
+
+# Ten plik definiuje komendy dostępne przez AI CLI do generowania kodu
+# i automatyzacji typowych zadań w projekcie.
+
+version: "2.0.0"
+project: "multi-tenant-headless-cms"
+
+commands:
+  # ============================================
+  # PRISMA MODEL GENERATION
+  # ============================================
+  gen:prisma:
+    description: "Tworzy model Prisma + migrację z pełną konfiguracją multi-tenant"
+    usage: "aicli gen:prisma --name <ModelName> --fields <fields> [options]"
+    
+    context:
+      read_files:
+        - "apps/api/prisma/schema.prisma"
+        - "docs/prd.md"
+        - "context-instructions.md"
+      check_existing:
+        - "apps/api/prisma/schema.prisma"
+        - "apps/api/prisma/migrations/"
+    
+    guardrails:
+      forbidden:
+        - "Nie dodawaj modelu bez pola tenantId"
+        - "Nie używaj snake_case dla nazw modeli (używaj PascalCase)"
+        - "Nie modyfikuj istniejących modeli bez zgody"
+        - "Nie commituj migracji bez testów"
+        - "Nie używaj 'any' w typach"
+      required:
+        - "tenantId: String - pole wymagane dla multi-tenant isolation"
+        - "@@unique([tenantId, uniqueField]) - dla unikalności per tenant"
+        - "@@index([tenantId]) - dla wydajności queries"
+        - "Relations z onDelete: Cascade dla bezpieczeństwa"
+        - "createdAt i updatedAt timestamps"
+    
+    options:
+      - name: name
+        type: string
+        required: true
+        description: "Nazwa modelu w PascalCase (np. Tag, MediaFile)"
+      - name: fields
+        type: array
+        required: true
+        description: "Lista pól w formacie name:type:options (np. name:String,name:Int,name:DateTime,name:Json)"
+      - name: relations
+        type: array
+        description: "Relacje do innych modeli (np. tenant:Tenant,entries:ContentEntry[])"
+      - name: indexes
+        type: array
+        default: ["tenantId"]
+        description: "Dodatkowe indeksy (tenantId jest zawsze dodawany)"
+    
+    example: |
+      aicli gen:prisma --name Tag --fields name:String,slug:String,color:String --relations tenant:Tenant,entries:ContentEntry[]
+      aicli gen:prisma --name MediaFile --fields filename:String,url:String,mimeType:String,size:Int --relations tenant:Tenant
+    
+    output:
+      files:
+        - path: "apps/api/prisma/schema.prisma"
+          action: "append"
+          content: |
+            model {Name} {
+              id        String   @id @default(uuid())
+              tenantId  String
+              {fields}
+              createdAt DateTime @default(now())
+              updatedAt DateTime @updatedAt
+
+              tenant {RelationToTenant}
+
+              @@unique([tenantId, slug])
+              @@index([tenantId])
+              @@map("{snake_case_name}")
+            }
+        
+        - path: "apps/api/prisma/migrations/{timestamp}_add_{snake_case_name}/migration.sql"
+          action: "create"
+          content: |
+            -- CreateTable
+            CREATE TABLE "{snake_case_name}" (
+                "id" TEXT NOT NULL,
+                "tenantId" TEXT NOT NULL,
+                {sql_fields}
+                "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                "updatedAt" TIMESTAMP(3) NOT NULL,
+
+                CONSTRAINT "{snake_case_name}_pkey" PRIMARY KEY ("id")
+            );
+
+            -- CreateIndex
+            CREATE INDEX "{snake_case_name}_tenantId_idx" ON "{snake_case_name}"("tenantId");
+
+            -- AddForeignKey
+            ALTER TABLE "{snake_case_name}" ADD CONSTRAINT "{snake_case_name}_tenantId_fkey" FOREIGN KEY ("tenantId") REFERENCES "tenants"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+      
+      post_generation:
+        - "pnpm --filter api db:generate"
+        - "pnpm --filter api db:migrate"
+        - "Aktualizuj docs/api/openapi.yaml jeśli model ma API endpoints"
+
+  # ============================================
+  # NESTJS CONTROLLER GENERATION
+  # ============================================
+  gen:controller:
+    description: "Generuje kontroler NestJS z pełnym CRUD + testy jednostkowe i integracyjne"
+    usage: "aicli gen:controller --name <Name> --resource <resource> [options]"
+    
+    context:
+      read_files:
+        - "apps/api/src/app.module.ts"
+        - "apps/api/src/modules/*/{feature}.controller.ts"
+        - "docs/prd.md"
+        - "context-instructions.md"
+      check_existing:
+        - "apps/api/src/modules/{resource}/"
+        - "apps/api/test/{resource}.controller.test.ts"
+    
+    guardrails:
+      forbidden:
+        - "Nie tworz endpointów bez autentykacji (oprócz publicznych)"
+        - "Nie zapominaj o tenantId w każdym query"
+        - "Nie używaj 'any' w typach - zawsze używaj DTOs"
+        - "Nie tworz kontrolera bez testów"
+        - "Nie hardcoduj wartości - używaj config/environment"
+      required:
+        - "Użyj @UseGuards(AuthGuard, TenantGuard)"
+        - "Użyj @CurrentTenant() decorator do pobrania tenantId"
+        - "Wszystkie metody muszą filtrować po tenantId"
+        - "Walidacja przez Zod schemas z @repo/schemas"
+        - "Error handling przez exception filters"
+        - "Testy jednostkowe i integracyjne"
+    
+    options:
+      - name: name
+        type: string
+        required: true
+        description: "Nazwa controllera (np. TagsController)"
+      - name: resource
+        type: string
+        required: true
+        description: "Nazwa zasobu w URL (np. tags)"
+      - name: methods
+        type: array
+        default: ["findAll", "findOne", "create", "update", "remove"]
+        description: "Lista metod do wygenerowania"
+      - name: auth
+        type: boolean
+        default: true
+        description: "Czy endpoint wymaga autentykacji"
+      - name: generate_tests
+        type: boolean
+        default: true
+        description: "Czy wygenerować testy"
+    
+    example: |
+      aicli gen:controller --name TagsController --resource tags
+      aicli gen:controller --name MediaController --resource media --methods findAll,findOne,create,remove --auth true
+    
+    output:
+      files:
+        - path: "apps/api/src/modules/{resource}/{resource}.controller.ts"
+          action: "create"
+          content: |
+            import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
+            import { {Name}Service } from './{resource}.service';
+            import { Create{Name}Dto, Update{Name}Dto } from './dto';
+            import { AuthGuard } from '../common/guards/auth.guard';
+            import { TenantGuard } from '../common/guards/tenant.guard';
+            import { CurrentTenant } from '../common/decorators/current-tenant.decorator';
+            import { Tenant } from '@prisma/client';
+
+            @Controller('{resource}')
+            @UseGuards(AuthGuard, TenantGuard)
+            export class {Name}Controller {
+              constructor(private readonly {resource}Service: {Name}Service) {}
+
+              @Post()
+              create(@Body() createDto: Create{Name}Dto, @CurrentTenant() tenant: Tenant) {
+                return this.{resource}Service.create(tenant.id, createDto);
+              }
+
+              @Get()
+              findAll(@CurrentTenant() tenant: Tenant) {
+                return this.{resource}Service.findAll(tenant.id);
+              }
+
+              @Get(':id')
+              findOne(@Param('id') id: string, @CurrentTenant() tenant: Tenant) {
+                return this.{resource}Service.findOne(id, tenant.id);
+              }
+
+              @Patch(':id')
+              update(@Param('id') id: string, @Body() updateDto: Update{Name}Dto, @CurrentTenant() tenant: Tenant) {
+                return this.{resource}Service.update(id, tenant.id, updateDto);
+              }
+
+              @Delete(':id')
+              remove(@Param('id') id: string, @CurrentTenant() tenant: Tenant) {
+                return this.{resource}Service.remove(id, tenant.id);
+              }
+            }
+        
+        - path: "apps/api/src/modules/{resource}/{resource}.controller.spec.ts"
+          action: "create"
+          content: |
+            import { Test, TestingModule } from '@nestjs/testing';
+            import { {Name}Controller } from './{resource}.controller';
+            import { {Name}Service } from './{resource}.service';
+
+            describe('{Name}Controller', () => {
+              let controller: {Name}Controller;
+              let service: {Name}Service;
+
+              beforeEach(async () => {
+                const module: TestingModule = await Test.createTestingModule({
+                  controllers: [{Name}Controller],
+                  providers: [
+                    {
+                      provide: {Name}Service,
+                      useValue: {
+                        create: jest.fn(),
+                        findAll: jest.fn(),
+                        findOne: jest.fn(),
+                        update: jest.fn(),
+                        remove: jest.fn(),
+                      },
+                    },
+                  ],
+                }).compile();
+
+                controller = module.get<{Name}Controller>({Name}Controller);
+                service = module.get<{Name}Service>({Name}Service);
+              });
+
+              it('should be defined', () => {
+                expect(controller).toBeDefined();
+              });
+
+              describe('create', () => {
+                it('should create {resource}', async () => {
+                  const tenantId = 'tenant-123';
+                  const createDto = { name: 'Test' };
+                  const expected = { id: '1', ...createDto, tenantId };
+
+                  jest.spyOn(service, 'create').mockResolvedValue(expected);
+
+                  const result = await controller.create(createDto, { id: tenantId } as any);
+                  expect(result).toEqual(expected);
+                  expect(service.create).toHaveBeenCalledWith(tenantId, createDto);
+                });
+              });
+
+              // Dodatkowe testy...
+            });
+        
+        - path: "apps/api/test/{resource}.controller.integration.test.ts"
+          action: "create"
+          content: |
+            import { Test, TestingModule } from '@nestjs/testing';
+            import { INestApplication } from '@nestjs/common';
+            import * as request from 'supertest';
+            import { AppModule } from '../src/app.module';
+
+            describe('{Name}Controller (e2e)', () => {
+              let app: INestApplication;
+              let authToken: string;
+              let tenantId: string;
+
+              beforeAll(async () => {
+                const moduleFixture: TestingModule = await Test.createTestingModule({
+                  imports: [AppModule],
+                }).compile();
+
+                app = moduleFixture.createNestApplication();
+                await app.init();
+
+                // Setup auth token and tenant
+                // authToken = await getAuthToken();
+                // tenantId = await createTestTenant();
+              });
+
+              afterAll(async () => {
+                await app.close();
+              });
+
+              describe('POST /api/v1/{resource}', () => {
+                it('should create {resource}', () => {
+                  return request(app.getHttpServer())
+                    .post('/api/v1/{resource}')
+                    .set('Authorization', `Bearer ${authToken}`)
+                    .set('X-Tenant-ID', tenantId)
+                    .send({ name: 'Test' })
+                    .expect(201)
+                    .expect((res) => {
+                      expect(res.body).toHaveProperty('id');
+                      expect(res.body.name).toBe('Test');
+                    });
+                });
+
+                it('should return 401 without auth', () => {
+                  return request(app.getHttpServer())
+                    .post('/api/v1/{resource}')
+                    .send({ name: 'Test' })
+                    .expect(401);
+                });
+
+                it('should enforce tenant isolation', async () => {
+                  // Test that tenant cannot access other tenant's data
+                });
+              });
+            });
+      
+      post_generation:
+        - "Dodaj moduł do apps/api/src/app.module.ts"
+        - "Utwórz DTOs w apps/api/src/modules/{resource}/dto/"
+        - "Utwórz service w apps/api/src/modules/{resource}/{resource}.service.ts"
+        - "Utwórz Zod schema w packages/schemas/src/{resource}.schema.ts"
+        - "Uruchom testy: pnpm --filter api test"
+
+  # ============================================
+  # NEXT.JS COMPONENT GENERATION
+  # ============================================
+  gen:component:
+    description: "Generuje komponent Next.js (React) + test z TypeScript i accessibility"
+    usage: "aicli gen:component --name <Name> --type <type> [options]"
+    
+    context:
+      read_files:
+        - "apps/admin/app/**/*.tsx"
+        - "packages/ui/src/**/*.tsx"
+        - "docs/prd.md"
+        - "context-instructions.md"
+      check_existing:
+        - "apps/admin/components/{name}/"
+        - "packages/ui/src/components/{name}/"
+    
+    guardrails:
+      forbidden:
+        - "Nie używaj 'any' w props - zawsze definiuj interfejsy"
+        - "Nie tworz komponentów bez accessibility (ARIA labels, keyboard navigation)"
+        - "Nie hardcoduj styles - używaj Tailwind CSS"
+        - "Nie tworz komponentów bez testów"
+        - "Nie używaj inline styles (oprócz dynamicznych)"
+      required:
+        - "TypeScript z strict mode"
+        - "Accessibility (ARIA labels, semantic HTML)"
+        - "Responsive design (mobile-first)"
+        - "Error boundaries dla async operations"
+        - "Loading states"
+        - "Testy z React Testing Library"
+    
+    options:
+      - name: name
+        type: string
+        required: true
+        description: "Nazwa komponentu w PascalCase (np. TagList, ContentEditor)"
+      - name: type
+        type: enum
+        values: ["page", "component", "shared"]
+        default: "component"
+        description: "Typ komponentu (page - w apps/admin, component - w apps/admin/components, shared - w packages/ui)"
+      - name: props
+        type: array
+        description: "Lista props w formacie name:type (np. items:Tag[],onClick:Function)"
+      - name: hooks
+        type: array
+        description: "Custom hooks do użycia (np. useTags, useAuth)"
+      - name: generate_tests
+        type: boolean
+        default: true
+        description: "Czy wygenerować testy"
+    
+    example: |
+      aicli gen:component --name TagList --type component --props tags:Tag[],onTagClick:Function
+      aicli gen:component --name ContentEditor --type page --props contentId:string
+      aicli gen:component --name Button --type shared --props variant:string,children:ReactNode
+    
+    output:
+      files:
+        - path: "{output_path}/{name}/{name}.tsx"
+          action: "create"
+          content: |
+            'use client'; // Jeśli używa hooks/state
+
+            import React from 'react';
+            import { {Name}Props } from './{name}.types';
+
+            /**
+             * {Name} Component
+             * 
+             * @description {Description}
+             * @param props - Component props
+             */
+            export function {Name}({ {props} }: {Name}Props) {
+              return (
+                <div
+                  role="{role}"
+                  aria-label="{ariaLabel}"
+                  className="..."
+                >
+                  {/* Component implementation */}
+                </div>
+              );
+            }
+
+            export default {Name};
+        
+        - path: "{output_path}/{name}/{name}.types.ts"
+          action: "create"
+          content: |
+            import { ReactNode } from 'react';
+
+            export interface {Name}Props {
+              {props_typed}
+            }
+        
+        - path: "{output_path}/{name}/{name}.test.tsx"
+          action: "create"
+          content: |
+            import { render, screen } from '@testing-library/react';
+            import { {Name} } from './{name}';
+
+            describe('{Name}', () => {
+              it('should render correctly', () => {
+                render(<{Name} {...defaultProps} />);
+                expect(screen.getByRole('{role}')).toBeInTheDocument();
+              });
+
+              it('should be accessible', async () => {
+                const { container } = render(<{Name} {...defaultProps} />);
+                const results = await axe(container);
+                expect(results).toHaveNoViolations();
+              });
+
+              // Dodatkowe testy...
+            });
+        
+        - path: "{output_path}/{name}/index.ts"
+          action: "create"
+          content: |
+            export { {Name} } from './{name}';
+            export type { {Name}Props } from './{name}.types';
+      
+      post_generation:
+        - "Jeśli shared: eksportuj z packages/ui/src/index.ts"
+        - "Uruchom testy: pnpm --filter admin test"
+        - "Sprawdź accessibility: pnpm check:wcag"
+
+  # ============================================
+  # E2E TEST GENERATION (PLAYWRIGHT)
+  # ============================================
+  gen:test:e2e:
+    description: "Generuje Playwright test scenariusza użytkownika"
+    usage: "aicli gen:test:e2e --scenario <scenario> --path <path> [options]"
+    
+    context:
+      read_files:
+        - "docs/prd.md"
+        - "docs/plan.md"
+        - "apps/admin/app/**/*.tsx"
+        - "apps/api/src/modules/**/*.controller.ts"
+      check_existing:
+        - "apps/admin/test/e2e/"
+    
+    guardrails:
+      forbidden:
+        - "Nie tworz testów bez cleanup (afterEach/afterAll)"
+        - "Nie hardcoduj credentials - używaj fixtures"
+        - "Nie pomijaj error scenarios"
+        - "Nie używaj sleep() - używaj waitFor()"
+      required:
+        - "Setup i teardown dla każdego testu"
+        - "Testowanie happy path i error scenarios"
+        - "Testowanie multi-tenant isolation"
+        - "Accessibility checks w testach"
+        - "Screenshots dla failed tests"
+    
+    options:
+      - name: scenario
+        type: string
+        required: true
+        description: "Nazwa scenariusza (np. create-content, manage-tenants)"
+      - name: path
+        type: string
+        required: true
+        description: "Ścieżka do testowania (np. /admin/content/create)"
+      - name: user_role
+        type: enum
+        values: ["admin", "editor", "viewer"]
+        default: "admin"
+        description: "Rola użytkownika do testowania"
+      - name: include_accessibility
+        type: boolean
+        default: true
+        description: "Czy dodać accessibility checks"
+    
+    example: |
+      aicli gen:test:e2e --scenario create-content --path /admin/content/create --user_role editor
+      aicli gen:test:e2e --scenario manage-tenants --path /admin/tenants --user_role admin --include_accessibility true
+    
+    output:
+      files:
+        - path: "apps/admin/test/e2e/{scenario}.spec.ts"
+          action: "create"
+          content: |
+            import { test, expect } from '@playwright/test';
+            import { loginAs } from '../fixtures/auth';
+            import { createTestTenant } from '../fixtures/tenant';
+
+            test.describe('{Scenario}', () => {
+              let tenantId: string;
+              let authToken: string;
+
+              test.beforeEach(async ({ page }) => {
+                // Setup
+                tenantId = await createTestTenant();
+                authToken = await loginAs('{user_role}');
+                await page.setExtraHTTPHeaders({
+                  'Authorization': `Bearer ${authToken}`,
+                  'X-Tenant-ID': tenantId,
+                });
+              });
+
+              test.afterEach(async () => {
+                // Cleanup
+                await cleanupTestTenant(tenantId);
+              });
+
+              test('should {scenario_description}', async ({ page }) => {
+                await page.goto('{path}');
+                
+                // Test steps
+                await expect(page.getByRole('heading', { name: '{expected}' })).toBeVisible();
+                
+                // Accessibility check
+                const accessibilityScanResults = await page.accessibility.snapshot();
+                expect(accessibilityScanResults).toBeDefined();
+              });
+
+              test('should handle errors correctly', async ({ page }) => {
+                // Error scenario test
+              });
+
+              test('should enforce tenant isolation', async ({ page }) => {
+                // Multi-tenant isolation test
+              });
+            });
+      
+      post_generation:
+        - "Uruchom test: pnpm --filter admin test:e2e"
+        - "Sprawdź czy fixtures istnieją w apps/admin/test/fixtures/"
+
+  # ============================================
+  # WCAG ACCESSIBILITY AUDIT
+  # ============================================
+  check:wcag:
+    description: "Przeprowadza audyt accessibility używając axe-core (WCAG 2.1 AA)"
+    usage: "aicli check:wcag --path <path> [options]"
+    
+    context:
+      read_files:
+        - "apps/admin/app/**/*.tsx"
+        - "packages/ui/src/**/*.tsx"
+        - ".github/workflows/ci.yml"
+      check_existing:
+        - "apps/admin/test/accessibility/"
+    
+    guardrails:
+      forbidden:
+        - "Nie pomijaj żadnych violations"
+        - "Nie ignoruj critical violations"
+        - "Nie commituj kodu z accessibility violations"
+      required:
+        - "Sprawdź wszystkie strony/komponenty"
+        - "WCAG 2.1 AA compliance"
+        - "Raport z violations"
+        - "Sugestie naprawy"
+    
+    options:
+      - name: path
+        type: string
+        description: "Ścieżka do sprawdzenia (opcjonalnie - jeśli brak, sprawdza wszystkie)"
+      - name: level
+        type: enum
+        values: ["A", "AA", "AAA"]
+        default: "AA"
+        description: "Poziom WCAG compliance"
+      - name: generate_report
+        type: boolean
+        default: true
+        description: "Czy wygenerować HTML report"
+    
+    example: |
+      aicli check:wcag --path /admin/content
+      aicli check:wcag --level AA --generate_report true
+    
+    output:
+      files:
+        - path: "apps/admin/test/accessibility/{timestamp}_audit.json"
+          action: "create"
+          content: |
+            {
+              "timestamp": "{timestamp}",
+              "path": "{path}",
+              "level": "{level}",
+              "violations": [],
+              "passes": [],
+              "incomplete": []
+            }
+        
+        - path: "apps/admin/test/accessibility/{timestamp}_audit.html"
+          action: "create"
+          content: |
+            <!-- HTML report z violations i sugestiami -->
+      
+      console_output: |
+        WCAG {level} Accessibility Audit Results
+        ==========================================
+        Path: {path}
+        Violations: {count}
+        Passes: {count}
+        
+        Critical Issues:
+        {list_of_violations}
+      
+      post_generation:
+        - "Napraw wszystkie critical violations"
+        - "Dodaj accessibility tests do CI pipeline"
+        - "Zaktualizuj dokumentację jeśli potrzeba"
+
+  # ============================================
+  # DATABASE & FILES BACKUP
+  # ============================================
+  backup:run:
+    description: "Tworzy backup bazy danych PostgreSQL i plików (media, uploads)"
+    usage: "aicli backup:run --type <type> [options]"
+    
+    context:
+      read_files:
+        - "apps/api/.env.example"
+        - "docker-compose.yml"
+      check_existing:
+        - "backups/"
+    
+    guardrails:
+      forbidden:
+        - "Nie commituj backupów do repo"
+        - "Nie przechowuj backupów z credentials"
+        - "Nie usuwaj starych backupów bez weryfikacji"
+      required:
+        - "Kompresja backupów (gzip)"
+        - "Timestamp w nazwie pliku"
+        - "Weryfikacja integrity backupu"
+        - "Logowanie operacji"
+        - "Cleanup starych backupów (retention policy)"
+    
+    options:
+      - name: type
+        type: enum
+        values: ["database", "files", "full"]
+        default: "full"
+        description: "Typ backupu (database, files, lub full)"
+      - name: destination
+        type: string
+        default: "./backups"
+        description: "Katalog docelowy dla backupów"
+      - name: retention_days
+        type: number
+        default: 30
+        description: "Liczba dni przechowywania backupów"
+      - name: compress
+        type: boolean
+        default: true
+        description: "Czy skompresować backup"
+    
+    example: |
+      aicli backup:run --type full --destination ./backups --retention_days 30
+      aicli backup:run --type database --compress true
+    
+    output:
+      files:
+        - path: "scripts/backup.sh"
+          action: "create_or_update"
+          content: |
+            #!/bin/bash
+            # Backup script for database and files
+            # Generated by AI CLI
+
+            set -e
+
+            BACKUP_DIR="${BACKUP_DESTINATION:-./backups}"
+            TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+            RETENTION_DAYS=${RETENTION_DAYS:-30}
+
+            # Create backup directory
+            mkdir -p "$BACKUP_DIR"
+
+            # Database backup
+            if [ "$BACKUP_TYPE" = "database" ] || [ "$BACKUP_TYPE" = "full" ]; then
+              echo "Backing up database..."
+              pg_dump "$DATABASE_URL" | gzip > "$BACKUP_DIR/db_$TIMESTAMP.sql.gz"
+              echo "Database backup completed: db_$TIMESTAMP.sql.gz"
+            fi
+
+            # Files backup
+            if [ "$BACKUP_TYPE" = "files" ] || [ "$BACKUP_TYPE" = "full" ]; then
+              echo "Backing up files..."
+              tar -czf "$BACKUP_DIR/files_$TIMESTAMP.tar.gz" \
+                apps/api/uploads \
+                apps/admin/public/uploads 2>/dev/null || true
+              echo "Files backup completed: files_$TIMESTAMP.tar.gz"
+            fi
+
+            # Cleanup old backups
+            find "$BACKUP_DIR" -name "*.gz" -mtime +$RETENTION_DAYS -delete
+            echo "Cleaned up backups older than $RETENTION_DAYS days"
+
+            echo "Backup completed successfully"
+        
+        - path: "scripts/backup.ts"
+          action: "create_or_update"
+          content: |
+            import { exec } from 'child_process';
+            import { promisify } from 'util';
+            import * as fs from 'fs';
+            import * as path from 'path';
+
+            const execAsync = promisify(exec);
+
+            interface BackupOptions {
+              type: 'database' | 'files' | 'full';
+              destination?: string;
+              retentionDays?: number;
+              compress?: boolean;
+            }
+
+            export async function runBackup(options: BackupOptions) {
+              const backupDir = options.destination || './backups';
+              const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+              
+              // Ensure backup directory exists
+              if (!fs.existsSync(backupDir)) {
+                fs.mkdirSync(backupDir, { recursive: true });
+              }
+
+              // Database backup
+              if (options.type === 'database' || options.type === 'full') {
+                const dbBackupPath = path.join(backupDir, `db_${timestamp}.sql.gz`);
+                await execAsync(`pg_dump $DATABASE_URL | gzip > ${dbBackupPath}`);
+                console.log(`Database backup completed: ${dbBackupPath}`);
+              }
+
+              // Files backup
+              if (options.type === 'files' || options.type === 'full') {
+                const filesBackupPath = path.join(backupDir, `files_${timestamp}.tar.gz`);
+                await execAsync(`tar -czf ${filesBackupPath} apps/api/uploads apps/admin/public/uploads`);
+                console.log(`Files backup completed: ${filesBackupPath}`);
+              }
+
+              // Cleanup old backups
+              const retentionDays = options.retentionDays || 30;
+              // Implementation...
+            }
+      
+      console_output: |
+        Backup Started
+        =============
+        Type: {type}
+        Destination: {destination}
+        
+        Backing up database...
+        ✓ Database backup completed: db_{timestamp}.sql.gz
+        
+        Backing up files...
+        ✓ Files backup completed: files_{timestamp}.tar.gz
+        
+        Cleaning up old backups...
+        ✓ Removed {count} old backups
+        
+        Backup completed successfully
+      
+      post_generation:
+        - "Dodaj backup do cron/scheduled tasks"
+        - "Skonfiguruj backup storage (S3, etc.)"
+        - "Przetestuj restore process"
+
+  # ============================================
+  # DEMO TENANT SEED
+  # ============================================
+  seed:tenant:
+    description: "Tworzy demo tenant z przykładowymi danymi (content types, entries, users)"
+    usage: "aicli seed:tenant --name <name> [options]"
+    
+    context:
+      read_files:
+        - "apps/api/prisma/schema.prisma"
+        - "apps/api/prisma/seed.ts"
+        - "docs/prd.md"
+      check_existing:
+        - "apps/api/prisma/seed.ts"
+    
+    guardrails:
+      forbidden:
+        - "Nie tworz seedów z realnymi danymi użytkowników"
+        - "Nie commituj seedów z credentials"
+        - "Nie używaj seedów w production bez weryfikacji"
+      required:
+        - "Realistyczne przykładowe dane"
+        - "Wszystkie wymagane pola wypełnione"
+        - "Relacje między modelami poprawnie ustawione"
+        - "Cleanup możliwość (rollback)"
+    
+    options:
+      - name: name
+        type: string
+        required: true
+        description: "Nazwa tenantów (np. demo, acme-corp)"
+      - name: slug
+        type: string
+        description: "Slug tenantów (domyślnie: z name)"
+      - name: include_content
+        type: boolean
+        default: true
+        description: "Czy dodać przykładowe content entries"
+      - name: include_users
+        type: boolean
+        default: true
+        description: "Czy dodać przykładowych użytkowników"
+      - name: content_types
+        type: array
+        default: ["Article", "Page"]
+        description: "Lista content types do utworzenia"
+    
+    example: |
+      aicli seed:tenant --name "Demo Company" --slug demo --include_content true --include_users true
+      aicli seed:tenant --name "Acme Corp" --content_types Article,Page,Product
+    
+    output:
+      files:
+        - path: "apps/api/prisma/seed.ts"
+          action: "append_or_update"
+          content: |
+            async function seedDemoTenant() {
+              const tenant = await prisma.tenant.create({
+                data: {
+                  name: '{name}',
+                  slug: '{slug}',
+                  plan: 'professional',
+                  settings: {
+                    defaultLanguage: 'pl',
+                    timezone: 'Europe/Warsaw',
+                  },
+                },
+              });
+
+              // Create users
+              {users_seed}
+
+              // Create content types
+              {content_types_seed}
+
+              // Create content entries
+              {content_entries_seed}
+
+              console.log(`Demo tenant created: ${tenant.id} (${tenant.slug})`);
+              return tenant;
+            }
+      
+      console_output: |
+        Seeding Demo Tenant
+        ===================
+        Name: {name}
+        Slug: {slug}
+        
+        Creating tenant...
+        ✓ Tenant created: {tenant_id}
+        
+        Creating users...
+        ✓ Created {count} users
+        
+        Creating content types...
+        ✓ Created {count} content types
+        
+        Creating content entries...
+        ✓ Created {count} content entries
+        
+        Demo tenant seeded successfully!
+        Tenant ID: {tenant_id}
+        Access: http://localhost:3000/{slug}
+      
+      post_generation:
+        - "Uruchom seed: pnpm --filter api db:seed"
+        - "Zweryfikuj dane w Prisma Studio: pnpm --filter api db:studio"
+        - "Przetestuj dostęp do tenantów przez API"
+
+  # ============================================
+  # PLAN SYNC (SCALANIE NOTATEK)
+  # ============================================
+  plan:sync:
+    description: "Scala notatki i zmiany z plan.md - synchronizuje status zadań z rzeczywistością"
+    usage: "aicli plan:sync [options]"
+    
+    context:
+      read_files:
+        - "docs/plan.md"
+        - "docs/prd.md"
+        - ".git/COMMIT_EDITMSG"
+        - "CHANGELOG.md"
+      check_existing:
+        - "docs/plan.md"
+        - "CHANGELOG.md"
+    
+    guardrails:
+      forbidden:
+        - "Nie modyfikuj zadań bez kontekstu"
+        - "Nie zmieniaj statusu zadań bez weryfikacji"
+        - "Nie usuwaj zadań bez zgody"
+      required:
+        - "Weryfikacja statusu zadań z git commits"
+        - "Aktualizacja statusu na podstawie rzeczywistego stanu"
+        - "Zachowanie historii zmian"
+        - "Raport z synchronizacji"
+    
+    options:
+      - name: mode
+        type: enum
+        values: ["auto", "interactive", "dry-run"]
+        default: "interactive"
+        description: "Tryb synchronizacji (auto - automatyczna, interactive - z potwierdzeniem, dry-run - tylko preview)"
+      - name: update_status
+        type: boolean
+        default: true
+        description: "Czy aktualizować status zadań"
+      - name: add_missing
+        type: boolean
+        default: true
+        description: "Czy dodawać brakujące zadania z commits"
+    
+    example: |
+      aicli plan:sync --mode interactive
+      aicli plan:sync --mode dry-run --update_status false
+      aicli plan:sync --mode auto --add_missing true
+    
+    output:
+      files:
+        - path: "docs/plan.md"
+          action: "update"
+          content: |
+            # Plan Sprintu - Zsynchronizowany {timestamp}
+            
+            ## Zmiany z synchronizacji:
+            - ✅ TNT-001: Zmieniono status z "In Progress" na "Done"
+            - 📋 TNT-015: Dodano nowe zadanie z commit message
+            - 🔄 TNT-007: Status pozostaje "In Progress"
+        
+        - path: "docs/plan-sync-report.md"
+          action: "create"
+          content: |
+            # Plan Sync Report - {timestamp}
+            
+            ## Summary
+            - Tasks updated: {count}
+            - Tasks added: {count}
+            - Tasks unchanged: {count}
+            
+            ## Changes
+            {list_of_changes}
+      
+      console_output: |
+        Plan Sync
+        =========
+        Mode: {mode}
+        
+        Analyzing git commits...
+        Found {count} commits related to tasks
+        
+        Analyzing plan.md...
+        Found {count} tasks
+        
+        Synchronizing...
+        ✓ Updated TNT-001: In Progress → Done
+        ✓ Added TNT-015: New task from commit
+        ⚠ TNT-007: Status unchanged (needs review)
+        
+        Sync completed!
+        Report saved to: docs/plan-sync-report.md
+      
+      post_generation:
+        - "Przejrzyj zmiany w docs/plan.md"
+        - "Zweryfikuj raport w docs/plan-sync-report.md"
+        - "Commit zmiany jeśli wszystko OK"
+
+# ============================================
+# ALIASES (skróty)
+# ============================================
+aliases:
+  gc: gen:controller
+  gs: gen:service
+  gr: gen:repository
+  gt: gen:tests
+  gm: gen:middleware
+  gmi: gen:migration
+  gsc: gen:schema
+  gp: gen:prisma
+  gcomp: gen:component
+  ge2e: gen:test:e2e
+  wcag: check:wcag
+  backup: backup:run
+  seed: seed:tenant
+  sync: plan:sync
+
+# ============================================
+# CONVENTIONS
+# ============================================
+conventions:
+  naming:
+    controllers: "{Resource}Controller"
+    services: "{Resource}Service"
+    repositories: "{Resource}Repository"
+    components: "{Name} (PascalCase)"
+    tests: "{name}.test.ts or {name}.spec.ts"
+    migrations: "{timestamp}_{description}"
+  
+  structure:
+    backend: "apps/api/src/modules/{feature}/"
+    frontend: "apps/admin/components/{feature}/"
+    shared_ui: "packages/ui/src/components/{feature}/"
+    tests: "apps/*/test/ or apps/*/src/__tests__/"
+  
+  patterns:
+    - "Repository Pattern"
+    - "Service Layer Pattern"
+    - "Dependency Injection"
+    - "Multi-tenant isolation (tenantId)"
+    - "Error handling middleware"
+    - "Accessibility first"
+    - "Type safety (no 'any')"
+
+# ============================================
+# NOTES
+# ============================================
+notes: |
+  Wszystkie komendy generują kod zgodny z:
+  - Konwencjami projektu (context-instructions.md)
+  - Multi-tenant isolation requirements
+  - Security best practices
+  - Test coverage requirements (>80%)
+  - Accessibility standards (WCAG 2.1 AA)
+  
+  Przed użyciem komend upewnij się, że:
+  1. Projekt jest poprawnie skonfigurowany
+  2. Baza danych jest dostępna (dla komend z DB)
+  3. Wszystkie dependencies są zainstalowane
+  4. Przeczytałeś context-instructions.md
+  
+  Guardrails są OBOWIĄZKOWE - nie pomijaj żadnych wymagań.

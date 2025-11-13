@@ -1,0 +1,177 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Design tokens */
+:root {
+  /* Brand */
+  --color-primary: #2ea0ff;
+  --color-accent: #18e7b4;
+  --color-on-primary: #ffffff;
+  --color-on-accent: #042318;
+
+  /* Base palette */
+  /* Brand‑tinted mint variant (less gray) */
+  --background: 245, 255, 252; /* mint-50 (very light teal) */
+  --surface: 230, 248, 244;    /* mint-100 (bars slightly darker) */
+  --foreground: 17, 24, 39;    /* gray-900 */
+  --muted: 71, 85, 105;        /* slate-600 for readability */
+  --border: 203, 213, 225;     /* slate-300 */
+  --card: 255, 255, 255;       /* white for crisp cards */
+  --card-border: 203, 213, 225;        /* slate-300 */
+  --card-border-hover: 148, 163, 184;  /* slate-400 */
+  --ring: #2ea0ff;
+}
+
+/* Dark mode (system preference) */
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Teal‑tinted dark theme for better brand cohesion */
+    --background: 10, 28, 36; /* deep teal */
+    --surface: 6, 20, 26;     /* darker bars */
+    --foreground: 232, 244, 247; /* slightly cool white */
+    --muted: 186, 206, 212;   /* light teal‑gray for helper text */
+    --border: 35, 63, 72;     /* teal border */
+    --card: 18, 40, 48;       /* card slightly above bg */
+    --card-border: 46, 76, 87; /* stronger edge */
+    --card-border-hover: 82, 115, 126; /* hover edge */
+    --ring: #3bb2ff;
+  }
+}
+
+/* Dark mode (explicit override via data attribute) */
+html[data-theme="dark"] {
+  --background: 10, 28, 36;
+  --surface: 6, 20, 26;
+  --foreground: 232, 244, 247;
+  --muted: 186, 206, 212;
+  --border: 35, 63, 72;
+  --card: 18, 40, 48;
+  --card-border: 46, 76, 87;
+  --card-border-hover: 82, 115, 126;
+  --ring: #3bb2ff;
+  color-scheme: dark;
+}
+
+/* Light mode (explicit override via data attribute) */
+html[data-theme="light"] {
+  /* Match the base light tokens to override system dark */
+  --background: 245, 255, 252; /* mint-50 */
+  --surface: 230, 248, 244;    /* mint-100 */
+  --foreground: 17, 24, 39;    /* gray-900 */
+  --muted: 71, 85, 105;        /* slate-600 */
+  --border: 203, 213, 225;     /* slate-300 */
+  --card: 255, 255, 255;       /* white */
+  --card-border: 203, 213, 225;        /* slate-300 */
+  --card-border-hover: 148, 163, 184;  /* slate-400 */
+  --ring: #2ea0ff;
+  color-scheme: light;
+}
+
+@layer base {
+  html { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, Manrope, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; }
+  html, body { height: 100%; }
+  body { @apply bg-background text-foreground antialiased overflow-x-hidden; 
+    background-color: rgb(var(--background));
+    background-image:
+      radial-gradient(1000px 500px at 10% -10%, rgba(46,160,255,0.06), transparent 60%),
+      radial-gradient(900px 450px at 95% -5%, rgba(24,231,180,0.06), transparent 55%);
+    background-attachment: fixed;
+  }
+  * { @apply border-border; }
+}
+
+/* Reusable utilities */
+.btn {
+  @apply inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 h-9 px-4 py-2 ring-offset-white;
+}
+.btn-primary {
+  background-image: var(--grad, linear-gradient(135deg, var(--color-primary), var(--color-accent)));
+  color: var(--color-on-primary);
+  box-shadow: 0 6px 12px rgba(46, 160, 255, 0.25);
+}
+.btn-primary:hover { filter: brightness(0.98); }
+.btn-outline { @apply border bg-white text-gray-900 hover:bg-gray-50; }
+.btn-ghost { @apply text-gray-700 hover:bg-gray-100; }
+
+.text-muted { color: rgb(var(--muted)); }
+
+/* Outline btn in dark should not be glaring white */
+html[data-theme="dark"] .btn-outline {
+  background: transparent;
+  color: rgb(var(--foreground));
+  border-color: rgba(255,255,255,0.18);
+}
+html[data-theme="dark"] .btn-outline:hover {
+  background: rgba(255,255,255,0.06);
+}
+
+.card { @apply bg-card border rounded-xl shadow-md; border-color: rgb(var(--card-border));
+  transition: box-shadow .18s cubic-bezier(0.2, 0, 0, 1), border-color .18s cubic-bezier(0.2, 0, 0, 1), transform .18s cubic-bezier(0.2, 0, 0, 1);
+}
+.card-interactive { cursor: pointer; }
+.card-interactive:hover { border-color: rgb(var(--card-border-hover)); transform: translateY(-1px); box-shadow: 0 10px 24px rgba(17,24,39,0.12), 0 2px 8px rgba(17,24,39,0.08); }
+html[data-theme="dark"] .card-interactive:hover { box-shadow: 0 10px 24px rgba(0,0,0,0.55), 0 2px 8px rgba(0,0,0,0.35); }
+.card-interactive:focus-within { outline: none; box-shadow: 0 0 0 2px var(--ring); }
+.card-body { @apply p-6; }
+.badge { @apply inline-flex items-center rounded-full border px-2 py-1 text-xs font-medium text-gray-700 bg-gray-50; }
+html[data-theme="dark"] .badge { color: rgb(203,213,225); background-color: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.14); }
+.badge-sm { @apply inline-flex items-center rounded-full border px-1.5 py-0.5 text-[11px] font-medium; }
+
+.topbar { @apply border-b; background-color: rgb(var(--surface)); }
+.sidebar { @apply border-r; background-color: rgb(var(--surface)); }
+
+/* Accent text and bars */
+.text-gradient {
+  background-image: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.accent-bar {
+  height: 2px;
+  background-image: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+}
+
+/* Dark-mode readability helpers */
+html[data-theme="dark"] .text-gray-500 { color: rgb(203,213,225) !important; }
+html[data-theme="dark"] .text-gray-600 { color: rgb(203,213,225) !important; }
+
+/* Toggle pressed state accent */
+.btn[aria-pressed="true"] { box-shadow: inset 0 0 0 1px rgba(46,160,255,0.5); }
+
+/* Navigation links (sidebar) */
+.nav-link {
+  @apply flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors;
+  color: rgba(var(--foreground), 0.85);
+}
+.nav-link:hover { background-color: rgba(0,0,0,0.04); }
+html[data-theme="dark"] .nav-link { color: rgba(var(--foreground), 0.92); }
+html[data-theme="dark"] .nav-link:hover { background-color: rgba(255,255,255,0.06); }
+.nav-link--active {
+  color: #ffffff;
+  background-image: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+}
+
+/* Simple tooltip using data-tip attribute (only for sidebar items) */
+.sidebar .tooltip { position: relative; }
+.sidebar .tooltip[data-tip]:hover::after {
+  content: attr(data-tip);
+  position: absolute; left: 110%; top: 50%; transform: translateY(-50%);
+  white-space: nowrap; font-size: 12px; padding: 4px 8px; border-radius: 6px;
+  background: rgba(0,0,0,0.8); color: #fff; pointer-events: none; z-index: 20;
+}
+html[data-theme="dark"] .sidebar .tooltip[data-tip]:hover::after { background: rgba(255,255,255,0.12); color: rgb(232,244,247); border: 1px solid rgba(255,255,255,0.18); }
+
+/* Skeletons */
+.skeleton { @apply animate-pulse rounded bg-gray-200; }
+html[data-theme="dark"] .skeleton { background-color: rgba(255,255,255,0.12); }
+
+/* Small colored dot */
+.dot { display:inline-block; width:8px; height:8px; border-radius:9999px; }
+
+/* Chips */
+.chip { @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium border; }
+.chip-gradient { background-image: linear-gradient(135deg, var(--color-primary), var(--color-accent)); color: #fff; border-color: transparent; }
+
+

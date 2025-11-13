@@ -1,0 +1,39 @@
+# Build outputs
+dist/
+*.js
+*.js.map
+*.d.ts
+*.d.ts.map
+
+# Jest compiled files
+jest.config.d.ts
+jest.config.d.ts.map
+
+# Environment variables
+.env
+.env.local
+.env.production
+
+# Testing
+coverage/
+.nyc_output/
+
+# Logs
+logs/
+*.log
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Prisma
+prisma/migrations/*.sql
+
+# Temporary files
+*.tmp
+*.temp
+

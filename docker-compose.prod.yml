@@ -1,0 +1,72 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: netflow-postgres
+    environment:
+      POSTGRES_USER: netflow
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-netflow_dev_password}
+      POSTGRES_DB: netflow_cms
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U netflow']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: netflow-redis
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: netflow-api
+    working_dir: /app
+    ports:
+      - '4000:4000'
+    env_file:
+      - ./.env.production
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - /app/apps/api/node_modules
+    command: >-
+      sh -lc "pnpm install --frozen-lockfile && pnpm --filter api db:generate && pnpm --filter api build && node dist/main"
+
+  admin:
+    build:
+      context: .
+      dockerfile: apps/admin/Dockerfile
+    container_name: netflow-admin
+    working_dir: /app
+    ports:
+      - '3000:3000'
+    env_file:
+      - ./.env.production
+    depends_on:
+      - api
+    volumes:
+      - /app/apps/admin/node_modules
+    command: >-
+      sh -lc "pnpm install --frozen-lockfile && pnpm --filter admin build && pnpm --filter admin start"
+
+volumes:
+  postgres_data:
+  redis_data:
+

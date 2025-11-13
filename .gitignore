@@ -1,0 +1,66 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+
+# Compiled files (should not be in src/)
+*.js
+*.js.map
+*.d.ts
+*.d.ts.map
+!jest.config.js
+!next.config.js
+!postcss.config.js
+!tailwind.config.js
+
+# Environment variables
+.env
+.env*.local
+.env.production
+
+# Testing
+coverage/
+.nyc_output/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Turbo
+.turbo/
+
+# Prisma
+prisma/migrations/*.sql
+!prisma/migrations/.gitkeep
+
+# Temporary files
+*.tmp
+*.temp
+
+# AI Note:
+# - Nie commituj node_modules, build outputs, .env files
+# - Prisma migrations są commitowane (bez .sql files)
+# - Coverage reports są ignorowane (generowane w CI)
+
+
