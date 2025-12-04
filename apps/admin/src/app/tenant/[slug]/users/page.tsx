@@ -7,8 +7,11 @@ import { fetchMyTenants, fetchTenantUsers, fetchTenantInvites, inviteUser, revok
 import { useToast } from '@/components/ui/Toast';
 import { canInvite } from '@/lib/rbac';
 import type { TenantInfo } from '@repo/sdk';
+import { useTranslations } from '@/hooks/useTranslations';
 
 export default function TenantUsersPage() {
+  const { push } = useToast();
+  const t = useTranslations();
   const params = useParams<{ slug: string }>();
   const slug = params?.slug as string;
   const [tenant, setTenant] = useState<TenantInfo | null>(null);
@@ -31,16 +34,27 @@ export default function TenantUsersPage() {
     (async () => {
       try {
         const list = await fetchMyTenants();
-        const t = list.find((x) => x.tenant.slug === slug) || null;
-        if (!t) setError('Tenant not found');
-        setTenant(t);
-        if (t) {
-          const [u, inv] = await Promise.all([
-            fetchTenantUsers(t.tenantId).catch(() => []),
-            fetchTenantInvites(t.tenantId).catch(() => []),
-          ]);
-          setUsers(u);
-          setInvites(inv);
+        const tenant = list.find((x) => x.tenant.slug === slug) || null;
+        if (!tenant) setError('Tenant not found');
+        setTenant(tenant);
+        if (tenant) {
+          try {
+            const [u, inv] = await Promise.all([
+              fetchTenantUsers(tenant.tenantId).catch((e) => {
+                console.error('Failed to load users:', e);
+                return [];
+              }),
+              fetchTenantInvites(tenant.tenantId).catch((e) => {
+                console.error('Failed to load invites:', e);
+                return [];
+              }),
+            ]);
+            setUsers(u);
+            setInvites(inv);
+          } catch (e) {
+            console.error('Failed to load users/invites:', e);
+            setError(e instanceof Error ? e.message : 'Failed to load users');
+          }
         }
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Failed to load tenant');
@@ -58,8 +72,13 @@ export default function TenantUsersPage() {
     try {
       await inviteUser(tenant.tenantId, email, role);
       setEmail('');
-      const inv = await fetchTenantInvites(tenant.tenantId).catch(() => []);
-      setInvites(inv);
+      try {
+        const inv = await fetchTenantInvites(tenant.tenantId);
+        setInvites(inv);
+      } catch (err) {
+        console.error('Failed to refresh invites:', err);
+        // Continue - invite was sent successfully
+      }
       push({ tone: 'success', title: 'Invitation sent', message: `Invite sent to ${email}` });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to invite');
@@ -250,4 +269,3 @@ export default function TenantUsersPage() {
     </div>
   );
 }
-  const { push } = useToast();

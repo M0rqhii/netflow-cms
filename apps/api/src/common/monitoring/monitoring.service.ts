@@ -1,7 +1,4 @@
-import { Injectable, Logger, Inject } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import type { Cache } from 'cache-manager';
+import { Injectable, Logger } from '@nestjs/common';
 
 /**
  * Monitoring Service
@@ -18,13 +15,8 @@ export class MonitoringService {
   private queryMetrics: Map<string, { count: number; totalTime: number; avgTime: number }> = new Map();
   private cacheStats: { hits: number; misses: number } = { hits: 0, misses: 0 };
 
-  constructor(
-    // @ts-ignore - Reserved for future use
-    private _prisma: PrismaService,
-    // @ts-ignore - Reserved for future use
-    @Inject(CACHE_MANAGER) private _cache: Cache,
-  ) {
-    // Setup Prisma query logging for performance monitoring
+  constructor() {
+    // Reserved for future integration with Prisma or cache providers
     this.setupQueryLogging();
   }
 
@@ -38,6 +30,7 @@ export class MonitoringService {
 
   /**
    * Track query performance
+   * AI Note: Also tracks in PrometheusService if available
    */
   trackQuery(model: string, action: string, duration: number) {
     const key = `${model}.${action}`;
@@ -115,4 +108,3 @@ export class MonitoringService {
     this.cacheStats = { hits: 0, misses: 0 };
   }
 }
-

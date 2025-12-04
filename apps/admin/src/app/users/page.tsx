@@ -1,24 +1,29 @@
 "use client";
 
-import { useSearchParams } from 'next/navigation';
-import Link from 'next/link';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useTranslations } from '@/hooks/useTranslations';
 
-export default function UsersPage() {
-  const sp = useSearchParams();
-  const tenant = sp.get('tenant');
+/**
+ * Redirect /users to /sites
+ * Users are managed per-site in Site Panel (/tenant/[slug]/users) or Platform Panel (/sites/[slug]/users)
+ * This global page is deprecated - use Platform Panel (/sites) instead
+ */
+export default function UsersRedirectPage() {
+  const router = useRouter();
+  const t = useTranslations();
+  
+  useEffect(() => {
+    // Redirect to sites page with message
+    router.replace('/sites');
+  }, [router]);
+
   return (
     <div className="container py-8">
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Users {tenant ? `· ${tenant}` : ''}</h1>
-        <Link href="/dashboard" className="btn btn-outline">Back to Hub</Link>
-      </div>
-
-      <div className="card">
-        <div className="card-body">
-          <p className="text-muted">User management coming soon. Invite and manage members.</p>
-        </div>
+      <div className="text-center">
+        <p className="text-muted">{t('sites.sitePanelComingSoon')}</p>
+        <p className="text-sm text-muted mt-2">Users are managed per-site in Platform Panel (/sites/[slug]/users)</p>
       </div>
     </div>
   );
 }
-

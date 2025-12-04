@@ -2,7 +2,6 @@ import { Injectable, NestInterceptor, ExecutionContext, CallHandler } from '@nes
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { AuditService, AuditEvent } from './audit.service';
-import { Reflector } from '@nestjs/core';
 
 /**
  * Audit Interceptor - automatically logs API requests
@@ -15,11 +14,7 @@ import { Reflector } from '@nestjs/core';
  */
 @Injectable()
 export class AuditInterceptor implements NestInterceptor {
-  constructor(
-    private auditService: AuditService,
-    // @ts-ignore - Reserved for future use
-    private _reflector: Reflector,
-  ) {}
+  constructor(private auditService: AuditService) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const request = context.switchToHttp().getRequest();
@@ -82,4 +77,3 @@ export class AuditInterceptor implements NestInterceptor {
     return null;
   }
 }
-

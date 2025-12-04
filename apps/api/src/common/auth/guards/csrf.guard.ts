@@ -1,6 +1,5 @@
 import { Injectable, CanActivate, ExecutionContext, ForbiddenException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Reflector } from '@nestjs/core';
 
 /**
  * CSRF Guard - protects against Cross-Site Request Forgery attacks
@@ -14,11 +13,7 @@ import { Reflector } from '@nestjs/core';
 export class CsrfGuard implements CanActivate {
   private readonly logger = new Logger(CsrfGuard.name);
 
-  constructor(
-    private configService: ConfigService,
-    // @ts-ignore - Reserved for future use
-    private _reflector: Reflector,
-  ) {}
+  constructor(private configService: ConfigService) {}
 
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest();
@@ -80,4 +75,3 @@ export class CsrfGuard implements CanActivate {
     return true;
   }
 }
-

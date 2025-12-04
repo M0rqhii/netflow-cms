@@ -58,76 +58,64 @@ export class WebhooksService {
 
   /**
    * Create a webhook
-   * AI Note: For MVP, webhooks are stored in a JSON field in Tenant settings
-   * In production, create a Webhook model in Prisma schema
+   * AI Note: Uses Prisma Webhook model with support for per-collection webhooks
    */
   async create(tenantId: string, dto: CreateWebhookDto) {
+    // Validate collection exists if collectionId provided
+    if (dto.collectionId) {
+      const collection = await this.prisma.collection.findFirst({
+        where: {
+          id: dto.collectionId,
+          tenantId,
+        },
+      });
+      if (!collection) {
+        throw new NotFoundException('Collection not found');
+      }
+    }
+
     // Generate secret if not provided
     const secret = dto.secret || this.generateSecret();
 
-    // For MVP, store webhooks in Tenant.settings.webhooks
-    // In production, use a dedicated Webhook model
-    const tenant = await this.prisma.tenant.findUnique({
-      where: { id: tenantId },
-      select: { settings: true },
-    });
-
-    if (!tenant) {
-      throw new NotFoundException(`Tenant with ID ${tenantId} not found`);
-    }
-
-    const settings = (tenant.settings as any) || {};
-    const webhooks = settings.webhooks || [];
-    
-    const webhook = {
-      id: crypto.randomUUID(),
-      url: dto.url,
-      events: dto.events,
-      secret,
-      active: dto.active ?? true,
-      description: dto.description,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-
-    webhooks.push(webhook);
-
-    await this.prisma.tenant.update({
-      where: { id: tenantId },
+    // Use Prisma Webhook model
+    return this.prisma.webhook.create({
       data: {
-        settings: {
-          ...settings,
-          webhooks,
-        },
+        tenantId,
+        collectionId: dto.collectionId || null,
+        url: dto.url,
+        events: dto.events,
+        secret,
+        active: dto.active ?? true,
+        description: dto.description,
+        retryCount: dto.retryCount || 3,
+        timeout: dto.timeout || 5000,
       },
     });
-
-    return webhook;
   }
 
   /**
-   * Get all webhooks for a tenant
+   * Get all webhooks for a tenant (optionally filtered by collection)
    */
-  async findAll(tenantId: string) {
-    const tenant = await this.prisma.tenant.findUnique({
-      where: { id: tenantId },
-      select: { settings: true },
+  async findAll(tenantId: string, collectionId?: string) {
+    return this.prisma.webhook.findMany({
+      where: {
+        tenantId,
+        ...(collectionId ? { collectionId } : {}),
+      },
+      orderBy: { createdAt: 'desc' },
     });
-
-    if (!tenant) {
-      throw new NotFoundException(`Tenant with ID ${tenantId} not found`);
-    }
-
-    const settings = (tenant.settings as any) || {};
-    return settings.webhooks || [];
   }
 
   /**
    * Get a single webhook by ID
    */
   async findOne(tenantId: string, id: string) {
-    const webhooks = await this.findAll(tenantId);
-    const webhook = webhooks.find((w: any) => w.id === id);
+    const webhook = await this.prisma.webhook.findFirst({
+      where: {
+        id,
+        tenantId,
+      },
+    });
 
     if (!webhook) {
       throw new NotFoundException(`Webhook with ID ${id} not found`);
@@ -140,95 +128,78 @@ export class WebhooksService {
    * Update a webhook
    */
   async update(tenantId: string, id: string, dto: UpdateWebhookDto) {
-    const tenant = await this.prisma.tenant.findUnique({
-      where: { id: tenantId },
-      select: { settings: true },
-    });
+    // Verify webhook exists
+    await this.findOne(tenantId, id);
 
-    if (!tenant) {
-      throw new NotFoundException(`Tenant with ID ${tenantId} not found`);
-    }
-
-    const settings = (tenant.settings as any) || {};
-    const webhooks = settings.webhooks || [];
-    const index = webhooks.findIndex((w: any) => w.id === id);
-
-    if (index === -1) {
-      throw new NotFoundException(`Webhook with ID ${id} not found`);
-    }
-
-    const webhook = webhooks[index];
-    const updated = {
-      ...webhook,
-      ...dto,
-      updatedAt: new Date(),
-    };
-
-    webhooks[index] = updated;
-
-    await this.prisma.tenant.update({
-      where: { id: tenantId },
-      data: {
-        settings: {
-          ...settings,
-          webhooks,
+    // Validate collection if collectionId is being updated
+    if (dto.collectionId !== undefined && dto.collectionId !== null) {
+      const collection = await this.prisma.collection.findFirst({
+        where: {
+          id: dto.collectionId,
+          tenantId,
         },
+      });
+      if (!collection) {
+        throw new NotFoundException('Collection not found');
+      }
+    }
+
+    return this.prisma.webhook.update({
+      where: { id },
+      data: {
+        ...(dto.url !== undefined && { url: dto.url }),
+        ...(dto.events !== undefined && { events: dto.events }),
+        ...(dto.active !== undefined && { active: dto.active }),
+        ...(dto.description !== undefined && { description: dto.description }),
+        ...(dto.collectionId !== undefined && { collectionId: dto.collectionId || null }),
+        ...(dto.retryCount !== undefined && { retryCount: dto.retryCount }),
+        ...(dto.timeout !== undefined && { timeout: dto.timeout }),
       },
     });
-
-    return updated;
   }
 
   /**
    * Delete a webhook
    */
   async remove(tenantId: string, id: string) {
-    const tenant = await this.prisma.tenant.findUnique({
-      where: { id: tenantId },
-      select: { settings: true },
+    await this.findOne(tenantId, id);
+    await this.prisma.webhook.delete({
+      where: { id },
     });
-
-    if (!tenant) {
-      throw new NotFoundException(`Tenant with ID ${tenantId} not found`);
-    }
-
-    const settings = (tenant.settings as any) || {};
-    const webhooks = settings.webhooks || [];
-    const index = webhooks.findIndex((w: any) => w.id === id);
-
-    if (index === -1) {
-      throw new NotFoundException(`Webhook with ID ${id} not found`);
-    }
-
-    const webhook = webhooks[index];
-    webhooks.splice(index, 1);
-
-    await this.prisma.tenant.update({
-      where: { id: tenantId },
-      data: {
-        settings: {
-          ...settings,
-          webhooks,
-        },
-      },
-    });
-
-    return { success: true, deleted: webhook };
+    return { success: true };
   }
 
   /**
    * Trigger webhooks for an event
    * AI Note: Delivers webhook events to registered URLs
+   * Supports per-collection webhooks via collectionId parameter
    */
-  async trigger(tenantId: string, event: WebhookEvent, payload: any) {
-    const allWebhooks = await this.findAll(tenantId);
+  async trigger(tenantId: string, event: WebhookEvent, payload: any, collectionId?: string) {
+    // Find webhooks: global (collectionId is null) or specific to collection
+    const where: any = {
+      tenantId,
+      active: true,
+    };
+
+    // Get webhooks: global ones (collectionId is null) OR collection-specific ones
+    const allWebhooks = await this.prisma.webhook.findMany({
+      where: {
+        ...where,
+        OR: [
+          { collectionId: null }, // Global webhooks
+          ...(collectionId ? [{ collectionId }] : []), // Collection-specific webhooks
+        ],
+      },
+    });
+
+    // Filter by event type
     const webhooks = allWebhooks.filter(
-      (w: { active: boolean; events: string[] }) => w.active && w.events.includes(event),
+      (w) => w.events.includes(event),
     );
 
-    // Deliver webhooks asynchronously
-    const deliveries = webhooks.map((webhook: { id: string; url: string; secret: string; active: boolean; events: string[] }) =>
-      this.deliver(webhook, event, payload),
+    // Deliver webhooks asynchronously with retry logic
+    const deliveries = webhooks.map((webhook) =>
+      this.deliverWithRetry(webhook, event, payload),
     );
 
     await Promise.allSettled(deliveries);
@@ -236,14 +207,43 @@ export class WebhooksService {
     return {
       triggered: webhooks.length,
       event,
+      collectionId: collectionId || null,
     };
+  }
+
+  /**
+   * Deliver webhook with retry logic
+   * AI Note: Attempts delivery with configurable retry count
+   */
+  private async deliverWithRetry(webhook: any, event: WebhookEvent, payload: any) {
+    const maxAttempts = webhook.retryCount || 3;
+    let attempt = 1;
+    let lastError: Error | null = null;
+
+    while (attempt <= maxAttempts) {
+      try {
+        await this.deliver(webhook, event, payload, attempt);
+        return; // Success
+      } catch (error: any) {
+        lastError = error;
+        attempt++;
+        if (attempt <= maxAttempts) {
+          // Exponential backoff: wait 1s, 2s, 4s...
+          const delay = Math.min(1000 * Math.pow(2, attempt - 2), 10000);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    }
+
+    // All retries failed
+    this.logger.error(`Webhook ${webhook.id} failed after ${maxAttempts} attempts: ${lastError?.message}`);
   }
 
   /**
    * Deliver webhook to URL
    * AI Note: Sends HTTP POST request to webhook URL with signed payload
    */
-  private async deliver(webhook: { id: string; url: string; secret: string; active: boolean; events: string[] }, event: WebhookEvent, payload: any) {
+  private async deliver(webhook: { id: string; url: string; secret: string; active: boolean; events: string[]; timeout?: number }, event: WebhookEvent, payload: any, attempt: number = 1) {
     const timestamp = Date.now();
     const body = {
       event,
@@ -254,11 +254,11 @@ export class WebhooksService {
     // Generate signature
     const signature = this.generateSignature(webhook.secret, JSON.stringify(body));
 
-    try {
-      // Use fetch for MVP (axios not installed)
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 seconds timeout
+    const timeout = webhook.timeout || 5000;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
 
+    try {
       const response = await fetch(webhook.url, {
         method: 'POST',
         headers: {
@@ -274,15 +274,17 @@ export class WebhooksService {
       clearTimeout(timeoutId);
 
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        const errorText = await response.text().catch(() => '');
+        throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
       }
 
       // Log successful delivery
-      await this.logDelivery(webhook.id, 'success', event);
+      await this.logDelivery(webhook.id, 'success', event, response.status, attempt);
     } catch (error: any) {
+      clearTimeout(timeoutId);
       // Log failed delivery
-      await this.logDelivery(webhook.id, 'failed', event, error?.message || 'Unknown error');
-      // Don't throw - allow other webhooks to be delivered
+      await this.logDelivery(webhook.id, 'failed', event, undefined, attempt, error?.message || 'Unknown error');
+      throw error; // Re-throw for retry logic
     }
   }
 
@@ -305,17 +307,43 @@ export class WebhooksService {
 
   /**
    * Log webhook delivery
-   * AI Note: Logs webhook delivery attempts (success/failure)
+   * AI Note: Logs webhook delivery attempts (success/failure) with retry attempt tracking
    */
   private async logDelivery(
     webhookId: string,
     status: 'success' | 'failed',
     event: string,
+    statusCode?: number,
+    attempt: number = 1,
     error?: string,
   ) {
-    // Use proper logger instead of console.log
-    // In production, store in database (WebhookDelivery model)
-    const message = `[WEBHOOK] ${status.toUpperCase()} - Webhook: ${webhookId}, Event: ${event}`;
+    // Get webhook to get tenantId
+    const webhook = await this.prisma.webhook.findUnique({
+      where: { id: webhookId },
+      select: { tenantId: true },
+    });
+
+    if (!webhook) {
+      this.logger.warn(`Webhook ${webhookId} not found for delivery logging`);
+      return;
+    }
+
+    // Store delivery log in database
+    await this.prisma.webhookDelivery.create({
+      data: {
+        webhookId,
+        tenantId: webhook.tenantId,
+        event,
+        status,
+        statusCode: statusCode || undefined,
+        error: error || undefined,
+        attempt,
+        deliveredAt: status === 'success' ? new Date() : undefined,
+      },
+    });
+
+    // Also log to console
+    const message = `[WEBHOOK] ${status.toUpperCase()} - Webhook: ${webhookId}, Event: ${event}, Attempt: ${attempt}`;
     if (error) {
       this.logger.error(message, error);
     } else {

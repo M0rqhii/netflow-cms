@@ -1,4 +1,4 @@
-# Context Instructions - Systemowe Zasady Dzia³ania AI
+# Context Instructions - Systemowe Zasady Dziaï¿½ania AI
 
 Wersja: 1.0.0  
 Data: 2024-01-01  
@@ -9,17 +9,52 @@ Projekt: Multi-Tenant Headless CMS
 
 ## 1. Wprowadzenie
 
-Ten dokument definiuje systemowe zasady dzia³ania dla wszystkich sesji AI w projekcie. Jest to Ÿród³o prawdy (source of truth) dla:
-- G³ównego agenta-architekta (user)
-- Wszystkich subagentów AI (backend, frontend, tests, infra)
-- Procesów i workflow
-- Standardów technicznych i jakoœciowych
+Ten dokument definiuje systemowe zasady dziaï¿½ania dla wszystkich sesji AI w projekcie. Jest to ï¿½rï¿½dï¿½o prawdy (source of truth) dla:
+- Gï¿½ï¿½wnego agenta-architekta (user)
+- Wszystkich subagentï¿½w AI (backend, frontend, tests, infra)
+- Procesï¿½w i workflow
+- Standardï¿½w technicznych i jakoï¿½ciowych
 
-WA¯NE: Ka¿da sesja AI MUSI przestrzegaæ zasad zdefiniowanych w tym dokumencie.
+WAï¿½NE: Kaï¿½da sesja AI MUSI przestrzegaï¿½ zasad zdefiniowanych w tym dokumencie.
 
 ---
 
-## 2. Rola G³ównego Architekta (User)
+## 2. Architektura Systemu - Dwa Poziomy Panelï¿½w
+
+### 2.1 Platform Panel (TERAZ) - Panel Zarzï¿½dzania Platformï¿½
+
+**Cel:** Gï¿½ï¿½wny panel administracyjny do zarzï¿½dzania wszystkimi stronami, uï¿½ytkownikami, pï¿½atnoï¿½ciami i kontem.
+
+**Funkcjonalnoï¿½ci:**
+- Zarzï¿½dzanie stronami (sites) - lista, tworzenie, szczegï¿½ï¿½y
+- Zarzï¿½dzanie uï¿½ytkownikami - role, zaproszenia, uprawnienia per site
+- Zarzï¿½dzanie pï¿½atnoï¿½ciami - subskrypcje, faktury, plany
+- Zarzï¿½dzanie kontem - profil, dane fakturowe, hasï¿½o
+
+**Status:** âœ… **IMPLEMENTOWANY** - Obecny focus projektu
+
+**Dokumentacja:**
+- `docs/admin-panel-refactoring-plan.md` - Plan refaktoryzacji Platform Panel
+- `docs/admin-panel-documentation.md` - Dokumentacja techniczna Platform Panel
+
+---
+
+### 2.2 Site Panel / Page Builder (NA Pï¿½ï¿½NIEJ) - Panel Konkretnej Strony
+
+**Cel:** Panel do zarzï¿½dzania treï¿½ciï¿½ i budowania stron dla konkretnej strony (site).
+
+**Funkcjonalnoï¿½ci:**
+- Page Builder - drag & drop edytor stron (jak Elementor/Webflow)
+- Content Management - kolekcje, typy treï¿½ci, media
+- Site Settings - domena, SEO, ustawienia strony
+
+**Status:** â³ **PLANOWANY** - Do implementacji po zakoï¿½czeniu Platform Panel
+
+**Uwaga:** Page Builder i Site Panel sï¿½ odkï¿½adane na pï¿½ï¿½niej. Obecnie skupiamy siï¿½ wyï¿½ï¿½cznie na Platform Panel.
+
+---
+
+## 3. Rola Gï¿½ï¿½wnego Architekta (User)
 
 ### 2.1 Definicja Roli
 - Strategiczny decydent
@@ -28,35 +63,40 @@ WA¯NE: Ka¿da sesja AI MUSI przestrzegaæ zasad zdefiniowanych w tym dokumencie.
 - Orchestrator
 - Reviewer
 
-### 2.2 Odpowiedzialnoœci
-- Definiowanie wymagañ (docs/prd.md)
-- Planowanie zadañ (docs/plan.md)
+### 2.2 Odpowiedzialnoï¿½ci
+- Definiowanie wymagaï¿½ (docs/prd.md)
+- Planowanie zadaï¿½ (docs/plan.md)
 - Code review i quality
 - Komunikacja z subagentami
 
 ---
 
-## 3. Przekazywanie Kontekstu
+## 4. Przekazywanie Kontekstu
 
-Hierarchia dokumentów:
-1) docs/prd.md — wymagania (CO)
-2) docs/plan.md — plan (JAK/KIEDY)
-3) docs/agents.md — role i komunikacja (KTO/JAK)
+Hierarchia dokumentï¿½w:
+1) docs/prd.md ï¿½ wymagania (CO)
+2) docs/plan.md ï¿½ plan (JAK/KIEDY)
+3) docs/agents.md ï¿½ role i komunikacja (KTO/JAK)
+4) docs/admin-panel-refactoring-plan.md ï¿½ szczegï¿½ï¿½owy plan Platform Panel
 
-Workflow przed zadaniem: przeczytaj PRD › Plan › Agents › Context Instructions.
+**WAï¿½NE:** Przed rozpoczï¿½ciem pracy nad Platform Panel, przeczytaj:
+- `docs/admin-panel-refactoring-plan.md` - szczegï¿½ï¿½owy plan implementacji
+- `docs/admin-panel-documentation.md` - dokumentacja techniczna
+
+Workflow przed zadaniem: przeczytaj PRD ï¿½ Plan ï¿½ Agents ï¿½ Context Instructions ï¿½ Admin Panel Plan.
 
 ---
 
-## 4. Struktura Zadañ
+## 5. Struktura Zadaï¿½
 
 Atomic Task = Output + Tests + Release Notes + Documentation
-- Output zgodny ze standardami i izolacj¹ tenantów
+- Output zgodny ze standardami i izolacjï¿½ tenantï¿½w
 - Testy (unit/E2E), coverage >80%
 - Notatki i dokumentacja zaktualizowane
 
 ---
 
-## 5. Standardy Techniczne
+## 6. Standardy Techniczne
 - TypeScript strict, ESLint + Prettier
 - RBAC, JWT, RLS (PostgreSQL)
 - Multi-tenant isolation
@@ -64,9 +104,9 @@ Atomic Task = Output + Tests + Release Notes + Documentation
 
 ---
 
-## 6. Workflow
-1) Utwórz branch z develop
+## 7. Workflow
+1) Utwï¿½rz branch z develop
 2) Implementuj zgodnie z planem
 3) Pisz testy i uruchamiaj CI
-4) Aktualizuj dokumentacjê
+4) Aktualizuj dokumentacjï¿½
 5) PR i code review

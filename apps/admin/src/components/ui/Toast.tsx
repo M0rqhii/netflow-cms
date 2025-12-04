@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 
 type Toast = { id: string; title?: string; message: string; tone?: 'info' | 'success' | 'warning' | 'error' };
 type Ctx = { toasts: Toast[]; push: (t: Omit<Toast, 'id'>) => void; remove: (id: string) => void };
@@ -9,8 +9,15 @@ const ToastCtx = createContext<Ctx | null>(null);
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const timeoutsRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
   const remove = useCallback((id: string) => {
+    // Clear timeout if exists
+    const timeout = timeoutsRef.current.get(id);
+    if (timeout) {
+      clearTimeout(timeout);
+      timeoutsRef.current.delete(id);
+    }
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
@@ -18,8 +25,19 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     const id = Math.random().toString(36).slice(2);
     const toast: Toast = { id, ...t };
     setToasts((prev) => [...prev, toast]);
-    setTimeout(() => remove(id), 3500);
+    
+    // Set timeout and store reference for cleanup
+    const timeoutId = setTimeout(() => remove(id), 3500);
+    timeoutsRef.current.set(id, timeoutId);
   }, [remove]);
+
+  // Cleanup all timeouts on unmount
+  useEffect(() => {
+    return () => {
+      timeoutsRef.current.forEach((timeout) => clearTimeout(timeout));
+      timeoutsRef.current.clear();
+    };
+  }, []);
 
   const value = useMemo(() => ({ toasts, push, remove }), [toasts, push, remove]);
 

@@ -1,8 +1,8 @@
 # Product Requirements Document (PRD)
-## Multi-Tenant Headless CMS
+## Netflow CMS - Platform Hosting + Site Management System
 
-**Wersja:** 1.0.0  
-**Data:** 2024-01-01  
+**Wersja:** 2.0.0  
+**Data:** 2025-01-16  
 **Status:** Draft → In Review → Approved
 
 ---
@@ -10,7 +10,26 @@
 ## 1. Executive Summary
 
 ### 1.1 Opis Produktu
-Multi-Tenant Headless CMS to nowoczesna platforma do zarządzania treścią, która umożliwia wielu organizacjom (tenantom) niezależne zarządzanie swoimi treściami w ramach jednej instancji aplikacji. System zapewnia pełną izolację danych między tenantami przy zachowaniu efektywności zasobów.
+
+Netflow CMS to system typu "panel klienta + hosting + CMS", który łączy:
+- Panel hostingu (jak OVH / CyberFolks)
+- Centralny panel do zarządzania stronami (jak WordPress.com / WP Engine)
+- Headless CMS oparty na własnym systemie zarządzania treścią
+
+System składa się z dwóch poziomów:
+
+1. **Platform Panel (TERAZ)** - Główny panel zarządzania platformą
+   - Zarządzanie wszystkimi stronami (sites)
+   - Zarządzanie użytkownikami i uprawnieniami
+   - Zarządzanie płatnościami i planami
+   - Zarządzanie kontem użytkownika
+
+2. **Site Panel / Page Builder (NA PÓŹNIEJ)** - Panel konkretnej strony
+   - Page Builder (drag & drop)
+   - Content Management
+   - Site Settings
+
+**Obecny Focus:** Platform Panel - panel zarządzania platformą hostingową i stronami.
 
 ### 1.2 Problem do Rozwiązania
 - Organizacje potrzebują elastycznego CMS bez konieczności zarządzania własną infrastrukturą

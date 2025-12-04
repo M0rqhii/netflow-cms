@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { RoleBasedThrottlerGuard } from './common/throttler/role-based-throttler.guard';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { TenantModule } from './common/tenant/tenant.module';
 import { AuthModule as CommonAuthModule } from './common/auth/auth.module';
@@ -8,6 +9,7 @@ import { AuditModule } from './common/audit/audit.module';
 import { CacheModule } from './common/cache/cache.module';
 import { MonitoringModule } from './common/monitoring/monitoring.module';
 import { MonitoringInterceptor } from './common/monitoring/monitoring.interceptor';
+import { SaasModule } from './common/saas/saas.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { CollectionsModule } from './modules/collections/collections.module';
 import { UsersModule } from './modules/users/users.module';
@@ -15,12 +17,20 @@ import { UserTenantsModule } from './modules/user-tenants/user-tenants.module';
 import { TenantsModule } from './modules/tenants/tenants.module';
 import { ContentTypesModule } from './modules/content-types/content-types.module';
 import { ContentEntriesModule } from './modules/content-entries/content-entries.module';
+import { ContentWorkflowModule } from './modules/content-workflow/content-workflow.module';
 import { MediaModule } from './modules/media/media.module';
 import { WebhooksModule } from './modules/webhooks/webhooks.module';
-import { GraphQLModule } from './modules/graphql/graphql.module';
-import { GraphQLResolversModule } from './modules/graphql/graphql.resolvers.module';
+// GraphQL modules disabled - requires @nestjs/graphql package
+// import { GraphQLModule } from './modules/graphql/graphql.module';
+// import { GraphQLResolversModule } from './modules/graphql/graphql.resolvers.module';
 import { WorkflowModule } from './modules/workflow/workflow.module';
 import { SearchModule } from './modules/search/search.module';
+import { TasksModule } from './modules/tasks/tasks.module';
+import { CollectionRolesModule } from './modules/collection-roles/collection-roles.module';
+import { ContentVersioningModule } from './modules/content-versioning/content-versioning.module';
+import { HooksModule } from './modules/hooks/hooks.module';
+import { BillingModule } from './modules/billing/billing.module';
+import { AccountModule } from './modules/account/account.module';
 import { HealthController } from './health.controller';
 import { PrismaService } from './common/prisma/prisma.service';
 // Import feature modules here
@@ -34,12 +44,14 @@ import { PrismaService } from './common/prisma/prisma.service';
     CacheModule, // Global cache module
     ThrottlerModule.forRoot({
       ttl: 60000, // 1 minute
-      limit: 100, // 100 requests per minute (default)
+      limit: 100, // 100 requests per minute (default, overridden by RoleBasedThrottlerGuard)
+      storage: undefined, // Uses default in-memory storage, can be Redis for distributed systems
     }),
     TenantModule,
     CommonAuthModule,
     AuditModule,
     MonitoringModule,
+    SaasModule,
     AuthModule,
     CollectionsModule,
     UsersModule,
@@ -47,12 +59,19 @@ import { PrismaService } from './common/prisma/prisma.service';
     TenantsModule,
     ContentTypesModule,
     ContentEntriesModule,
+    ContentWorkflowModule,
     MediaModule,
     WebhooksModule,
-    GraphQLModule,
-    GraphQLResolversModule,
+    // GraphQLModule, // Disabled - requires @nestjs/graphql package
+    // GraphQLResolversModule, // Disabled - requires @nestjs/graphql package
     WorkflowModule,
     SearchModule,
+    TasksModule,
+    CollectionRolesModule,
+    ContentVersioningModule,
+    HooksModule,
+    BillingModule,
+    AccountModule,
     // Add feature modules here
     // ContentModule,
   ],
@@ -61,7 +80,7 @@ import { PrismaService } from './common/prisma/prisma.service';
     PrismaService,
     {
       provide: APP_GUARD,
-      useClass: ThrottlerGuard,
+      useClass: RoleBasedThrottlerGuard,
     },
     // Optional: Enable global cache interceptor
     // {

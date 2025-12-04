@@ -1,12 +1,19 @@
 import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { Permission, Role, hasAnyPermission } from '../roles.enum';
+import { Permission, Role, PlatformRole, hasAnyPermission, hasAnyPlatformPermission } from '../roles.enum';
 import { PERMISSIONS_KEY } from '../decorators/permissions.decorator';
 import { CurrentUserPayload } from '../decorators/current-user.decorator';
 
 /**
- * PermissionsGuard - checks if user has required permissions
- * AI Note: Use with @Permissions() decorator: @Permissions(Permission.USERS_READ)
+ * PermissionsGuard - central permission checking guard
+ * AI Note: Checks both tenant-level and platform-level permissions
+ * 
+ * This guard:
+ * 1. Checks tenant-level permissions (Role-based)
+ * 2. Checks platform-level permissions (PlatformRole-based)
+ * 3. Allows access if either check passes
+ * 
+ * Use with @Permissions() decorator: @Permissions(Permission.USERS_READ)
  */
 @Injectable()
 export class PermissionsGuard implements CanActivate {
@@ -15,7 +22,7 @@ export class PermissionsGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
     const requiredPermissions = this.reflector.getAllAndOverride<Permission[]>(
       PERMISSIONS_KEY,
-      [context.getHandler(), context.getClass()]
+      [context.getHandler(), context.getClass()],
     );
 
     if (!requiredPermissions || requiredPermissions.length === 0) {
@@ -30,18 +37,26 @@ export class PermissionsGuard implements CanActivate {
       throw new ForbiddenException('User not authenticated');
     }
 
+    // Check tenant-level permissions
     const userRole = user.role as Role;
+    const hasTenantPermission = hasAnyPermission(userRole, requiredPermissions);
 
-    // Check if user has any of the required permissions
-    const hasAccess = hasAnyPermission(userRole, requiredPermissions);
-
-    if (!hasAccess) {
-      throw new ForbiddenException(
-        `Insufficient permissions. Required: ${requiredPermissions.join(', ')}`
-      );
+    if (hasTenantPermission) {
+      return true;
     }
 
-    return true;
+    // Check platform-level permissions
+    const userPlatformRole = user.platformRole as PlatformRole | undefined;
+    if (userPlatformRole) {
+      const hasPlatformPermission = hasAnyPlatformPermission(userPlatformRole, requiredPermissions);
+      if (hasPlatformPermission) {
+        return true;
+      }
+    }
+
+    throw new ForbiddenException(
+      `Insufficient permissions. Required: ${requiredPermissions.join(', ')}`,
+    );
   }
 }
 

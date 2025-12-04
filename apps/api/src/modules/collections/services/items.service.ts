@@ -4,12 +4,19 @@ import {
   ConflictException,
   BadRequestException,
   Inject,
+  forwardRef,
+  Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../../../common/prisma/prisma.service';
+import { PrismaOptimizationService } from '../../../common/prisma/prisma-optimization.service';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import { z } from 'zod';
 import { ItemQueryDto, UpsertItemDto } from '../dto';
+import { WorkflowConfigService } from '../../workflow/workflow-config.service';
+import { ContentVersioningService } from '../../content-versioning/content-versioning.service';
+import { WebhooksService, WebhookEvent } from '../../webhooks/webhooks.service';
+import { HooksService } from '../../hooks/hooks.service';
 
 /**
  * CollectionItemsService - business logic dla Collection Items
@@ -17,9 +24,19 @@ import { ItemQueryDto, UpsertItemDto } from '../dto';
  */
 @Injectable()
 export class CollectionItemsService {
+  private readonly logger = new Logger(CollectionItemsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
-    @Inject(CACHE_MANAGER) private readonly cache: Cache
+    private readonly prismaOptimization: PrismaOptimizationService,
+    @Inject(CACHE_MANAGER) private readonly cache: Cache,
+    private readonly workflowConfig: WorkflowConfigService,
+    @Inject(forwardRef(() => ContentVersioningService))
+    private readonly versioningService: ContentVersioningService,
+    @Inject(forwardRef(() => WebhooksService))
+    private readonly webhooksService: WebhooksService,
+    @Inject(forwardRef(() => HooksService))
+    private readonly hooksService: HooksService,
   ) {}
 
   private async getCollection(tenantId: string, slug: string) {
@@ -37,6 +54,15 @@ export class CollectionItemsService {
 
     const collection = await this.prisma.collection.findFirst({
       where: { tenantId, slug },
+      select: {
+        id: true,
+        tenantId: true,
+        slug: true,
+        name: true,
+        schemaJson: true,
+        createdAt: true,
+        updatedAt: true,
+      },
     });
 
     if (!collection) {
@@ -44,7 +70,7 @@ export class CollectionItemsService {
     }
 
     // Optimized: Increased TTL for collections (they change infrequently)
-    await this.cache.set(cacheKey, collection, 600); // 10 minutes TTL (increased from 30 seconds)
+    await this.cache.set(cacheKey, collection, 600 * 1000); // 10 minutes TTL in milliseconds
     return collection;
   }
 
@@ -84,14 +110,31 @@ export class CollectionItemsService {
       orderBy.push({ createdAt: 'desc' });
     }
 
-    const [total, items] = await this.prisma.$transaction([
-      this.prisma.collectionItem.count({ where }),
-      this.prisma.collectionItem.findMany({
+    // Optimized: Use PrismaOptimizationService with select only needed fields
+    const [total, items] = await Promise.all([
+      this.prismaOptimization.countOptimized('collectionItem', where),
+      this.prismaOptimization.findManyOptimized(
+        'collectionItem',
         where,
-        take: query.pageSize,
-        skip,
-        orderBy: orderBy.length > 0 ? orderBy : [{ createdAt: 'desc' }],
-      }),
+        {
+          id: true,
+          tenantId: true,
+          collectionId: true,
+          data: true,
+          status: true,
+          version: true,
+          publishedAt: true,
+          createdAt: true,
+          updatedAt: true,
+          createdById: true,
+          updatedById: true,
+        },
+        {
+          skip,
+          take: query.pageSize,
+          orderBy: orderBy.length > 0 ? orderBy : [{ createdAt: 'desc' }],
+        },
+      ),
     ]);
 
     return {
@@ -129,16 +172,88 @@ export class CollectionItemsService {
     const schemaJson = collection.schemaJson as Record<string, unknown>;
     await this.validateDataAgainstSchema(schemaJson, dto.data);
 
-    return this.prisma.collectionItem.create({
+    // Validate initial status
+    const workflowConfig = await this.workflowConfig.getWorkflowConfig(tenantId, collection.id);
+    const initialStatus = dto.status || 'DRAFT';
+    const validation = this.workflowConfig.validateStatusTransition(
+      workflowConfig,
+      'DRAFT', // Starting from draft
+      initialStatus,
+    );
+    
+    if (!validation.valid) {
+      throw new BadRequestException(validation.reason || 'Invalid initial status');
+    }
+
+    const item = await this.prisma.collectionItem.create({
       data: {
         tenantId,
         collectionId: collection.id,
         data: dto.data,
-        status: dto.status,
+        status: initialStatus,
         createdById: userId,
-        publishedAt: dto.status === 'PUBLISHED' ? new Date() : null,
+        publishedAt: initialStatus === 'PUBLISHED' ? new Date() : null,
+      },
+      select: {
+        id: true,
+        tenantId: true,
+        collectionId: true,
+        data: true,
+        status: true,
+        version: true,
+        publishedAt: true,
+        createdAt: true,
+        updatedAt: true,
+        createdById: true,
+        updatedById: true,
+        etag: true,
       },
     });
+
+    // Create automatic tasks if status is not draft
+    if (initialStatus !== 'DRAFT' && userId) {
+      await this.workflowConfig.createAutoTasks(
+        tenantId,
+        collection.id,
+        item.id,
+        'DRAFT',
+        initialStatus,
+        userId,
+      );
+    }
+
+    // Create initial version snapshot
+    await this.versioningService.createVersion(
+      tenantId,
+      item.id,
+      dto.data,
+      initialStatus,
+      userId,
+      'Initial version',
+    );
+
+    // Execute hooks (before)
+    try {
+      await this.hooksService.executeHooks(
+        tenantId,
+        'item.create',
+        { item, collection },
+        collection.id,
+      );
+    } catch (error) {
+      // Hook failure might prevent creation - log but continue for now
+      this.logger.error('Hook execution failed:', error instanceof Error ? error.stack : String(error));
+    }
+
+    // Trigger webhook
+    await this.webhooksService.trigger(
+      tenantId,
+      WebhookEvent.COLLECTION_ITEM_CREATED,
+      { item, collection },
+      collection.id,
+    );
+
+    return item;
   }
 
   async get(tenantId: string, slug: string, id: string) {
@@ -148,6 +263,20 @@ export class CollectionItemsService {
         tenantId,
         collectionId: collection.id,
         id,
+      },
+      select: {
+        id: true,
+        tenantId: true,
+        collectionId: true,
+        data: true,
+        status: true,
+        version: true,
+        publishedAt: true,
+        createdAt: true,
+        updatedAt: true,
+        createdById: true,
+        updatedById: true,
+        etag: true,
       },
     });
 
@@ -172,6 +301,20 @@ export class CollectionItemsService {
         collectionId: collection.id,
         id,
       },
+      select: {
+        id: true,
+        tenantId: true,
+        collectionId: true,
+        data: true,
+        status: true,
+        version: true,
+        publishedAt: true,
+        createdAt: true,
+        updatedAt: true,
+        createdById: true,
+        updatedById: true,
+        etag: true,
+      },
     });
 
     if (!current) {
@@ -183,22 +326,114 @@ export class CollectionItemsService {
       throw new ConflictException('Version mismatch - item was modified');
     }
 
+    // Validate status transition if status is changing
+    if (dto.status && dto.status !== current.status) {
+      const workflowConfig = await this.workflowConfig.getWorkflowConfig(tenantId, collection.id);
+      const validation = this.workflowConfig.validateStatusTransition(
+        workflowConfig,
+        current.status,
+        dto.status,
+      );
+      
+      if (!validation.valid) {
+        throw new BadRequestException(validation.reason || 'Invalid status transition');
+      }
+    }
+
     const schemaJson = collection.schemaJson as Record<string, unknown>;
     await this.validateDataAgainstSchema(schemaJson, dto.data);
 
     const nextVersion = current.version + 1;
+    const oldStatus = current.status;
+    const newStatus = dto.status || current.status;
 
-    return this.prisma.collectionItem.update({
+    // Execute hooks (before update)
+    let transformedData = dto.data;
+    try {
+      const hookResult = await this.hooksService.executeHooks(
+        tenantId,
+        'item.update',
+        { item: current, data: dto.data, oldStatus, newStatus, collection },
+        collection.id,
+      );
+      if (hookResult && hookResult.data) {
+        transformedData = hookResult.data;
+      }
+    } catch (error) {
+      // Hook failure might prevent update
+      throw new BadRequestException(`Hook execution failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+
+    // Create version snapshot before update
+    await this.versioningService.createVersion(
+      tenantId,
+      current.id,
+      current.data,
+      current.status,
+      userId,
+      dto.changeNote,
+    );
+
+    const updated = await this.prisma.collectionItem.update({
       where: { id: current.id },
       data: {
-        data: dto.data,
-        status: dto.status,
+        data: transformedData,
+        status: newStatus,
         version: nextVersion,
         updatedById: userId,
         publishedAt:
-          dto.status === 'PUBLISHED' ? new Date() : current.publishedAt,
+          newStatus === 'PUBLISHED' ? new Date() : current.publishedAt,
+      },
+      select: {
+        id: true,
+        tenantId: true,
+        collectionId: true,
+        data: true,
+        status: true,
+        version: true,
+        publishedAt: true,
+        createdAt: true,
+        updatedAt: true,
+        createdById: true,
+        updatedById: true,
+        etag: true,
       },
     });
+
+    // Create automatic tasks if status changed
+    if (oldStatus !== newStatus && userId) {
+      await this.workflowConfig.createAutoTasks(
+        tenantId,
+        collection.id,
+        id,
+        oldStatus,
+        newStatus,
+        userId,
+      );
+    }
+
+    // Trigger webhook
+    await this.webhooksService.trigger(
+      tenantId,
+      WebhookEvent.COLLECTION_ITEM_UPDATED,
+      { item: updated, oldItem: current, collection },
+      collection.id,
+    );
+
+    // Execute hooks (after update)
+    try {
+      await this.hooksService.executeHooks(
+        tenantId,
+        'item.updated',
+        { item: updated, oldItem: current, collection },
+        collection.id,
+      );
+    } catch (error) {
+      // Log but don't fail
+      this.logger.error('After hook execution failed:', error instanceof Error ? error.stack : String(error));
+    }
+
+    return updated;
   }
 
   async remove(tenantId: string, slug: string, id: string) {
@@ -209,15 +444,50 @@ export class CollectionItemsService {
         collectionId: collection.id,
         id,
       },
+      select: {
+        id: true,
+        tenantId: true,
+        collectionId: true,
+        data: true,
+        status: true,
+        version: true,
+        publishedAt: true,
+        createdAt: true,
+        updatedAt: true,
+        createdById: true,
+        updatedById: true,
+        etag: true,
+      },
     });
 
     if (!item) {
       throw new NotFoundException('Collection item not found');
     }
 
+    // Execute hooks (before delete)
+    try {
+      await this.hooksService.executeHooks(
+        tenantId,
+        'item.delete',
+        { item, collection },
+        collection.id,
+      );
+    } catch (error) {
+      // Hook failure might prevent deletion
+      throw new BadRequestException(`Hook execution failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+
     await this.prisma.collectionItem.delete({
       where: { id },
     });
+
+    // Trigger webhook
+    await this.webhooksService.trigger(
+      tenantId,
+      WebhookEvent.COLLECTION_ITEM_DELETED,
+      { item, collection },
+      collection.id,
+    );
 
     return { ok: true };
   }

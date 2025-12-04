@@ -27,7 +27,26 @@ Stworzenie fundamentu aplikacji multi‑tenant headless CMS z podstawową funkcj
 
 ## Zadania Sprintu
 
-### Epic 0: Platform Admin Hub (Globalny Panel Zarządzania)
+### Epic 0: Platform Panel (Panel Zarządzania Platformą) - TERAZ
+
+**WAŻNE:** Platform Panel to główny panel administracyjny do zarządzania wszystkimi stronami, użytkownikami, płatnościami i kontem. **Site Panel / Page Builder** (panel konkretnej strony z Page Builderem) jest odkładany na później.
+
+**Funkcjonalności Platform Panel:**
+- ✅ Zarządzanie stronami (sites) - lista, tworzenie, szczegóły
+- ✅ Zarządzanie użytkownikami - role, zaproszenia, uprawnienia per site
+- ✅ Zarządzanie płatnościami - subskrypcje, faktury, plany
+- ✅ Zarządzanie kontem - profil, dane fakturowe, hasło
+
+**Routes Platform Panel:**
+- `/dashboard`, `/sites`, `/sites/new`, `/sites/[slug]`, `/sites/[slug]/users`, `/sites/[slug]/billing`, `/billing`, `/account`
+
+**Status:** ✅ **IMPLEMENTOWANY** - Obecny focus projektu
+
+**Dokumentacja:**
+- `docs/admin-panel-refactoring-plan.md` - Szczegółowy plan implementacji Platform Panel
+- `docs/admin-panel-documentation.md` - Dokumentacja techniczna Platform Panel
+
+---
 
 #### TNT-020: Architektura i UX przepływów
 
@@ -37,7 +56,7 @@ Stworzenie fundamentu aplikacji multi‑tenant headless CMS z podstawową funkcj
 **Priority:** P0 (Critical)
 
 **Opis:**
-Zaproj. globalny panel („Hub") jako punkt wejścia po logowaniu: lista stron/tenantów, metryki i operacje zarządcze (tworzenie tenantów, zaproszenia, billing – roadmap).
+Zaprojektowanie Platform Panel jako punkt wejścia po logowaniu: lista stron/tenantów, metryki i operacje zarządcze (tworzenie stron, zaproszenia, billing).
 
 **Zadania:**
 

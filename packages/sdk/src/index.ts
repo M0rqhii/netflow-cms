@@ -13,8 +13,9 @@ export class ApiClient {
   private async request<T>(endpoint: string, options?: RequestInit): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
     
-    // Debug: log request URL in development
-    if (process.env.NODE_ENV === 'development') {
+    // Debug: log request URL in development (using console.log as SDK doesn't have logger)
+    // Note: This is acceptable for SDK as it's a lightweight client library
+    if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'development') {
       console.log('[SDK] Request:', url);
     }
     
@@ -26,6 +27,31 @@ export class ApiClient {
           ...(options?.headers || {}),
         },
       });
+      
+      // Handle 401 Unauthorized - clear tokens and redirect to login
+      if (response.status === 401) {
+        // Clear all tokens from localStorage
+        if (typeof window !== 'undefined') {
+          try {
+            const keys: string[] = [];
+            for (let i = 0; i < localStorage.length; i++) {
+              const k = localStorage.key(i);
+              if (k) keys.push(k);
+            }
+            keys.forEach((k) => {
+              if (k === 'authToken' || k.startsWith('tenantToken:')) {
+                localStorage.removeItem(k);
+              }
+            });
+          } catch (error) {
+            // Silently fail if localStorage is not available
+          }
+          // Redirect to login
+          window.location.href = '/login';
+        }
+        const text = await response.text().catch(() => '');
+        throw new Error(`Unauthorized. Please login again. ${text || response.statusText}`);
+      }
       
       if (!response.ok) {
         const text = await response.text().catch(() => '');
@@ -69,6 +95,97 @@ export class ApiClient {
     return this.request(`/auth/resolve-tenant/${encodeURIComponent(slug)}`, {
       method: 'GET',
       headers: { Authorization: `Bearer ${token}` },
+    });
+  }
+
+  async patch<T>(endpoint: string, data: unknown, token?: string): Promise<T> {
+    return this.request<T>(endpoint, {
+      method: 'PATCH',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: JSON.stringify(data),
+    });
+  }
+
+  async get<T>(endpoint: string, token?: string): Promise<T> {
+    return this.request<T>(endpoint, {
+      method: 'GET',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+  }
+
+  // Billing methods
+  async getSubscriptions(token: string): Promise<{ subscriptions: any[]; pagination: any }> {
+    return this.request<{ subscriptions: any[]; pagination: any }>(`/billing/subscriptions`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  }
+
+  async getInvoices(token: string, page?: number, pageSize?: number): Promise<{ invoices: any[]; pagination: any }> {
+    const params = new URLSearchParams();
+    if (page) params.append('page', page.toString());
+    if (pageSize) params.append('pageSize', pageSize.toString());
+    const query = params.toString() ? `?${params.toString()}` : '';
+    return this.request<{ invoices: any[]; pagination: any }>(`/billing/invoices${query}`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  }
+
+  async getTenantSubscription(token: string, tenantId: string): Promise<any> {
+    return this.request<any>(`/tenants/${encodeURIComponent(tenantId)}/subscription`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  }
+
+  async getTenantInvoices(token: string, tenantId: string, page?: number, pageSize?: number): Promise<{ invoices: any[]; pagination: any }> {
+    const params = new URLSearchParams();
+    if (page) params.append('page', page.toString());
+    if (pageSize) params.append('pageSize', pageSize.toString());
+    const query = params.toString() ? `?${params.toString()}` : '';
+    return this.request<{ invoices: any[]; pagination: any }>(`/tenants/${encodeURIComponent(tenantId)}/invoices${query}`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  }
+
+  // Account methods
+  async getAccount(token: string): Promise<any> {
+    return this.request<any>(`/account`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  }
+
+  async updateAccount(token: string, data: { name?: string; preferredLanguage?: 'pl' | 'en' }): Promise<any> {
+    return this.request<any>(`/account`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(data),
+    });
+  }
+
+  async changePassword(token: string, data: { oldPassword: string; newPassword: string }): Promise<any> {
+    return this.request<any>(`/account/password`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getBillingInfo(token: string): Promise<any> {
+    return this.request<any>(`/account/billing-info`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  }
+
+  async updateBillingInfo(token: string, data: { companyName?: string; nip?: string; address?: string }): Promise<any> {
+    return this.request<any>(`/account/billing-info`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(data),
     });
   }
 }

@@ -1,6 +1,8 @@
 import {
   Controller,
   Get,
+  Patch,
+  Body,
   UseGuards,
   Param,
   } from '@nestjs/common';
@@ -14,6 +16,8 @@ import { CurrentUser } from '../../common/auth/decorators/current-user.decorator
 import { CurrentTenant } from '../../common/decorators/current-tenant.decorator';
 import { Role, Permission } from '../../common/auth/roles.enum';
 import { UsersService } from './users.service';
+import { z } from 'zod';
+import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 
 /**
  * UsersController - RESTful API for user management
@@ -31,6 +35,22 @@ export class UsersController {
   @Get('me')
   getCurrentUser(@CurrentUser() user: { id: string }) {
     return this.usersService.getCurrentUser(user.id);
+  }
+
+  /**
+   * PATCH /api/v1/users/me/preferences
+   * Update current user preferences (language, etc.)
+   * Note: This endpoint doesn't require tenant context as preferences are global
+   */
+  @Patch('me/preferences')
+  @UseGuards(AuthGuard)
+  updatePreferences(
+    @CurrentUser() user: { id: string },
+    @Body(new ZodValidationPipe(z.object({
+      preferredLanguage: z.enum(['pl', 'en']).optional(),
+    }))) body: { preferredLanguage?: 'pl' | 'en' }
+  ) {
+    return this.usersService.updatePreferences(user.id, body);
   }
 
   /**

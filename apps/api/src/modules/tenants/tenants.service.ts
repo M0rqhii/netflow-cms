@@ -33,7 +33,7 @@ export class TenantsService {
         name: createTenantDto.name,
         slug: createTenantDto.slug,
         plan: createTenantDto.plan,
-        settings: createTenantDto.settings || {},
+        settings: (createTenantDto.settings || {}) as any, // Prisma Json type
       },
       select: {
         id: true,
@@ -187,7 +187,7 @@ export class TenantsService {
         ...(updateTenantDto.name && { name: updateTenantDto.name }),
         ...(updateTenantDto.slug && { slug: updateTenantDto.slug }),
         ...(updateTenantDto.plan && { plan: updateTenantDto.plan }),
-        ...(settings !== undefined && { settings }),
+        ...(settings !== undefined && { settings: settings as any }), // Prisma Json type
       },
       select: {
         id: true,
@@ -222,5 +222,3 @@ export class TenantsService {
     return { message: `Tenant "${tenant.name}" has been deleted successfully` };
   }
 }
-
-

@@ -10,6 +10,9 @@ export const updateWebhookSchema = z.object({
   secret: z.string().optional(),
   active: z.boolean().optional(),
   description: z.string().optional(),
+  collectionId: z.string().uuid().nullable().optional(),
+  retryCount: z.number().int().positive().max(10).optional(),
+  timeout: z.number().int().positive().max(30000).optional(),
 });
 
 export type UpdateWebhookDto = z.infer<typeof updateWebhookSchema>;

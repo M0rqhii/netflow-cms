@@ -3,13 +3,14 @@ import { TenantsController } from './tenants.controller';
 import { TenantsService } from './tenants.service';
 import { AuthModule } from '../../common/auth/auth.module';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { BillingModule } from '../billing/billing.module';
 
 /**
  * TenantsModule - tenant management module
  * AI Note: Provides tenant CRUD endpoints with SUPER_ADMIN protection
  */
 @Module({
-  imports: [AuthModule],
+  imports: [AuthModule, BillingModule],
   controllers: [TenantsController],
   providers: [TenantsService, PrismaService],
   exports: [TenantsService],

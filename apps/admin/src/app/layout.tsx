@@ -1,15 +1,10 @@
-import type { Metadata } from 'next';
 import './globals.css';
-import { Topbar } from '@/components/layout/Topbar';
-import { Sidebar } from '@/components/layout/Sidebar';
-import React from 'react';
-import ThemeToggle from '@/components/ui/ThemeToggle';
-import CollapseToggle from '@/components/ui/CollapseToggle';
-import UserBar from '@/components/layout/UserBar';
-import { ToastProvider } from '@/components/ui/Toast';
-import Link from 'next/link';
+import LayoutWrapper from './LayoutWrapper';
+import { IntlProvider } from '../components/i18n/IntlProvider';
+import { routing } from '../i18n/routing';
+import Script from 'next/script';
 
-export const metadata: Metadata = {
+export const metadata = {
   title: 'Netflow CMS - Admin Panel',
   description: 'Multi-Tenant Headless CMS Admin Panel',
 };
@@ -19,11 +14,16 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  // Use default locale for SSR
+  const locale = routing.defaultLocale;
+
   return (
-    <html lang="en" suppressHydrationWarning>
-      <head>
+    <html lang={locale} suppressHydrationWarning>
+      <body suppressHydrationWarning>
         {/* Inline theme init to avoid FOUC between SSR and client */}
-        <script
+        <Script
+          id="theme-init"
+          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
             __html: `
               (function() {
@@ -37,17 +37,9 @@ export default function RootLayout({
             `,
           }}
         />
-      </head>
-      <body suppressHydrationWarning>
-        <ToastProvider>
-          <Topbar right={<div className="flex gap-2"><CollapseToggle /><ThemeToggle /><UserBar /></div>} />
-          <div className="flex min-h-[calc(100vh-56px)]">
-            <Sidebar />
-            <main className="flex-1">
-              {children}
-            </main>
-          </div>
-        </ToastProvider>
+        <IntlProvider>
+          <LayoutWrapper>{children}</LayoutWrapper>
+        </IntlProvider>
       </body>
     </html>
   );

@@ -1,6 +1,55 @@
-# Netflow CMS - Multi-Tenant Headless CMS
+# Netflow CMS - Platform Hosting + Site Management System
 
-Professional-grade multi-tenant headless CMS built with modern technologies and AI-assisted development.
+Professional-grade platform combining hosting management with WordPress-style site management. Built with modern technologies and AI-assisted development.
+
+## 🎯 System Architecture - Two Levels
+
+### 1. Platform Panel (TERAZ) - Main Admin Panel
+
+**Purpose:** Central management hub for all sites, users, billing, and account management.
+
+**Features:**
+- **Site Management** - List all sites, create new sites, view site details
+- **User Management** - Manage users per site, roles, invitations
+- **Billing & Subscriptions** - View subscriptions, invoices, payment history
+- **Account Management** - User profile, billing info, password change
+
+**Routes:**
+- `/dashboard` - Platform overview
+- `/sites` - List all sites
+- `/sites/new` - Create new site
+- `/sites/[slug]` - Site overview
+- `/sites/[slug]/users` - Manage site users
+- `/sites/[slug]/billing` - Site billing
+- `/billing` - Global billing overview
+- `/account` - User account settings
+
+**Status:** ✅ **IMPLEMENTED** - Currently being refined
+
+---
+
+### 2. Site Panel / Page Builder (NA PÓŹNIEJ) - Site-Specific CMS
+
+**Purpose:** Content management and page building for individual sites.
+
+**Features:**
+- **Page Builder** - Drag & drop page editor (like Elementor/Webflow)
+- **Content Management** - Collections, content types, media
+- **Site Settings** - Domain, SEO, etc.
+
+**Routes:**
+- `/tenant/[slug]` - Site dashboard
+- `/tenant/[slug]/collections` - Content collections
+- `/tenant/[slug]/media` - Media library
+- `/tenant/[slug]/pages` - Page builder (future)
+
+**Status:** ⏳ **PLANNED** - To be implemented after Platform Panel is complete
+
+---
+
+## Current Focus
+
+**We are currently working on the Platform Panel** - the main admin interface for managing sites, users, billing, and accounts. The Site Panel with Page Builder will be implemented in the next phase.
 
 ## Quick Start
 
@@ -12,7 +61,9 @@ See docs/GETTING_STARTED.md for the Docker-based local setup and handy PowerShel
 netflow-cms/
 ├─ apps/
 │  ├─ api/          # NestJS Backend API
-│  └─ admin/        # Next.js Admin Panel
+│  └─ admin/        # Next.js Platform Panel (Admin Panel)
+│                    # Routes: /dashboard, /sites, /billing, /account
+│                    # Future: /tenant/[slug]/* (Site Panel / Page Builder)
 ├─ packages/
 │  ├─ schemas/      # Shared Zod schemas
 │  ├─ sdk/          # TypeScript SDK
@@ -44,15 +95,23 @@ netflow-cms/
 
 ## Documentation
 
-- START_HERE.md — Quick setup guide (5 minutes)
-- docs/guides/QUICK_START.md — Collections module quick start
-- docs/guides/SETUP_COMPLETE.md — Full setup instructions
-- docs/status/PROJECT_STATUS.md — Current project status
-- docs/prd.md — Product Requirements Document
-- docs/plan.md — Development plan
-- docs/api/ — API documentation
-- context-instructions.md — AI agent guidelines
-- docs/REPO_STRUCTURE.md — Detailed structure overview
+### Platform Panel (Current Focus)
+- `docs/admin-panel-refactoring-plan.md` — Platform Panel refactoring plan
+- `docs/admin-panel-documentation.md` — Platform Panel technical documentation
+- `docs/status/PROJECT_STATUS.md` — Current project status
+
+### General Documentation
+- `START_HERE.md` — Quick setup guide (5 minutes)
+- `docs/guides/QUICK_START.md` — Collections module quick start
+- `docs/guides/SETUP_COMPLETE.md` — Full setup instructions
+- `docs/prd.md` — Product Requirements Document
+- `docs/plan.md` — Development plan
+- `docs/api/` — API documentation
+- `context-instructions.md` — AI agent guidelines
+- `docs/REPO_STRUCTURE.md` — Detailed structure overview
+
+### Site Panel / Page Builder (Future)
+- Page Builder documentation will be added when implementation begins
 
 ## Testing
 

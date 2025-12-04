@@ -17,6 +17,7 @@ import { RolesGuard } from '../../../common/auth/guards/roles.guard';
 import { PermissionsGuard } from '../../../common/auth/guards/permissions.guard';
 import { Permissions } from '../../../common/auth/decorators/permissions.decorator';
 import { CurrentTenant } from '../../../common/decorators/current-tenant.decorator';
+import { CurrentUser, CurrentUserPayload } from '../../../common/auth/decorators/current-user.decorator';
 import { Permission } from '../../../common/auth/roles.enum';
 import { ContentEntriesService } from '../services/content-entries.service';
 import {
@@ -38,11 +39,12 @@ export class ContentEntriesController {
   @Permissions(Permission.CONTENT_WRITE)
   create(
     @CurrentTenant() tenantId: string,
+    @CurrentUser() user: CurrentUserPayload,
     @Param('contentTypeSlug') contentTypeSlug: string,
     @Body() body: unknown
   ) {
     const dto = CreateContentEntryDtoSchema.parse(body);
-    return this.contentEntriesService.create(tenantId, contentTypeSlug, dto);
+    return this.contentEntriesService.create(tenantId, contentTypeSlug, dto, user.id);
   }
 
   @Get()
@@ -70,12 +72,13 @@ export class ContentEntriesController {
   @Permissions(Permission.CONTENT_WRITE)
   update(
     @CurrentTenant() tenantId: string,
+    @CurrentUser() user: CurrentUserPayload,
     @Param('contentTypeSlug') contentTypeSlug: string,
     @Param('id') id: string,
     @Body() body: unknown
   ) {
     const dto = UpdateContentEntryDtoSchema.parse(body);
-    return this.contentEntriesService.update(tenantId, contentTypeSlug, id, dto);
+    return this.contentEntriesService.update(tenantId, contentTypeSlug, id, dto, user.id);
   }
 
   @Delete(':id')

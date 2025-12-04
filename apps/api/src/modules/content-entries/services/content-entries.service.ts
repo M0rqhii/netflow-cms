@@ -29,7 +29,13 @@ export class ContentEntriesService {
   /**
    * Get content type by slug with caching
    */
-  private async getContentType(tenantId: string, slug: string) {
+  private async getContentType(tenantId: string, slug: string): Promise<{
+    id: string;
+    tenantId: string;
+    slug: string;
+    name: string;
+    schema: Record<string, unknown>;
+  }> {
     const cacheKey = `ct:${tenantId}:${slug}`;
     const cached = await this.cache.get<{
       id: string;
@@ -46,7 +52,7 @@ export class ContentEntriesService {
     const contentType = await this.contentTypesService.getBySlug(tenantId, slug);
 
     // Optimized: Increased TTL for content types (they change infrequently)
-    await this.cache.set(cacheKey, contentType, 600); // 10 minutes TTL (increased from 30 seconds)
+    await this.cache.set(cacheKey, contentType, 600 * 1000); // 10 minutes TTL in milliseconds
     return contentType;
   }
 
@@ -147,7 +153,8 @@ export class ContentEntriesService {
   async create(
     tenantId: string,
     contentTypeSlug: string,
-    dto: CreateContentEntryDto
+    dto: CreateContentEntryDto,
+    userId?: string
   ) {
     const contentType = await this.getContentType(tenantId, contentTypeSlug);
     const schema = contentType.schema as Record<string, unknown>;
@@ -159,7 +166,23 @@ export class ContentEntriesService {
         tenantId,
         contentTypeId: contentType.id,
         data: dto.data,
-        status: dto.status,
+        status: dto.status || 'draft',
+        createdById: userId,
+        updatedById: userId,
+      },
+      select: {
+        id: true,
+        tenantId: true,
+        contentTypeId: true,
+        data: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+        publishedAt: true,
+        reviewedAt: true,
+        reviewedById: true,
+        createdById: true,
+        updatedById: true,
       },
     });
   }
@@ -183,15 +206,16 @@ export class ContentEntriesService {
     const validFilterFields = schema.properties ? Object.keys(schema.properties) : [];
 
     // Build WHERE conditions for raw SQL
+    // Note: Use table alias 'ce' to avoid ambiguous column references when JOINing with content_types
     const conditions: string[] = [
-      `"tenantId" = $1`,
-      `"contentTypeId" = $2`,
+      `ce."tenantId" = $1`,
+      `ce."contentTypeId" = $2`,
     ];
     const params: any[] = [tenantId, contentType.id];
     let paramIndex = 3;
 
     if (query.status) {
-      conditions.push(`status = $${paramIndex}`);
+      conditions.push(`ce.status = $${paramIndex}`);
       params.push(query.status);
       paramIndex++;
     }
@@ -205,39 +229,44 @@ export class ContentEntriesService {
         }
         
         // Use PostgreSQL JSON operator: data->>'field' = 'value'
+        // Field name is validated against schema properties (whitelist) to prevent injection
         // For different types, we need to handle them appropriately
+        // Note: Field name is safe because it's validated against validFilterFields whitelist
+        const escapedField = field.replace(/[^a-zA-Z0-9_]/g, ''); // Additional safety: remove any non-alphanumeric chars
+        if (escapedField !== field) {
+          // If field was modified by escaping, skip it (shouldn't happen due to validation, but extra safety)
+          continue;
+        }
+        
         if (typeof value === 'string') {
-          conditions.push(`data->>'${field.replace(/'/g, "''")}' = $${paramIndex}`);
+          conditions.push(`ce.data->>'${escapedField}' = $${paramIndex}`);
           params.push(value);
         } else if (typeof value === 'number') {
-          conditions.push(`(data->>'${field.replace(/'/g, "''")}')::numeric = $${paramIndex}`);
+          conditions.push(`(ce.data->>'${escapedField}')::numeric = $${paramIndex}`);
           params.push(value);
         } else if (typeof value === 'boolean') {
-          conditions.push(`(data->>'${field.replace(/'/g, "''")}')::boolean = $${paramIndex}`);
+          conditions.push(`(ce.data->>'${escapedField}')::boolean = $${paramIndex}`);
           params.push(value);
         }
         paramIndex++;
       }
     }
 
-    // Build full-text search condition
+    // Build full-text search condition using PostgreSQL tsvector
     if (query.search) {
-      // Search in all string fields of the JSON data
-      const searchConditions: string[] = [];
-      const searchTerm = `%${query.search.toLowerCase()}%`;
-      if (validFilterFields.length > 0) {
-        for (const field of validFilterFields) {
-          const fieldSchema = schema.properties?.[field];
-          if (fieldSchema?.type === 'string') {
-            // Escape field name to prevent injection (already validated against schema)
-            const escapedField = field.replace(/'/g, "''");
-            searchConditions.push(`LOWER(data->>'${escapedField}') LIKE $${paramIndex}`);
-          }
-        }
-      }
-      if (searchConditions.length > 0) {
-        conditions.push(`(${searchConditions.join(' OR ')})`);
-        params.push(searchTerm);
+      // Use PostgreSQL full-text search with tsvector for better performance
+      // Convert search query to tsquery format
+      const searchQuery = query.search
+        .trim()
+        .split(/\s+/)
+        .map(term => term.replace(/[^\w]/g, ''))
+        .filter(term => term.length > 0)
+        .join(' & '); // AND operator for all terms
+      
+      if (searchQuery) {
+        // Use tsvector search with ranking - use table alias to avoid ambiguity
+        conditions.push(`ce."searchVector" @@ to_tsquery('english', $${paramIndex})`);
+        params.push(searchQuery);
         paramIndex++;
       }
     }
@@ -245,7 +274,8 @@ export class ContentEntriesService {
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
     // Build ORDER BY clause
-    let orderByClause = 'ORDER BY "createdAt" DESC';
+    // Note: Use table alias 'ce' to avoid ambiguous column references
+    let orderByClause = 'ORDER BY ce."createdAt" DESC';
     if (query.sort) {
       const sortFields: string[] = [];
       query.sort.split(',').forEach((field: string) => {
@@ -254,7 +284,7 @@ export class ContentEntriesService {
         // Validate field name to prevent injection
         const validFields = ['createdAt', 'updatedAt', 'status'];
         if (validFields.includes(fieldName)) {
-          sortFields.push(`"${fieldName}" ${desc ? 'DESC' : 'ASC'}`);
+          sortFields.push(`ce."${fieldName}" ${desc ? 'DESC' : 'ASC'}`);
         }
       });
       if (sortFields.length > 0) {
@@ -267,21 +297,43 @@ export class ContentEntriesService {
     const limitParamIndex = paramIndex;
     const offsetParamIndex = paramIndex + 1;
 
-    // Use raw SQL for efficient JSON filtering and search
+    // Use raw SQL for efficient JSON filtering and full-text search
     // This avoids fetching all records and filtering in memory
+    // Note: Use table alias 'ce' for searchVector to avoid ambiguity
+    const searchRanking = query.search 
+      ? `, ts_rank(ce."searchVector", to_tsquery('english', $${paramIndex - 1})) as rank`
+      : '';
+    const orderByWithRank = query.search && searchRanking
+      ? `ORDER BY rank DESC, ${orderByClause.replace('ORDER BY ', '')}`
+      : orderByClause;
+    
+    // Explicitly select columns to avoid tsvector deserialization issues
+    // Exclude searchVector as it's not needed and causes Prisma deserialization errors
     const entries = (await this.prisma.$queryRawUnsafe(
       `
         SELECT 
-          ce.*,
+          ce.id,
+          ce."tenantId",
+          ce."contentTypeId",
+          ce.data,
+          ce.status,
+          ce."createdAt",
+          ce."updatedAt",
+          ce."publishedAt",
+          ce."reviewedAt",
+          ce."reviewedById",
+          ce."createdById",
+          ce."updatedById",
           json_build_object(
             'id', ct.id,
             'name', ct.name,
             'slug', ct.slug
           ) as "contentType"
+          ${searchRanking}
         FROM content_entries ce
         INNER JOIN content_types ct ON ce."contentTypeId" = ct.id
         ${whereClause}
-        ${orderByClause}
+        ${orderByWithRank}
         LIMIT $${limitParamIndex} OFFSET $${offsetParamIndex}
       `,
       ...params,
@@ -322,7 +374,19 @@ export class ContentEntriesService {
         contentTypeId: contentType.id,
         id,
       },
-      include: {
+      select: {
+        id: true,
+        tenantId: true,
+        contentTypeId: true,
+        data: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+        publishedAt: true,
+        reviewedAt: true,
+        reviewedById: true,
+        createdById: true,
+        updatedById: true,
         contentType: {
           select: {
             id: true,
@@ -347,7 +411,8 @@ export class ContentEntriesService {
     tenantId: string,
     contentTypeSlug: string,
     id: string,
-    dto: UpdateContentEntryDto
+    dto: UpdateContentEntryDto,
+    userId?: string
   ) {
     const contentType = await this.getContentType(tenantId, contentTypeSlug);
     
@@ -356,6 +421,20 @@ export class ContentEntriesService {
         tenantId,
         contentTypeId: contentType.id,
         id,
+      },
+      select: {
+        id: true,
+        tenantId: true,
+        contentTypeId: true,
+        data: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+        publishedAt: true,
+        reviewedAt: true,
+        reviewedById: true,
+        createdById: true,
+        updatedById: true,
       },
     });
 
@@ -366,6 +445,7 @@ export class ContentEntriesService {
     const updateData: {
       data?: Record<string, unknown>;
       status?: string;
+      updatedById?: string;
     } = {};
 
     if (dto.data !== undefined) {
@@ -378,10 +458,26 @@ export class ContentEntriesService {
       updateData.status = dto.status;
     }
 
+    if (userId) {
+      updateData.updatedById = userId;
+    }
+
     return this.prisma.contentEntry.update({
       where: { id: current.id },
       data: updateData as any,
-      include: {
+      select: {
+        id: true,
+        tenantId: true,
+        contentTypeId: true,
+        data: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+        publishedAt: true,
+        reviewedAt: true,
+        reviewedById: true,
+        createdById: true,
+        updatedById: true,
         contentType: {
           select: {
             id: true,
@@ -404,6 +500,20 @@ export class ContentEntriesService {
         tenantId,
         contentTypeId: contentType.id,
         id,
+      },
+      select: {
+        id: true,
+        tenantId: true,
+        contentTypeId: true,
+        data: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+        publishedAt: true,
+        reviewedAt: true,
+        reviewedById: true,
+        createdById: true,
+        updatedById: true,
       },
     });
 

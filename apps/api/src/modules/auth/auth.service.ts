@@ -112,8 +112,7 @@ export class AuthService {
       return null;
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { passwordHash, ...result } = user;
+    const { passwordHash: _, ...result } = user;
     return result;
   }
 
@@ -245,6 +244,7 @@ export class AuthService {
         passwordHash,
         tenantId: registerDto.tenantId,
         role: registerDto.role || 'viewer',
+        preferredLanguage: registerDto.preferredLanguage || 'en',
       },
     });
 
@@ -484,7 +484,7 @@ export class AuthService {
       isMember = !!membership;
     } catch (error) {
       // If UserTenant table doesn't exist yet, fall back to legacy
-      console.warn('UserTenant table not available, using legacy model', error);
+      this.logger.warn('UserTenant table not available, using legacy model', error);
       const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { tenantId: true } });
       isMember = !!user && user.tenantId === tenant.id;
     }
@@ -492,5 +492,30 @@ export class AuthService {
     if (!isMember) throw new UnauthorizedException('Not a member of this tenant');
 
     return tenant;
+  }
+
+  async getProfile(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        tenantId: true,
+        preferredLanguage: true,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      tenantId: user.tenantId,
+      preferredLanguage: user.preferredLanguage || 'en',
+    };
   }
 }

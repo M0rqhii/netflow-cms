@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { getAuthToken } from '@/lib/api';
+import { getAuthToken, clearAuthTokens } from '@/lib/api';
+import { useTranslations } from '@/hooks/useTranslations';
 
 function decodeEmail(token: string | null): string | null {
   if (!token) return null;
@@ -14,6 +15,7 @@ function decodeEmail(token: string | null): string | null {
 }
 
 export default function UserBar() {
+  const t = useTranslations();
   const [email, setEmail] = useState<string | null>(null);
 
   useEffect(() => {
@@ -21,26 +23,14 @@ export default function UserBar() {
   }, []);
 
   const logout = () => {
-    try {
-      if (typeof localStorage !== 'undefined') {
-        const keys: string[] = [];
-        for (let i = 0; i < localStorage.length; i++) {
-          const k = localStorage.key(i);
-          if (k) keys.push(k);
-        }
-        keys.forEach((k) => {
-          if (k === 'authToken' || k.startsWith('tenantToken:')) localStorage.removeItem(k);
-        });
-      }
-    } finally {
-      window.location.href = '/login';
-    }
+    clearAuthTokens();
+    window.location.href = '/login';
   };
 
   return (
     <div className="flex items-center gap-2">
       {email && <span className="text-sm text-muted">{email}</span>}
-      <button className="btn btn-outline" onClick={logout}>Logout</button>
+      <button className="btn btn-outline" onClick={logout}>{t('auth.logout')}</button>
     </div>
   );
 }

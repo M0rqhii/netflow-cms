@@ -57,12 +57,7 @@ export class AuthController {
   @UseGuards(AuthGuard)
   @Get('me')
   async getProfile(@CurrentUser() user: CurrentUserPayload) {
-    return {
-      id: user.id,
-      email: user.email,
-      role: user.role,
-      tenantId: user.tenantId,
-    };
+    return this.authService.getProfile(user.id);
   }
 
   @UseGuards(AuthGuard)

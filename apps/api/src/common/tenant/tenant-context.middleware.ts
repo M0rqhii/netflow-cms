@@ -80,10 +80,13 @@ export class TenantContextMiddleware implements NestMiddleware {
 
     // Set PostgreSQL session variable for Row-Level Security
     // This ensures all queries are automatically filtered by tenant
+    // Use $executeRawUnsafe because we need to set session variables, not parameterized queries
+    // SECURITY: resolvedTenantId is validated as UUID format (lines 55-59) before use, preventing SQL injection
+    // PostgreSQL SET commands don't support parameterized queries, but UUID validation ensures safety
     try {
-      await this.prisma.$executeRaw`
-        SET app.current_tenant_id = ${resolvedTenantId}
-      `;
+      await this.prisma.$executeRawUnsafe(
+        `SET app.current_tenant_id = '${resolvedTenantId}'`,
+      );
       this.logger.debug(`Set tenant context: ${resolvedTenantId}`);
     } catch (error) {
       this.logger.error(
@@ -95,7 +98,7 @@ export class TenantContextMiddleware implements NestMiddleware {
     // Clear tenant context after request completes
     res.on('finish', async () => {
       try {
-        await this.prisma.$executeRaw`SET app.current_tenant_id = NULL`;
+        await this.prisma.$executeRawUnsafe(`SET app.current_tenant_id = NULL`);
       } catch (error) {
         this.logger.error(
           `Failed to clear tenant context: ${error}`,

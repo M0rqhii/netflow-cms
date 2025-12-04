@@ -21,26 +21,39 @@ model Tenant {
   updatedAt DateTime @updatedAt
 
   // Relations
-  users         User[]
-  contentTypes  ContentType[]
-  contentEntries ContentEntry[]
-  collections   Collection[]
-  collectionItems CollectionItem[]
-  mediaFiles    MediaFile[]
-  memberships  UserTenant[]
+  users             User[]
+  contentTypes      ContentType[]
+  contentEntries    ContentEntry[]
+  collections       Collection[]
+  collectionItems   CollectionItem[]
+  collectionItemVersions CollectionItemVersion[]
+  mediaFiles        MediaFile[]
+  memberships       UserTenant[]
+  contentReviews    ContentReview[]
+  contentComments   ContentComment[]
+  tasks             Task[]
+  collectionRoles   CollectionRole[]
+  webhooks          Webhook[]
+  webhookDeliveries WebhookDelivery[]
+  hooks             Hook[]
+  subscriptions     Subscription[]
+  invoices          Invoice[]
+  payments          Payment[]
+  usageTracking     UsageTracking[]
 
   @@map("tenants")
 }
 
 // User model - użytkownicy w systemie
 model User {
-  id        String   @id @default(uuid())
-  tenantId  String
-  email     String
-  passwordHash String
-  role      String   @default("viewer") // super_admin, tenant_admin, editor, viewer
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                String   @id @default(uuid())
+  tenantId          String
+  email             String
+  passwordHash      String
+  role              String   @default("viewer") // super_admin, tenant_admin, editor, viewer
+  preferredLanguage String   @default("en") // pl, en
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
@@ -58,11 +71,11 @@ model ContentType {
   tenantId  String
   name      String
   slug      String
-  schema    Json     // Zod schema jako JSON
+  schema    Json // Zod schema jako JSON
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant         Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   contentEntries ContentEntry[]
 
   @@unique([tenantId, slug])
@@ -72,36 +85,49 @@ model ContentType {
 
 // ContentEntry model - wpisy treści
 model ContentEntry {
-  id            String   @id @default(uuid())
+  id            String    @id @default(uuid())
   tenantId      String
   contentTypeId String
-  data          Json     // Dane treści zgodne ze schematem ContentType
-  status        String   @default("draft") // draft, published, archived
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  data          Json // Dane treści zgodne ze schematem ContentType
+  status        String    @default("draft") // draft, review, published, archived
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  publishedAt   DateTime? // Data publikacji
+  reviewedAt    DateTime? // Data ostatniej recenzji
+  reviewedById  String? // ID użytkownika który zatwierdził
+  createdById   String? // ID użytkownika który utworzył
+  updatedById   String? // ID użytkownika który ostatnio zaktualizował
 
-  tenant      Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  contentType ContentType @relation(fields: [contentTypeId], references: [id], onDelete: Cascade)
+  tenant      Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  contentType ContentType      @relation(fields: [contentTypeId], references: [id], onDelete: Cascade)
+  reviews     ContentReview[]
+  comments    ContentComment[]
+  tasks       Task[]
 
   @@index([tenantId])
   @@index([tenantId, contentTypeId])
   @@index([tenantId, status])
   @@index([tenantId, createdAt])
+  @@index([tenantId, publishedAt])
   @@map("content_entries")
 }
 
 // Collection model - kolekcje treści (rozszerzenie ContentType z wersjonowaniem)
 model Collection {
-  id        String   @id @default(uuid())
-  tenantId  String
-  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  slug      String
-  name      String
-  schemaJson Json    // Zod schema jako JSON
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String   @id @default(uuid())
+  tenantId   String
+  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  slug       String
+  name       String
+  schemaJson Json // Zod schema jako JSON
+  workflowConfig Json? // Konfiguracja workflow per kolekcja: { stages: ['draft', 'review', 'approved', 'published', 'archived'], requireReview: boolean, autoTasks: {...} }
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-  items CollectionItem[]
+  items        CollectionItem[]
+  roles        CollectionRole[]
+  webhooks     Webhook[]
+  hooks        Hook[]
 
   @@unique([tenantId, slug])
   @@index([tenantId])
@@ -110,20 +136,22 @@ model Collection {
 
 // CollectionItem model - elementy kolekcji z wersjonowaniem
 model CollectionItem {
-  id           String      @id @default(uuid())
-  tenantId      String
-  tenant        Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  collectionId  String
-  collection    Collection  @relation(fields: [collectionId], references: [id], onDelete: Cascade)
-  status        ItemStatus  @default(DRAFT)
-  data          Json        // Walidowane względem Collection.schemaJson
-  createdById   String?
-  updatedById   String?
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-  version       Int         @default(1)
-  publishedAt   DateTime?
-  etag          String      @default("")
+  id           String     @id @default(uuid())
+  tenantId     String
+  tenant       Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  collectionId String
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  status       ItemStatus @default(DRAFT)
+  data         Json // Walidowane względem Collection.schemaJson
+  createdById  String?
+  updatedById  String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  version      Int        @default(1)
+  publishedAt  DateTime?
+  etag         String     @default("")
+
+  versions     CollectionItemVersion[]
 
   @@index([tenantId, collectionId])
   @@index([tenantId, status])
@@ -132,27 +160,50 @@ model CollectionItem {
   @@map("collection_items")
 }
 
+// CollectionItemVersion model - historia wersji elementów kolekcji
+model CollectionItemVersion {
+  id           String         @id @default(uuid())
+  tenantId     String
+  tenant       Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  itemId       String
+  item         CollectionItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  version      Int // Numer wersji (1, 2, 3...)
+  data         Json // Snapshot danych wersji
+  status       ItemStatus // Status wersji
+  changeNote   String? // Opcjonalna notatka o zmianach
+  changedBy    String? // ID użytkownika który wprowadził zmianę
+  createdAt    DateTime       @default(now())
+
+  @@index([tenantId, itemId])
+  @@index([tenantId, itemId, version])
+  @@index([tenantId, createdAt])
+  @@map("collection_item_versions")
+}
+
 enum ItemStatus {
   DRAFT
+  REVIEW
+  APPROVED
   PUBLISHED
+  ARCHIVED
 }
 
 // MediaFile model - pliki multimedialne (obrazy, video, dokumenty)
 model MediaFile {
-  id          String   @id @default(uuid())
-  tenantId    String
-  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  filename    String   // Oryginalna nazwa pliku
-  url         String   // URL do pliku (S3/CDN)
-  mimeType    String   // MIME type (image/jpeg, video/mp4, etc.)
-  size        Int      // Rozmiar w bajtach
-  width       Int?     // Szerokość (dla obrazów)
-  height      Int?     // Wysokość (dla obrazów)
-  alt         String?  // Tekst alternatywny (dla obrazów)
-  metadata    Json     @default("{}") // Dodatkowe metadane (EXIF, etc.)
+  id           String   @id @default(uuid())
+  tenantId     String
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  filename     String // Oryginalna nazwa pliku
+  url          String // URL do pliku (S3/CDN)
+  mimeType     String // MIME type (image/jpeg, video/mp4, etc.)
+  size         Int // Rozmiar w bajtach
+  width        Int? // Szerokość (dla obrazów)
+  height       Int? // Wysokość (dla obrazów)
+  alt          String? // Tekst alternatywny (dla obrazów)
+  metadata     Json     @default("{}") // Dodatkowe metadane (EXIF, etc.)
   uploadedById String? // ID użytkownika który przesłał plik
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   @@index([tenantId])
   @@index([tenantId, mimeType])
@@ -162,10 +213,10 @@ model MediaFile {
 
 // UserTenant join table — forward-compatible multi-tenant membership
 model UserTenant {
-  id       String @id @default(uuid())
-  userId   String @map("user_id")
-  tenantId String @map("tenant_id")
-  role     String @default("viewer")
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  tenantId  String   @map("tenant_id")
+  role      String   @default("viewer")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -176,4 +227,284 @@ model UserTenant {
   @@index([tenantId])
   @@index([userId])
   @@map("user_tenants")
+}
+
+// ContentReview model - historia recenzji i akceptacji treści
+model ContentReview {
+  id             String   @id @default(uuid())
+  contentEntryId String
+  tenantId       String
+  reviewerId     String // ID użytkownika który recenzuje
+  status         String // approved, rejected, changes_requested
+  comment        String? // Komentarz recenzenta
+  createdAt      DateTime @default(now())
+
+  tenant       Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  contentEntry ContentEntry @relation(fields: [contentEntryId], references: [id], onDelete: Cascade)
+
+  @@index([contentEntryId])
+  @@index([tenantId])
+  @@index([reviewerId])
+  @@index([createdAt])
+  @@map("content_reviews")
+}
+
+// ContentComment model - komentarze do treści w procesie recenzji
+model ContentComment {
+  id             String   @id @default(uuid())
+  contentEntryId String
+  tenantId       String
+  authorId       String // ID użytkownika który dodał komentarz
+  content        String // Treść komentarza
+  resolved       Boolean  @default(false) // Czy komentarz został rozwiązany
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  tenant       Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  contentEntry ContentEntry @relation(fields: [contentEntryId], references: [id], onDelete: Cascade)
+
+  @@index([contentEntryId])
+  @@index([tenantId])
+  @@index([authorId])
+  @@index([createdAt])
+  @@map("content_comments")
+}
+
+// Task model - zadania w workflow (tasks)
+model Task {
+  id            String   @id @default(uuid())
+  tenantId       String
+  contentEntryId String? // Opcjonalne powiązanie z content entry
+  collectionItemId String? // Opcjonalne powiązanie z collection item
+  title          String
+  description    String?
+  status         TaskStatus @default(PENDING) // pending, in_progress, completed, cancelled
+  priority       TaskPriority @default(MEDIUM) // low, medium, high, urgent
+  assignedToId   String? // ID użytkownika przypisanego do zadania
+  createdById    String // ID użytkownika który utworzył zadanie
+  dueDate        DateTime? // Termin wykonania
+  completedAt    DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  contentEntry ContentEntry? @relation(fields: [contentEntryId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([tenantId, assignedToId])
+  @@index([contentEntryId])
+  @@index([collectionItemId])
+  @@map("tasks")
+}
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+// CollectionRole model - role per kolekcja z granularnymi uprawnieniami (rozszerzenie RBAC)
+model CollectionRole {
+  id           String   @id @default(uuid())
+  tenantId     String
+  collectionId String
+  userId       String
+  role         String   @default("viewer") // viewer, editor, admin (backward compatibility)
+  // Granularne uprawnienia per kolekcja
+  canRead      Boolean  @default(true) // Może czytać elementy kolekcji
+  canWrite     Boolean  @default(false) // Może tworzyć/edytować elementy
+  canPublish   Boolean  @default(false) // Może publikować elementy
+  canDelete    Boolean  @default(false) // Może usuwać elementy
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tenant     Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  collection Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+
+  @@unique([collectionId, userId])
+  @@index([tenantId])
+  @@index([collectionId])
+  @@index([userId])
+  @@map("collection_roles")
+}
+
+// Webhook model - konfiguracja webhooków per tenant/kolekcja
+model Webhook {
+  id          String   @id @default(uuid())
+  tenantId    String
+  collectionId String? // Opcjonalne - jeśli null, webhook jest globalny dla tenant
+  url         String // URL do którego wysyłane są webhooki
+  events      String[] // Lista eventów (content.created, content.updated, etc.)
+  secret      String // Secret do podpisywania HMAC
+  active      Boolean  @default(true)
+  description String?
+  retryCount  Int      @default(3) // Liczba prób retry
+  timeout     Int      @default(5000) // Timeout w ms
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant     Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  collection Collection?        @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  deliveries WebhookDelivery[]
+
+  @@index([tenantId])
+  @@index([collectionId])
+  @@index([active])
+  @@map("webhooks")
+}
+
+// Hook model - konfigurowalne hooki per tenant/collection (rozszerzalność)
+model Hook {
+  id           String   @id @default(uuid())
+  tenantId     String
+  collectionId String? // Opcjonalne - jeśli null, hook jest globalny dla tenant
+  name         String // Nazwa hooka (np. "beforeCreate", "afterPublish")
+  type         String // Typ hooka: "before" | "after" | "transform"
+  event        String // Event który wyzwala hook (np. "item.create", "item.publish")
+  handler      String // Handler hooka (URL, function name, etc.)
+  config       Json    @default("{}") // Konfiguracja hooka
+  active       Boolean @default(true)
+  priority     Int     @default(0) // Priorytet wykonania (niższy = wcześniej)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tenant     Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  collection Collection? @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([collectionId])
+  @@index([active])
+  @@index([event])
+  @@map("hooks")
+}
+
+// WebhookDelivery model - logi dostarczenia webhooków
+model WebhookDelivery {
+  id          String    @id @default(uuid())
+  webhookId   String
+  tenantId    String
+  event       String // Nazwa eventu
+  status      String // success, failed, pending
+  statusCode  Int? // HTTP status code
+  response    String? // Response body
+  error       String? // Error message
+  attempt     Int       @default(1) // Numer próby
+  deliveredAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  webhook Webhook @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([webhookId])
+  @@index([tenantId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("webhook_deliveries")
+}
+
+// Subscription model - subskrypcje planów dla tenantów
+model Subscription {
+  id                  String    @id @default(uuid())
+  tenantId            String
+  tenant              Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  plan                String // free, professional, enterprise
+  status              String    @default("active") // active, cancelled, past_due, trialing
+  currentPeriodStart  DateTime
+  currentPeriodEnd    DateTime
+  cancelAtPeriodEnd   Boolean   @default(false)
+  cancelledAt         DateTime?
+  trialStart          DateTime?
+  trialEnd            DateTime?
+  stripeSubscriptionId String?  @unique
+  stripeCustomerId    String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  invoices Invoice[]
+
+  @@index([tenantId])
+  @@index([status])
+  @@index([stripeSubscriptionId])
+  @@index([stripeCustomerId])
+  @@map("subscriptions")
+}
+
+// Invoice model - faktury dla subskrypcji
+model Invoice {
+  id              String    @id @default(uuid())
+  tenantId        String
+  tenant          Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  subscriptionId  String?
+  subscription    Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  amount          Decimal   @db.Decimal(10, 2)
+  currency        String    @default("USD") @db.Char(3)
+  status          String    @default("draft") // draft, open, paid, void, uncollectible
+  dueDate         DateTime?
+  paidAt          DateTime?
+  stripeInvoiceId String?   @unique
+  invoiceNumber   String    @unique
+  lineItems       Json      @default("[]")
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  payments Payment[]
+
+  @@index([tenantId])
+  @@index([subscriptionId])
+  @@index([status])
+  @@index([invoiceNumber])
+  @@index([stripeInvoiceId])
+  @@map("invoices")
+}
+
+// Payment model - płatności za faktury
+model Payment {
+  id                  String    @id @default(uuid())
+  tenantId            String
+  tenant              Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  invoiceId           String?
+  invoice             Invoice?   @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  amount              Decimal   @db.Decimal(10, 2)
+  currency            String    @default("USD") @db.Char(3)
+  status              String    @default("pending") // pending, succeeded, failed, refunded
+  paymentMethod      String
+  stripePaymentIntentId String? @unique
+  paidAt              DateTime?
+  metadata            Json      @default("{}")
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@index([tenantId])
+  @@index([invoiceId])
+  @@index([status])
+  @@index([stripePaymentIntentId])
+  @@map("payments")
+}
+
+// UsageTracking model - śledzenie użycia zasobów per tenant/period
+model UsageTracking {
+  id           String   @id @default(uuid())
+  tenantId     String
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  resourceType String // collections, contentTypes, mediaFiles, users, storageMB, apiRequests
+  count        Int      @default(0)
+  period       String   @db.Char(7) // Format: YYYY-MM
+  metadata     Json     @default("{}")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([tenantId, resourceType, period])
+  @@index([tenantId])
+  @@index([tenantId, period])
+  @@index([resourceType])
+  @@map("usage_tracking")
 }

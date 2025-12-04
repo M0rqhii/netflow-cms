@@ -100,6 +100,33 @@ export class UsersService {
 
     return user;
   }
+
+  /**
+   * Update user preferences (language, etc.)
+   */
+  async updatePreferences(userId: string, preferences: { preferredLanguage?: 'pl' | 'en' }) {
+    const updateData: { preferredLanguage?: string } = {};
+    
+    if (preferences.preferredLanguage !== undefined) {
+      updateData.preferredLanguage = preferences.preferredLanguage;
+    }
+
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data: updateData,
+      select: {
+        id: true,
+        email: true,
+        preferredLanguage: true,
+      },
+    });
+
+    return {
+      id: user.id,
+      email: user.email,
+      preferredLanguage: user.preferredLanguage || 'en',
+    };
+  }
 }
 
 

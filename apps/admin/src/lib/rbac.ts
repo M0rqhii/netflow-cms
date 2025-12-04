@@ -12,3 +12,7 @@ export function canEditContent(role: TenantRole): boolean {
   return role === 'owner' || role === 'admin' || role === 'editor';
 }
 
+export function canReviewContent(role: TenantRole): boolean {
+  return role === 'owner' || role === 'admin';
+}
+

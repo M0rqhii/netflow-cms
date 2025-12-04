@@ -1,14 +1,10 @@
 import { z } from 'zod';
+import { CreateCollectionSchema } from '@repo/schemas';
 
 /**
  * CreateCollectionDto - DTO dla tworzenia kolekcji
- * AI Note: Używaj z @repo/schemas dla shared validation
+ * AI Note: Uses shared schema from @repo/schemas
  */
-export const CreateCollectionDtoSchema = z.object({
-  slug: z.string().min(1).regex(/^[a-z0-9-]+$/),
-  name: z.string().min(1),
-  schemaJson: z.record(z.any()),
-});
-
-export type CreateCollectionDto = z.infer<typeof CreateCollectionDtoSchema>;
+export const CreateCollectionDtoSchema = CreateCollectionSchema;
+export type CreateCollectionDto = z.infer<typeof CreateCollectionSchema>;
 

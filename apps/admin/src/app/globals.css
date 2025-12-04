@@ -93,6 +93,8 @@ html[data-theme="light"] {
 .btn-primary:hover { filter: brightness(0.98); }
 .btn-outline { @apply border bg-white text-gray-900 hover:bg-gray-50; }
 .btn-ghost { @apply text-gray-700 hover:bg-gray-100; }
+.btn-danger { @apply bg-red-600 text-white hover:bg-red-700 border-red-600; }
+html[data-theme="dark"] .btn-danger { @apply bg-red-700 hover:bg-red-800; }
 
 .text-muted { color: rgb(var(--muted)); }
 
@@ -173,5 +175,40 @@ html[data-theme="dark"] .skeleton { background-color: rgba(255,255,255,0.12); }
 /* Chips */
 .chip { @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium border; }
 .chip-gradient { background-image: linear-gradient(135deg, var(--color-primary), var(--color-accent)); color: #fff; border-color: transparent; }
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.2s ease-out;
+}
+
+/* Smooth transitions */
+* {
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+/* Focus styles for accessibility */
+*:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* Responsive improvements */
+@media (max-width: 768px) {
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  
+  .card-body {
+    padding: 1rem;
+  }
+}
 
 

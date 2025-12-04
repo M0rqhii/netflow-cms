@@ -1,5 +1,4 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
 
 export enum AuditEvent {
   // Authentication
@@ -46,10 +45,7 @@ export interface AuditLogData {
 export class AuditService {
   private readonly logger = new Logger(AuditService.name);
 
-  constructor(
-    // @ts-ignore - Reserved for future use
-    private _prisma: PrismaService
-  ) {}
+  constructor() {}
 
   async log(data: AuditLogData): Promise<void> {
     const logEntry = {
@@ -79,4 +75,3 @@ export class AuditService {
     return [];
   }
 }
-

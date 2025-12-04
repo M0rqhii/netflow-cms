@@ -3,6 +3,7 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { UploadMediaDto } from './dto/upload-media.dto';
 import { QueryMediaDto } from './dto/query-media.dto';
 import { ConfigService } from '@nestjs/config';
+import { Prisma } from '@prisma/client';
 
 /**
  * Media Service - handles media file operations
@@ -75,7 +76,20 @@ export class MediaService {
         metadata: dto.metadata || {},
         uploadedById,
       },
-      include: {
+      select: {
+        id: true,
+        tenantId: true,
+        filename: true,
+        url: true,
+        mimeType: true,
+        size: true,
+        width: true,
+        height: true,
+        alt: true,
+        metadata: true,
+        uploadedById: true,
+        createdAt: true,
+        updatedAt: true,
         tenant: {
           select: {
             id: true,
@@ -117,7 +131,20 @@ export class MediaService {
         orderBy: {
           [sortBy]: sortOrder,
         },
-        include: {
+        select: {
+          id: true,
+          tenantId: true,
+          filename: true,
+          url: true,
+          mimeType: true,
+          size: true,
+          width: true,
+          height: true,
+          alt: true,
+          metadata: true,
+          uploadedById: true,
+          createdAt: true,
+          updatedAt: true,
           tenant: {
             select: {
               id: true,
@@ -178,7 +205,20 @@ export class MediaService {
         id,
         tenantId,
       },
-      include: {
+      select: {
+        id: true,
+        tenantId: true,
+        filename: true,
+        url: true,
+        mimeType: true,
+        size: true,
+        width: true,
+        height: true,
+        alt: true,
+        metadata: true,
+        uploadedById: true,
+        createdAt: true,
+        updatedAt: true,
         tenant: {
           select: {
             id: true,
@@ -202,14 +242,31 @@ export class MediaService {
   async update(tenantId: string, id: string, data: { filename?: string; alt?: string; metadata?: Record<string, any> }) {
     const mediaFile = await this.findOne(tenantId, id);
 
+    const metadataValue = data.metadata !== undefined 
+      ? (data.metadata === null ? Prisma.JsonNull : data.metadata)
+      : (mediaFile.metadata === null ? Prisma.JsonNull : mediaFile.metadata);
+
     return this.prisma.mediaFile.update({
       where: { id: mediaFile.id },
       data: {
         filename: data.filename || mediaFile.filename,
         alt: data.alt !== undefined ? data.alt : mediaFile.alt,
-        metadata: data.metadata !== undefined ? data.metadata : mediaFile.metadata,
+        metadata: metadataValue,
       },
-      include: {
+      select: {
+        id: true,
+        tenantId: true,
+        filename: true,
+        url: true,
+        mimeType: true,
+        size: true,
+        width: true,
+        height: true,
+        alt: true,
+        metadata: true,
+        uploadedById: true,
+        createdAt: true,
+        updatedAt: true,
         tenant: {
           select: {
             id: true,

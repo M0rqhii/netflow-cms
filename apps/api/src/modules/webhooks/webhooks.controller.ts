@@ -6,6 +6,7 @@ import {
   Delete,
   Param,
   Body,
+  Query,
   UseGuards,
   Req,
 } from '@nestjs/common';
@@ -44,12 +45,15 @@ export class WebhooksController {
 
   /**
    * GET /api/v1/webhooks
-   * List all webhooks for a tenant
+   * List all webhooks for a tenant (optionally filtered by collection)
    */
   @Get()
   @Roles(Role.VIEWER, Role.EDITOR, Role.TENANT_ADMIN, Role.SUPER_ADMIN)
-  async findAll(@Req() req: Request & { tenantId: string }) {
-    return this.webhooksService.findAll(req.tenantId);
+  async findAll(
+    @Query('collectionId') collectionId: string | undefined,
+    @Req() req: Request & { tenantId: string },
+  ) {
+    return this.webhooksService.findAll(req.tenantId, collectionId);
   }
 
   /**

@@ -1,13 +1,19 @@
-export default function SettingsPage() {
-  return (
-    <div className="container py-8">
-      <h1 className="text-2xl font-bold mb-4">Settings</h1>
-      <div className="card">
-        <div className="card-body">
-          <p className="text-muted">Global settings will live here.</p>
-        </div>
-      </div>
-    </div>
-  );
-}
+"use client";
 
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+
+/**
+ * Redirect /settings to /account
+ * Settings page has been renamed to Account page in Platform Panel
+ * This route is deprecated - use /account instead
+ */
+export default function SettingsRedirectPage() {
+  const router = useRouter();
+  
+  useEffect(() => {
+    router.replace('/account');
+  }, [router]);
+
+  return null;
+}

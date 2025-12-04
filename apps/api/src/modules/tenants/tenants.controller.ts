@@ -10,6 +10,7 @@ import {
   UseGuards,
   ParseIntPipe,
   DefaultValuePipe,
+  ForbiddenException,
 } from '@nestjs/common';
 import { AuthGuard } from '../../common/auth/guards/auth.guard';
 import { PlatformRolesGuard } from '../../common/auth/guards/platform-roles.guard';
@@ -17,7 +18,10 @@ import { PermissionsGuard } from '../../common/auth/guards/permissions.guard';
 import { PlatformRoles } from '../../common/auth/decorators/platform-roles.decorator';
 import { Permissions } from '../../common/auth/decorators/permissions.decorator';
 import { PlatformRole, Permission } from '../../common/auth/roles.enum';
+import { CurrentUser } from '../../common/auth/decorators/current-user.decorator';
+import { PrismaService } from '../../common/prisma/prisma.service';
 import { TenantsService } from './tenants.service';
+import { BillingService } from '../billing/billing.service';
 import {
   CreateTenantDtoSchema,
   UpdateTenantDtoSchema,
@@ -31,7 +35,11 @@ import {
 @UseGuards(AuthGuard, PlatformRolesGuard, PermissionsGuard)
 @Controller('tenants')
 export class TenantsController {
-  constructor(private readonly tenantsService: TenantsService) {}
+  constructor(
+    private readonly tenantsService: TenantsService,
+    private readonly billingService: BillingService,
+    private readonly prisma: PrismaService,
+  ) {}
 
   /**
    * POST /api/v1/tenants
@@ -103,6 +111,60 @@ export class TenantsController {
   @Permissions(Permission.TENANTS_DELETE)
   remove(@Param('id') id: string) {
     return this.tenantsService.remove(id);
+  }
+
+  /**
+   * GET /api/v1/tenants/:id/subscription
+   * Get subscription for a specific tenant (user must have access to this tenant)
+   */
+  @Get(':id/subscription')
+  @UseGuards(AuthGuard, PermissionsGuard)
+  @Permissions(Permission.BILLING_READ)
+  async getTenantSubscription(
+    @CurrentUser() user: { id: string },
+    @Param('id') tenantId: string,
+  ) {
+    // Verify user has access to this tenant
+    const membership = await this.prisma.userTenant.findFirst({
+      where: {
+        userId: user.id,
+        tenantId,
+      },
+    });
+
+    if (!membership) {
+      throw new ForbiddenException('You do not have access to this tenant');
+    }
+
+    return this.billingService.getTenantSubscription(tenantId);
+  }
+
+  /**
+   * GET /api/v1/tenants/:id/invoices
+   * Get invoices for a specific tenant (user must have access to this tenant)
+   */
+  @Get(':id/invoices')
+  @UseGuards(AuthGuard, PermissionsGuard)
+  @Permissions(Permission.BILLING_READ)
+  async getTenantInvoices(
+    @CurrentUser() user: { id: string },
+    @Param('id') tenantId: string,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('pageSize', new DefaultValuePipe(20), ParseIntPipe) pageSize: number,
+  ) {
+    // Verify user has access to this tenant
+    const membership = await this.prisma.userTenant.findFirst({
+      where: {
+        userId: user.id,
+        tenantId,
+      },
+    });
+
+    if (!membership) {
+      throw new ForbiddenException('You do not have access to this tenant');
+    }
+
+    return this.billingService.getTenantInvoices(tenantId, page, pageSize);
   }
 }
 

@@ -13,6 +13,7 @@
     "baseUrl": "./",
     "incremental": true,
     "skipLibCheck": true,
+    "composite": false,
     "strictNullChecks": true,
     "noImplicitAny": true,
     "strictBindCallApply": true,
@@ -20,6 +21,11 @@
     "noFallthroughCasesInSwitch": true,
     "paths": {
       "@repo/schemas": ["../../packages/schemas/src"]
+    }
+  },
+  "ts-node": {
+    "compilerOptions": {
+      "module": "commonjs"
     }
   },
   "include": ["src/**/*"],
