@@ -42,9 +42,10 @@ export default function TenantCollectionsPage() {
           setItems(cols);
           setError(null);
         } catch (e) {
-          console.error('Failed to load collections:', e);
-          setError(e instanceof Error ? e.message : 'Failed to load collections');
+          const errorMessage = e instanceof Error ? e.message : 'Failed to load collections';
+          setError(errorMessage);
           setItems([]);
+          push({ tone: 'error', message: errorMessage });
         }
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Failed to load collections');
@@ -52,7 +53,7 @@ export default function TenantCollectionsPage() {
         setLoading(false);
       }
     })();
-  }, [slug]);
+  }, [slug, push]);
 
   const onCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -157,7 +158,7 @@ export default function TenantCollectionsPage() {
       ) : error ? (
         <Card>
           <CardContent>
-            <div className="text-red-600 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+            <div className="text-red-600 bg-red-50 border border-red-200 rounded-lg p-4">
               <p className="font-semibold mb-1">Error</p>
               <p className="text-sm">{error}</p>
             </div>

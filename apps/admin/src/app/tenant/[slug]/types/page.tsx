@@ -45,7 +45,6 @@ export default function TenantTypesPage() {
           setItems(rows);
           setError(null);
         } catch (e) {
-          console.error('Failed to load content types:', e);
           const errorMessage = e instanceof Error ? e.message : 'Failed to load types';
           setError(errorMessage);
           setItems([]);
@@ -53,6 +52,7 @@ export default function TenantTypesPage() {
           if (errorMessage.includes('Unauthorized') || errorMessage.includes('401')) {
             return; // Redirect is happening
           }
+          push({ tone: 'error', message: errorMessage });
         }
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Failed to load types');
@@ -60,7 +60,7 @@ export default function TenantTypesPage() {
         setLoading(false);
       }
     })();
-  }, [slug]);
+  }, [slug, push]);
 
   const onCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -208,7 +208,7 @@ export default function TenantTypesPage() {
       ) : error ? (
         <Card>
           <CardContent>
-            <div className="text-red-600 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+            <div className="text-red-600 bg-red-50 border border-red-200 rounded-lg p-4">
               <p className="font-semibold mb-1">Error</p>
               <p className="text-sm">{error}</p>
             </div>

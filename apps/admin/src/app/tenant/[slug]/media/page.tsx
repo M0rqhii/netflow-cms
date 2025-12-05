@@ -40,9 +40,10 @@ export default function TenantMediaPage() {
           setItems(rows);
           setError(null);
         } catch (e) {
-          console.error('Failed to load media:', e);
-          setError(e instanceof Error ? e.message : 'Failed to load media');
+          const errorMessage = e instanceof Error ? e.message : 'Failed to load media';
+          setError(errorMessage);
           setItems([]);
+          push({ tone: 'error', message: errorMessage });
         }
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Failed to load media');
@@ -50,7 +51,7 @@ export default function TenantMediaPage() {
         setLoading(false);
       }
     })();
-  }, [slug]);
+  }, [slug, push]);
 
   const uploadFile = useCallback(async (file: File) => {
     if (!tenant) return;
@@ -156,6 +157,7 @@ export default function TenantMediaPage() {
           {/* Drag & drop area */}
         <div
           className={`mb-4 border-2 border-dashed rounded-xl p-6 text-center ${dragOver ? 'border-[var(--color-primary)] bg-white/40' : 'border-gray-300'}`}
+          style={dragOver ? {} : undefined}
           onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
           onDragLeave={() => setDragOver(false)}
           onDrop={(e) => { e.preventDefault(); setDragOver(false); onUpload(e.dataTransfer.files); }}
@@ -179,7 +181,7 @@ export default function TenantMediaPage() {
             const isImage = /^image\//i.test(m.mime);
             return (
               <Card key={m.id} className="overflow-hidden">
-                <div className="aspect-square w-full bg-white flex items-center justify-center">
+                <div className="aspect-square w-full bg-white flex items-center justify-center" style={{ backgroundColor: 'rgb(var(--card))' }}>
                   {isImage ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={m.thumbnailUrl || m.url} alt={m.filename} className="h-full w-full object-cover" />

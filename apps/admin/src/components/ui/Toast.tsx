@@ -47,6 +47,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       <div className="fixed right-4 top-16 z-50 space-y-2" role="region" aria-live="polite" aria-label="Notifications">
         {toasts.map((t) => {
           let border = 'border-gray-200';
+          // Border color will be handled by CSS dark mode rules
           let toneColor = 'currentColor';
           if (t.tone === 'success') toneColor = 'var(--color-accent)';
           else if (t.tone === 'error') toneColor = '#ef4444';

@@ -188,6 +188,12 @@ enum ItemStatus {
   ARCHIVED
 }
 
+// Plan enum - plany subskrypcyjne
+enum Plan {
+  BASIC
+  PRO
+}
+
 // MediaFile model - pliki multimedialne (obrazy, video, dokumenty)
 model MediaFile {
   id           String   @id @default(uuid())
@@ -411,15 +417,16 @@ model WebhookDelivery {
   @@map("webhook_deliveries")
 }
 
-// Subscription model - subskrypcje planów dla tenantów
+// Subscription model - subskrypcje planów dla tenantów (SiteSubscription)
+// renewalDate = currentPeriodEnd (mapowane w API)
 model Subscription {
   id                  String    @id @default(uuid())
-  tenantId            String
+  tenantId            String    // siteId - ID tenant/site
   tenant              Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  plan                String // free, professional, enterprise
-  status              String    @default("active") // active, cancelled, past_due, trialing
+  plan                String     @default("BASIC") // BASIC, PRO (używa Plan enum wartości jako string)
+  status              String     @default("active") // active, cancelled, past_due, trialing
   currentPeriodStart  DateTime
-  currentPeriodEnd    DateTime
+  currentPeriodEnd    DateTime   // renewalDate (mapowane w API)
   cancelAtPeriodEnd   Boolean   @default(false)
   cancelledAt         DateTime?
   trialStart          DateTime?
@@ -433,6 +440,7 @@ model Subscription {
 
   @@index([tenantId])
   @@index([status])
+  @@index([plan])
   @@index([stripeSubscriptionId])
   @@index([stripeCustomerId])
   @@map("subscriptions")

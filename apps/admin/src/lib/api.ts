@@ -1,17 +1,74 @@
-'use client';
+﻿'use client';
 
 import { ApiClient, createApiClient, TenantInfo } from '@repo/sdk';
+import type { CreateTenant } from '@repo/schemas';
 
 const client: ApiClient = createApiClient();
 
+type JwtPayload = {
+  exp?: number;
+  email?: string;
+  [key: string]: unknown;
+};
+
+function decodeJwtPayload(token: string | null): JwtPayload | null {
+  if (!token) return null;
+  try {
+    const payload = token.split('.')[1];
+    if (!payload) return null;
+    const normalized = payload.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
+    const json = typeof atob === 'function' ? atob(padded) : '';
+    return JSON.parse(json) as JwtPayload;
+  } catch {
+    return null;
+  }
+}
+
+export function decodeAuthToken(token: string | null): JwtPayload | null {
+  return decodeJwtPayload(token);
+}
+
+export function getAuthTokenExpiry(token?: string | null): number | null {
+  const payload = decodeJwtPayload(token ?? null);
+  if (!payload?.exp) return null;
+  return payload.exp * 1000;
+}
+
+export function isTokenExpired(token: string | null): boolean {
+  const exp = getAuthTokenExpiry(token);
+  if (exp === null) return false;
+  return Date.now() >= exp;
+}
+
+function setAuthCookie(token: string): void {
+  if (typeof document === 'undefined') return;
+  const expires = getAuthTokenExpiry(token);
+  const cookieParts = [`authToken=${token}`, 'Path=/', 'SameSite=Lax'];
+  if (expires) cookieParts.push(`Expires=${new Date(expires).toUTCString()}`);
+  document.cookie = cookieParts.join('; ');
+}
+
+function clearAuthCookie(): void {
+  if (typeof document === 'undefined') return;
+  document.cookie = 'authToken=; Path=/; Max-Age=0; SameSite=Lax';
+}
+
 export function getAuthToken(): string | null {
   if (typeof window === 'undefined') return null;
-  return localStorage.getItem('authToken');
+  const token = localStorage.getItem('authToken');
+  if (!token) return null;
+  if (isTokenExpired(token)) {
+    clearAuthTokens();
+    return null;
+  }
+  return token;
 }
 
 export function setAuthToken(token: string) {
   if (typeof window === 'undefined') return;
   localStorage.setItem('authToken', token);
+  setAuthCookie(token);
 }
 
 export function setTenantToken(tenantId: string, token: string) {
@@ -43,10 +100,16 @@ export function clearAuthTokens(): void {
     });
   } catch (error) {
     // Silently fail - localStorage might not be available (SSR)
-    // In development, log for debugging
-    if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'development') {
-      console.error('Failed to clear auth tokens:', error);
-    }
+    // Error is non-critical, no need to log or show to user
+  } finally {
+    clearAuthCookie();
+  }
+}
+
+export function logout(redirectTo: string = '/login'): void {
+  clearAuthTokens();
+  if (typeof window !== 'undefined') {
+    window.location.replace(redirectTo);
   }
 }
 
@@ -100,21 +163,30 @@ async function ensureTenantToken(tenantId: string): Promise<string> {
 }
 
 // Activity & Stats
-export type ActivityItem = { id: string; type: string; description: string; createdAt: string };
-export type QuickStats = { tenants: number; collections: number; media: number; users: number };
+export type ActivityItem = { id: string; type?: string; message: string; description?: string; createdAt: string };
+export type QuickStats = { tenants: number; collections: number; media: number; users: number; active?: number; total?: number };
 
-export async function fetchActivity(): Promise<ActivityItem[]> {
+export async function fetchActivity(limit?: number): Promise<ActivityItem[]> {
   const token = getAuthToken();
   if (!token) throw new Error('Missing auth token. Please login.');
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
-  const res = await fetch(`${baseUrl}/activity`, {
+  const query = typeof limit === 'number' ? `?limit=${limit}` : '';
+  const res = await fetch(`${baseUrl}/activity${query}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!res.ok) {
     const text = await res.text().catch(() => '');
     throw new Error(`Failed to fetch activity: ${res.status} ${res.statusText}${text ? ` - ${text}` : ''}`);
   }
-  return res.json();
+  const data = await res.json().catch(() => []);
+  if (!Array.isArray(data)) return [];
+  return data.map((item: any, index: number): ActivityItem => ({
+    id: String(item?.id ?? item?._id ?? index),
+    type: item?.type,
+    createdAt: item?.createdAt ?? item?.timestamp ?? new Date().toISOString(),
+    description: item?.description ?? item?.message ?? '',
+    message: item?.message ?? item?.description ?? '',
+  }));
 }
 
 export async function fetchQuickStats(): Promise<QuickStats> {
@@ -128,7 +200,16 @@ export async function fetchQuickStats(): Promise<QuickStats> {
     const text = await res.text().catch(() => '');
     throw new Error(`Failed to fetch stats: ${res.status} ${res.statusText}${text ? ` - ${text}` : ''}`);
   }
-  return res.json();
+  const raw: any = await res.json().catch(() => ({}));
+  const stats: QuickStats = {
+    tenants: raw?.tenants ?? raw?.sites ?? 0,
+    collections: raw?.collections ?? 0,
+    media: raw?.media ?? 0,
+    users: raw?.users ?? 0,
+    active: raw?.active ?? raw?.tenants ?? raw?.sites,
+    total: raw?.total ?? raw?.tenants ?? raw?.sites,
+  };
+  return stats;
 }
 
 export async function fetchTenantStats(tenantId: string): Promise<{ collections: number; media: number }> {
@@ -146,7 +227,7 @@ export async function fetchTenantStats(tenantId: string): Promise<{ collections:
 }
 
 // Tenants
-export async function createTenant(payload: { name: string; slug: string }): Promise<any> {
+export async function createTenant(payload: Pick<CreateTenant, 'name' | 'slug'> & Partial<CreateTenant>): Promise<any> {
   const token = getAuthToken();
   if (!token) throw new Error('Missing auth token. Please login.');
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
@@ -1191,4 +1272,5 @@ export async function updateBillingInfo(data: { companyName?: string; nip?: stri
   if (!token) throw new Error('Missing auth token. Please login.');
   return client.updateBillingInfo(token, data);
 }
+
 

@@ -41,19 +41,22 @@ export default function TenantUsersPage() {
           try {
             const [u, inv] = await Promise.all([
               fetchTenantUsers(tenant.tenantId).catch((e) => {
-                console.error('Failed to load users:', e);
+                const errorMessage = e instanceof Error ? e.message : 'Failed to load users';
+                push({ tone: 'error', message: errorMessage });
                 return [];
               }),
               fetchTenantInvites(tenant.tenantId).catch((e) => {
-                console.error('Failed to load invites:', e);
+                const errorMessage = e instanceof Error ? e.message : 'Failed to load invites';
+                push({ tone: 'error', message: errorMessage });
                 return [];
               }),
             ]);
             setUsers(u);
             setInvites(inv);
           } catch (e) {
-            console.error('Failed to load users/invites:', e);
-            setError(e instanceof Error ? e.message : 'Failed to load users');
+            const errorMessage = e instanceof Error ? e.message : 'Failed to load users';
+            setError(errorMessage);
+            push({ tone: 'error', message: errorMessage });
           }
         }
       } catch (e) {
@@ -62,7 +65,7 @@ export default function TenantUsersPage() {
         setLoading(false);
       }
     })();
-  }, [slug]);
+  }, [slug, push]);
 
   const onInvite = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,14 +73,14 @@ export default function TenantUsersPage() {
     setSending(true);
     setError(null);
     try {
-      await inviteUser(tenant.tenantId, email, role);
+      await inviteUser(tenant.tenantId, { email, role });
       setEmail('');
       try {
         const inv = await fetchTenantInvites(tenant.tenantId);
         setInvites(inv);
       } catch (err) {
-        console.error('Failed to refresh invites:', err);
         // Continue - invite was sent successfully
+        // Silently fail refresh, invite was already sent
       }
       push({ tone: 'success', title: 'Invitation sent', message: `Invite sent to ${email}` });
     } catch (err) {

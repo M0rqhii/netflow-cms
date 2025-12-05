@@ -188,6 +188,63 @@ export class ApiClient {
       body: JSON.stringify(data),
     });
   }
+
+  // Billing helpers - Site subscription methods
+  async getSiteBilling(token: string, siteId: string): Promise<{
+    siteId: string;
+    plan: string;
+    status: string;
+    renewalDate: string | null;
+    currentPeriodStart?: string;
+    cancelAtPeriodEnd?: boolean;
+    createdAt?: string;
+    updatedAt?: string;
+  }> {
+    return this.request(`/billing/site/${encodeURIComponent(siteId)}`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  }
+
+  async updateSiteBilling(
+    token: string,
+    siteId: string,
+    data: { plan?: 'BASIC' | 'PRO'; status?: string; renewalDate?: string }
+  ): Promise<{
+    siteId: string;
+    plan: string;
+    status: string;
+    renewalDate: string;
+    currentPeriodStart: string;
+    cancelAtPeriodEnd: boolean;
+    createdAt: string;
+    updatedAt: string;
+  }> {
+    return this.request(`/billing/site/${encodeURIComponent(siteId)}/update`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getMyBillingInfo(token: string): Promise<{
+    userId: string;
+    sites: Array<{
+      siteId: string;
+      siteName: string;
+      siteSlug: string;
+      plan: string;
+      status: string;
+      renewalDate: string | null;
+      role: string;
+    }>;
+    totalSites: number;
+  }> {
+    return this.request(`/billing/me`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  }
 }
 
 export function createApiClient(): ApiClient {

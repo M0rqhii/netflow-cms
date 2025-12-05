@@ -1,46 +1,48 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-/**
- * Middleware - ochrona tras: globalne vs tenantowe
- * 
- * Strategy:
- * - Global routes (/dashboard, /sites) - wymagają global token (authToken)
- * - Tenant routes (/tenant/[slug]/*) - wymagają tenant-scoped token (tenantToken:{tenantId})
- * - Public routes (/login) - dostępne bez tokenu
- * 
- * Note: i18n is handled client-side via IntlProvider, not through URL routing
- * Note: Main authentication check is done client-side via AuthGuard component
- * Middleware can optionally check cookies/headers, but localStorage is checked in components
- */
+const PUBLIC_PATHS = ['/', '/login'];
+const PROTECTED_PREFIXES = [
+  '/dashboard',
+  '/sites',
+  '/billing',
+  '/account',
+  '/tenant',
+  '/tenants',
+  '/collections',
+  '/media',
+  '/types',
+  '/users',
+  '/settings',
+];
+
+function isJwtExpired(token: string): boolean {
+  try {
+    const payload = token.split('.')[1];
+    if (!payload) return true;
+    const normalized = payload.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
+    const decoded = atob(padded);
+    const json = JSON.parse(decoded);
+    if (!json?.exp) return false;
+    return Date.now() >= json.exp * 1000;
+  } catch {
+    return true;
+  }
+}
+
 export function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
+  if (PUBLIC_PATHS.includes(path)) return NextResponse.next();
 
-  // Public routes - dostępne bez tokenu
-  if (path === '/login' || path === '/') {
-    return NextResponse.next();
-  }
+  const isProtected = PROTECTED_PREFIXES.some((prefix) => path === prefix || path.startsWith(`${prefix}/`));
+  if (!isProtected) return NextResponse.next();
 
-  // Optional: Check for token in cookie (if backend sets it)
-  // For now, we rely on client-side AuthGuard for localStorage check
   const authCookie = request.cookies.get('authToken');
-  
-  // Log access attempts without token (for debugging)
-  if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'development' && !authCookie) {
-    console.log(`[Middleware] Access attempt to ${path} without auth cookie`);
-  }
-
-  // Global routes (Hub, Sites) - wymagają global token
-  if (path.startsWith('/dashboard') || path.startsWith('/sites') || path.startsWith('/billing') || path.startsWith('/account')) {
-    // Main check is done in AuthGuard component (client-side)
-    // Middleware can optionally redirect if no cookie, but we allow to let AuthGuard handle it
-    return NextResponse.next();
-  }
-
-  // Tenant routes - wymagają tenant-scoped token
-  if (path.startsWith('/tenant/')) {
-    // Main check is done in AuthGuard component (client-side)
-    return NextResponse.next();
+  if (!authCookie || isJwtExpired(authCookie.value)) {
+    const loginUrl = new URL('/login', request.url);
+    loginUrl.searchParams.set('redirect', path);
+    return NextResponse.redirect(loginUrl);
   }
 
   return NextResponse.next();
