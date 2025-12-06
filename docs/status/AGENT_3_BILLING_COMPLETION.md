@@ -209,3 +209,4 @@ Wszystkie wymagania zostały spełnione. Moduł billing jest kompletny, bezpiecz
 **Wersja:** 1.0.0  
 **Status:** ✅ Completed
 
+

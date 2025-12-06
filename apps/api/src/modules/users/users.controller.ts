@@ -6,6 +6,7 @@ import {
   UseGuards,
   Param,
   } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { AuthGuard } from '../../common/auth/guards/auth.guard';
 import { RolesGuard } from '../../common/auth/guards/roles.guard';
 import { PermissionsGuard } from '../../common/auth/guards/permissions.guard';
@@ -58,6 +59,7 @@ export class UsersController {
    * List all users in the tenant (admin only)
    */
   @Get()
+  @Throttle(1000, 60) // 1000 requests per minute (very high limit for development)
   @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN)
   @Permissions(Permission.USERS_READ)
   listUsers(
@@ -65,6 +67,20 @@ export class UsersController {
     @CurrentUser() user: { role: string }
   ) {
     return this.usersService.listUsers(tenantId, user.role);
+  }
+
+  /**
+   * GET /api/v1/users/invites
+   * Get all invites for the current tenant (admin only)
+   */
+  @Get('invites')
+  @Throttle(1000, 60) // 1000 requests per minute (very high limit for development)
+  @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN)
+  @Permissions(Permission.USERS_READ)
+  getInvites(@CurrentTenant() _tenantId: string) {
+    // Return empty array for now - invites functionality can be implemented later
+    // tenantId will be used when implementing invites functionality
+    return [];
   }
 
   /**

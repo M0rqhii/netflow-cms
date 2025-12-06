@@ -98,7 +98,7 @@ export class TenantContextMiddleware implements NestMiddleware {
     // Clear tenant context after request completes
     res.on('finish', async () => {
       try {
-        await this.prisma.$executeRawUnsafe(`SET app.current_tenant_id = NULL`);
+        await this.prisma.$executeRawUnsafe(`RESET app.current_tenant_id`);
       } catch (error) {
         this.logger.error(
           `Failed to clear tenant context: ${error}`,

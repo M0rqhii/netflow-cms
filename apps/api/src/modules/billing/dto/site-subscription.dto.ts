@@ -11,3 +11,4 @@ export const UpdateSiteSubscriptionDtoSchema = z.object({
 
 export type UpdateSiteSubscriptionDto = z.infer<typeof UpdateSiteSubscriptionDtoSchema>;
 
+

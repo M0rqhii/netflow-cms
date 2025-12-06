@@ -1,10 +1,13 @@
-"use client";
+﻿"use client";
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardContent } from '@repo/ui';
 import { Button } from '@repo/ui';
 import { Input } from '@repo/ui';
+import { useToast } from '@/components/ui/Toast';
+import { createTenant } from '@/lib/api';
 
 function slugify(text: string): string {
   return text
@@ -20,10 +23,12 @@ function isValidSlug(slug: string): boolean {
 }
 
 export default function NewSitePage() {
+  const router = useRouter();
+  const { push } = useToast();
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
   const [autoGenerateSlug, setAutoGenerateSlug] = useState(true);
-  const [loading] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleNameChange = (value: string) => {
@@ -38,23 +43,48 @@ export default function NewSitePage() {
     setAutoGenerateSlug(false);
   };
 
-  const onSubmit = (e: React.FormEvent) => {
+  const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
 
+    const normalizedName = name.trim();
+    const normalizedSlug = slugify(slug.trim());
+
     // Validation
-    if (!name || name.length < 3) {
+    if (!normalizedName || normalizedName.length < 3) {
       setError('Name must be at least 3 characters');
       return;
     }
 
-    if (!slug || !isValidSlug(slug)) {
+    if (!normalizedSlug || !isValidSlug(normalizedSlug)) {
+      setSlug(normalizedSlug);
       setError('Slug must be at least 3 characters and contain only lowercase letters, numbers, and hyphens');
       return;
     }
 
-    // Mock submission - just show success message
-    alert(`Site "${name}" would be created with slug "${slug}" (UI only - no backend)`);
+    setSlug(normalizedSlug);
+    setLoading(true);
+
+    try {
+      const created = await createTenant({ name: normalizedName, slug: normalizedSlug });
+      const redirectSlug = (created as any)?.slug || (created as any)?.tenant?.slug || normalizedSlug;
+
+      push({
+        tone: 'success',
+        message: 'Site created successfully.',
+      });
+
+      router.push(redirectSlug ? `/sites/${redirectSlug}` : '/sites');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to create site';
+      setError(message);
+      push({
+        tone: 'error',
+        message,
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

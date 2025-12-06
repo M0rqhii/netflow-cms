@@ -1,5 +1,6 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Inject } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { PaymentProvider } from '../../common/providers/interfaces/payment-provider.interface';
 import {
   CreateSubscriptionDto,
   UpdateSubscriptionDto,
@@ -14,7 +15,10 @@ import {
  */
 @Injectable()
 export class BillingService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject('PaymentProvider') private readonly paymentProvider: PaymentProvider,
+  ) {}
 
   private calculatePeriodEnd(trialDays?: number): Date {
     const end = new Date();
@@ -96,34 +100,48 @@ export class BillingService {
 
   /**
    * Create subscription
+   * Uses PaymentProvider to create subscription (provider handles DB persistence)
    */
   async createSubscription(tenantId: string, dto: CreateSubscriptionDto) {
     if (!dto.plan) {
       throw new BadRequestException('Plan is required');
     }
 
-    const now = new Date();
-    const periodEnd = this.calculatePeriodEnd(dto.trialDays);
+    const result = await this.paymentProvider.createSubscription({
+      tenantId,
+      plan: dto.plan,
+      customerId: dto.stripeCustomerId,
+      trialDays: dto.trialDays,
+    });
 
-    const subscription = await this.prisma.subscription.create({
-      data: {
-        tenantId,
-        plan: dto.plan,
-        status: 'active',
-        currentPeriodStart: now,
-        currentPeriodEnd: periodEnd,
-        trialStart: dto.trialDays ? now : null,
-        trialEnd: dto.trialDays ? periodEnd : null,
+    // Fetch the created subscription from DB to return full details
+    const subscription = await this.prisma.subscription.findUnique({
+      where: { id: result.id },
+      include: {
+        tenant: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            plan: true,
+          },
+        },
       },
     });
+
+    if (!subscription) {
+      throw new NotFoundException('Subscription not found after creation');
+    }
 
     return subscription;
   }
 
   /**
    * Update subscription
+   * Uses PaymentProvider to update subscription
    */
   async updateSubscription(tenantId: string, subscriptionId: string, dto: UpdateSubscriptionDto) {
+    // Verify subscription belongs to tenant
     const subscription = await this.prisma.subscription.findFirst({
       where: {
         id: subscriptionId,
@@ -135,24 +153,25 @@ export class BillingService {
       throw new NotFoundException('Subscription not found');
     }
 
-    const updateData: any = {};
-    if (dto.plan !== undefined) {
-      updateData.plan = dto.plan;
-    }
-    if (dto.cancelAtPeriodEnd !== undefined) {
-      updateData.cancelAtPeriodEnd = dto.cancelAtPeriodEnd;
-    }
+    // Use PaymentProvider to update
+    await this.paymentProvider.updateSubscription({
+      subscriptionId,
+      plan: dto.plan,
+      cancelAtPeriodEnd: dto.cancelAtPeriodEnd,
+    });
 
-    return this.prisma.subscription.update({
+    // Fetch updated subscription
+    return this.prisma.subscription.findUnique({
       where: { id: subscriptionId },
-      data: updateData,
     });
   }
 
   /**
    * Cancel subscription
+   * Uses PaymentProvider to cancel subscription
    */
   async cancelSubscription(tenantId: string, subscriptionId: string) {
+    // Verify subscription belongs to tenant
     const subscription = await this.prisma.subscription.findFirst({
       where: {
         id: subscriptionId,
@@ -164,9 +183,15 @@ export class BillingService {
       throw new NotFoundException('Subscription not found');
     }
 
-    return this.prisma.subscription.update({
+    // Use PaymentProvider to cancel (cancels at period end by default)
+    await this.paymentProvider.cancelSubscription({
+      subscriptionId,
+      immediately: false,
+    });
+
+    // Fetch updated subscription
+    return this.prisma.subscription.findUnique({
       where: { id: subscriptionId },
-      data: { status: 'cancelled', cancelAtPeriodEnd: true },
     });
   }
 
@@ -434,6 +459,7 @@ export class BillingService {
   /**
    * Get billing info for current user (all their sites/tenants)
    * GET /billing/me
+   * Returns: subscriptions list, invoices list, and sites summary
    */
   async getMyBillingInfo(userId: string) {
     // Try UserTenant model first (multi-tenant support)
@@ -486,6 +512,49 @@ export class BillingService {
       }
     }
 
+    const tenantIds = userTenants.map((ut) => ut.tenantId);
+
+    // Fetch all subscriptions for user's tenants
+    const subscriptions = await this.prisma.subscription.findMany({
+      where: {
+        tenantId: { in: tenantIds },
+      },
+      include: {
+        tenant: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    // Fetch all invoices for user's tenants
+    const invoices = await this.prisma.invoice.findMany({
+      where: {
+        tenantId: { in: tenantIds },
+      },
+      include: {
+        tenant: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
+        subscription: {
+          select: {
+            id: true,
+            plan: true,
+            status: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
     const sites = userTenants.map((ut) => {
       const latestSubscription = ut.tenant?.subscriptions?.[0];
       return {
@@ -503,6 +572,28 @@ export class BillingService {
       userId,
       sites,
       totalSites: sites.length,
+      subscriptions: subscriptions.map((sub) => ({
+        id: sub.id,
+        tenantId: sub.tenantId,
+        plan: sub.plan,
+        status: sub.status,
+        currentPeriodStart: sub.currentPeriodStart?.toISOString() || null,
+        currentPeriodEnd: sub.currentPeriodEnd?.toISOString() || null,
+        tenant: sub.tenant,
+      })),
+      invoices: invoices.map((inv) => ({
+        id: inv.id,
+        tenantId: inv.tenantId,
+        subscriptionId: inv.subscriptionId,
+        invoiceNumber: inv.invoiceNumber,
+        amount: inv.amount,
+        currency: inv.currency,
+        status: inv.status,
+        createdAt: inv.createdAt.toISOString(),
+        paidAt: inv.paidAt?.toISOString() || null,
+        tenant: inv.tenant,
+        subscription: inv.subscription,
+      })),
     };
   }
 }

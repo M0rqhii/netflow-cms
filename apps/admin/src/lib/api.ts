@@ -822,6 +822,10 @@ export async function inviteUser(tenantId: string, payload: { email: string; rol
   return res.json();
 }
 
+export async function inviteUserToTenant(email: string, role: string, tenantId: string): Promise<InviteSummary> {
+  return inviteUser(tenantId, { email, role });
+}
+
 // Tasks
 export type Task = {
   id: string;
@@ -1178,9 +1182,9 @@ export type Subscription = {
   tenantId: string;
   plan: string;
   status: string;
-  currentPeriodStart: string;
-  currentPeriodEnd: string;
-  tenant?: { id: string; name: string; slug: string; plan: string };
+  currentPeriodStart: string | null;
+  currentPeriodEnd: string | null;
+  tenant?: { id: string; name: string; slug: string; plan?: string };
 };
 
 export type Invoice = {
@@ -1228,6 +1232,51 @@ export async function getTenantInvoices(tenantId: string, page?: number, pageSiz
   return client.getTenantInvoices(token, tenantId, page, pageSize);
 }
 
+export type SiteBillingData = {
+  plan: string;
+  status: 'active' | 'past_due' | 'canceled' | 'none';
+  renewalDate: string | null;
+  invoices: Invoice[];
+};
+
+export async function getSiteBilling(siteSlug: string): Promise<SiteBillingData> {
+  const token = getAuthToken();
+  if (!token) throw new Error('Missing auth token. Please login.');
+  
+  // Resolve slug to tenantId
+  const tenants = await fetchMyTenants();
+  const tenant = tenants.find((t) => t.tenant.slug === siteSlug);
+  
+  if (!tenant) {
+    throw new Error('Site not found');
+  }
+  
+  const tenantId = tenant.tenantId;
+  
+  // Fetch subscription and invoices in parallel
+  const [subscriptionData, invoicesData] = await Promise.all([
+    client.getSiteBilling(token, tenantId).catch(() => null),
+    client.getTenantInvoices(token, tenantId).catch(() => ({ invoices: [], pagination: { total: 0, page: 1, pageSize: 20 } })),
+  ]);
+  
+  // Handle no subscription scenario
+  if (!subscriptionData || subscriptionData.status === 'none') {
+    return {
+      plan: 'BASIC',
+      status: 'none',
+      renewalDate: null,
+      invoices: invoicesData.invoices || [],
+    };
+  }
+  
+  return {
+    plan: subscriptionData.plan || 'BASIC',
+    status: (subscriptionData.status as 'active' | 'past_due' | 'canceled') || 'none',
+    renewalDate: subscriptionData.renewalDate,
+    invoices: invoicesData.invoices || [],
+  };
+}
+
 // Account
 export type AccountInfo = {
   id: string;
@@ -1273,4 +1322,74 @@ export async function updateBillingInfo(data: { companyName?: string; nip?: stri
   return client.updateBillingInfo(token, data);
 }
 
+// Dev endpoints (non-production)
+export async function getDevSummary(): Promise<{
+  profile: string;
+  sites: number;
+  users: number;
+  emails: number;
+  subscriptions: number;
+}> {
+  const token = getAuthToken();
+  if (!token) throw new Error('Missing auth token. Please login.');
+  return client.getDevSummary(token);
+}
+
+export async function getDevSites(): Promise<Array<{ id: string; name: string; slug: string; plan: string; createdAt?: string }>> {
+  const token = getAuthToken();
+  if (!token) throw new Error('Missing auth token. Please login.');
+  return client.getDevSites(token);
+}
+
+export async function getDevEmails(): Promise<Array<{ id: string; to: string; subject: string; status: string; sentAt?: string; createdAt?: string }>> {
+  const token = getAuthToken();
+  if (!token) throw new Error('Missing auth token. Please login.');
+  return client.getDevEmails(token);
+}
+
+export async function getDevPayments(): Promise<
+  Array<{ id: string; tenantId: string; plan: string; status: string; currentPeriodStart?: string; currentPeriodEnd?: string; createdAt?: string }>
+> {
+  const token = getAuthToken();
+  if (!token) throw new Error('Missing auth token. Please login.');
+  return client.getDevPayments(token);
+}
+
+export async function getDevLogs(): Promise<any[]> {
+  const token = getAuthToken();
+  if (!token) throw new Error('Missing auth token. Please login.');
+  return client.getDevLogs(token);
+}
+
+// Alias for getCurrentUser (as requested)
+export async function getCurrentUser(): Promise<AccountInfo> {
+  return getAccount();
+}
+
+// Alias for updateAccountPreferences (as requested)
+export async function updateAccountPreferences(data: { preferredLanguage?: 'pl' | 'en' }): Promise<any> {
+  return updateAccount(data);
+}
+
+export type GlobalBillingInfo = {
+  userId: string;
+  sites: Array<{
+    siteId: string;
+    siteName: string;
+    siteSlug: string;
+    plan: string;
+    status: string;
+    renewalDate: string | null;
+    role: string;
+  }>;
+  totalSites: number;
+  subscriptions: Subscription[];
+  invoices: Invoice[];
+};
+
+export async function getGlobalBillingInfo(): Promise<GlobalBillingInfo> {
+  const token = getAuthToken();
+  if (!token) throw new Error('Missing auth token. Please login.');
+  return client.getMyBillingInfo(token);
+}
 

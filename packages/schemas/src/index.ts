@@ -198,6 +198,114 @@ export const UpdateMediaFileSchema = z.object({
 // Legacy alias for backward compatibility
 export const MediaItemSchema = MediaFileSchema;
 
+// JSON helper for page content / builder payloads
+export type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: JsonValue }
+  | JsonValue[];
+
+export const JsonValueSchema: z.ZodType<JsonValue> = z.lazy(() =>
+  z.union([
+    z.string(),
+    z.number(),
+    z.boolean(),
+    z.null(),
+    z.array(z.lazy(() => JsonValueSchema)),
+    z.record(z.lazy(() => JsonValueSchema)),
+  ])
+);
+
+// Site Panel: Environments & Pages
+export const EnvironmentTypeSchema = z.enum(['draft', 'production']);
+export type EnvironmentType = z.infer<typeof EnvironmentTypeSchema>;
+
+export const PageStatusSchema = z.enum(['draft', 'published', 'archived']);
+export type PageStatus = z.infer<typeof PageStatusSchema>;
+export type PageContent = JsonValue;
+
+const PageSlugSchema = z
+  .string()
+  .min(1)
+  .max(200)
+  .regex(/^[a-z0-9]+(?:[a-z0-9-\\/]*[a-z0-9])?$/i, 'Invalid page slug');
+
+export const SiteEnvironmentSchema = z.object({
+  id: z.string().uuid(),
+  tenantId: z.string().uuid(),
+  type: EnvironmentTypeSchema,
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export const CreateSiteEnvironmentSchema = z.object({
+  type: EnvironmentTypeSchema,
+});
+
+export const PageSchema = z.object({
+  id: z.string().uuid(),
+  tenantId: z.string().uuid(),
+  environmentId: z.string().uuid(),
+  slug: PageSlugSchema,
+  title: z.string().min(1).max(255),
+  status: PageStatusSchema,
+  content: JsonValueSchema.default({}),
+  publishedAt: z.date().nullable().optional(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export const CreatePageSchema = z.object({
+  environmentId: z.string().uuid(),
+  slug: PageSlugSchema,
+  title: z.string().min(1).max(255),
+  status: PageStatusSchema.optional(),
+  content: JsonValueSchema.optional(),
+});
+
+export const UpdatePageSchema = z.object({
+  slug: PageSlugSchema.optional(),
+  title: z.string().min(1).max(255).optional(),
+  status: PageStatusSchema.optional(),
+  content: JsonValueSchema.optional(),
+});
+
+export const PublishPageSchema = z.object({
+  targetEnvironmentId: z.string().uuid().optional(),
+  targetEnvironmentType: EnvironmentTypeSchema.optional(),
+});
+
+export const PageQuerySchema = z.object({
+  environmentId: z.string().uuid().optional(),
+  environmentType: EnvironmentTypeSchema.optional(),
+  status: PageStatusSchema.optional(),
+});
+
+// Site SEO settings (skeleton)
+export const SeoSettingsSchema = z.object({
+  id: z.string().uuid(),
+  tenantId: z.string().uuid(),
+  title: z.string().nullable().optional(),
+  description: z.string().nullable().optional(),
+  ogTitle: z.string().nullable().optional(),
+  ogDescription: z.string().nullable().optional(),
+  ogImage: z.string().nullable().optional(),
+  twitterCard: z.string().nullable().optional(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export const UpdateSeoSettingsDtoSchema = z.object({
+  title: z.string().optional(),
+  description: z.string().optional(),
+  ogTitle: z.string().optional(),
+  ogDescription: z.string().optional(),
+  ogImage: z.string().optional(),
+  twitterCard: z.string().optional(),
+});
+
 // User Schemas
 export const UserSchema = z.object({
   id: z.string().uuid(),
@@ -497,6 +605,76 @@ export const CreateUsageTrackingSchema = z.object({
   metadata: z.record(z.unknown()).optional(),
 });
 
+// Page Builder: Block System Schemas
+// Foundation for flexible block-based page building
+// Block type definition (used by schema)
+export type Block = {
+  id: string;
+  type: string;
+  props: Record<string, unknown>;
+  children?: Block[];
+  meta?: {
+    className?: string;
+    style?: Record<string, string>;
+    responsive?: Record<
+      string,
+      {
+        className?: string;
+        style?: Record<string, string>;
+      }
+    >;
+  };
+};
+
+// Input type for BlockSchema (allows props to be optional)
+type BlockInput = {
+  id: string;
+  type: string;
+  props?: Record<string, unknown>;
+  children?: BlockInput[];
+  meta?: {
+    className?: string;
+    style?: Record<string, string>;
+    responsive?: Record<
+      string,
+      {
+        className?: string;
+        style?: Record<string, string>;
+      }
+    >;
+  };
+};
+
+export const BlockSchema: z.ZodType<Block, z.ZodTypeDef, BlockInput> = z.lazy(() =>
+  z.object({
+    id: z.string().min(1),
+    type: z.string().min(1),
+    props: z.record(z.unknown()).default({}),
+    children: z.array(z.lazy(() => BlockSchema)).optional(),
+    meta: z
+      .object({
+        className: z.string().optional(),
+        style: z.record(z.string()).optional(),
+        responsive: z
+          .record(
+            z.object({
+              className: z.string().optional(),
+              style: z.record(z.string()).optional(),
+            })
+          )
+          .optional(),
+      })
+      .optional(),
+  })
+);
+
+export const BlockTreeSchema = z.object({
+  blocks: z.array(BlockSchema).default([]),
+  version: z.string().optional(),
+});
+
+export type BlockTree = z.infer<typeof BlockTreeSchema>;
+
 // Export types
 export type Tenant = z.infer<typeof TenantSchema>;
 export type CreateTenant = z.infer<typeof CreateTenantSchema>;
@@ -548,3 +726,7 @@ export type Payment = z.infer<typeof PaymentSchema>;
 export type CreatePayment = z.infer<typeof CreatePaymentSchema>;
 export type UsageTracking = z.infer<typeof UsageTrackingSchema>;
 export type CreateUsageTracking = z.infer<typeof CreateUsageTrackingSchema>;
+// Block and BlockTree types are already defined above, no need to re-export inferred types
+
+// Export permissions
+export * from './permissions';

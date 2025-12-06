@@ -61,7 +61,7 @@ export class AuthController {
   }
 
   @UseGuards(AuthGuard)
-  @Throttle(30, 60) // 30 requests per minute
+  @Throttle(1000, 60) // 1000 requests per minute (very high limit for development)
   @Get('me/tenants')
   async getMyTenants(@CurrentUser() user: CurrentUserPayload, @Req() req: Request) {
     const tenants = await this.authService.getUserTenants(user.id);

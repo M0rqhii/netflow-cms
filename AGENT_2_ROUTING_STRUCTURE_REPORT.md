@@ -256,3 +256,4 @@ Optymalizacja routingu i struktury została pomyślnie zakończona. Wprowadzono 
 3. Rozważyć wprowadzenie AuthGuard dla global routes
 4. Rozważyć dodanie Error Boundary dla lepszego error handling
 
+

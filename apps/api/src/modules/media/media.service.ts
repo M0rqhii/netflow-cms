@@ -1,8 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Inject, Logger } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { FileStorage } from '../../common/providers/interfaces/file-storage.interface';
 import { UploadMediaDto } from './dto/upload-media.dto';
 import { QueryMediaDto } from './dto/query-media.dto';
-import { ConfigService } from '@nestjs/config';
 import { Prisma } from '@prisma/client';
 
 /**
@@ -13,15 +13,16 @@ import { Prisma } from '@prisma/client';
  */
 @Injectable()
 export class MediaService {
+  private readonly logger = new Logger(MediaService.name);
+
   constructor(
     private prisma: PrismaService,
-    private configService: ConfigService,
+    @Inject('FileStorage') private readonly fileStorage: FileStorage,
   ) {}
 
   /**
    * Upload a media file
-   * AI Note: Creates a MediaFile record in the database
-   * The actual file upload should be handled by a file storage service (S3, etc.)
+   * Uses FileStorage provider to handle file upload
    */
   async upload(
     tenantId: string,
@@ -58,22 +59,36 @@ export class MediaService {
       throw new BadRequestException(`MIME type ${file.mimetype} is not allowed`);
     }
 
-    // Generate URL (for MVP, use a placeholder - in production, upload to S3/CDN)
-    const baseUrl = this.configService.get<string>('MEDIA_BASE_URL') || 'https://cdn.example.com';
-    const fileUrl = `${baseUrl}/media/${tenantId}/${file.filename}`;
+    // Use FileStorage provider to upload file
+    const uploadResult = await this.fileStorage.uploadFile({
+      file: file.buffer,
+      filename: dto.filename || file.originalname,
+      contentType: dto.mimeType || file.mimetype,
+      tenantId,
+      folder: 'media',
+      metadata: {
+        ...(dto.metadata || {}),
+        originalName: file.originalname,
+      },
+      public: true,
+    });
 
-    // Create media file record
+    // Create media file record in database
     return this.prisma.mediaFile.create({
       data: {
         tenantId,
         filename: dto.filename || file.originalname,
-        url: fileUrl,
+        url: uploadResult.url,
         mimeType: dto.mimeType || file.mimetype,
-        size: dto.size || file.size,
+        size: dto.size || uploadResult.size,
         width: dto.width,
         height: dto.height,
         alt: dto.alt,
-        metadata: dto.metadata || {},
+        metadata: {
+          ...(dto.metadata || {}),
+          storageKey: uploadResult.key,
+          ...uploadResult.metadata,
+        },
         uploadedById,
       },
       select: {
@@ -280,10 +295,32 @@ export class MediaService {
 
   /**
    * Delete a media file
+   * Uses FileStorage provider to delete the file, then removes DB record
    */
   async remove(tenantId: string, id: string) {
     const mediaFile = await this.findOne(tenantId, id);
 
+    // Extract storage key from metadata if available
+    const metadata = mediaFile.metadata as any;
+    const storageKey = metadata?.storageKey;
+
+    // Delete from storage if key is available
+    if (storageKey) {
+      try {
+        await this.fileStorage.deleteFile({
+          key: storageKey,
+          tenantId,
+        });
+      } catch (error) {
+        // Log error but continue with DB deletion
+        this.logger.warn(
+          `Failed to delete file from storage: ${storageKey}`,
+          error instanceof Error ? error.stack : String(error),
+        );
+      }
+    }
+
+    // Delete database record
     await this.prisma.mediaFile.delete({
       where: { id: mediaFile.id },
     });

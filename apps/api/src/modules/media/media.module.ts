@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { MediaService } from './media.service';
 import { MediaController } from './media.controller';
+import { UploadsController } from './uploads.controller';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuthModule } from '../../common/auth/auth.module';
 import { TenantModule } from '../../common/tenant/tenant.module';
@@ -11,7 +12,7 @@ import { TenantModule } from '../../common/tenant/tenant.module';
  */
 @Module({
   imports: [AuthModule, TenantModule],
-  controllers: [MediaController],
+  controllers: [MediaController, UploadsController],
   providers: [MediaService, PrismaService],
   exports: [MediaService],
 })

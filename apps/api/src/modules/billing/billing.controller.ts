@@ -61,6 +61,7 @@ export class BillingController {
   ): Promise<{ received: boolean }> {
     // In production, verify webhook signature:
     // const event = this.stripe.webhooks.constructEvent(body, signature, webhookSecret);
+    // Note: signature parameter is reserved for future webhook verification implementation
     
     const eventType = body.type;
     const data = body.data?.object;

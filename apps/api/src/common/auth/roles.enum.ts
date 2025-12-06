@@ -74,6 +74,12 @@ export enum Permission {
   // Billing
   BILLING_READ = 'billing:read',
   BILLING_WRITE = 'billing:write',
+
+  // Site Panel: Environments & Pages
+  PAGES_READ = 'pages:read',
+  PAGES_WRITE = 'pages:write',
+  PAGES_PUBLISH = 'pages:publish',
+  ENVIRONMENTS_MANAGE = 'environments:manage',
 }
 
 /**
@@ -120,6 +126,10 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     Permission.MEDIA_DELETE,
     Permission.BILLING_READ,
     Permission.BILLING_WRITE,
+    Permission.PAGES_READ,
+    Permission.PAGES_WRITE,
+    Permission.PAGES_PUBLISH,
+    Permission.ENVIRONMENTS_MANAGE,
   ],
   
   [Role.EDITOR]: [
@@ -137,6 +147,8 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     Permission.CONTENT_WRITE, // Backward compatibility
     Permission.MEDIA_READ,
     Permission.MEDIA_WRITE,
+    Permission.PAGES_READ,
+    Permission.PAGES_WRITE,
   ],
   
   [Role.VIEWER]: [
@@ -146,6 +158,7 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     Permission.CONTENT_TYPES_READ,
     Permission.CONTENT_READ,
     Permission.MEDIA_READ,
+    Permission.PAGES_READ,
   ],
 };
 
@@ -219,5 +232,4 @@ export function hasAnyPlatformPermission(platformRole: PlatformRole, permissions
 export function hasAllPlatformPermissions(platformRole: PlatformRole, permissions: Permission[]): boolean {
   return permissions.every(permission => hasPlatformPermission(platformRole, permission));
 }
-
 

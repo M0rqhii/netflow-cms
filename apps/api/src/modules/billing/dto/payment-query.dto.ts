@@ -12,3 +12,4 @@ export const PaymentQueryDtoSchema = z.object({
 
 export type PaymentQueryDto = z.infer<typeof PaymentQueryDtoSchema>;
 
+

@@ -1,32 +1,48 @@
 "use client";
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { Card, CardHeader, CardTitle, CardContent } from '@repo/ui';
+import { Card, CardHeader, CardTitle, CardContent, EmptyState, Skeleton } from '@repo/ui';
 import { Button } from '@repo/ui';
 import { Badge } from '@/components/ui/Badge';
-import { Skeleton } from '@repo/ui';
-
-// Mock data
-const mockSite = {
-  tenantId: '1',
-  role: 'admin',
-  tenant: {
-    id: '1',
-    name: 'Acme Corporation',
-    slug: 'acme-corp',
-    plan: 'professional',
-  },
-};
+import { fetchMyTenants, getTenantSubscription, type Subscription } from '@/lib/api';
+import type { TenantInfo } from '@repo/sdk';
 
 export default function SiteOverviewPage() {
   const params = useParams<{ slug: string }>();
   const slug = params?.slug as string;
-  const [loading] = useState(false);
 
-  // In real app, we'd fetch site by slug
-  const siteInfo = mockSite;
+  const [site, setSite] = useState<TenantInfo | null>(null);
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
+
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      try {
+        const sites = await fetchMyTenants();
+        const current = sites.find((item) => item.tenant.slug === slug) || null;
+
+        if (!current) {
+          setNotFound(true);
+          return;
+        }
+
+        setSite(current);
+        const sub = await getTenantSubscription(current.tenantId).catch(() => null);
+        setSubscription(sub);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    load();
+  }, [slug]);
+
+  const planLabel = subscription?.plan || site?.tenant.plan || 'free';
+  const statusLabel = subscription?.status || 'active';
 
   if (loading) {
     return (
@@ -38,12 +54,14 @@ export default function SiteOverviewPage() {
               <CardContent>
                 <Skeleton variant="text" width={150} height={24} className="mb-4" />
                 <Skeleton variant="text" width={100} height={16} />
+                <Skeleton variant="text" width={120} height={16} className="mt-2" />
               </CardContent>
             </Card>
             <Card>
               <CardContent>
                 <Skeleton variant="text" width={150} height={24} className="mb-4" />
                 <Skeleton variant="text" width={100} height={16} />
+                <Skeleton variant="text" width={120} height={16} className="mt-2" />
               </CardContent>
             </Card>
           </div>
@@ -52,23 +70,40 @@ export default function SiteOverviewPage() {
     );
   }
 
-  return (
-    <div className="container py-8">
-      <div className="mb-6">
-        <div className="flex items-center gap-3 mb-4">
+  if (notFound || !site) {
+    return (
+      <div className="container py-8">
+        <div className="mb-6">
           <Link href="/sites" className="text-sm text-muted hover:text-foreground">
             ← Sites
           </Link>
         </div>
-        <h1 className="text-2xl font-bold">{siteInfo.tenant.name}</h1>
-        <div className="flex items-center gap-2 mt-2">
-          <Badge>{siteInfo.role}</Badge>
+        <EmptyState title="Site not found" description="We could not find this site. Check the URL or your access rights." />
+      </div>
+    );
+  }
+
+  return (
+    <div className="container py-8">
+      <div className="mb-6">
+        <div className="flex items-center gap-3 mb-3">
+          <Link href="/sites" className="text-sm text-muted hover:text-foreground">
+            ← Sites
+          </Link>
+        </div>
+        <h1 className="text-2xl font-bold">{site.tenant.name}</h1>
+        <p className="text-sm text-muted mt-1">Site overview and quick actions</p>
+        <div className="flex items-center gap-2 mt-3 flex-wrap">
+          <Badge>{site.role}</Badge>
           <span className="text-sm text-muted">•</span>
-          <span className="text-sm text-muted">Plan: {siteInfo.tenant.plan || 'Basic'}</span>
+          <span className="text-sm text-muted">Plan: {planLabel}</span>
+          <span className="text-sm text-muted">•</span>
+          <span className="text-sm text-muted">Status: {statusLabel}</span>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card>
           <CardHeader>
             <CardTitle>Details</CardTitle>
@@ -77,15 +112,35 @@ export default function SiteOverviewPage() {
             <dl className="space-y-2">
               <div>
                 <dt className="text-sm text-muted">Name</dt>
-                <dd className="font-medium">{siteInfo.tenant.name}</dd>
+                <dd className="font-medium">{site.tenant.name}</dd>
               </div>
               <div>
                 <dt className="text-sm text-muted">Slug</dt>
-                <dd className="font-mono text-sm">{siteInfo.tenant.slug}</dd>
+                <dd className="font-mono text-sm">{site.tenant.slug}</dd>
+              </div>
+              <div>
+                <dt className="text-sm text-muted">Tenant ID</dt>
+                <dd className="font-mono text-sm">{site.tenantId}</dd>
               </div>
               <div>
                 <dt className="text-sm text-muted">Plan</dt>
-                <dd>{siteInfo.tenant.plan || 'Basic'}</dd>
+                <dd>{planLabel || 'Basic'}</dd>
+              </div>
+              <div>
+                <dt className="text-sm text-muted">Status</dt>
+                <dd>{statusLabel || 'Active'}</dd>
+              </div>
+              <div>
+                <dt className="text-sm text-muted">Created</dt>
+                <dd>{(site as any)?.tenant?.createdAt ? new Date((site as any).tenant.createdAt).toLocaleString() : 'N/A'}</dd>
+              </div>
+              <div>
+                <dt className="text-sm text-muted">Updated</dt>
+                <dd>{(site as any)?.tenant?.updatedAt ? new Date((site as any).tenant.updatedAt).toLocaleString() : 'N/A'}</dd>
+              </div>
+              <div>
+                <dt className="text-sm text-muted">Your role</dt>
+                <dd className="capitalize">{site.role}</dd>
               </div>
             </dl>
           </CardContent>
@@ -97,20 +152,21 @@ export default function SiteOverviewPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              <Link href={`/sites/${slug}/users`} className="block">
+              <Link href={`/sites/${encodeURIComponent(slug)}/panel`} className="block">
+                <Button variant="primary" className="w-full">
+                  Open Site Panel
+                </Button>
+              </Link>
+              <Link href={`/sites/${encodeURIComponent(slug)}/users`} className="block">
                 <Button variant="outline" className="w-full">Manage Users</Button>
               </Link>
-              <Link href={`/sites/${slug}/billing`} className="block">
+              <Link href={`/sites/${encodeURIComponent(slug)}/billing`} className="block">
                 <Button variant="outline" className="w-full">Billing</Button>
               </Link>
-              <div className="opacity-50 cursor-not-allowed">
-                <Button variant="outline" className="w-full" disabled>
-                  Open Site Panel (Coming Soon)
-                </Button>
-              </div>
             </div>
           </CardContent>
         </Card>
+        </div>
       </div>
     </div>
   );

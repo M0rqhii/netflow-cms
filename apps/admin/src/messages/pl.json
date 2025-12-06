@@ -47,7 +47,13 @@
     "account": "Konto",
     "billing": "Rozliczenia",
     "collections": "Kolekcje",
-    "contentTypes": "Typy treści"
+    "contentTypes": "Typy treści",
+    "types": "Typy treści",
+    "content": "Treść",
+    "management": "Zarządzanie",
+    "business": "Biznes",
+    "development": "Rozwój",
+    "dev": "Panel deweloperski"
   },
   "dashboard": {
     "title": "Panel główny",

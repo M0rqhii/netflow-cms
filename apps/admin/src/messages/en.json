@@ -47,7 +47,13 @@
     "account": "Account",
     "billing": "Billing",
     "collections": "Collections",
-    "contentTypes": "Content Types"
+    "contentTypes": "Content Types",
+    "types": "Content Types",
+    "content": "Content",
+    "management": "Management",
+    "business": "Business",
+    "development": "Development",
+    "dev": "Dev Panel"
   },
   "dashboard": {
     "title": "Dashboard",

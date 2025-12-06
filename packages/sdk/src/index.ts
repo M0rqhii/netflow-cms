@@ -7,6 +7,43 @@ export type TenantInfo = {
   tenant: { id: string; name: string; slug: string; plan: string };
 };
 
+export type EnvironmentType = 'draft' | 'production';
+export type PageStatus = 'draft' | 'published' | 'archived';
+
+export type SiteEnvironment = {
+  id: string;
+  tenantId: string;
+  type: EnvironmentType;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type SitePage = {
+  id: string;
+  tenantId: string;
+  environmentId: string;
+  slug: string;
+  title: string;
+  status: PageStatus;
+  content: unknown;
+  publishedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type SeoSettings = {
+  id: string;
+  tenantId: string;
+  title?: string | null;
+  description?: string | null;
+  ogTitle?: string | null;
+  ogDescription?: string | null;
+  ogImage?: string | null;
+  twitterCard?: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export class ApiClient {
   constructor(private baseUrl: string) {}
 
@@ -189,6 +226,85 @@ export class ApiClient {
     });
   }
 
+  // Dev endpoints (non-prod only)
+  async getDevSummary(token: string): Promise<{
+    profile: string;
+    sites: number;
+    users: number;
+    emails: number;
+    subscriptions: number;
+  }> {
+    return this.request(`/dev/summary`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  }
+
+  async getDevSites(token: string): Promise<
+    Array<{ id: string; name: string; slug: string; plan: string; createdAt?: string }>
+  > {
+    return this.request(`/dev/sites`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  }
+
+  async getDevEmails(token: string): Promise<
+    Array<{ id: string; to: string; subject: string; status: string; sentAt?: string; createdAt?: string }>
+  > {
+    return this.request(`/dev/emails`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  }
+
+  async getDevPayments(token: string): Promise<
+    Array<{
+      id: string;
+      tenantId: string;
+      plan: string;
+      status: string;
+      currentPeriodStart?: string;
+      currentPeriodEnd?: string;
+      createdAt?: string;
+    }>
+  > {
+    return this.request(`/dev/payments`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  }
+
+  async getDevLogs(token: string): Promise<any[]> {
+    return this.request(`/dev/logs`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  }
+
+  // Feature flags
+  async isFeatureEnabled(token: string, feature: string): Promise<boolean> {
+    const result = await this.request<{ feature: string; enabled: boolean }>(
+      `/features/${encodeURIComponent(feature)}`,
+      {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${token}` },
+      },
+    );
+    return result.enabled;
+  }
+
+  async getAllFeatureFlags(token: string): Promise<Record<string, boolean>> {
+    const result = await this.request<{ flags: Record<string, boolean> }>(
+      `/features`,
+      {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${token}` },
+      },
+    );
+    return result.flags;
+  }
+
   // Billing helpers - Site subscription methods
   async getSiteBilling(token: string, siteId: string): Promise<{
     siteId: string;
@@ -239,11 +355,125 @@ export class ApiClient {
       role: string;
     }>;
     totalSites: number;
+    subscriptions: Array<{
+      id: string;
+      tenantId: string;
+      plan: string;
+      status: string;
+      currentPeriodStart: string | null;
+      currentPeriodEnd: string | null;
+      tenant?: { id: string; name: string; slug: string };
+    }>;
+    invoices: Array<{
+      id: string;
+      tenantId: string;
+      subscriptionId: string;
+      invoiceNumber: string;
+      amount: number;
+      currency: string;
+      status: string;
+      createdAt: string;
+      paidAt: string | null;
+      tenant?: { id: string; name: string; slug: string };
+      subscription?: { id: string; plan: string; status: string };
+    }>;
   }> {
     return this.request(`/billing/me`, {
       method: 'GET',
       headers: { Authorization: `Bearer ${token}` },
     });
+  }
+
+  // Site Panel: environments & pages
+  async listSiteEnvironments(token: string, siteId: string): Promise<SiteEnvironment[]> {
+    return this.get<SiteEnvironment[]>(`/site-panel/${encodeURIComponent(siteId)}/environments`, token);
+  }
+
+  async createSiteEnvironment(
+    token: string,
+    siteId: string,
+    data: { type: EnvironmentType }
+  ): Promise<SiteEnvironment> {
+    return this.request(`/site-panel/${encodeURIComponent(siteId)}/environments`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(data),
+    });
+  }
+
+  async listPages(
+    token: string,
+    siteId: string,
+    params?: { environmentId?: string; environmentType?: EnvironmentType; status?: PageStatus }
+  ): Promise<SitePage[]> {
+    const search = new URLSearchParams();
+    if (params?.environmentId) search.append('environmentId', params.environmentId);
+    if (params?.environmentType) search.append('environmentType', params.environmentType);
+    if (params?.status) search.append('status', params.status);
+    const query = search.toString() ? `?${search.toString()}` : '';
+    return this.get<SitePage[]>(`/site-panel/${encodeURIComponent(siteId)}/pages${query}`, token);
+  }
+
+  async createPage(
+    token: string,
+    siteId: string,
+    data: { environmentId: string; slug: string; title: string; status?: PageStatus; content?: unknown }
+  ): Promise<SitePage> {
+    return this.request(`/site-panel/${encodeURIComponent(siteId)}/pages`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getPage(token: string, siteId: string, pageId: string): Promise<SitePage> {
+    return this.get<SitePage>(
+      `/site-panel/${encodeURIComponent(siteId)}/pages/${encodeURIComponent(pageId)}`,
+      token,
+    );
+  }
+
+  async updatePage(
+    token: string,
+    siteId: string,
+    pageId: string,
+    data: { title?: string; slug?: string; status?: PageStatus; content?: unknown }
+  ): Promise<SitePage> {
+    return this.patch<SitePage>(
+      `/site-panel/${encodeURIComponent(siteId)}/pages/${encodeURIComponent(pageId)}`,
+      data,
+      token,
+    );
+  }
+
+  async updatePageContent(token: string, siteId: string, pageId: string, content: unknown): Promise<SitePage> {
+    return this.updatePage(token, siteId, pageId, { content });
+  }
+
+  async publishPage(
+    token: string,
+    siteId: string,
+    pageId: string,
+    data?: { targetEnvironmentId?: string; targetEnvironmentType?: EnvironmentType }
+  ): Promise<{ draft: SitePage; production: SitePage }> {
+    return this.request(`/site-panel/${encodeURIComponent(siteId)}/pages/${encodeURIComponent(pageId)}/publish`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(data || {}),
+    });
+  }
+
+  // Site SEO
+  async getSeoSettings(token: string, siteId: string): Promise<SeoSettings> {
+    return this.get<SeoSettings>(`/site-panel/${encodeURIComponent(siteId)}/seo`, token);
+  }
+
+  async updateSeoSettings(
+    token: string,
+    siteId: string,
+    data: { title?: string; description?: string; ogTitle?: string; ogDescription?: string; ogImage?: string; twitterCard?: string }
+  ): Promise<SeoSettings> {
+    return this.patch<SeoSettings>(`/site-panel/${encodeURIComponent(siteId)}/seo`, data, token);
   }
 }
 

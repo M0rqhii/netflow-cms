@@ -9,6 +9,9 @@ import { AuditModule } from './common/audit/audit.module';
 import { CacheModule } from './common/cache/cache.module';
 import { MonitoringModule } from './common/monitoring/monitoring.module';
 import { MonitoringInterceptor } from './common/monitoring/monitoring.interceptor';
+import { DebugModule } from './common/debug/debug.module';
+import { ProfilingInterceptor } from './common/debug/profiling.interceptor';
+import { FeaturesModule } from './common/features/features.module';
 import { SaasModule } from './common/saas/saas.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { CollectionsModule } from './modules/collections/collections.module';
@@ -31,10 +34,25 @@ import { ContentVersioningModule } from './modules/content-versioning/content-ve
 import { HooksModule } from './modules/hooks/hooks.module';
 import { BillingModule } from './modules/billing/billing.module';
 import { AccountModule } from './modules/account/account.module';
+import { StatsModule } from './modules/stats/stats.module';
+import { ActivityModule } from './modules/activity/activity.module';
+import { SitePanelModule } from './modules/site-panel/site-panel.module';
+import { SiteSeoModule } from './modules/site-seo/site-seo.module';
 import { HealthController } from './health.controller';
 import { PrismaService } from './common/prisma/prisma.service';
+import { ProvidersModule } from './common/providers/providers.module';
+import { DevModule } from './dev/dev.module';
 // Import feature modules here
 // import { ContentModule } from './modules/content/content.module';
+
+const isProductionProfile = (process.env.APP_PROFILE || process.env.NODE_ENV || 'development') === 'production';
+
+// Log environment for debugging
+if (!isProductionProfile) {
+  console.log('[AppModule] DevModule will be loaded - APP_PROFILE:', process.env.APP_PROFILE, 'NODE_ENV:', process.env.NODE_ENV);
+} else {
+  console.log('[AppModule] DevModule will NOT be loaded - running in production mode');
+}
 
 @Module({
   imports: [
@@ -51,7 +69,10 @@ import { PrismaService } from './common/prisma/prisma.service';
     CommonAuthModule,
     AuditModule,
     MonitoringModule,
+    DebugModule,
+    FeaturesModule,
     SaasModule,
+    ProvidersModule,
     AuthModule,
     CollectionsModule,
     UsersModule,
@@ -72,6 +93,11 @@ import { PrismaService } from './common/prisma/prisma.service';
     HooksModule,
     BillingModule,
     AccountModule,
+    StatsModule,
+    ActivityModule,
+    SitePanelModule,
+    SiteSeoModule,
+    ...(isProductionProfile ? [] : [DevModule]),
     // Add feature modules here
     // ContentModule,
   ],
@@ -91,6 +117,11 @@ import { PrismaService } from './common/prisma/prisma.service';
     {
       provide: APP_INTERCEPTOR,
       useClass: MonitoringInterceptor,
+    },
+    // Enable profiling interceptor (dev only, checks internally)
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: ProfilingInterceptor,
     },
   ],
 })

@@ -40,6 +40,9 @@ model Tenant {
   invoices          Invoice[]
   payments          Payment[]
   usageTracking     UsageTracking[]
+  seoSettings       SeoSettings?
+  siteEnvironments  SiteEnvironment[]
+  pages             Page[]
 
   @@map("tenants")
 }
@@ -515,4 +518,115 @@ model UsageTracking {
   @@index([tenantId, period])
   @@index([resourceType])
   @@map("usage_tracking")
+}
+
+// DevEmailLog model - development email logging for observability
+model DevEmailLog {
+  id        String   @id @default(uuid())
+  to        String
+  subject   String
+  body      String   @db.Text
+  from      String?
+  replyTo   String?
+  cc        String?
+  bcc       String?
+  variables Json     @default("{}")
+  metadata  Json     @default("{}")
+  status    String   @default("sent") // sent, failed, pending
+  sentAt    DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  @@index([to])
+  @@index([status])
+  @@index([sentAt])
+  @@map("dev_email_log")
+}
+
+// DevDomainRecord model - development domain configuration logging
+model DevDomainRecord {
+  id        String   @id @default(uuid())
+  domain    String
+  tenantId  String
+  targetUrl String?
+  status    String   @default("configured") // configured, pending, failed
+  sslStatus String   @default("active") // active, pending, failed
+  metadata  Json     @default("{}")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([domain, tenantId])
+  @@index([tenantId])
+  @@index([domain])
+  @@index([status])
+  @@map("dev_domain_records")
+}
+
+// SEO settings per site (skeleton)
+model SeoSettings {
+  id            String   @id @default(uuid())
+  tenantId      String
+  title         String?
+  description   String?
+  ogTitle       String?
+  ogDescription String?
+  ogImage       String?
+  twitterCard   String?  @default("summary_large_image")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId])
+  @@index([tenantId])
+  @@map("seo_settings")
+}
+
+// Site environments - per-tenant deployment environments (draft, production, etc.)
+model SiteEnvironment {
+  id        String           @id @default(uuid())
+  tenantId  String
+  type      EnvironmentType
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  pages  Page[]
+
+  @@unique([tenantId, type])
+  @@index([tenantId])
+  @@map("site_environments")
+}
+
+// Pages - per-environment site pages for Site Panel
+model Page {
+  id            String       @id @default(uuid())
+  tenantId      String
+  environmentId String
+  slug          String
+  title         String
+  status        PageStatus   @default(DRAFT)
+  content       Json         @default("{}")
+  publishedAt   DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  tenant       Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  environment  SiteEnvironment @relation(fields: [environmentId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, environmentId, slug], name: "tenant_env_slug")
+  @@index([tenantId, environmentId])
+  @@index([tenantId, status])
+  @@index([tenantId, slug])
+  @@map("pages")
+}
+
+enum EnvironmentType {
+  DRAFT
+  PRODUCTION
+}
+
+enum PageStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
 }
