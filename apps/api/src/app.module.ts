@@ -38,6 +38,12 @@ import { StatsModule } from './modules/stats/stats.module';
 import { ActivityModule } from './modules/activity/activity.module';
 import { SitePanelModule } from './modules/site-panel/site-panel.module';
 import { SiteSeoModule } from './modules/site-seo/site-seo.module';
+import { FeatureFlagsModule } from './modules/feature-flags/feature-flags.module';
+import { SiteEventsModule } from './modules/site-events/site-events.module';
+import { SnapshotsModule } from './modules/snapshots/snapshots.module';
+import { RbacModule } from './modules/rbac/rbac.module';
+import { MarketingModule } from './modules/marketing/marketing.module';
+import { OrgDashboardModule } from './modules/org-dashboard/org-dashboard.module';
 import { HealthController } from './health.controller';
 import { PrismaService } from './common/prisma/prisma.service';
 import { ProvidersModule } from './common/providers/providers.module';
@@ -97,6 +103,12 @@ if (!isProductionProfile) {
     ActivityModule,
     SitePanelModule,
     SiteSeoModule,
+    FeatureFlagsModule,
+    SiteEventsModule,
+    SnapshotsModule,
+    RbacModule,
+    MarketingModule,
+    OrgDashboardModule,
     ...(isProductionProfile ? [] : [DevModule]),
     // Add feature modules here
     // ContentModule,
@@ -132,3 +144,8 @@ export class AppModule {}
 // - Dodawaj nowe feature modules tutaj
 // - ConfigModule jest globalny - dostępny wszędzie
 // - Struktura: apps/api/src/modules/{feature}/{feature}.module.ts
+
+
+
+
+

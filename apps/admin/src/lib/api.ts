@@ -1,13 +1,19 @@
 ﻿'use client';
 
 import { ApiClient, createApiClient, TenantInfo } from '@repo/sdk';
-import type { CreateTenant } from '@repo/schemas';
+import type { CapabilityKey, CapabilityModule, CreateTenant, RbacCapability } from '@repo/schemas';
 
 const client: ApiClient = createApiClient();
 
 type JwtPayload = {
   exp?: number;
   email?: string;
+  role?: string; // tenant role (super_admin, tenant_admin, editor, viewer)
+  platformRole?: string; // platform role (platform_admin, org_owner, user)
+  systemRole?: string; // system role (super_admin, system_admin, system_dev, system_support)
+  isSuperAdmin?: boolean; // flag for super admin
+  sub?: string; // user id
+  tenantId?: string;
   [key: string]: unknown;
 };
 
@@ -674,7 +680,7 @@ export async function deleteContentComment(tenantId: string, contentTypeSlug: st
 }
 
 // Media
-export type MediaItem = { id: string; filename: string; url: string; mime: string; size: number; uploadedAt: string; thumbnailUrl?: string; alt?: string; metadata?: Record<string, unknown> };
+export type MediaItem = { id: string; fileName: string; path?: string; url: string; mime: string; size: number; uploadedAt: string; width?: number; height?: number; thumbnailUrl?: string; alt?: string; metadata?: Record<string, unknown> };
 export async function fetchTenantMedia(tenantId: string): Promise<MediaItem[]> {
   const token = await ensureTenantToken(tenantId).catch(() => getAuthToken());
   if (!token) throw new Error('Missing auth token. Please login.');
@@ -692,6 +698,8 @@ export async function fetchTenantMedia(tenantId: string): Promise<MediaItem[]> {
   // Map API fields to MediaItem type (mimeType -> mime, createdAt -> uploadedAt)
   return items.map((item: any) => ({
     ...item,
+    fileName: item.fileName || item.filename || item.name || '',
+    path: item.path,
     mime: item.mimeType || item.mime || '',
     uploadedAt: item.createdAt || item.uploadedAt || new Date().toISOString(),
   }));
@@ -715,6 +723,8 @@ export async function uploadTenantMedia(tenantId: string, file: File): Promise<M
   const item = await res.json();
   return {
     ...item,
+    fileName: item.fileName || item.filename || item.name || '',
+    path: item.path,
     mime: item.mimeType || item.mime || '',
     uploadedAt: item.createdAt || item.uploadedAt || new Date().toISOString(),
   };
@@ -736,6 +746,8 @@ export async function updateMediaItem(tenantId: string, id: string, payload: { a
   const item = await res.json();
   return {
     ...item,
+    fileName: item.fileName || item.filename || item.name || '',
+    path: item.path,
     mime: item.mimeType || item.mime || '',
     uploadedAt: item.createdAt || item.uploadedAt || new Date().toISOString(),
   };
@@ -824,6 +836,147 @@ export async function inviteUser(tenantId: string, payload: { email: string; rol
 
 export async function inviteUserToTenant(email: string, role: string, tenantId: string): Promise<InviteSummary> {
   return inviteUser(tenantId, { email, role });
+}
+
+/**
+ * Create a new user directly (admin only)
+ * Security: Only super_admin can create super_admin users
+ */
+export async function createUser(tenantId: string, payload: { email: string; password: string; role: string; preferredLanguage?: 'pl' | 'en' }): Promise<UserSummary> {
+  const token = await ensureTenantToken(tenantId).catch(() => getAuthToken());
+  if (!token) throw new Error('Missing auth token. Please login.');
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+  const res = await fetch(`${baseUrl}/users`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'X-Tenant-ID': tenantId },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(text || res.statusText);
+  }
+  return res.json();
+}
+
+/**
+ * Update user role (admin only)
+ * Security: Only super_admin can assign super_admin role
+ */
+export async function updateUserRole(tenantId: string, userId: string, role: string): Promise<UserSummary> {
+  const token = await ensureTenantToken(tenantId).catch(() => getAuthToken());
+  if (!token) throw new Error('Missing auth token. Please login.');
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+  const res = await fetch(`${baseUrl}/users/${encodeURIComponent(userId)}/role`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'X-Tenant-ID': tenantId },
+    body: JSON.stringify({ role }),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(text || res.statusText);
+  }
+  return res.json();
+}
+
+// Platform-level user management (no tenant context)
+export type PlatformUser = {
+  id: string;
+  email: string;
+  role: string; // Backward compatibility
+  siteRole?: string; // Site role (viewer, editor, editor-in-chief, marketing, admin, owner)
+  platformRole?: string; // Platform role (user, editor-in-chief, admin, owner)
+  systemRole?: string; // System role (super_admin, system_admin, system_dev, system_support)
+  isSuperAdmin?: boolean; // Flaga dla super admin
+  tenantId: string;
+  createdAt: string;
+  updatedAt: string;
+  tenant?: {
+    id: string;
+    name: string;
+    slug: string;
+  };
+};
+
+export type PlatformUsersResponse = {
+  data: PlatformUser[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
+  };
+};
+
+export async function fetchPlatformUsers(page: number = 1, pageSize: number = 20): Promise<PlatformUsersResponse> {
+  const token = getAuthToken();
+  if (!token) throw new Error('Missing auth token. Please login.');
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+  const res = await fetch(`${baseUrl}/platform/users?page=${page}&pageSize=${pageSize}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(text || res.statusText);
+  }
+  return res.json();
+}
+
+export async function createPlatformUser(payload: {
+  email: string;
+  password: string;
+  role: string;
+  platformRole?: string;
+  permissions?: string[];
+}): Promise<PlatformUser> {
+  const token = getAuthToken();
+  if (!token) throw new Error('Missing auth token. Please login.');
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+  const res = await fetch(`${baseUrl}/platform/users`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(text || res.statusText);
+  }
+  return res.json();
+}
+
+export async function updatePlatformUser(userId: string, payload: {
+  role?: string;
+  siteRole?: string;
+  platformRole?: string;
+  systemRole?: string;
+  permissions?: string[];
+}): Promise<PlatformUser> {
+  const token = getAuthToken();
+  if (!token) throw new Error('Missing auth token. Please login.');
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+  const res = await fetch(`${baseUrl}/platform/users/${encodeURIComponent(userId)}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(text || res.statusText);
+  }
+  return res.json();
+}
+
+export async function deletePlatformUser(userId: string): Promise<void> {
+  const token = getAuthToken();
+  if (!token) throw new Error('Missing auth token. Please login.');
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+  const res = await fetch(`${baseUrl}/platform/users/${encodeURIComponent(userId)}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(text || res.statusText);
+  }
 }
 
 // Tasks
@@ -1393,3 +1546,763 @@ export async function getGlobalBillingInfo(): Promise<GlobalBillingInfo> {
   return client.getMyBillingInfo(token);
 }
 
+// RBAC (org-level)
+export type RbacRole = {
+  id: string;
+  name: string;
+  description?: string | null;
+  type: 'SYSTEM' | 'CUSTOM';
+  scope: 'ORG' | 'SITE';
+  isImmutable: boolean;
+  capabilities: Array<{
+    key: CapabilityKey;
+    module: CapabilityModule;
+    label?: string;
+    description?: string | null;
+  }>;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type RbacPolicy = {
+  id: string;
+  capabilityKey: CapabilityKey;
+  enabled: boolean;
+  createdByUserId?: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type RbacAssignment = {
+  id: string;
+  userId: string;
+  roleId: string;
+  siteId?: string | null;
+  role: RbacRole;
+  createdAt: string;
+};
+
+export type EffectivePermission = {
+  key: CapabilityKey;
+  allowed: boolean;
+  reason?: string;
+  policyEnabled?: boolean;
+  roleSources?: Array<string | { name?: string; roleName?: string; id?: string }>;
+};
+
+async function getOrgAuthToken(orgId: string): Promise<string> {
+  let token: string | null = null;
+  try {
+    token = await ensureTenantToken(orgId);
+  } catch (error) {
+    token = getAuthToken();
+  }
+  if (!token) {
+    clearAuthTokens();
+    if (typeof window !== 'undefined') {
+      window.location.href = '/login';
+    }
+    throw new Error('Missing auth token. Please login.');
+  }
+  return token;
+}
+
+function buildOrgHeaders(token: string, orgId: string): HeadersInit {
+  return {
+    Authorization: `Bearer ${token}`,
+    'X-Tenant-ID': orgId,
+  };
+}
+
+// Org Dashboard
+export type DashboardAlert = {
+  id: string;
+  type: 'deployment_error' | 'missing_domain' | 'limit_exceeded' | 'policy_disabled' | 'billing_issue';
+  severity: 'high' | 'medium' | 'low';
+  message: string;
+  siteId?: string;
+  siteSlug?: string;
+  actionUrl: string;
+};
+
+export type DashboardSiteCard = {
+  id: string;
+  slug: string;
+  name: string;
+  status: 'LIVE' | 'DRAFT' | 'ERROR';
+  domain?: string;
+  plan?: string;
+  lastDeploy?: {
+    time: string;
+    status: 'success' | 'failed';
+    message?: string;
+  };
+  alerts?: DashboardAlert[];
+  quickActions: Array<{
+    label: string;
+    url: string;
+    capability?: string;
+  }>;
+};
+
+export type DashboardBusinessInfo = {
+  plan: {
+    name: string;
+    limits: {
+      maxPages: number;
+      maxUsers: number;
+      maxStorageMB: number;
+    };
+  };
+  usage: {
+    storage: { used: number; limit: number; percent: number };
+    apiRequests: { used: number; limit: number; percent: number };
+    bandwidth: { used: number; limit: number; percent: number };
+  };
+  billing: {
+    status: string;
+    nextPayment?: string;
+  };
+};
+
+export type DashboardUsageInfo = {
+  storage: { used: number; limit: number; percent: number };
+  apiRequests: { used: number; limit: number; percent: number };
+  bandwidth: { used: number; limit: number; percent: number };
+};
+
+export type DashboardActivityItem = {
+  id: string;
+  type: string;
+  message: string;
+  time: string;
+  siteId?: string;
+  siteSlug?: string;
+};
+
+export type DashboardResponse = {
+  alerts: DashboardAlert[];
+  business?: DashboardBusinessInfo;
+  usage?: DashboardUsageInfo;
+  sites: DashboardSiteCard[];
+  activity?: DashboardActivityItem[];
+  quickAccess?: Array<{ label: string; url: string }>;
+};
+
+export async function fetchOrgDashboard(orgId: string): Promise<DashboardResponse> {
+  const token = await getOrgAuthToken(orgId);
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+  const res = await fetch(`${baseUrl}/orgs/${encodeURIComponent(orgId)}/dashboard`, {
+    headers: buildOrgHeaders(token, orgId),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    if (res.status === 401) handleApiError(res, text);
+    throw new Error(`Failed to fetch dashboard: ${res.status} ${res.statusText}${text ? ` - ${text}` : ''}`);
+  }
+  return res.json();
+}
+
+export async function fetchRbacCapabilities(orgId: string): Promise<RbacCapability[]> {
+  const token = await getOrgAuthToken(orgId);
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+  const res = await fetch(`${baseUrl}/orgs/${encodeURIComponent(orgId)}/rbac/capabilities`, {
+    headers: buildOrgHeaders(token, orgId),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    if (res.status === 401) handleApiError(res, text);
+    throw new Error(`Failed to fetch capabilities: ${res.status} ${res.statusText}${text ? ` - ${text}` : ''}`);
+  }
+  return res.json();
+}
+
+export async function fetchRbacRoles(orgId: string, scope?: 'ORG' | 'SITE'): Promise<RbacRole[]> {
+  const token = await getOrgAuthToken(orgId);
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+  const query = scope ? `?scope=${scope}` : '';
+  const res = await fetch(`${baseUrl}/orgs/${encodeURIComponent(orgId)}/rbac/roles${query}`, {
+    headers: buildOrgHeaders(token, orgId),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    if (res.status === 401) handleApiError(res, text);
+    throw new Error(`Failed to fetch roles: ${res.status} ${res.statusText}${text ? ` - ${text}` : ''}`);
+  }
+  return res.json();
+}
+
+export async function createRbacRole(
+  orgId: string,
+  payload: { name: string; description?: string; scope: 'ORG' | 'SITE'; capabilityKeys: CapabilityKey[] },
+): Promise<RbacRole> {
+  const token = await getOrgAuthToken(orgId);
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+  const res = await fetch(`${baseUrl}/orgs/${encodeURIComponent(orgId)}/rbac/roles`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...buildOrgHeaders(token, orgId) },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    if (res.status === 401) handleApiError(res, text);
+    throw new Error(text || res.statusText);
+  }
+  return res.json();
+}
+
+export async function updateRbacRole(
+  orgId: string,
+  roleId: string,
+  payload: { name?: string; description?: string; capabilityKeys?: CapabilityKey[] },
+): Promise<RbacRole> {
+  const token = await getOrgAuthToken(orgId);
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+  const res = await fetch(`${baseUrl}/orgs/${encodeURIComponent(orgId)}/rbac/roles/${encodeURIComponent(roleId)}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...buildOrgHeaders(token, orgId) },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    if (res.status === 401) handleApiError(res, text);
+    throw new Error(text || res.statusText);
+  }
+  return res.json();
+}
+
+export async function deleteRbacRole(orgId: string, roleId: string, force?: boolean): Promise<{ success: boolean }> {
+  const token = await getOrgAuthToken(orgId);
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+  const query = force ? '?force=true' : '';
+  const res = await fetch(`${baseUrl}/orgs/${encodeURIComponent(orgId)}/rbac/roles/${encodeURIComponent(roleId)}${query}`, {
+    method: 'DELETE',
+    headers: buildOrgHeaders(token, orgId),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    if (res.status === 401) handleApiError(res, text);
+    throw new Error(text || res.statusText);
+  }
+  return res.json();
+}
+
+export async function fetchRbacPolicies(orgId: string): Promise<RbacPolicy[]> {
+  const token = await getOrgAuthToken(orgId);
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+  const res = await fetch(`${baseUrl}/orgs/${encodeURIComponent(orgId)}/rbac/policies`, {
+    headers: buildOrgHeaders(token, orgId),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    if (res.status === 401) handleApiError(res, text);
+    throw new Error(`Failed to fetch policies: ${res.status} ${res.statusText}${text ? ` - ${text}` : ''}`);
+  }
+  return res.json();
+}
+
+export async function updateRbacPolicy(orgId: string, capabilityKey: CapabilityKey, enabled: boolean): Promise<RbacPolicy> {
+  const token = await getOrgAuthToken(orgId);
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+  const res = await fetch(`${baseUrl}/orgs/${encodeURIComponent(orgId)}/rbac/policies/${encodeURIComponent(capabilityKey)}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...buildOrgHeaders(token, orgId) },
+    body: JSON.stringify({ enabled }),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    if (res.status === 401) handleApiError(res, text);
+    throw new Error(text || res.statusText);
+  }
+  return res.json();
+}
+
+export async function fetchRbacAssignments(
+  orgId: string,
+  params?: { userId?: string; siteId?: string | null }
+): Promise<RbacAssignment[]> {
+  const token = await getOrgAuthToken(orgId);
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+  const queryParams = new URLSearchParams();
+  if (params?.userId) queryParams.set('userId', params.userId);
+  if (params?.siteId !== undefined) queryParams.set('siteId', params.siteId === null ? 'null' : params.siteId);
+  const query = queryParams.toString();
+  const res = await fetch(`${baseUrl}/orgs/${encodeURIComponent(orgId)}/rbac/assignments${query ? `?${query}` : ''}`, {
+    headers: buildOrgHeaders(token, orgId),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    if (res.status === 401) handleApiError(res, text);
+    throw new Error(`Failed to fetch assignments: ${res.status} ${res.statusText}${text ? ` - ${text}` : ''}`);
+  }
+  return res.json();
+}
+
+export async function createRbacAssignment(
+  orgId: string,
+  payload: { userId: string; roleId: string; siteId?: string | null }
+): Promise<RbacAssignment> {
+  const token = await getOrgAuthToken(orgId);
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+  const res = await fetch(`${baseUrl}/orgs/${encodeURIComponent(orgId)}/rbac/assignments`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...buildOrgHeaders(token, orgId) },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    if (res.status === 401) handleApiError(res, text);
+    throw new Error(text || res.statusText);
+  }
+  return res.json();
+}
+
+export async function deleteRbacAssignment(orgId: string, assignmentId: string): Promise<{ success: boolean }> {
+  const token = await getOrgAuthToken(orgId);
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+  const res = await fetch(
+    `${baseUrl}/orgs/${encodeURIComponent(orgId)}/rbac/assignments/${encodeURIComponent(assignmentId)}`,
+    {
+      method: 'DELETE',
+      headers: buildOrgHeaders(token, orgId),
+    },
+  );
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    if (res.status === 401) handleApiError(res, text);
+    throw new Error(text || res.statusText);
+  }
+  return res.json();
+}
+
+export async function fetchRbacEffectivePermissions(
+  orgId: string,
+  params: { userId: string; siteId?: string | null }
+): Promise<EffectivePermission[]> {
+  const token = await getOrgAuthToken(orgId);
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+  const queryParams = new URLSearchParams();
+  queryParams.set('userId', params.userId);
+  if (params.siteId !== undefined) queryParams.set('siteId', params.siteId === null ? 'null' : params.siteId);
+  const res = await fetch(
+    `${baseUrl}/orgs/${encodeURIComponent(orgId)}/rbac/effective?${queryParams.toString()}`,
+    {
+      headers: buildOrgHeaders(token, orgId),
+    },
+  );
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    if (res.status === 401) handleApiError(res, text);
+    throw new Error(text || res.statusText);
+  }
+  return res.json();
+}
+
+// ============================================
+// Marketing & Distribution API
+// ============================================
+
+export type MarketingCampaign = {
+  id: string;
+  orgId: string;
+  siteId: string;
+  name: string;
+  description?: string | null;
+  status: 'draft' | 'active' | 'paused' | 'completed' | 'archived';
+  startDate?: string | null;
+  endDate?: string | null;
+  createdById?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  _count?: {
+    distributionDrafts: number;
+    publishJobs: number;
+  };
+};
+
+export type DistributionDraft = {
+  id: string;
+  orgId: string;
+  siteId: string;
+  campaignId?: string | null;
+  contentId?: string | null;
+  title: string;
+  content: Record<string, any>;
+  channels: string[];
+  status: 'draft' | 'ready' | 'published' | 'archived';
+  scheduledAt?: string | null;
+  createdById?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  campaign?: {
+    id: string;
+    name: string;
+  } | null;
+};
+
+export type PublishJob = {
+  id: string;
+  orgId: string;
+  siteId: string;
+  campaignId?: string | null;
+  draftId?: string | null;
+  channels: string[];
+  status: 'pending' | 'processing' | 'success' | 'failed' | 'cancelled';
+  startedAt?: string | null;
+  completedAt?: string | null;
+  createdById?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  campaign?: {
+    id: string;
+    name: string;
+  } | null;
+  draft?: {
+    id: string;
+    title: string;
+  } | null;
+  publishResults?: Array<{
+    id: string;
+    channel: string;
+    status: string;
+    externalId?: string | null;
+    url?: string | null;
+    error?: string | null;
+    publishedAt?: string | null;
+  }>;
+  _count?: {
+    publishResults: number;
+  };
+};
+
+export type ChannelConnection = {
+  id: string;
+  orgId: string;
+  siteId: string;
+  channel: 'facebook' | 'twitter' | 'linkedin' | 'instagram' | 'ads';
+  channelId?: string | null;
+  channelName?: string | null;
+  status: 'connected' | 'disconnected' | 'error';
+  connectedById?: string | null;
+  connectedAt: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+async function getMarketingToken(orgId: string): Promise<string> {
+  return getOrgAuthToken(orgId);
+}
+
+function buildMarketingHeaders(token: string, orgId: string): HeadersInit {
+  return buildOrgHeaders(token, orgId);
+}
+
+// Campaigns
+export async function fetchMarketingCampaigns(
+  orgId: string,
+  query?: { siteId?: string; status?: string; page?: number; pageSize?: number }
+): Promise<{ campaigns: MarketingCampaign[]; pagination: { total: number; page: number; pageSize: number } }> {
+  const token = await getMarketingToken(orgId);
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+  const params = new URLSearchParams();
+  if (query?.siteId) params.set('siteId', query.siteId);
+  if (query?.status) params.set('status', query.status);
+  if (query?.page) params.set('page', String(query.page));
+  if (query?.pageSize) params.set('pageSize', String(query.pageSize));
+  const res = await fetch(`${baseUrl}/marketing/campaigns?${params.toString()}`, {
+    headers: buildMarketingHeaders(token, orgId),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    if (res.status === 401) handleApiError(res, text);
+    throw new Error(`Failed to fetch campaigns: ${res.status} ${res.statusText}${text ? ` - ${text}` : ''}`);
+  }
+  return res.json();
+}
+
+export async function getMarketingCampaign(orgId: string, campaignId: string): Promise<MarketingCampaign> {
+  const token = await getMarketingToken(orgId);
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+  const res = await fetch(`${baseUrl}/marketing/campaigns/${encodeURIComponent(campaignId)}`, {
+    headers: buildMarketingHeaders(token, orgId),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    if (res.status === 401) handleApiError(res, text);
+    throw new Error(`Failed to fetch campaign: ${res.status} ${res.statusText}${text ? ` - ${text}` : ''}`);
+  }
+  return res.json();
+}
+
+export async function createMarketingCampaign(
+  orgId: string,
+  payload: { siteId: string; name: string; description?: string; startDate?: string; endDate?: string }
+): Promise<MarketingCampaign> {
+  const token = await getMarketingToken(orgId);
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+  const res = await fetch(`${baseUrl}/marketing/campaigns`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...buildMarketingHeaders(token, orgId) },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    if (res.status === 401) handleApiError(res, text);
+    throw new Error(text || res.statusText);
+  }
+  return res.json();
+}
+
+export async function updateMarketingCampaign(
+  orgId: string,
+  campaignId: string,
+  payload: { name?: string; description?: string; status?: string; startDate?: string | null; endDate?: string | null }
+): Promise<MarketingCampaign> {
+  const token = await getMarketingToken(orgId);
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+  const res = await fetch(`${baseUrl}/marketing/campaigns/${encodeURIComponent(campaignId)}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...buildMarketingHeaders(token, orgId) },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    if (res.status === 401) handleApiError(res, text);
+    throw new Error(text || res.statusText);
+  }
+  return res.json();
+}
+
+export async function deleteMarketingCampaign(orgId: string, campaignId: string): Promise<{ success: boolean }> {
+  const token = await getMarketingToken(orgId);
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+  const res = await fetch(`${baseUrl}/marketing/campaigns/${encodeURIComponent(campaignId)}`, {
+    method: 'DELETE',
+    headers: buildMarketingHeaders(token, orgId),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    if (res.status === 401) handleApiError(res, text);
+    throw new Error(text || res.statusText);
+  }
+  return res.json();
+}
+
+// Distribution Drafts
+export async function fetchDistributionDrafts(
+  orgId: string,
+  query?: { siteId?: string; campaignId?: string; status?: string; page?: number; pageSize?: number }
+): Promise<{ drafts: DistributionDraft[]; pagination: { total: number; page: number; pageSize: number } }> {
+  const token = await getMarketingToken(orgId);
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+  const params = new URLSearchParams();
+  if (query?.siteId) params.set('siteId', query.siteId);
+  if (query?.campaignId) params.set('campaignId', query.campaignId);
+  if (query?.status) params.set('status', query.status);
+  if (query?.page) params.set('page', String(query.page));
+  if (query?.pageSize) params.set('pageSize', String(query.pageSize));
+  const res = await fetch(`${baseUrl}/marketing/drafts?${params.toString()}`, {
+    headers: buildMarketingHeaders(token, orgId),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    if (res.status === 401) handleApiError(res, text);
+    throw new Error(`Failed to fetch drafts: ${res.status} ${res.statusText}${text ? ` - ${text}` : ''}`);
+  }
+  return res.json();
+}
+
+export async function getDistributionDraft(orgId: string, draftId: string): Promise<DistributionDraft> {
+  const token = await getMarketingToken(orgId);
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+  const res = await fetch(`${baseUrl}/marketing/drafts/${encodeURIComponent(draftId)}`, {
+    headers: buildMarketingHeaders(token, orgId),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    if (res.status === 401) handleApiError(res, text);
+    throw new Error(`Failed to fetch draft: ${res.status} ${res.statusText}${text ? ` - ${text}` : ''}`);
+  }
+  return res.json();
+}
+
+export async function createDistributionDraft(
+  orgId: string,
+  payload: {
+    siteId: string;
+    campaignId?: string;
+    contentId?: string;
+    title: string;
+    content: Record<string, any>;
+    channels: string[];
+    scheduledAt?: string;
+  }
+): Promise<DistributionDraft> {
+  const token = await getMarketingToken(orgId);
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+  const res = await fetch(`${baseUrl}/marketing/drafts`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...buildMarketingHeaders(token, orgId) },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    if (res.status === 401) handleApiError(res, text);
+    throw new Error(text || res.statusText);
+  }
+  return res.json();
+}
+
+export async function updateDistributionDraft(
+  orgId: string,
+  draftId: string,
+  payload: {
+    title?: string;
+    content?: Record<string, any>;
+    channels?: string[];
+    status?: string;
+    scheduledAt?: string | null;
+  }
+): Promise<DistributionDraft> {
+  const token = await getMarketingToken(orgId);
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+  const res = await fetch(`${baseUrl}/marketing/drafts/${encodeURIComponent(draftId)}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...buildMarketingHeaders(token, orgId) },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    if (res.status === 401) handleApiError(res, text);
+    throw new Error(text || res.statusText);
+  }
+  return res.json();
+}
+
+export async function deleteDistributionDraft(orgId: string, draftId: string): Promise<{ success: boolean }> {
+  const token = await getMarketingToken(orgId);
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+  const res = await fetch(`${baseUrl}/marketing/drafts/${encodeURIComponent(draftId)}`, {
+    method: 'DELETE',
+    headers: buildMarketingHeaders(token, orgId),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    if (res.status === 401) handleApiError(res, text);
+    throw new Error(text || res.statusText);
+  }
+  return res.json();
+}
+
+// Publish
+export async function publishMarketingContent(
+  orgId: string,
+  payload: {
+    siteId: string;
+    campaignId?: string;
+    draftId?: string;
+    channels: string[];
+    content?: Record<string, any>;
+    title?: string;
+  }
+): Promise<PublishJob> {
+  const token = await getMarketingToken(orgId);
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+  const res = await fetch(`${baseUrl}/marketing/publish`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...buildMarketingHeaders(token, orgId) },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    if (res.status === 401) handleApiError(res, text);
+    throw new Error(text || res.statusText);
+  }
+  return res.json();
+}
+
+export async function fetchPublishJobs(
+  orgId: string,
+  query?: { siteId?: string; campaignId?: string; draftId?: string; status?: string; page?: number; pageSize?: number }
+): Promise<{ jobs: PublishJob[]; pagination: { total: number; page: number; pageSize: number } }> {
+  const token = await getMarketingToken(orgId);
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+  const params = new URLSearchParams();
+  if (query?.siteId) params.set('siteId', query.siteId);
+  if (query?.campaignId) params.set('campaignId', query.campaignId);
+  if (query?.draftId) params.set('draftId', query.draftId);
+  if (query?.status) params.set('status', query.status);
+  if (query?.page) params.set('page', String(query.page));
+  if (query?.pageSize) params.set('pageSize', String(query.pageSize));
+  const res = await fetch(`${baseUrl}/marketing/jobs?${params.toString()}`, {
+    headers: buildMarketingHeaders(token, orgId),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    if (res.status === 401) handleApiError(res, text);
+    throw new Error(`Failed to fetch publish jobs: ${res.status} ${res.statusText}${text ? ` - ${text}` : ''}`);
+  }
+  return res.json();
+}
+
+export async function getPublishJob(orgId: string, jobId: string): Promise<PublishJob> {
+  const token = await getMarketingToken(orgId);
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+  const res = await fetch(`${baseUrl}/marketing/jobs/${encodeURIComponent(jobId)}`, {
+    headers: buildMarketingHeaders(token, orgId),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    if (res.status === 401) handleApiError(res, text);
+    throw new Error(`Failed to fetch publish job: ${res.status} ${res.statusText}${text ? ` - ${text}` : ''}`);
+  }
+  return res.json();
+}
+
+// Channel Connections
+export async function fetchChannelConnections(
+  orgId: string,
+  query?: { siteId?: string; channel?: string; status?: string }
+): Promise<ChannelConnection[]> {
+  const token = await getMarketingToken(orgId);
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+  const params = new URLSearchParams();
+  if (query?.siteId) params.set('siteId', query.siteId);
+  if (query?.channel) params.set('channel', query.channel);
+  if (query?.status) params.set('status', query.status);
+  const res = await fetch(`${baseUrl}/marketing/channels?${params.toString()}`, {
+    headers: buildMarketingHeaders(token, orgId),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    if (res.status === 401) handleApiError(res, text);
+    throw new Error(`Failed to fetch channel connections: ${res.status} ${res.statusText}${text ? ` - ${text}` : ''}`);
+  }
+  return res.json();
+}
+
+export async function createChannelConnection(
+  orgId: string,
+  payload: {
+    siteId: string;
+    channel: 'facebook' | 'twitter' | 'linkedin' | 'instagram' | 'ads';
+    channelId?: string;
+    channelName?: string;
+    credentials?: Record<string, any>;
+    metadata?: Record<string, any>;
+  }
+): Promise<ChannelConnection> {
+  const token = await getMarketingToken(orgId);
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+  const res = await fetch(`${baseUrl}/marketing/channels`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...buildMarketingHeaders(token, orgId) },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    if (res.status === 401) handleApiError(res, text);
+    throw new Error(text || res.statusText);
+  }
+  return res.json();
+}

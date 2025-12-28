@@ -1,23 +1,15 @@
 "use client";
 
-import React, { useMemo, useState } from 'react';
-import { Card } from '@repo/ui';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Card, EmptyState, LoadingSpinner } from '@repo/ui';
 import { MediaGrid } from './grid/MediaGrid';
 import { MediaSidebar } from './sidebar/MediaSidebar';
 import { MediaPreviewPanel } from './preview/MediaPreviewPanel';
 import { MediaToolbar } from './toolbar/MediaToolbar';
-import { MediaFilter, MediaItem } from './types';
-
-const MOCK_MEDIA_ITEMS: MediaItem[] = [
-  { id: '1', name: 'hero-banner.png', type: 'image', extension: 'PNG', dimensions: '1920x1080', size: '2.1 MB', thumbnailTone: 'cool' },
-  { id: '2', name: 'team-photo.jpg', type: 'image', extension: 'JPG', dimensions: '1200x800', size: '1.1 MB', thumbnailTone: 'warm' },
-  { id: '3', name: 'product-demo.mp4', type: 'video', extension: 'MP4', dimensions: '1920x1080', size: '18.4 MB', thumbnailTone: 'cool' },
-  { id: '4', name: 'pricing-guide.pdf', type: 'document', extension: 'PDF', dimensions: 'A4', size: '850 KB', thumbnailTone: 'neutral' },
-  { id: '5', name: 'logo-symbol.svg', type: 'image', extension: 'SVG', dimensions: 'Responsive', size: '24 KB', thumbnailTone: 'neutral' },
-  { id: '6', name: 'intro-loop.mov', type: 'video', extension: 'MOV', dimensions: '1080x1080', size: '42 MB', thumbnailTone: 'warm' },
-  { id: '7', name: 'case-study.docx', type: 'document', extension: 'DOCX', dimensions: 'Letter', size: '620 KB', thumbnailTone: 'cool' },
-  { id: '8', name: 'newsletter-header.png', type: 'image', extension: 'PNG', dimensions: '1600x900', size: '1.8 MB', thumbnailTone: 'warm' },
-];
+import { MediaFilter, MediaItem, MediaType } from './types';
+import { fetchMyTenants } from '@/lib/api';
+import { useToast } from '@/components/ui/Toast';
+import { Media } from '@repo/sdk';
 
 function matchesFilter(item: MediaItem, filter: MediaFilter) {
   if (filter === 'all') return true;
@@ -27,24 +19,178 @@ function matchesFilter(item: MediaItem, filter: MediaFilter) {
   return false;
 }
 
-export function MediaManager() {
+function humanFileSize(bytes: number): string {
+  if (!bytes) return '0 B';
+  const units = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+  const value = bytes / Math.pow(1024, i);
+  return `${value.toFixed(value >= 10 ? 0 : 1)} ${units[i]}`;
+}
+
+function deriveType(mime: string): MediaType {
+  if (mime.startsWith('image/')) return 'image';
+  if (mime.startsWith('video/')) return 'video';
+  if (mime === 'application/pdf' || mime.includes('word') || mime.startsWith('text/')) return 'document';
+  return 'other';
+}
+
+function mapMediaItem(apiItem: any): MediaItem {
+  const mimeType = apiItem.mimeType || '';
+  const type = deriveType(mimeType);
+  const fileName = apiItem.fileName || apiItem.filename || 'untitled';
+  const extension = fileName?.split('.').pop()?.toUpperCase?.() || mimeType.split('/').pop() || 'FILE';
+  const dimensions = apiItem.width && apiItem.height ? `${apiItem.width}x${apiItem.height}` : undefined;
+  return {
+    id: apiItem.id,
+    fileName,
+    url: apiItem.url,
+    mimeType,
+    size: apiItem.size || 0,
+    width: apiItem.width,
+    height: apiItem.height,
+    createdAt: apiItem.createdAt,
+    alt: apiItem.alt,
+    path: apiItem.path,
+    metadata: apiItem.metadata,
+    type,
+    extension,
+    dimensions,
+    sizeLabel: humanFileSize(apiItem.size || 0),
+    isImage: type === 'image',
+  };
+}
+
+type Props = { siteSlug: string };
+
+export function MediaManager({ siteSlug }: Props) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { push } = useToast();
+
+  const [tenantId, setTenantId] = useState<string | null>(null);
+  const [items, setItems] = useState<MediaItem[]>([]);
   const [activeFilter, setActiveFilter] = useState<MediaFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | undefined>(undefined);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const tenants = await fetchMyTenants();
+        const match = tenants.find((t) => t.tenant.slug === siteSlug || t.tenantId === siteSlug);
+        if (match && mounted) setTenantId(match.tenantId);
+      } catch (error) {
+        push({ tone: 'error', message: error instanceof Error ? error.message : 'Failed to load site' });
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [push, slug]);
+  }, [push, siteSlug]);
+
+  const loadMedia = async (siteId: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await Media.listMedia(siteId);
+      setItems(data.map(mapMediaItem));
+      setSelectedId((prev) => prev && data.some((d) => d.id === prev) ? prev : undefined);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to load media';
+      setError(message);
+      push({ tone: 'error', message });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (tenantId) loadMedia(tenantId);
+  }, [tenantId]);
 
   const filteredItems = useMemo(() => {
     const term = searchQuery.trim().toLowerCase();
-    return MOCK_MEDIA_ITEMS.filter((item) => {
+    return items.filter((item) => {
       const matchesCategory = matchesFilter(item, activeFilter);
-      const matchesSearch = term === '' || item.name.toLowerCase().includes(term);
+      const matchesSearch =
+        term === '' ||
+        item.fileName.toLowerCase().includes(term) ||
+        item.mimeType.toLowerCase().includes(term);
       return matchesCategory && matchesSearch;
     });
-  }, [activeFilter, searchQuery]);
+  }, [activeFilter, items, searchQuery]);
 
-  const selectedItemId = filteredItems[0]?.id;
-  const selectedItem = filteredItems.find((item) => item.id === selectedItemId);
+  useEffect(() => {
+    if (!filteredItems.length) {
+      setSelectedId(undefined);
+      return;
+    }
+    if (selectedId && filteredItems.some((item) => item.id === selectedId)) return;
+    setSelectedId(filteredItems[0].id);
+  }, [filteredItems, selectedId]);
+
+  const selectedItem = filteredItems.find((item) => item.id === selectedId);
+
+  const handleUploadClick = () => fileInputRef.current?.click();
+
+  const handleFileChange: React.ChangeEventHandler<HTMLInputElement> = async (event) => {
+    if (!tenantId) return;
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const uploaded = await Media.uploadMedia(tenantId, file);
+      const mapped = mapMediaItem(uploaded);
+      setItems((prev) => [mapped, ...prev]);
+      setSelectedId(mapped.id);
+      push({ tone: 'success', message: 'File uploaded' });
+    } catch (error) {
+      push({ tone: 'error', message: error instanceof Error ? error.message : 'Upload failed' });
+    } finally {
+      setUploading(false);
+      event.target.value = '';
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!tenantId || !selectedItem) return;
+    const confirmed = window.confirm(`Delete ${selectedItem.fileName}? This cannot be undone.`);
+    if (!confirmed) return;
+    setDeleting(true);
+    try {
+      await Media.deleteMedia(tenantId, selectedItem.id);
+      setItems((prev) => prev.filter((item) => item.id !== selectedItem.id));
+      setSelectedId(undefined);
+      push({ tone: 'success', message: 'File deleted' });
+    } catch (error) {
+      push({ tone: 'error', message: error instanceof Error ? error.message : 'Delete failed' });
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  if (!tenantId) {
+    return (
+      <Card className="p-6">
+        <EmptyState title="Loading site" description="Resolving site access…" />
+      </Card>
+    );
+  }
 
   return (
-    <div className="grid grid-cols-1 gap-4 xl:grid-cols-[240px_minmax(0,1fr)_320px]">
+    <div className="grid grid-cols-1 gap-4 xl:grid-cols-[240px_minmax(0,1fr)_360px]">
+      <input
+        ref={fileInputRef}
+        type="file"
+        className="hidden"
+        onChange={handleFileChange}
+      />
+
       <Card className="p-0">
         <MediaSidebar activeFilter={activeFilter} onFilterSelect={setActiveFilter} />
       </Card>
@@ -56,14 +202,28 @@ export function MediaManager() {
             onFilterChange={setActiveFilter}
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
+            onUploadClick={handleUploadClick}
+            onDeleteClick={selectedItem ? handleDelete : undefined}
+            disableDelete={!selectedItem || deleting}
+            uploadDisabled={uploading}
+            error={error || undefined}
+            isLoading={loading}
           />
         </Card>
 
-        <MediaGrid items={filteredItems} selectedId={selectedItemId} />
+        {loading && (
+          <Card className="p-6">
+            <LoadingSpinner text="Loading media..." />
+          </Card>
+        )}
+
+        {!loading && (
+          <MediaGrid items={filteredItems} selectedId={selectedItem?.id} onSelect={setSelectedId} />
+        )}
       </div>
 
       <Card className="p-0">
-        <MediaPreviewPanel item={selectedItem} />
+        <MediaPreviewPanel item={selectedItem} onDelete={handleDelete} />
       </Card>
     </div>
   );

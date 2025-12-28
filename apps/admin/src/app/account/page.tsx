@@ -7,8 +7,10 @@ import { Input } from '@repo/ui';
 import { Skeleton } from '@repo/ui';
 import { getCurrentUser, updateAccountPreferences, changePassword, getBillingInfo, updateBillingInfo } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
+import { useTranslations } from '@/hooks/useTranslations';
 
 export default function AccountPage() {
+  const t = useTranslations();
   const { push: pushToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -40,7 +42,7 @@ export default function AccountPage() {
       setAddress(billingData.address || '');
     } catch (error) {
       pushToast({
-        message: 'Failed to load account data',
+        message: t('account.failedToLoadAccountData'),
         tone: 'error',
       });
     } finally {
@@ -54,12 +56,12 @@ export default function AccountPage() {
       setSaving(true);
       await updateAccountPreferences({ preferredLanguage });
       pushToast({
-        message: 'Account preferences updated successfully',
+        message: t('account.accountPreferencesUpdatedSuccessfully'),
         tone: 'success',
       });
     } catch (error) {
       pushToast({
-        message: error instanceof Error ? error.message : 'Failed to update account preferences',
+        message: error instanceof Error ? error.message : t('account.failedToUpdateAccountPreferences'),
         tone: 'error',
       });
     } finally {
@@ -71,14 +73,14 @@ export default function AccountPage() {
     e.preventDefault();
     if (newPassword !== confirmPassword) {
       pushToast({
-        message: 'Passwords do not match',
+        message: t('account.passwordsDoNotMatch'),
         tone: 'error',
       });
       return;
     }
     if (newPassword.length < 8) {
       pushToast({
-        message: 'Password must be at least 8 characters',
+        message: t('account.passwordMinLength'),
         tone: 'error',
       });
       return;
@@ -87,7 +89,7 @@ export default function AccountPage() {
       setSaving(true);
       await changePassword({ oldPassword, newPassword });
       pushToast({
-        message: 'Password changed successfully',
+        message: t('account.passwordChangedSuccessfully'),
         tone: 'success',
       });
       setOldPassword('');
@@ -95,7 +97,7 @@ export default function AccountPage() {
       setConfirmPassword('');
     } catch (error) {
       pushToast({
-        message: error instanceof Error ? error.message : 'Failed to change password',
+        message: error instanceof Error ? error.message : t('account.failedToChangePassword'),
         tone: 'error',
       });
     } finally {
@@ -109,12 +111,12 @@ export default function AccountPage() {
       setSaving(true);
       await updateBillingInfo({ companyName, nip, address });
       pushToast({
-        message: 'Billing information updated successfully',
+        message: t('account.billingInformationUpdatedSuccessfully'),
         tone: 'success',
       });
     } catch (error) {
       pushToast({
-        message: error instanceof Error ? error.message : 'Failed to update billing information',
+        message: error instanceof Error ? error.message : t('account.failedToUpdateBillingInformation'),
         tone: 'error',
       });
     } finally {
@@ -138,41 +140,43 @@ export default function AccountPage() {
   }
 
   return (
-    <div className="container py-8">
-      <h1 className="text-2xl font-bold mb-6">Account</h1>
+    <div className="container py-4 sm:py-8">
+      <h1 className="text-xl sm:text-2xl font-bold mb-6">{t('account.title')}</h1>
 
       <div className="space-y-6">
         {/* User Information */}
         <Card>
           <CardHeader>
-            <CardTitle>Account Settings</CardTitle>
+            <CardTitle>{t('account.accountSettings')}</CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleUpdateAccount} className="space-y-4 max-w-lg">
+            <form onSubmit={handleUpdateAccount} className="space-y-4 w-full max-w-lg">
               <Input
-                label="Email Address"
+                label={t('account.emailAddress')}
                 value={email}
                 readOnly
                 className="bg-gray-50"
                 style={{ backgroundColor: 'rgba(255,255,255,0.03)' }}
-                helperText="Email address cannot be changed"
+                helperText={t('account.emailCannotBeChanged')}
               />
               <div>
-                <label className="block text-sm font-medium mb-1">Preferred Language</label>
+                <label htmlFor="preferred-language" className="block text-sm font-medium mb-1">{t('account.preferredLanguage')}</label>
                 <select
+                  id="preferred-language"
                   className="border rounded-md w-full px-3 py-2 h-10"
                   value={preferredLanguage}
                   onChange={(e) => setPreferredLanguage(e.target.value as 'pl' | 'en')}
                   disabled={saving}
+                  aria-describedby="preferred-language-hint"
                 >
-                  <option value="en">English</option>
-                  <option value="pl">Polski</option>
+                  <option value="en">{t('account.english')}</option>
+                  <option value="pl">{t('account.polish')}</option>
                 </select>
-                <p className="text-xs text-muted mt-1">Select your preferred interface language</p>
+                <p id="preferred-language-hint" className="text-xs text-muted mt-1">{t('account.selectPreferredLanguage')}</p>
               </div>
               <div className="flex justify-end">
-                <Button type="submit" variant="primary" disabled={saving}>
-                  {saving ? 'Saving...' : 'Save Changes'}
+                <Button type="submit" variant="primary" disabled={saving} className="w-full sm:w-auto">
+                  {saving ? t('account.saving') : t('account.saveChanges')}
                 </Button>
               </div>
             </form>
@@ -182,42 +186,42 @@ export default function AccountPage() {
         {/* Change Password */}
         <Card>
           <CardHeader>
-            <CardTitle>Change Password</CardTitle>
+            <CardTitle>{t('account.changePassword')}</CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleChangePassword} className="space-y-4 max-w-lg">
+            <form onSubmit={handleChangePassword} className="space-y-4 w-full max-w-lg">
               <Input
-                label="Current Password"
+                label={t('account.currentPassword')}
                 type="password"
                 value={oldPassword}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setOldPassword(e.target.value)}
                 required
                 disabled={saving}
-                helperText="Enter your current password"
+                helperText={t('account.enterCurrentPassword')}
               />
               <Input
-                label="New Password"
+                label={t('account.newPassword')}
                 type="password"
                 value={newPassword}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewPassword(e.target.value)}
                 required
                 minLength={8}
-                helperText="Password must be at least 8 characters long"
+                helperText={t('account.passwordMinLengthHelper')}
                 disabled={saving}
               />
               <Input
-                label="Confirm New Password"
+                label={t('account.confirmNewPassword')}
                 type="password"
                 value={confirmPassword}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}
                 required
                 minLength={8}
-                helperText="Re-enter your new password to confirm"
+                helperText={t('account.reEnterNewPassword')}
                 disabled={saving}
               />
               <div className="flex justify-end">
-                <Button type="submit" variant="primary" disabled={saving}>
-                  {saving ? 'Changing...' : 'Change Password'}
+                <Button type="submit" variant="primary" disabled={saving} className="w-full sm:w-auto">
+                  {saving ? t('account.changing') : t('account.changePasswordButton')}
                 </Button>
               </div>
             </form>
@@ -227,40 +231,40 @@ export default function AccountPage() {
         {/* Billing Information */}
         <Card>
           <CardHeader>
-            <CardTitle>Billing Information</CardTitle>
+            <CardTitle>{t('account.billingInfo')}</CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleUpdateBillingInfo} className="space-y-4 max-w-lg">
+            <form onSubmit={handleUpdateBillingInfo} className="space-y-4 w-full max-w-lg">
               <Input
-                label="Company Name"
+                label={t('account.companyName')}
                 value={companyName}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCompanyName(e.target.value)}
-                placeholder="Enter company name"
+                placeholder={t('account.enterCompanyName')}
                 disabled={saving}
               />
               <Input
-                label="NIP (Tax Identification Number)"
+                label={t('account.nip')}
                 value={nip}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNip(e.target.value)}
-                placeholder="Enter NIP"
+                placeholder={t('account.enterNip')}
                 disabled={saving}
-                helperText="Polish tax identification number"
+                helperText={t('account.nipHelperText')}
               />
               <div>
-                <label className="block text-sm font-medium mb-1">Address</label>
+                <label className="block text-sm font-medium mb-1">{t('account.address')}</label>
                 <textarea
                   className="border rounded-md w-full px-3 py-2 min-h-[100px]"
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
-                  placeholder="Enter billing address"
+                  placeholder={t('account.enterBillingAddress')}
                   rows={3}
                   disabled={saving}
                 />
-                <p className="text-xs text-muted mt-1">Enter your company's billing address</p>
+                <p className="text-xs text-muted mt-1">{t('account.enterCompanyBillingAddress')}</p>
               </div>
               <div className="flex justify-end">
-                <Button type="submit" variant="primary" disabled={saving}>
-                  {saving ? 'Saving...' : 'Save Changes'}
+                <Button type="submit" variant="primary" disabled={saving} className="w-full sm:w-auto">
+                  {saving ? t('account.savingBilling') : t('account.saveBillingInfo')}
                 </Button>
               </div>
             </form>

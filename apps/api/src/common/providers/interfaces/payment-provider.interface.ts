@@ -64,3 +64,7 @@ export interface PaymentProvider {
   isSubscriptionActive(subscriptionId: string): Promise<boolean>;
 }
 
+
+
+
+

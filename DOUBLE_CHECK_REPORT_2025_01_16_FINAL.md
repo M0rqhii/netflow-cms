@@ -251,3 +251,7 @@ Wszystkie znalezione problemy zostały naprawione. Kod jest:
 **Następny audit:** Zalecany po implementacji nowych funkcji lub co 2-3 miesiące
 
 
+
+
+
+

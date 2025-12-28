@@ -9,7 +9,7 @@ export const queryMediaSchema = z.object({
   pageSize: z.coerce.number().int().positive().max(100).default(20),
   mimeType: z.string().optional(),
   search: z.string().optional(),
-  sortBy: z.enum(['createdAt', 'size', 'filename']).default('createdAt'),
+  sortBy: z.enum(['createdAt', 'size', 'fileName']).default('createdAt'),
   sortOrder: z.enum(['asc', 'desc']).default('desc'),
 });
 

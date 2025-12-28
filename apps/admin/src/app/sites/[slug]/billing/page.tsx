@@ -7,9 +7,11 @@ import { Card, CardHeader, CardTitle, CardContent } from '@repo/ui';
 import { Button } from '@repo/ui';
 import { EmptyState, Skeleton } from '@repo/ui';
 import { Badge } from '@/components/ui/Badge';
+import { useTranslations } from '@/hooks/useTranslations';
 import { getSiteBilling, type SiteBillingData } from '@/lib/api';
 
 export default function SiteBillingPage() {
+  const t = useTranslations();
   const params = useParams<{ slug: string }>();
   const slug = params?.slug as string;
   const [loading, setLoading] = useState(true);
@@ -30,7 +32,7 @@ export default function SiteBillingPage() {
         const data = await getSiteBilling(slug);
         setBillingData(data);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load billing data');
+        setError(err instanceof Error ? err.message : t('billing.failedToLoadBillingData'));
       } finally {
         setLoading(false);
       }
@@ -43,10 +45,10 @@ export default function SiteBillingPage() {
         <div className="mb-6">
           <div className="flex items-center gap-3 mb-4">
             <Link href={`/sites/${slug}`} className="text-sm text-muted hover:text-foreground">
-              ← Back to Site
+              ← {t('common.backToSite')}
             </Link>
           </div>
-          <h1 className="text-2xl font-bold">Billing</h1>
+          <h1 className="text-2xl font-bold">{t('billing.title')}</h1>
         </div>
 
         <Card>
@@ -67,17 +69,17 @@ export default function SiteBillingPage() {
         <div className="mb-6">
           <div className="flex items-center gap-3 mb-4">
             <Link href={`/sites/${slug}`} className="text-sm text-muted hover:text-foreground">
-              ← Back to Site
+              ← {t('common.backToSite')}
             </Link>
           </div>
-          <h1 className="text-2xl font-bold">Billing</h1>
+          <h1 className="text-2xl font-bold">{t('billing.title')}</h1>
         </div>
 
         <Card>
           <CardContent>
             <div className="py-8 text-center">
               <EmptyState
-                title="Error loading billing data"
+                title={t('billing.errorLoadingBillingData')}
                 description={error}
               />
             </div>
@@ -93,18 +95,18 @@ export default function SiteBillingPage() {
         <div className="mb-6">
           <div className="flex items-center gap-3 mb-4">
             <Link href={`/sites/${slug}`} className="text-sm text-muted hover:text-foreground">
-              ← Back to Site
+              ← {t('common.backToSite')}
             </Link>
           </div>
-          <h1 className="text-2xl font-bold">Billing</h1>
+          <h1 className="text-2xl font-bold">{t('billing.title')}</h1>
         </div>
 
         <Card>
           <CardContent>
             <div className="py-8 text-center">
               <EmptyState
-                title="No billing data available"
-                description="Unable to load billing information for this site"
+                title={t('billing.noBillingDataAvailable')}
+                description={t('billing.unableToLoadBillingInfo')}
               />
             </div>
           </CardContent>
@@ -124,37 +126,37 @@ export default function SiteBillingPage() {
             ← Back to Site
           </Link>
         </div>
-        <h1 className="text-2xl font-bold">Billing</h1>
-        <p className="text-sm text-muted mt-1">Manage subscription and billing for this site</p>
+        <h1 className="text-2xl font-bold">{t('billing.title')}</h1>
+        <p className="text-sm text-muted mt-1">{t('billing.manageSubscriptionAndBilling')}</p>
       </div>
 
       <div className="space-y-6">
         {/* Current Plan */}
         <Card>
           <CardHeader>
-            <CardTitle>Current Plan</CardTitle>
+            <CardTitle>{t('billing.currentPlan')}</CardTitle>
           </CardHeader>
           <CardContent>
             {!hasSubscription ? (
               <EmptyState
-                title="No active subscription"
-                description="This site is currently on the free plan. Upgrade to access premium features."
+                title={t('billing.noActiveSubscription')}
+                description={t('billing.freePlanDescription')}
               />
             ) : (
               <div className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <dt className="text-sm text-muted mb-1">Plan</dt>
+                    <dt className="text-sm text-muted mb-1">{t('billing.plan')}</dt>
                     <dd className="text-lg font-semibold capitalize">{billingData.plan}</dd>
                   </div>
                   <div>
-                    <dt className="text-sm text-muted mb-1">Status</dt>
+                    <dt className="text-sm text-muted mb-1">{t('billing.status')}</dt>
                     <dd className="text-lg">
                       <Badge tone={statusBadgeTone}>{billingData.status}</Badge>
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-sm text-muted mb-1">Next Renewal</dt>
+                    <dt className="text-sm text-muted mb-1">{t('billing.nextRenewal')}</dt>
                     <dd className="text-lg text-muted">
                       {billingData.renewalDate
                         ? new Date(billingData.renewalDate).toLocaleDateString()
@@ -167,7 +169,7 @@ export default function SiteBillingPage() {
                     variant="primary"
                     onClick={() => alert('Change plan feature coming soon (UI only)')}
                   >
-                    Change Plan
+                    {t('billing.changePlan')}
                   </Button>
                 </div>
               </div>
@@ -178,22 +180,22 @@ export default function SiteBillingPage() {
         {/* Billing History */}
         <Card>
           <CardHeader>
-            <CardTitle>Billing History</CardTitle>
+            <CardTitle>{t('billing.billingHistory')}</CardTitle>
           </CardHeader>
           <CardContent>
             {billingData.invoices.length === 0 ? (
               <EmptyState
-                title="No billing history"
-                description="Invoices will appear here once available"
+                title={t('billing.noPaymentHistory')}
+                description={t('billing.invoicesWillAppear')}
               />
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="text-left text-muted border-b">
-                      <th className="py-3 px-4 font-semibold">Date</th>
-                      <th className="py-3 px-4 font-semibold">Amount</th>
-                      <th className="py-3 px-4 font-semibold">Status</th>
+                      <th className="py-3 px-4 font-semibold">{t('billing.date')}</th>
+                      <th className="py-3 px-4 font-semibold">{t('billing.amount')}</th>
+                      <th className="py-3 px-4 font-semibold">{t('billing.status')}</th>
                     </tr>
                   </thead>
                   <tbody>

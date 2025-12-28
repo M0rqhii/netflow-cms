@@ -91,7 +91,7 @@ services:
       - ./.env.docker
     environment:
       PORT: 3000
-      NEXT_PUBLIC_API_URL: http://api:4000/api/v1
+      NEXT_PUBLIC_API_URL: http://localhost:4000/api/v1
       NODE_ENV: development
       CHOKIDAR_USEPOLLING: 'true'
       WATCHPACK_POLLING: 'true'

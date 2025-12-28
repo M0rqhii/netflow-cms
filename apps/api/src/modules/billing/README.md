@@ -111,3 +111,7 @@ GET /billing/invoices?status=paid&page=1&pageSize=20
 - Anulowanie subskrypcji automatycznie downgrade'uje tenant do planu "free"
 
 
+
+
+
+

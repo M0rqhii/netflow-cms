@@ -27,8 +27,10 @@ export function SitePanelLayout({ children }: SitePanelLayoutProps) {
           <Badge className="font-mono text-xs">{slug}</Badge>
         </div>
         <div>
-          <h1 className="text-2xl font-bold">Site Panel</h1>
-          <p className="text-sm text-muted">Manage pages, content, media, and SEO for this site.</p>
+          <h1 className="text-2xl font-bold">Site Workspace</h1>
+          <p className="text-sm text-muted">
+            All site-level operations in one place: overview, pages, collections, media, SEO, design, and settings.
+          </p>
         </div>
       </div>
 
@@ -40,4 +42,8 @@ export function SitePanelLayout({ children }: SitePanelLayoutProps) {
     </div>
   );
 }
+
+
+
+
 

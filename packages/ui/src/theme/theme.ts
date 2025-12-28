@@ -43,14 +43,14 @@ export interface Theme {
 export const lightTheme: Theme = {
   mode: 'light',
   colors: {
-    primary: '#2563eb',
+    primary: '#2ea0ff',
     secondary: '#64748b',
     success: '#10b981',
     warning: '#f59e0b',
     error: '#ef4444',
-    background: '#ffffff',
-    surface: '#f8fafc',
-    text: '#1e293b',
+    background: '#fafcfb',
+    surface: '#f1f5f3',
+    text: '#0f172a',
     textSecondary: '#64748b',
     border: '#e2e8f0',
   },
@@ -76,15 +76,15 @@ export const lightTheme: Theme = {
 export const darkTheme: Theme = {
   mode: 'dark',
   colors: {
-    primary: '#3b82f6',
+    primary: '#3bb2ff',
     secondary: '#94a3b8',
     success: '#34d399',
     warning: '#fbbf24',
     error: '#f87171',
-    background: '#0f172a',
-    surface: '#1e293b',
+    background: '#08141c',
+    surface: '#0f232d',
     text: '#f1f5f9',
-    textSecondary: '#cbd5e1',
+    textSecondary: '#94a3b8',
     border: '#334155',
   },
   spacing: {

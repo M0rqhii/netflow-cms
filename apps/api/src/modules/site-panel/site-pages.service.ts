@@ -3,13 +3,25 @@ import { Prisma, PageStatus, EnvironmentType } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { SiteEnvironmentsService } from './site-environments.service';
 import { CreatePageDto, PageQueryDto, PublishPageDto, UpdatePageDto } from './dto';
+import { SiteEventsService } from '../site-events/site-events.service';
 
 @Injectable()
 export class SitePagesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly environments: SiteEnvironmentsService,
+    private readonly siteEvents: SiteEventsService,
   ) {}
+
+  private async logEvent(
+    siteId: string,
+    userId: string | undefined,
+    type: string,
+    message: string,
+    metadata?: Prisma.InputJsonValue,
+  ) {
+    await this.siteEvents.recordEvent(siteId, userId ?? null, type, message, metadata);
+  }
 
   private mapStatus(status?: string): PageStatus {
     if (!status) return PageStatus.DRAFT;
@@ -59,14 +71,14 @@ export class SitePagesService {
     return page;
   }
 
-  async create(tenantId: string, dto: CreatePageDto) {
+  async create(tenantId: string, dto: CreatePageDto, userId?: string) {
     const environment = await this.environments.getById(tenantId, dto.environmentId);
     const status = dto.status ? this.mapStatus(dto.status) : PageStatus.DRAFT;
     const publishedAt = status === PageStatus.PUBLISHED ? new Date() : null;
     const content = dto.content !== undefined ? (dto.content as Prisma.InputJsonValue) : {};
 
     try {
-      return await this.prisma.page.create({
+      const page = await this.prisma.page.create({
         data: {
           tenantId,
           environmentId: environment.id,
@@ -77,6 +89,16 @@ export class SitePagesService {
           publishedAt: publishedAt ?? undefined,
         },
       });
+
+      await this.logEvent(
+        tenantId,
+        userId,
+        'page_created',
+        `Page "${page.slug}" created in ${environment.type} environment`,
+        { pageId: page.id, slug: page.slug, environmentId: environment.id },
+      );
+
+      return page;
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
         throw new ConflictException('Page with this slug already exists in this environment.');
@@ -85,7 +107,7 @@ export class SitePagesService {
     }
   }
 
-  async update(tenantId: string, pageId: string, dto: UpdatePageDto) {
+  async update(tenantId: string, pageId: string, dto: UpdatePageDto, userId?: string) {
     const page = await this.getById(tenantId, pageId);
 
     if (dto.slug && dto.slug !== page.slug) {
@@ -114,13 +136,23 @@ export class SitePagesService {
       updateData.publishedAt = nextStatus === PageStatus.PUBLISHED ? new Date() : null;
     }
 
-    return this.prisma.page.update({
+    const updated = await this.prisma.page.update({
       where: { id: page.id },
       data: updateData,
     });
+
+    await this.logEvent(
+      tenantId,
+      userId,
+      'page_updated',
+      `Page "${updated.slug}" updated`,
+      { pageId: updated.id, slug: updated.slug, environmentId: updated.environmentId },
+    );
+
+    return updated;
   }
 
-  async publish(tenantId: string, pageId: string, dto: PublishPageDto) {
+  async publish(tenantId: string, pageId: string, dto: PublishPageDto, userId?: string) {
     const sourcePage = await this.getById(tenantId, pageId);
     await this.environments.getById(tenantId, sourcePage.environmentId);
 
@@ -167,9 +199,52 @@ export class SitePagesService {
       },
     });
 
+    await this.logEvent(
+      tenantId,
+      userId,
+      'page_published',
+      `Page "${sourcePage.slug}" published to ${targetEnvironment.type}`,
+      { pageId: sourcePage.id, targetEnvironmentId: targetEnvironment.id },
+    );
+
     return {
       draft: updatedSource,
       production: publishedPage,
     };
+  }
+
+  async delete(tenantId: string, pageId: string, userId?: string) {
+    const page = await this.getById(tenantId, pageId);
+    await this.prisma.page.delete({
+      where: { id: page.id },
+    });
+
+    await this.logEvent(
+      tenantId,
+      userId,
+      'page_deleted',
+      `Page "${page.slug}" deleted`,
+      { pageId: page.id, slug: page.slug },
+    );
+
+    return { success: true };
+  }
+
+  async updateContent(tenantId: string, pageId: string, content: Prisma.InputJsonValue, userId?: string) {
+    const page = await this.getById(tenantId, pageId);
+    const updated = await this.prisma.page.update({
+      where: { id: page.id },
+      data: { content },
+    });
+
+    await this.logEvent(
+      tenantId,
+      userId,
+      'page_updated',
+      `Content updated for page "${updated.slug}"`,
+      { pageId: updated.id },
+    );
+
+    return updated;
   }
 }

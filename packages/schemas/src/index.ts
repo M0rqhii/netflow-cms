@@ -114,6 +114,100 @@ export const UpdateContentEntrySchema = z.object({
   status: z.enum(['draft', 'review', 'published', 'archived']).optional(),
 });
 
+// RBAC schemas
+export const CAPABILITY_MODULES = [
+  'org',
+  'billing',
+  'sites',
+  'builder',
+  'content',
+  'hosting',
+  'domains',
+  'marketing',
+  'analytics',
+] as const;
+
+export const CapabilityModuleSchema = z.enum(CAPABILITY_MODULES);
+export type CapabilityModule = z.infer<typeof CapabilityModuleSchema>;
+
+export const CAPABILITY_KEYS = [
+  'org.view_dashboard',
+  'org.users.view',
+  'org.users.invite',
+  'org.users.remove',
+  'org.roles.view',
+  'org.roles.manage',
+  'org.policies.view',
+  'org.policies.manage',
+  'billing.view_plan',
+  'billing.change_plan',
+  'billing.view_invoices',
+  'billing.manage_payment_methods',
+  'sites.view',
+  'sites.create',
+  'sites.delete',
+  'sites.settings.view',
+  'sites.settings.manage',
+  'builder.view',
+  'builder.edit',
+  'builder.draft.save',
+  'builder.publish',
+  'builder.rollback',
+  'builder.history.view',
+  'builder.assets.upload',
+  'builder.assets.delete',
+  'builder.custom_code',
+  'builder.site_roles.manage',
+  'content.view',
+  'content.create',
+  'content.edit',
+  'content.delete',
+  'content.publish',
+  'content.media.manage',
+  'hosting.usage.view',
+  'hosting.deploy',
+  'hosting.files.view',
+  'hosting.files.edit',
+  'hosting.logs.view',
+  'hosting.backups.manage',
+  'hosting.restart.manage',
+  'domains.view',
+  'domains.assign',
+  'domains.dns.manage',
+  'domains.ssl.manage',
+  'domains.add_remove',
+  'marketing.view',
+  'marketing.content.edit',
+  'marketing.schedule',
+  'marketing.publish',
+  'marketing.campaign.manage',
+  'marketing.social.connect',
+  'marketing.ads.manage',
+  'marketing.stats.view',
+  'analytics.view',
+] as const;
+
+export const CapabilityKeySchema = z.enum(CAPABILITY_KEYS);
+export type CapabilityKey = z.infer<typeof CapabilityKeySchema>;
+
+export const RbacCapabilitySchema = z.object({
+  key: CapabilityKeySchema,
+  module: CapabilityModuleSchema,
+  label: z.string(),
+  description: z.string().optional(),
+  riskLevel: z.enum(['LOW', 'MED', 'HIGH']),
+  isDangerous: z.boolean(),
+  canBePolicyControlled: z.boolean().optional(),
+  policyEnabled: z.boolean().optional(),
+  metadata: z
+    .object({
+      blockedForCustomRoles: z.boolean().optional(),
+    })
+    .optional(),
+});
+
+export type RbacCapability = z.infer<typeof RbacCapabilitySchema>;
+
 // Collection Schemas
 export const CollectionSchema = z.object({
   id: z.string().uuid(),
@@ -197,6 +291,9 @@ export const UpdateMediaFileSchema = z.object({
 
 // Legacy alias for backward compatibility
 export const MediaItemSchema = MediaFileSchema;
+export * as Permissions from './permissions';
+export * from './capabilities';
+export * as Media from './media';
 
 // JSON helper for page content / builder payloads
 export type JsonValue =
@@ -283,6 +380,32 @@ export const PageQuerySchema = z.object({
   status: PageStatusSchema.optional(),
 });
 
+export const UpdatePageContentSchema = z.object({
+  content: JsonValueSchema,
+});
+
+// Site Deployment Schemas
+export const SiteDeploymentSchema = z.object({
+  id: z.string(),
+  siteId: z.string().uuid(),
+  env: z.string(),
+  type: z.string(),
+  status: z.enum(['success', 'failed']),
+  message: z.string().nullable().optional(),
+  createdAt: z.date(),
+});
+
+export const PublishDeploymentSchema = z.object({
+  pageId: z.string().uuid().optional(),
+});
+
+export const DeploymentQuerySchema = z.object({
+  env: z.string().optional(),
+  type: z.string().optional(),
+  status: z.enum(['success', 'failed']).optional(),
+  limit: z.number().int().min(1).max(200).optional(),
+});
+
 // Site SEO settings (skeleton)
 export const SeoSettingsSchema = z.object({
   id: z.string().uuid(),
@@ -305,6 +428,8 @@ export const UpdateSeoSettingsDtoSchema = z.object({
   ogImage: z.string().optional(),
   twitterCard: z.string().optional(),
 });
+
+export * as MediaSchemas from './media';
 
 // User Schemas
 export const UserSchema = z.object({
@@ -730,3 +855,9 @@ export type CreateUsageTracking = z.infer<typeof CreateUsageTrackingSchema>;
 
 // Export permissions
 export * from './permissions';
+
+// Export feature flags
+export * from './feature-flags';
+// Snapshots & Site Events
+export * from './snapshots';
+export * from './site-events';

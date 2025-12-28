@@ -13,6 +13,21 @@ export function useLanguage() {
   const [loading, setLoading] = useState(true);
   const apiRef = useRef(createApiClient());
 
+  // Sync language to API function - defined before useEffect to avoid closure issues
+  const syncLanguageToAPI = useCallback(async (lang: Language) => {
+    try {
+      const token = getAuthToken();
+      if (!token) return;
+
+      await apiRef.current.patch('/users/me/preferences', {
+        preferredLanguage: lang,
+      }, token);
+    } catch (error) {
+      // Silent fail - localStorage is the source of truth
+      // Error is non-critical, no need to log or show to user
+    }
+  }, []);
+
   // Initialize language from localStorage or API
   useEffect(() => {
     const initializeLanguage = async () => {
@@ -65,21 +80,7 @@ export function useLanguage() {
     };
 
     initializeLanguage();
-  }, []);
-
-  const syncLanguageToAPI = useCallback(async (lang: Language) => {
-    try {
-      const token = getAuthToken();
-      if (!token) return;
-
-      await apiRef.current.patch('/users/me/preferences', {
-        preferredLanguage: lang,
-      }, token);
-    } catch (error) {
-      // Silent fail - localStorage is the source of truth
-      // Error is non-critical, no need to log or show to user
-    }
-  }, []);
+  }, [syncLanguageToAPI]);
 
   const changeLanguage = useCallback(async (newLang: Language) => {
     setLanguage(newLang);

@@ -44,6 +44,11 @@ export class CollectionPermissionsGuard implements CanActivate {
     const userRole = user.role as Role;
     const tenantId = request.tenantId || user.tenantId;
 
+    // Super admin has all permissions
+    if (userRole === Role.SUPER_ADMIN) {
+      return true;
+    }
+
     // Check tenant-level permissions first
     const hasTenantPermission = hasAnyPermission(userRole, requiredPermissions);
     if (hasTenantPermission) {

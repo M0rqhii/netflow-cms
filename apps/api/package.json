@@ -22,7 +22,9 @@
                     "db:migrate":  "prisma migrate dev",
                     "db:migrate:deploy":  "prisma migrate deploy",
                     "db:studio":  "prisma studio",
-                    "db:seed":  "ts-node prisma/seed.ts"
+                    "db:seed":  "ts-node prisma/seed.ts",
+                    "db:seed:demo":  "ts-node scripts/seed-demo-org.ts",
+                    "create-super-admin":  "ts-node scripts/create-super-admin.ts"
                 },
     "dependencies":  {
                          "@nestjs/cache-manager":  "^2.1.1",

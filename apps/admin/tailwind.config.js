@@ -25,7 +25,7 @@ module.exports = {
         muted: 'rgb(var(--muted))',
         border: 'rgb(var(--border))',
         card: 'rgb(var(--card))',
-        ring: 'rgb(var(--ring))',
+        ring: 'var(--ring)',
         primary: {
           DEFAULT: 'var(--color-primary)',
           foreground: 'var(--color-on-primary)',

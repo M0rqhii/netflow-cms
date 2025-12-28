@@ -8,6 +8,7 @@ import { Roles } from '../../common/auth/decorators/roles.decorator';
 import { CurrentTenant } from '../../common/decorators/current-tenant.decorator';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 import { Role, Permission } from '../../common/auth/roles.enum';
+import { CurrentUser, CurrentUserPayload } from '../../common/auth/decorators/current-user.decorator';
 import { SiteSeoService } from './site-seo.service';
 import { UpdateSeoSettingsDtoSchema } from './dto';
 
@@ -35,9 +36,10 @@ export class SiteSeoController {
   updateSeoSettings(
     @Param('siteId') siteId: string,
     @CurrentTenant() tenantId: string,
+    @CurrentUser() user: CurrentUserPayload,
     @Body(new ZodValidationPipe(UpdateSeoSettingsDtoSchema)) body: unknown,
   ) {
     this.assertTenantScope(siteId, tenantId);
-    return this.siteSeo.updateSettings(tenantId, body as any);
+    return this.siteSeo.updateSettings(tenantId, body as any, user?.id);
   }
 }

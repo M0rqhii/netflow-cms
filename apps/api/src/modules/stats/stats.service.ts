@@ -20,7 +20,7 @@ export class StatsService {
       const [tenants, collections, media, users] = await Promise.all([
         this.prisma.tenant.count(),
         this.prisma.collection.count(),
-        this.prisma.mediaFile.count(),
+        this.prisma.mediaItem.count(),
         this.prisma.user.count(),
       ]);
 
@@ -47,4 +47,8 @@ export class StatsService {
     }
   }
 }
+
+
+
+
 

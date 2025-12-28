@@ -56,6 +56,7 @@ export class AccountService {
 
     return {
       ...user,
+      preferredLanguage: user.preferredLanguage || 'en',
       billingInfo,
     };
   }
@@ -86,7 +87,10 @@ export class AccountService {
       },
     });
 
-    return user;
+    return {
+      ...user,
+      preferredLanguage: user.preferredLanguage || 'en',
+    };
   }
 
   /**

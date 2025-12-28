@@ -1,22 +1,45 @@
 /**
  * Role definitions for RBAC system
- * AI Note: Role hierarchy: super_admin > tenant_admin > editor > viewer
+ * AI Note: 
+ * - Site Role: rola w konkretnym site/organizacji (od najmniejszych do największych praw)
+ * - Platform Role: rola na poziomie platformy/organizacji (user jest najniższą!)
+ * - System Role: role systemowe (admin/dev) - poza hierarchią
  */
-export enum Role {
-  SUPER_ADMIN = 'super_admin',
-  TENANT_ADMIN = 'tenant_admin',
-  EDITOR = 'editor',
-  VIEWER = 'viewer',
+
+/**
+ * Site Role - rola w konkretnym site/organizacji
+ * Kolejność: od najmniejszych do największych praw
+ */
+export enum SiteRole {
+  VIEWER = 'viewer',                    // Najmniejsze prawa - tylko odczyt
+  EDITOR = 'editor',                    // Może edytować treść
+  EDITOR_IN_CHIEF = 'editor-in-chief', // Może recenzować i publikować
+  MARKETING = 'marketing',              // Może zarządzać marketingiem
+  ADMIN = 'admin',                     // Może zarządzać użytkownikami i treścią
+  OWNER = 'owner',                     // Największe prawa - właściciel site
 }
 
 /**
- * Platform roles - roles that apply to the entire platform, not just a tenant
- * AI Note: Platform roles are separate from tenant roles
+ * Platform Role - rola na poziomie platformy/organizacji
+ * Kolejność: od najmniejszych do największych praw
+ * UWAGA: user jest najniższą rolą!
  */
 export enum PlatformRole {
-  PLATFORM_ADMIN = 'platform_admin', // Full access to platform (create tenants, manage all users)
-  ORG_OWNER = 'org_owner',            // Owner of an organization (can manage their tenants)
-  USER = 'user',                      // Regular user (no platform-level permissions)
+  USER = 'user',                       // Najniższa rola - zwykły użytkownik
+  EDITOR_IN_CHIEF = 'editor-in-chief', // Może recenzować treść na platformie
+  ADMIN = 'admin',                     // Może zarządzać organizacją
+  OWNER = 'owner',                     // Właściciel organizacji
+}
+
+/**
+ * System Role - role systemowe (admin/dev)
+ * Te role są poza hierarchią site/platform
+ */
+export enum SystemRole {
+  SUPER_ADMIN = 'super_admin',         // Najwyższa rola systemowa - pełny dostęp
+  SYSTEM_ADMIN = 'system_admin',       // Administrator systemu
+  SYSTEM_DEV = 'system_dev',           // Developer systemu
+  SYSTEM_SUPPORT = 'system_support',   // Support systemu
 }
 
 /**
@@ -29,10 +52,18 @@ export enum Permission {
   USERS_WRITE = 'users:write',
   USERS_DELETE = 'users:delete',
   
-  // Tenant management (only for super_admin)
-  TENANTS_READ = 'tenants:read',
-  TENANTS_WRITE = 'tenants:write',
-  TENANTS_DELETE = 'tenants:delete',
+  // Organization/Tenant management
+  ORGANIZATIONS_READ = 'organizations:read',
+  ORGANIZATIONS_WRITE = 'organizations:write',
+  ORGANIZATIONS_DELETE = 'organizations:delete',
+  TENANTS_READ = 'tenants:read',      // Backward compatibility
+  TENANTS_WRITE = 'tenants:write',    // Backward compatibility
+  TENANTS_DELETE = 'tenants:delete',  // Backward compatibility
+  
+  // Site management
+  SITES_READ = 'sites:read',
+  SITES_WRITE = 'sites:write',
+  SITES_DELETE = 'sites:delete',
   
   // Collections
   COLLECTIONS_READ = 'collections:read',
@@ -74,145 +105,225 @@ export enum Permission {
   // Billing
   BILLING_READ = 'billing:read',
   BILLING_WRITE = 'billing:write',
-
+  
   // Site Panel: Environments & Pages
   PAGES_READ = 'pages:read',
   PAGES_WRITE = 'pages:write',
   PAGES_PUBLISH = 'pages:publish',
   ENVIRONMENTS_MANAGE = 'environments:manage',
+  
+  // System permissions (tylko dla system roles)
+  SYSTEM_ACCESS = 'system:access',
+  SYSTEM_MANAGE = 'system:manage',
+  SYSTEM_DEBUG = 'system:debug',
 }
 
 /**
- * Role to Permissions mapping
- * AI Note: Each role has a set of permissions. Super admin has all permissions.
+ * Site Role Permissions - przywileje dla ról w site
+ * Kolejność: od najmniejszych do największych praw
  */
-export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
-  [Role.SUPER_ADMIN]: [
-    // Super admin has all permissions
-    ...Object.values(Permission),
+export const SITE_ROLE_PERMISSIONS: Record<SiteRole, Permission[]> = {
+  [SiteRole.VIEWER]: [
+    // Tylko odczyt
+    Permission.COLLECTIONS_READ,
+    Permission.ITEMS_READ,
+    Permission.CONTENT_TYPES_READ,
+    Permission.CONTENT_READ,
+    Permission.MEDIA_READ,
+    Permission.PAGES_READ,
   ],
   
-  [Role.TENANT_ADMIN]: [
-    // Tenant admin can manage users and all content within their tenant
-    Permission.USERS_READ,
-    Permission.USERS_WRITE,
-    Permission.USERS_DELETE,
+  [SiteRole.EDITOR]: [
+    // Wszystko z VIEWER +
+    Permission.ITEMS_CREATE,
+    Permission.ITEMS_UPDATE,
+    Permission.ITEMS_WRITE,
+    Permission.CONTENT_CREATE,
+    Permission.CONTENT_UPDATE,
+    Permission.CONTENT_COMMENT,
+    Permission.CONTENT_WRITE,
+    Permission.MEDIA_READ,
+    Permission.MEDIA_WRITE,
+    Permission.PAGES_READ,
+    Permission.PAGES_WRITE,
+  ],
+  
+  [SiteRole.EDITOR_IN_CHIEF]: [
+    // Wszystko z EDITOR +
+    Permission.ITEMS_PUBLISH,
+    Permission.CONTENT_PUBLISH,
+    Permission.CONTENT_REVIEW,
+    Permission.PAGES_PUBLISH,
+  ],
+  
+  [SiteRole.MARKETING]: [
+    // Wszystko z EDITOR_IN_CHIEF +
     Permission.COLLECTIONS_READ,
-    Permission.COLLECTIONS_CREATE,
-    Permission.COLLECTIONS_UPDATE,
-    Permission.COLLECTIONS_DELETE,
-    Permission.COLLECTIONS_WRITE, // Backward compatibility
     Permission.ITEMS_READ,
     Permission.ITEMS_CREATE,
     Permission.ITEMS_UPDATE,
-    Permission.ITEMS_DELETE,
     Permission.ITEMS_PUBLISH,
-    Permission.ITEMS_WRITE, // Backward compatibility
-    Permission.CONTENT_TYPES_READ,
-    Permission.CONTENT_TYPES_CREATE,
-    Permission.CONTENT_TYPES_UPDATE,
-    Permission.CONTENT_TYPES_DELETE,
-    Permission.CONTENT_TYPES_WRITE, // Backward compatibility
     Permission.CONTENT_READ,
     Permission.CONTENT_CREATE,
     Permission.CONTENT_UPDATE,
-    Permission.CONTENT_DELETE,
     Permission.CONTENT_PUBLISH,
-    Permission.CONTENT_REVIEW,
-    Permission.CONTENT_COMMENT,
-    Permission.CONTENT_WRITE, // Backward compatibility
     Permission.MEDIA_READ,
     Permission.MEDIA_WRITE,
-    Permission.MEDIA_DELETE,
-    Permission.BILLING_READ,
-    Permission.BILLING_WRITE,
     Permission.PAGES_READ,
     Permission.PAGES_WRITE,
     Permission.PAGES_PUBLISH,
+  ],
+  
+  [SiteRole.ADMIN]: [
+    // Wszystko z MARKETING +
+    Permission.USERS_READ,
+    Permission.USERS_WRITE,
+    Permission.COLLECTIONS_CREATE,
+    Permission.COLLECTIONS_UPDATE,
+    Permission.COLLECTIONS_DELETE,
+    Permission.COLLECTIONS_WRITE,
+    Permission.ITEMS_DELETE,
+    Permission.CONTENT_TYPES_CREATE,
+    Permission.CONTENT_TYPES_UPDATE,
+    Permission.CONTENT_TYPES_DELETE,
+    Permission.CONTENT_TYPES_WRITE,
+    Permission.CONTENT_DELETE,
+    Permission.MEDIA_DELETE,
     Permission.ENVIRONMENTS_MANAGE,
   ],
   
-  [Role.EDITOR]: [
-    // Editor can create and edit content but not manage users
-    Permission.COLLECTIONS_READ,
-    Permission.ITEMS_READ,
-    Permission.ITEMS_CREATE,
-    Permission.ITEMS_UPDATE,
-    Permission.ITEMS_WRITE, // Backward compatibility
-    Permission.CONTENT_TYPES_READ,
-    Permission.CONTENT_READ,
-    Permission.CONTENT_CREATE,
-    Permission.CONTENT_UPDATE,
-    Permission.CONTENT_COMMENT, // Editors can comment on content
-    Permission.CONTENT_WRITE, // Backward compatibility
-    Permission.MEDIA_READ,
-    Permission.MEDIA_WRITE,
-    Permission.PAGES_READ,
-    Permission.PAGES_WRITE,
-  ],
-  
-  [Role.VIEWER]: [
-    // Viewer can only read content
-    Permission.COLLECTIONS_READ,
-    Permission.ITEMS_READ,
-    Permission.CONTENT_TYPES_READ,
-    Permission.CONTENT_READ,
-    Permission.MEDIA_READ,
-    Permission.PAGES_READ,
+  [SiteRole.OWNER]: [
+    // Wszystkie uprawnienia w site
+    ...Object.values(Permission).filter(p => 
+      !p.startsWith('system:') && 
+      !p.startsWith('organizations:')
+    ),
   ],
 };
 
 /**
- * Check if a role has a specific permission
+ * Platform Role Permissions - przywileje dla ról platformowych
+ * Kolejność: od najmniejszych do największych praw
+ * UWAGA: user jest najniższą rolą!
  */
-export function hasPermission(role: Role, permission: Permission): boolean {
-  const permissions = ROLE_PERMISSIONS[role] || [];
+export const PLATFORM_ROLE_PERMISSIONS: Record<PlatformRole, Permission[]> = {
+  [PlatformRole.USER]: [
+    // Najniższa rola - brak uprawnień platformowych
+    // Ma tylko uprawnienia z Site Role
+  ],
+  
+  [PlatformRole.EDITOR_IN_CHIEF]: [
+    // Może recenzować treść na poziomie platformy
+    Permission.CONTENT_REVIEW,
+    Permission.CONTENT_READ,
+    Permission.CONTENT_UPDATE,
+  ],
+  
+  [PlatformRole.ADMIN]: [
+    // Może zarządzać organizacją
+    Permission.USERS_READ,
+    Permission.USERS_WRITE,
+    Permission.SITES_READ,
+    Permission.SITES_WRITE,
+    Permission.BILLING_READ,
+    Permission.BILLING_WRITE,
+  ],
+  
+  [PlatformRole.OWNER]: [
+    // Właściciel organizacji - pełny dostęp do organizacji
+    Permission.USERS_READ,
+    Permission.USERS_WRITE,
+    Permission.USERS_DELETE,
+    Permission.SITES_READ,
+    Permission.SITES_WRITE,
+    Permission.SITES_DELETE,
+    Permission.BILLING_READ,
+    Permission.BILLING_WRITE,
+    Permission.ORGANIZATIONS_READ,
+    Permission.ORGANIZATIONS_WRITE,
+  ],
+};
+
+/**
+ * System Role Permissions - przywileje dla ról systemowych
+ */
+export const SYSTEM_ROLE_PERMISSIONS: Record<SystemRole, Permission[]> = {
+  [SystemRole.SUPER_ADMIN]: [
+    // Najwyższa rola - wszystkie uprawnienia
+    ...Object.values(Permission),
+  ],
+  
+  [SystemRole.SYSTEM_ADMIN]: [
+    // Administrator systemu - zarządzanie platformą
+    Permission.SYSTEM_ACCESS,
+    Permission.SYSTEM_MANAGE,
+    Permission.ORGANIZATIONS_READ,
+    Permission.ORGANIZATIONS_WRITE,
+    Permission.ORGANIZATIONS_DELETE,
+    Permission.TENANTS_READ,
+    Permission.TENANTS_WRITE,
+    Permission.TENANTS_DELETE,
+    Permission.USERS_READ,
+    Permission.USERS_WRITE,
+    Permission.USERS_DELETE,
+    Permission.SITES_READ,
+    Permission.SITES_WRITE,
+    Permission.SITES_DELETE,
+    ...Object.values(Permission).filter(p => 
+      p.startsWith('content:') || 
+      p.startsWith('collections:') ||
+      p.startsWith('media:')
+    ),
+  ],
+  
+  [SystemRole.SYSTEM_DEV]: [
+    // Developer systemu - dostęp do debugowania
+    Permission.SYSTEM_ACCESS,
+    Permission.SYSTEM_DEBUG,
+    Permission.ORGANIZATIONS_READ,
+    Permission.SITES_READ,
+    Permission.USERS_READ,
+    Permission.CONTENT_READ,
+    Permission.COLLECTIONS_READ,
+  ],
+  
+  [SystemRole.SYSTEM_SUPPORT]: [
+    // Support systemu - pomoc użytkownikom
+    Permission.SYSTEM_ACCESS,
+    Permission.ORGANIZATIONS_READ,
+    Permission.USERS_READ,
+    Permission.SITES_READ,
+    Permission.CONTENT_READ,
+    Permission.COLLECTIONS_READ,
+  ],
+};
+
+// Backward compatibility - stary enum Role
+export enum Role {
+  SUPER_ADMIN = 'super_admin',
+  TENANT_ADMIN = 'tenant_admin',
+  EDITOR = 'editor',
+  VIEWER = 'viewer',
+}
+
+// Backward compatibility - mapowanie starych ról do nowych
+export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
+  [Role.SUPER_ADMIN]: SYSTEM_ROLE_PERMISSIONS[SystemRole.SUPER_ADMIN],
+  [Role.TENANT_ADMIN]: SITE_ROLE_PERMISSIONS[SiteRole.ADMIN],
+  [Role.EDITOR]: SITE_ROLE_PERMISSIONS[SiteRole.EDITOR],
+  [Role.VIEWER]: SITE_ROLE_PERMISSIONS[SiteRole.VIEWER],
+};
+
+/**
+ * Sprawdź czy rola ma uprawnienie (Site Role)
+ */
+export function hasSitePermission(role: SiteRole, permission: Permission): boolean {
+  const permissions = SITE_ROLE_PERMISSIONS[role] || [];
   return permissions.includes(permission);
 }
 
 /**
- * Check if a role has any of the specified permissions
- */
-export function hasAnyPermission(role: Role, permissions: Permission[]): boolean {
-  return permissions.some(permission => hasPermission(role, permission));
-}
-
-/**
- * Check if a role has all of the specified permissions
- */
-export function hasAllPermissions(role: Role, permissions: Permission[]): boolean {
-  return permissions.every(permission => hasPermission(role, permission));
-}
-
-/**
- * Platform Role Permissions - permissions for platform-level operations
- * AI Note: Platform roles control access to platform-wide operations (create tenants, manage users across tenants)
- */
-export const PLATFORM_ROLE_PERMISSIONS: Record<PlatformRole, Permission[]> = {
-  [PlatformRole.PLATFORM_ADMIN]: [
-    // Platform admin has all permissions including tenant management
-    ...Object.values(Permission),
-    Permission.TENANTS_READ,
-    Permission.TENANTS_WRITE,
-    Permission.TENANTS_DELETE,
-  ],
-  
-  [PlatformRole.ORG_OWNER]: [
-    // Org owner can manage their own tenants and users
-    Permission.TENANTS_READ,
-    Permission.TENANTS_WRITE,
-    Permission.USERS_READ,
-    Permission.USERS_WRITE,
-  ],
-  
-  [PlatformRole.USER]: [
-    // Regular user has no platform-level permissions
-    // They only have tenant-level permissions based on their tenant role
-  ],
-};
-
-/**
- * Check if a platform role has a specific permission
+ * Sprawdź czy rola ma uprawnienie (Platform Role)
  */
 export function hasPlatformPermission(platformRole: PlatformRole, permission: Permission): boolean {
   const permissions = PLATFORM_ROLE_PERMISSIONS[platformRole] || [];
@@ -220,16 +331,64 @@ export function hasPlatformPermission(platformRole: PlatformRole, permission: Pe
 }
 
 /**
- * Check if a platform role has any of the specified permissions
+ * Sprawdź czy rola ma którekolwiek z uprawnień (Platform Role)
  */
 export function hasAnyPlatformPermission(platformRole: PlatformRole, permissions: Permission[]): boolean {
   return permissions.some(permission => hasPlatformPermission(platformRole, permission));
 }
 
 /**
- * Check if a platform role has all of the specified permissions
+ * Sprawdź czy rola ma wszystkie uprawnienia (Platform Role)
  */
 export function hasAllPlatformPermissions(platformRole: PlatformRole, permissions: Permission[]): boolean {
   return permissions.every(permission => hasPlatformPermission(platformRole, permission));
+}
+
+/**
+ * Sprawdź czy rola ma uprawnienie (System Role)
+ */
+export function hasSystemPermission(systemRole: SystemRole, permission: Permission): boolean {
+  if (systemRole === SystemRole.SUPER_ADMIN) {
+    return true; // Super admin ma wszystkie uprawnienia
+  }
+  const permissions = SYSTEM_ROLE_PERMISSIONS[systemRole] || [];
+  return permissions.includes(permission);
+}
+
+/**
+ * Check if a role has a specific permission (backward compatibility)
+ * Super admin always has all permissions
+ */
+export function hasPermission(role: Role, permission: Permission): boolean {
+  // Super admin has all permissions
+  if (role === Role.SUPER_ADMIN) {
+    return true;
+  }
+  const permissions = ROLE_PERMISSIONS[role] || [];
+  return permissions.includes(permission);
+}
+
+/**
+ * Check if a role has any of the specified permissions (backward compatibility)
+ * Super admin always has all permissions
+ */
+export function hasAnyPermission(role: Role, permissions: Permission[]): boolean {
+  // Super admin has all permissions
+  if (role === Role.SUPER_ADMIN) {
+    return true;
+  }
+  return permissions.some(permission => hasPermission(role, permission));
+}
+
+/**
+ * Check if a role has all of the specified permissions (backward compatibility)
+ * Super admin always has all permissions
+ */
+export function hasAllPermissions(role: Role, permissions: Permission[]): boolean {
+  // Super admin has all permissions
+  if (role === Role.SUPER_ADMIN) {
+    return true;
+  }
+  return permissions.every(permission => hasPermission(role, permission));
 }
 

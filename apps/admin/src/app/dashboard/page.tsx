@@ -9,8 +9,11 @@ import { EmptyState, Skeleton, LoadingSpinner } from '@repo/ui';
 import { Badge } from '@/components/ui/Badge';
 import type { TenantInfo } from '@repo/sdk';
 import { fetchMyTenants, fetchActivity, fetchQuickStats, type ActivityItem, type QuickStats } from '@/lib/api';
+import { useTranslations } from '@/hooks/useTranslations';
+import { decodeAuthToken, getAuthToken } from '@/lib/api';
 
 export default function DashboardPage() {
+  const t = useTranslations();
   const [sites, setSites] = useState<TenantInfo[]>([]);
   const [stats, setStats] = useState<QuickStats>({ tenants: 0, collections: 0, media: 0, users: 0, active: 0, total: 0 });
   const [activity, setActivity] = useState<ActivityItem[]>([]);
@@ -33,7 +36,7 @@ export default function DashboardPage() {
         const tenants = await fetchMyTenants();
         setSites(tenants);
       } catch (error) {
-        setSitesError(error instanceof Error ? error.message : 'Failed to load sites');
+        setSitesError(error instanceof Error ? error.message : t('dashboard.failedToLoad'));
         setSites([]);
       } finally {
         setLoading(false);
@@ -46,7 +49,7 @@ export default function DashboardPage() {
         const quickStats = await fetchQuickStats();
         setStats(quickStats);
       } catch (error) {
-        setStatsError(error instanceof Error ? error.message : 'Failed to load stats');
+        setStatsError(error instanceof Error ? error.message : t('errors.failedToLoad'));
         setStats({ tenants: 0, collections: 0, media: 0, users: 0, active: 0, total: 0 });
       } finally {
         setStatsLoading(false);
@@ -59,7 +62,7 @@ export default function DashboardPage() {
         const activityData = await fetchActivity(10);
         setActivity(activityData);
       } catch (error) {
-        setActivityError(error instanceof Error ? error.message : 'Failed to load activity');
+        setActivityError(error instanceof Error ? error.message : t('errors.failedToLoad'));
         setActivity([]);
       } finally {
         setActivityLoading(false);
@@ -89,15 +92,21 @@ export default function DashboardPage() {
   return (
     <div className="container py-8">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold">Dashboard</h1>
-        <p className="text-sm text-muted mt-1">Welcome back, user@example.com</p>
+        <h1 className="text-2xl font-bold">{t('dashboard.title')}</h1>
+        <p className="text-sm text-muted mt-1">
+          {t('dashboard.welcomeBack')}, {(() => {
+            const token = getAuthToken();
+            const payload = token ? decodeAuthToken(token) : null;
+            return payload?.email || 'user@example.com';
+          })()}
+        </p>
       </div>
 
       <div className="space-y-6">
         {/* Quick Stats */}
         <Card>
           <CardHeader>
-            <CardTitle>Quick Stats</CardTitle>
+            <CardTitle>{t('dashboard.quickStats')}</CardTitle>
           </CardHeader>
           <CardContent>
             {statsLoading ? (
@@ -116,12 +125,12 @@ export default function DashboardPage() {
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
                 {[
-                  { key: 'sites', label: 'Total Sites', value: stats.tenants, icon: '🏢' },
-                  { key: 'users', label: 'Users', value: stats.users, icon: '👥' },
-                  { key: 'active', label: 'Active', value: stats.active ?? 0, icon: '✓' },
-                  { key: 'total', label: 'Total', value: stats.total ?? stats.tenants, icon: '📊' },
-                  { key: 'collections', label: 'Collections', value: stats.collections, icon: '📁' },
-                  { key: 'media', label: 'Media', value: stats.media, icon: '🖼️' },
+                  { key: 'sites', label: t('dashboard.totalSites'), value: stats.tenants, icon: '🏢' },
+                  { key: 'users', label: t('dashboard.users'), value: stats.users, icon: '👥' },
+                  { key: 'active', label: t('dashboard.active'), value: stats.active ?? 0, icon: '✓' },
+                  { key: 'total', label: t('dashboard.total'), value: stats.total ?? stats.tenants, icon: '📊' },
+                  { key: 'collections', label: t('dashboard.collections'), value: stats.collections, icon: '📁' },
+                  { key: 'media', label: t('dashboard.media'), value: stats.media, icon: '🖼️' },
                 ].map((stat) => (
                   <div key={stat.key} className="text-center">
                     <div className="flex items-center justify-center gap-2">
@@ -141,13 +150,13 @@ export default function DashboardPage() {
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle>Sites Overview</CardTitle>
+              <CardTitle>{t('dashboard.sitesOverview')}</CardTitle>
               <div className="flex gap-2">
                 <Link href="/sites/new">
-                  <Button variant="primary" size="sm">+ New</Button>
+                  <Button variant="primary" size="sm">{t('dashboard.new')}</Button>
                 </Link>
                 <Link href="/sites">
-                  <Button variant="outline" size="sm">View All</Button>
+                  <Button variant="outline" size="sm">{t('dashboard.viewAll')}</Button>
                 </Link>
               </div>
             </div>
@@ -156,7 +165,7 @@ export default function DashboardPage() {
             {/* Filters */}
             <div className="mb-4 flex items-center gap-2 flex-wrap">
               <Input
-                placeholder="Search sites..."
+                placeholder={t('dashboard.searchSites')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="flex-1 min-w-[200px]"
@@ -166,24 +175,24 @@ export default function DashboardPage() {
                 value={planFilter}
                 onChange={(e) => setPlanFilter(e.target.value)}
               >
-                <option value="all">All Plans</option>
-                <option value="free">Free</option>
-                <option value="professional">Professional</option>
-                <option value="enterprise">Enterprise</option>
+                <option value="all">{t('dashboard.allPlans')}</option>
+                <option value="free">{t('dashboard.free')}</option>
+                <option value="professional">{t('dashboard.professional')}</option>
+                <option value="enterprise">{t('dashboard.enterprise')}</option>
               </select>
               <select
                 className="border rounded-md px-3 py-2 text-sm h-10"
                 value={groupBy}
                 onChange={(e) => setGroupBy(e.target.value as 'none' | 'plan')}
               >
-                <option value="none">No Grouping</option>
-                <option value="plan">Group by Plan</option>
+                <option value="none">{t('dashboard.noGrouping')}</option>
+                <option value="plan">{t('dashboard.groupByPlan')}</option>
               </select>
             </div>
 
             {loading ? (
               <div className="py-8">
-                <LoadingSpinner text="Loading..." />
+                <LoadingSpinner text={t('common.loading')} />
               </div>
             ) : sitesError ? (
               <div className="py-8 text-center text-red-600 text-sm">
@@ -191,10 +200,10 @@ export default function DashboardPage() {
               </div>
             ) : filteredSites.length === 0 ? (
               <EmptyState
-                title="No sites yet"
-                description="Create your first site to get started"
+                title={t('dashboard.noSitesYet')}
+                description={t('dashboard.createFirstSite')}
                 action={{
-                  label: 'Create Site',
+                  label: t('dashboard.createSite'),
                   onClick: () => window.location.href = '/sites/new',
                 }}
               />
@@ -210,15 +219,15 @@ export default function DashboardPage() {
                             <div className="font-semibold">{site.tenant.name}</div>
                             <div className="text-sm text-muted">{site.tenant.slug}</div>
                             <div className="mt-1 flex items-center gap-2">
-                              <Badge>Plan: {site.tenant.plan || 'free'}</Badge>
+                              <Badge>{t('sites.plan')}: {site.tenant.plan || 'free'}</Badge>
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
                             <Link href={`/sites/${site.tenant.slug}`}>
-                              <Button variant="primary" size="sm">View</Button>
+                              <Button variant="primary" size="sm">{t('common.view')}</Button>
                             </Link>
                             <Link href={`/sites/${site.tenant.slug}/users`}>
-                              <Button variant="outline" size="sm">Users</Button>
+                              <Button variant="outline" size="sm">{t('sites.users')}</Button>
                             </Link>
                           </div>
                         </div>
@@ -235,15 +244,15 @@ export default function DashboardPage() {
                       <div className="font-semibold">{site.tenant.name}</div>
                       <div className="text-sm text-muted">{site.tenant.slug}</div>
                       <div className="mt-1 flex items-center gap-2">
-                        <Badge>Plan: {site.tenant.plan || 'free'}</Badge>
+                        <Badge>{t('sites.plan')}: {site.tenant.plan || 'free'}</Badge>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
                       <Link href={`/sites/${site.tenant.slug}`}>
-                        <Button variant="primary" size="sm">View</Button>
+                        <Button variant="primary" size="sm">{t('common.view')}</Button>
                       </Link>
                       <Link href={`/sites/${site.tenant.slug}/users`}>
-                        <Button variant="outline" size="sm">Users</Button>
+                        <Button variant="outline" size="sm">{t('sites.users')}</Button>
                       </Link>
                     </div>
                   </div>
@@ -256,21 +265,21 @@ export default function DashboardPage() {
         {/* Quick Actions */}
         <Card>
           <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
+            <CardTitle>{t('dashboard.quickActions')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-3">
               <Link href="/sites/new">
-                <Button variant="primary" className="w-full">+ New Site</Button>
+                <Button variant="primary" className="w-full">{t('dashboard.createSite')}</Button>
               </Link>
               <Link href="/sites">
-                <Button variant="outline" className="w-full">View All Sites</Button>
+                <Button variant="outline" className="w-full">{t('dashboard.viewAllSites')}</Button>
               </Link>
               <Link href="/billing">
-                <Button variant="outline" className="w-full">Billing</Button>
+                <Button variant="outline" className="w-full">{t('navigation.billing')}</Button>
               </Link>
               <Link href="/account">
-                <Button variant="outline" className="w-full">Account</Button>
+                <Button variant="outline" className="w-full">{t('navigation.account')}</Button>
               </Link>
             </div>
           </CardContent>
@@ -280,7 +289,7 @@ export default function DashboardPage() {
         {/* Recent Activity */}
         <Card>
           <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
+            <CardTitle>{t('dashboard.recentActivity')}</CardTitle>
           </CardHeader>
           <CardContent>
             {activityLoading ? (
@@ -298,8 +307,8 @@ export default function DashboardPage() {
               </div>
             ) : activity.length === 0 ? (
               <EmptyState
-                title="No recent activity"
-                description="Activity will appear here as you use the system"
+                title={t('dashboard.noRecentActivity')}
+                description={t('dashboard.activityWillAppear')}
               />
             ) : (
               <ul className="space-y-2">

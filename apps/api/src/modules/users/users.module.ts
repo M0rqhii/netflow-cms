@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { UsersController } from './users.controller';
+import { PlatformUsersController } from './platform-users.controller';
 import { UsersService } from './users.service';
 import { AuthModule } from '../../common/auth/auth.module';
 import { TenantModule } from '../../common/tenant/tenant.module';
@@ -11,7 +12,7 @@ import { PrismaService } from '../../common/prisma/prisma.service';
  */
 @Module({
   imports: [AuthModule, TenantModule],
-  controllers: [UsersController],
+  controllers: [UsersController, PlatformUsersController],
   providers: [UsersService, PrismaService],
   exports: [UsersService],
 })

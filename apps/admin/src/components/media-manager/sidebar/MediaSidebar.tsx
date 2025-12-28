@@ -7,14 +7,11 @@ interface MediaSidebarProps {
   onFilterSelect: (filter: MediaFilter) => void;
 }
 
-type SidebarSection = MediaFilter | 'trash';
-
-const SECTIONS: { id: SidebarSection; label: string; hint?: string }[] = [
+const SECTIONS: { id: MediaFilter; label: string; hint?: string }[] = [
   { id: 'all', label: 'All Media' },
   { id: 'images', label: 'Images' },
   { id: 'videos', label: 'Videos' },
   { id: 'documents', label: 'Documents' },
-  { id: 'trash', label: 'Trash', hint: 'Placeholder' },
 ];
 
 export function MediaSidebar({ activeFilter, onFilterSelect }: MediaSidebarProps) {
@@ -28,7 +25,6 @@ export function MediaSidebar({ activeFilter, onFilterSelect }: MediaSidebarProps
       <div className="space-y-1">
         {SECTIONS.map((section) => {
           const isActive = section.id === activeFilter;
-          const isPlaceholder = section.id === 'trash';
 
           return (
             <button
@@ -37,13 +33,8 @@ export function MediaSidebar({ activeFilter, onFilterSelect }: MediaSidebarProps
               className={clsx(
                 'w-full rounded-md border px-3 py-2 text-left text-sm transition-colors',
                 isActive ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 hover:border-blue-200',
-                isPlaceholder && 'opacity-60 cursor-not-allowed'
               )}
-              onClick={() => {
-                if (isPlaceholder) return;
-                onFilterSelect(section.id as MediaFilter);
-              }}
-              disabled={isPlaceholder}
+              onClick={() => onFilterSelect(section.id)}
             >
               <div className="flex items-center justify-between gap-2">
                 <span>{section.label}</span>

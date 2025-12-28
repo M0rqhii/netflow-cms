@@ -51,7 +51,11 @@ export class AuthService {
           id: true,
           email: true,
           passwordHash: true,
-          role: true,
+          role: true, // Backward compatibility
+          siteRole: true,
+          platformRole: true,
+          systemRole: true,
+          isSuperAdmin: true,
           tenantId: true,
         },
       });
@@ -70,7 +74,11 @@ export class AuthService {
               id: true,
               email: true,
               passwordHash: true,
-              role: true,
+              role: true, // Backward compatibility
+              siteRole: true,
+              platformRole: true,
+              systemRole: true,
+              isSuperAdmin: true,
               tenantId: true,
             },
           },
@@ -93,7 +101,11 @@ export class AuthService {
         id: true,
         email: true,
         passwordHash: true,
-        role: true,
+        role: true, // Backward compatibility
+        siteRole: true,
+        platformRole: true,
+        systemRole: true,
+        isSuperAdmin: true,
         tenantId: true,
       },
     });
@@ -172,17 +184,21 @@ export class AuthService {
       }
     }
 
-    // Get platform role from user (default to USER if not set)
-    // TODO: In future, get from User.platformRole field or UserTenant.platformRole
-    // For now, we'll default to USER for all users
-    const platformRole = 'user'; // Default platform role
+    // Get roles from user - use new fields if available, fall back to old role field
+    const siteRole = user.siteRole || user.role || 'viewer';
+    const platformRole = user.platformRole || (user.role === 'super_admin' ? 'admin' : 'user');
+    const systemRole = user.systemRole || (user.role === 'super_admin' ? 'super_admin' : undefined);
+    const isSuperAdmin = user.isSuperAdmin || user.role === 'super_admin' || user.systemRole === 'super_admin';
 
     const payload: JwtPayload = {
       sub: user.id,
       email: user.email,
       tenantId: finalTenantId, // undefined for global token
-      role: user.role,
-      platformRole, // Platform role (platform_admin, org_owner, user)
+      role: user.role, // Backward compatibility
+      siteRole: siteRole !== user.role ? siteRole : undefined,
+      platformRole,
+      systemRole,
+      isSuperAdmin,
     };
 
     const response = {
@@ -234,6 +250,11 @@ export class AuthService {
       throw new ConflictException('Tenant does not exist');
     }
 
+    // Security: super_admin role is not allowed in registration schema
+    // Only existing super_admin can create new super_admin users via admin endpoint
+    // registerDto.role can only be 'tenant_admin', 'editor', or 'viewer'
+    const role = registerDto.role || 'viewer';
+    
     // Hash password
     const passwordHash = await bcrypt.hash(registerDto.password, 10);
 
@@ -243,13 +264,14 @@ export class AuthService {
         email: registerDto.email,
         passwordHash,
         tenantId: registerDto.tenantId,
-        role: registerDto.role || 'viewer',
+        role,
         preferredLanguage: registerDto.preferredLanguage || 'en',
       },
     });
 
-    // Get platform role from user (default to USER if not set)
-    const platformRole = 'user'; // Default platform role
+    // Get platform role from user
+    // Regular users default to 'user' platform role
+    const platformRole = 'user';
 
     const payload: JwtPayload = {
       sub: user.id,
@@ -307,18 +329,36 @@ export class AuthService {
     await this.cache.del(key as any);
 
     // ensure user still exists and active
-    const user = await this.prisma.user.findUnique({ where: { id: sub }, select: { id: true, email: true, role: true, tenantId: true } });
+    const user = await this.prisma.user.findUnique({ 
+      where: { id: sub }, 
+      select: { 
+        id: true, 
+        email: true, 
+        role: true, // Backward compatibility
+        siteRole: true,
+        platformRole: true,
+        systemRole: true,
+        isSuperAdmin: true,
+        tenantId: true 
+      } 
+    });
     if (!user) throw new UnauthorizedException('User not found');
 
-    // Get platform role from decoded token or default to USER
-    const platformRole = decoded.platformRole || 'user';
+    // Use values from database (most up-to-date) or fall back to token payload
+    const siteRole = user.siteRole || decoded.siteRole || role || user.role || 'viewer';
+    const platformRole = user.platformRole || decoded.platformRole || (user.role === 'super_admin' ? 'admin' : 'user');
+    const systemRole = user.systemRole || decoded.systemRole || (user.role === 'super_admin' ? 'super_admin' : undefined);
+    const isSuperAdmin = user.isSuperAdmin || decoded.isSuperAdmin || user.role === 'super_admin' || user.systemRole === 'super_admin';
 
     const payload: JwtPayload = {
       sub: user.id,
       email: user.email,
       tenantId: tenantId ?? user.tenantId,
-      role: role ?? user.role,
-      platformRole, // Platform role from token or default
+      role: role ?? user.role, // Backward compatibility
+      siteRole: siteRole !== user.role ? siteRole : undefined,
+      platformRole,
+      systemRole,
+      isSuperAdmin,
     };
     const access_token = await this.issueAccessToken(payload);
     const refresh_token = await this.issueRefreshToken(payload);
@@ -447,10 +487,10 @@ export class AuthService {
     }
 
     const finalRole = role ?? 'viewer';
-    // Get platform role from user (default to USER if not set)
+    // Get platform role from user
     // For tenant-scoped token, we keep the platform role from the global token
-    // This is set when the token is issued in login()
-    const platformRole = 'user'; // Default platform role
+    // Super admin gets platform_admin role, others default to user
+    const platformRole = finalRole === 'super_admin' ? 'admin' : 'user';
 
     const payload: JwtPayload = {
       sub: user.id,

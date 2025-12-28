@@ -10,6 +10,7 @@ import type { TenantInfo } from '@repo/sdk';
 import { DevPanelLayout } from '@/components/dev-panel/DevPanelLayout';
 
 const PRIVILEGED_ROLES = ['super_admin', 'tenant_admin'];
+const PRIVILEGED_PLATFORM_ROLES = ['platform_admin'];
 
 export default function DevSitesPage() {
   const appProfile = process.env.NEXT_PUBLIC_APP_PROFILE || process.env.NODE_ENV || 'development';
@@ -17,7 +18,10 @@ export default function DevSitesPage() {
   const token = getAuthToken();
   const payload = useMemo(() => decodeAuthToken(token), [token]);
   const userRole = (payload?.role as string) || '';
-  const isPrivileged = PRIVILEGED_ROLES.includes(userRole);
+  const userPlatformRole = (payload?.platformRole as string) || '';
+  const isPrivileged = 
+    PRIVILEGED_ROLES.includes(userRole) || 
+    PRIVILEGED_PLATFORM_ROLES.includes(userPlatformRole);
 
   const [sites, setSites] = useState<TenantInfo[]>([]);
   const [loading, setLoading] = useState(false);
@@ -39,7 +43,16 @@ export default function DevSitesPage() {
         });
         setSites(normalized);
       })
-      .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load sites'))
+      .catch((e) => {
+        // Don't show error for 403 Forbidden - user will see access denied message
+        const isForbidden = e instanceof Error && 
+          (e.message.includes('403') || 
+           e.message.includes('Forbidden') ||
+           e.message.includes('Insufficient permissions'));
+        if (!isForbidden) {
+          setError(e instanceof Error ? e.message : 'Failed to load sites');
+        }
+      })
       .finally(() => setLoading(false));
   }, [isProd, isPrivileged]);
 

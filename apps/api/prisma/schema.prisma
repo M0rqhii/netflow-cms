@@ -27,7 +27,7 @@ model Tenant {
   collections       Collection[]
   collectionItems   CollectionItem[]
   collectionItemVersions CollectionItemVersion[]
-  mediaFiles        MediaFile[]
+  mediaFiles        MediaItem[]
   memberships       UserTenant[]
   contentReviews    ContentReview[]
   contentComments   ContentComment[]
@@ -43,6 +43,18 @@ model Tenant {
   seoSettings       SeoSettings?
   siteEnvironments  SiteEnvironment[]
   pages             Page[]
+  featureOverrides  SiteFeatureOverride[]
+  deployments       SiteDeployment[]
+  snapshots         SiteSnapshot[]
+  siteEvents        SiteEvent[]
+  roles             Role[]
+  userRoles         UserRole[]
+  orgPolicies      OrgPolicy[]
+  campaigns         Campaign[]
+  distributionDrafts DistributionDraft[]
+  channelConnections ChannelConnection[]
+  publishJobs       PublishJob[]
+  publishResults    PublishResult[]
 
   @@map("tenants")
 }
@@ -53,7 +65,11 @@ model User {
   tenantId          String
   email             String
   passwordHash      String
-  role              String   @default("viewer") // super_admin, tenant_admin, editor, viewer
+  role              String   @default("viewer") // Backward compatibility: super_admin, tenant_admin, editor, viewer
+  siteRole          String   @default("viewer") // viewer, editor, editor-in-chief, marketing, admin, owner
+  platformRole      String?  // user, editor-in-chief, admin, owner (nullable)
+  systemRole        String?  // super_admin, system_admin, system_dev, system_support (nullable)
+  isSuperAdmin      Boolean  @default(false) // Flaga dla super admin
   preferredLanguage String   @default("en") // pl, en
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
@@ -65,6 +81,10 @@ model User {
 
   @@unique([tenantId, email])
   @@index([tenantId])
+  @@index([isSuperAdmin])
+  @@index([systemRole])
+  @@index([siteRole])
+  @@index([platformRole])
   @@map("users")
 }
 
@@ -197,26 +217,27 @@ enum Plan {
   PRO
 }
 
-// MediaFile model - pliki multimedialne (obrazy, video, dokumenty)
-model MediaFile {
-  id           String   @id @default(uuid())
-  tenantId     String
-  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  filename     String // Oryginalna nazwa pliku
-  url          String // URL do pliku (S3/CDN)
-  mimeType     String // MIME type (image/jpeg, video/mp4, etc.)
-  size         Int // Rozmiar w bajtach
-  width        Int? // Szerokość (dla obrazów)
-  height       Int? // Wysokość (dla obrazów)
-  alt          String? // Tekst alternatywny (dla obrazów)
-  metadata     Json     @default("{}") // Dodatkowe metadane (EXIF, etc.)
-  uploadedById String? // ID użytkownika który przesłał plik
+// MediaItem model - stored media assets per site
+model MediaItem {
+  id           String   @id @default(cuid())
+  siteId       String   @map("tenantId")
+  tenant       Tenant   @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  fileName     String   @map("filename")
+  path         String
+  url          String
+  mimeType     String
+  size         Int
+  width        Int?
+  height       Int?
+  alt          String?
+  metadata     Json     @default("{}")
+  uploadedById String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  @@index([tenantId])
-  @@index([tenantId, mimeType])
-  @@index([tenantId, createdAt])
+  @@index([siteId])
+  @@index([siteId, mimeType])
+  @@index([siteId, createdAt])
   @@map("media_files")
 }
 
@@ -629,4 +650,324 @@ enum PageStatus {
   DRAFT
   PUBLISHED
   ARCHIVED
+}
+
+// SiteFeatureOverride model - per-site feature overrides
+model SiteFeatureOverride {
+  id        String   @id @default(cuid())
+  siteId    String
+  featureKey String
+  enabled   Boolean
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@unique([siteId, featureKey])
+  @@index([siteId])
+  @@index([featureKey])
+  @@map("site_feature_overrides")
+}
+
+// Site-level snapshots (backups)
+model SiteSnapshot {
+  id        String   @id @default(cuid())
+  siteId    String
+  label     String
+  data      Json
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@index([siteId])
+  @@map("site_snapshots")
+}
+
+// Site-level events (activity log)
+model SiteEvent {
+  id        String   @id @default(cuid())
+  siteId    String
+  userId    String?
+  type      String
+  message   String
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@index([siteId, createdAt])
+  @@map("site_events")
+}
+
+// Site deployments - log of publish/deploy operations
+model SiteDeployment {
+  id        String   @id @default(cuid())
+  siteId    String
+  env       String   // e.g. 'production'
+  type      String   // e.g. 'publish'
+  status    String   // 'success' | 'failed'
+  message   String?
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@index([siteId, createdAt])
+  @@index([siteId, env])
+  @@map("site_deployments")
+}
+
+// ============================================
+// RBAC Models - Role-Based Access Control
+// ============================================
+
+// Capability model - atomowe uprawnienia (jedyna prawda o uprawnieniach)
+model Capability {
+  id          String   @id @default(uuid())
+  key         String   @unique // e.g. "builder.publish", "org.users.invite"
+  module      String   // e.g. "builder", "org", "billing"
+  label       String   // Human-readable label
+  description String?  // Opis capability
+  riskLevel   String   @default("LOW") // LOW, MED, HIGH
+  isDangerous Boolean  @default(false) // Czy capability jest niebezpieczne
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  roleCapabilities RoleCapability[]
+
+  @@index([module])
+  @@index([key])
+  @@map("capabilities")
+}
+
+// Role model - role systemowe (preset, immutable) i custom (edytowalne)
+model Role {
+  id          String   @id @default(uuid())
+  orgId        String    // tenantId - organizacja do której należy rola
+  name        String   // e.g. "Org Owner", "Site Admin", "Custom Role 1"
+  description String?  // Opis roli
+  type        String   // SYSTEM | CUSTOM
+  scope       String   // ORG | SITE
+  isImmutable Boolean  @default(false) // Systemowe role są immutable
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant          Tenant          @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  roleCapabilities RoleCapability[]
+  userRoles       UserRole[]
+
+  @@unique([orgId, name, scope])
+  @@index([orgId])
+  @@index([orgId, scope])
+  @@index([type])
+  @@map("roles")
+}
+
+// RoleCapability join table - przypisanie capabilities do ról
+model RoleCapability {
+  id          String   @id @default(uuid())
+  roleId      String
+  capabilityId String
+  createdAt   DateTime @default(now())
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  capability Capability @relation(fields: [capabilityId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, capabilityId])
+  @@index([roleId])
+  @@index([capabilityId])
+  @@map("role_capabilities")
+}
+
+// UserRole model - przypisanie ról do użytkowników (scope ORG lub SITE)
+model UserRole {
+  id        String   @id @default(uuid())
+  orgId     String   // tenantId - organizacja
+  userId    String   // ID użytkownika
+  roleId    String   // ID roli
+  siteId    String?  // nullable - jeśli null, to rola ORG scope; jeśli ustawione, to SITE scope
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, userId])
+  @@index([orgId, siteId])
+  @@index([roleId])
+  @@index([userId])
+  @@index([siteId])
+  @@map("user_roles")
+}
+
+// OrgPolicy model - globalne włączanie/wyłączanie capabilities w organizacji (⚠️ policy toggle)
+model OrgPolicy {
+  id             String   @id @default(uuid())
+  orgId          String   // tenantId - organizacja
+  capabilityKey  String   // Klucz capability (np. "builder.rollback")
+  enabled        Boolean  @default(true) // Czy capability jest włączone w organizacji
+  createdByUserId String? // ID użytkownika który ustawił policy
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, capabilityKey])
+  @@index([orgId])
+  @@index([capabilityKey])
+  @@map("org_policies")
+}
+
+// AuditLog model - minimalny model do logowania zmian RBAC
+model AuditLog {
+  id         String   @id @default(uuid())
+  entityType String   // "role", "capability", "user_role", "org_policy"
+  entityId   String   // ID encji która została zmieniona
+  action     String   // "create", "update", "delete", "assign", "revoke"
+  actorUserId String? // ID użytkownika który wykonał akcję
+  orgId      String?  // tenantId - organizacja (opcjonalne)
+  siteId     String?  // ID strony (opcjonalne)
+  metadata   Json     @default("{}") // Dodatkowe metadane
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([actorUserId])
+  @@index([orgId])
+  @@index([siteId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// ============================================
+// Marketing & Distribution Models
+// ============================================
+
+// Campaign model - kampanie marketingowe
+model Campaign {
+  id          String   @id @default(uuid())
+  orgId       String   // tenantId - organizacja
+  siteId      String   // ID strony
+  name        String   // Nazwa kampanii
+  description String?  // Opis kampanii
+  status      String   @default("draft") // draft, active, paused, completed, archived
+  startDate   DateTime? // Data rozpoczęcia
+  endDate     DateTime? // Data zakończenia
+  createdById String?  // ID użytkownika który utworzył
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant           Tenant            @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  distributionDrafts DistributionDraft[]
+  publishJobs      PublishJob[]
+
+  @@index([orgId, siteId])
+  @@index([orgId, status])
+  @@index([siteId])
+  @@index([createdAt])
+  @@map("marketing_campaigns")
+}
+
+// DistributionDraft model - wersje postów do publikacji (draft)
+model DistributionDraft {
+  id          String   @id @default(uuid())
+  orgId       String   // tenantId - organizacja
+  siteId      String   // ID strony
+  campaignId  String?  // Opcjonalne powiązanie z kampanią
+  contentId   String?  // ID treści z CMS (opcjonalne)
+  title       String   // Tytuł posta
+  content     Json     // Treść posta (JSON - może zawierać różne wersje dla różnych kanałów)
+  channels    String[] // Lista kanałów: ["site", "facebook", "twitter", "linkedin", "instagram", "ads"]
+  status      String   @default("draft") // draft, ready, published, archived
+  scheduledAt DateTime? // Zaplanowana data publikacji
+  createdById String?  // ID użytkownika który utworzył
+  createdAt   DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tenant      Tenant       @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  campaign    Campaign?    @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  publishJobs PublishJob[]
+
+  @@index([orgId, siteId])
+  @@index([orgId, status])
+  @@index([campaignId])
+  @@index([siteId])
+  @@index([createdAt])
+  @@map("marketing_distribution_drafts")
+}
+
+// ChannelConnection model - połączenia z kanałami social media (stub)
+model ChannelConnection {
+  id          String   @id @default(uuid())
+  orgId       String   // tenantId - organizacja
+  siteId      String   // ID strony
+  channel     String   // facebook, twitter, linkedin, instagram, ads
+  channelId   String?  // ID konta w kanale (np. Facebook Page ID)
+  channelName String?  // Nazwa konta w kanale
+  status      String   @default("connected") // connected, disconnected, error
+  credentials Json     @default("{}") // Encrypted credentials (stub - w produkcji użyj vault)
+  metadata    Json     @default("{}") // Dodatkowe metadane
+  connectedById String? // ID użytkownika który połączył
+  connectedAt   DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, siteId, channel])
+  @@index([orgId, siteId])
+  @@index([channel])
+  @@index([status])
+  @@map("marketing_channel_connections")
+}
+
+// PublishJob model - joby publikacji (zapis stanu publikacji)
+model PublishJob {
+  id              String   @id @default(uuid())
+  orgId           String   // tenantId - organizacja
+  siteId          String   // ID strony
+  campaignId      String?  // Opcjonalne powiązanie z kampanią
+  draftId         String?  // Opcjonalne powiązanie z draftem
+  channels        String[] // Lista kanałów do publikacji: ["site", "facebook", "twitter", "ads"]
+  status          String   @default("pending") // pending, processing, success, failed, cancelled
+  startedAt       DateTime?
+  completedAt     DateTime?
+  createdById     String?  // ID użytkownika który utworzył job
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  tenant          Tenant           @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  campaign        Campaign?        @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  draft           DistributionDraft? @relation(fields: [draftId], references: [id], onDelete: SetNull)
+  publishResults  PublishResult[]
+
+  @@index([orgId, siteId])
+  @@index([orgId, status])
+  @@index([campaignId])
+  @@index([draftId])
+  @@index([siteId])
+  @@index([createdAt])
+  @@map("marketing_publish_jobs")
+}
+
+// PublishResult model - wyniki publikacji per kanał
+model PublishResult {
+  id          String   @id @default(uuid())
+  jobId       String   // ID joba publikacji
+  orgId       String   // tenantId - organizacja
+  siteId      String   // ID strony
+  channel     String   // site, facebook, twitter, linkedin, instagram, ads
+  status      String   // success, failed, skipped
+  externalId  String?  // ID posta w zewnętrznym systemie (np. Facebook Post ID)
+  url         String?  // URL opublikowanego posta
+  error       String?  // Komunikat błędu (jeśli status = failed)
+  publishedAt DateTime? // Data publikacji
+  metadata    Json     @default("{}") // Dodatkowe metadane
+  createdAt   DateTime @default(now())
+
+  tenant Tenant      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  job    PublishJob  @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([jobId])
+  @@index([orgId, siteId])
+  @@index([channel])
+  @@index([status])
+  @@index([createdAt])
+  @@map("marketing_publish_results")
 }

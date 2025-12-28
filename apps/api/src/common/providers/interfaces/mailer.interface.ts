@@ -41,3 +41,7 @@ export interface Mailer {
   sendBulkEmail?(params: SendEmailParams[]): Promise<EmailResult[]>;
 }
 
+
+
+
+

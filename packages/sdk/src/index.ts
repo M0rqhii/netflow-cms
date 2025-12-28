@@ -7,6 +7,19 @@ export type TenantInfo = {
   tenant: { id: string; name: string; slug: string; plan: string };
 };
 
+export type MediaItem = {
+  id: string;
+  tenantId: string;
+  filename: string;
+  url: string;
+  mimeType: string;
+  size: number;
+  alt?: string | null;
+  metadata?: Record<string, unknown> | null;
+  createdAt: string;
+  updatedAt?: string;
+};
+
 export type EnvironmentType = 'draft' | 'production';
 export type PageStatus = 'draft' | 'published' | 'archived';
 
@@ -31,17 +44,31 @@ export type SitePage = {
   updatedAt: string;
 };
 
-export type SeoSettings = {
+export type SiteSnapshot = {
   id: string;
-  tenantId: string;
-  title?: string | null;
-  description?: string | null;
-  ogTitle?: string | null;
-  ogDescription?: string | null;
-  ogImage?: string | null;
-  twitterCard?: string | null;
+  siteId: string;
+  label: string;
   createdAt: string;
-  updatedAt: string;
+};
+
+export type SiteEvent = {
+  id: string;
+  siteId: string;
+  userId?: string | null;
+  type: string;
+  message: string;
+  metadata?: unknown;
+  createdAt: string;
+};
+
+export type SiteDeployment = {
+  id: string;
+  siteId: string;
+  env: string;
+  type: string;
+  status: 'success' | 'failed';
+  message?: string | null;
+  createdAt: string;
 };
 
 export class ApiClient {
@@ -49,6 +76,7 @@ export class ApiClient {
 
   private async request<T>(endpoint: string, options?: RequestInit): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
+    const isFormData = typeof FormData !== 'undefined' && options?.body instanceof FormData;
     
     // Debug: log request URL in development (using console.log as SDK doesn't have logger)
     // Note: This is acceptable for SDK as it's a lightweight client library
@@ -60,7 +88,7 @@ export class ApiClient {
       const response = await fetch(url, {
         ...options,
         headers: {
-          'Content-Type': 'application/json',
+          ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
           ...(options?.headers || {}),
         },
       });
@@ -282,6 +310,32 @@ export class ApiClient {
     });
   }
 
+  // Site media (Site Panel)
+  async listSiteMedia(token: string, siteId: string): Promise<MediaItem[]> {
+    return this.request(`/site-panel/${encodeURIComponent(siteId)}/media`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  }
+
+  async uploadSiteMedia(token: string, siteId: string, file: File): Promise<MediaItem> {
+    const form = new FormData();
+    form.append('file', file);
+
+    return this.request(`/site-panel/${encodeURIComponent(siteId)}/media`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: form,
+    });
+  }
+
+  async deleteSiteMedia(token: string, siteId: string, mediaId: string): Promise<{ success: boolean }> {
+    return this.request(`/site-panel/${encodeURIComponent(siteId)}/media/${encodeURIComponent(mediaId)}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  }
+
   // Feature flags
   async isFeatureEnabled(token: string, feature: string): Promise<boolean> {
     const result = await this.request<{ feature: string; enabled: boolean }>(
@@ -447,7 +501,18 @@ export class ApiClient {
   }
 
   async updatePageContent(token: string, siteId: string, pageId: string, content: unknown): Promise<SitePage> {
-    return this.updatePage(token, siteId, pageId, { content });
+    return this.patch<SitePage>(
+      `/site-panel/${encodeURIComponent(siteId)}/pages/${encodeURIComponent(pageId)}/content`,
+      { content },
+      token,
+    );
+  }
+
+  async deletePage(token: string, siteId: string, pageId: string): Promise<void> {
+    await this.request(`/site-panel/${encodeURIComponent(siteId)}/pages/${encodeURIComponent(pageId)}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    });
   }
 
   async publishPage(
@@ -475,9 +540,139 @@ export class ApiClient {
   ): Promise<SeoSettings> {
     return this.patch<SeoSettings>(`/site-panel/${encodeURIComponent(siteId)}/seo`, data, token);
   }
+
+  // Snapshots
+  async listSnapshots(token: string, siteId: string): Promise<SiteSnapshot[]> {
+    return this.get<SiteSnapshot[]>(`/site-panel/${encodeURIComponent(siteId)}/snapshots`, token);
+  }
+
+  async createSnapshot(token: string, siteId: string, label?: string): Promise<SiteSnapshot> {
+    return this.request(`/site-panel/${encodeURIComponent(siteId)}/snapshots`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(label ? { label } : {}),
+    });
+  }
+
+  async restoreSnapshot(token: string, siteId: string, snapshotId: string): Promise<{ success: boolean }> {
+    return this.request(`/site-panel/${encodeURIComponent(siteId)}/snapshots/${encodeURIComponent(snapshotId)}/restore`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  }
+
+  // Site Events
+  async listSiteEvents(token: string, siteId: string, limit?: number): Promise<SiteEvent[]> {
+    const query = typeof limit === 'number' ? `?limit=${limit}` : '';
+    return this.get<SiteEvent[]>(`/site-panel/${encodeURIComponent(siteId)}/events${query}`, token);
+  }
+
+  // Site Deployments
+  async publishSite(token: string, siteId: string, pageId?: string): Promise<{
+    deployment: SiteDeployment;
+    pagesPublished: number;
+    pages: SitePage[];
+  }> {
+    return this.request(`/site-panel/${encodeURIComponent(siteId)}/deployments/publish`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(pageId ? { pageId } : {}),
+    });
+  }
+
+  async publishPage(token: string, siteId: string, pageId: string): Promise<{
+    deployment: SiteDeployment;
+    pagesPublished: number;
+    pages: SitePage[];
+  }> {
+    return this.publishSite(token, siteId, pageId);
+  }
+
+  async listDeployments(
+    token: string,
+    siteId: string,
+    params?: { env?: string; type?: string; status?: 'success' | 'failed'; limit?: number }
+  ): Promise<SiteDeployment[]> {
+    const search = new URLSearchParams();
+    if (params?.env) search.append('env', params.env);
+    if (params?.type) search.append('type', params.type);
+    if (params?.status) search.append('status', params.status);
+    if (params?.limit) search.append('limit', params.limit.toString());
+    const query = search.toString() ? `?${search.toString()}` : '';
+    return this.get<SiteDeployment[]>(`/site-panel/${encodeURIComponent(siteId)}/deployments${query}`, token);
+  }
+
+  async getLatestDeployment(token: string, siteId: string, env?: string): Promise<SiteDeployment | null> {
+    const query = env ? `?env=${encodeURIComponent(env)}` : '';
+    return this.get<SiteDeployment | null>(`/site-panel/${encodeURIComponent(siteId)}/deployments/latest${query}`, token);
+  }
+
+  // Feature Flags
+  async getSiteFeatures(token: string, siteId: string): Promise<{
+    plan: string;
+    planFeatures: string[];
+    overrides: Array<{
+      featureKey: string;
+      enabled: boolean;
+      createdAt: string;
+    }>;
+    effective: string[];
+  }> {
+    return this.get<{
+      plan: string;
+      planFeatures: string[];
+      overrides: Array<{
+        featureKey: string;
+        enabled: boolean;
+        createdAt: string;
+      }>;
+      effective: string[];
+    }>(`/sites/${encodeURIComponent(siteId)}/features`, token);
+  }
+
+  async setFeatureOverride(
+    token: string,
+    siteId: string,
+    featureKey: string,
+    enabled: boolean
+  ): Promise<{
+    id: string;
+    featureKey: string;
+    enabled: boolean;
+    createdAt: string;
+  }> {
+    return this.request<{
+      id: string;
+      featureKey: string;
+      enabled: boolean;
+      createdAt: string;
+    }>(`/sites/${encodeURIComponent(siteId)}/features/override`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ featureKey, enabled }),
+    });
+  }
+
+  async isFeatureEnabled(token: string, siteId: string, featureKey: string): Promise<boolean> {
+    const features = await this.getSiteFeatures(token, siteId);
+    return features.effective.includes(featureKey);
+  }
 }
 
 export function createApiClient(): ApiClient {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+  let baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+  
+  // Validate baseUrl - detect Docker hostnames that won't work in browser
+  if (typeof window !== 'undefined' && (baseUrl.includes('://api:') || baseUrl.includes('://api/'))) {
+    // Auto-correct common Docker hostname to a browser-friendly localhost URL
+    const corrected = baseUrl.replace('://api:', '://localhost:').replace('://api/', '://localhost/');
+    console.warn('[SDK] Rewriting Docker-only API URL', baseUrl, '=>', corrected);
+    baseUrl = corrected;
+  }
+  
   return new ApiClient(baseUrl);
 }
+
+export * as Media from './media';
+
+

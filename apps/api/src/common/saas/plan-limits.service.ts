@@ -192,7 +192,7 @@ export class PlanLimitsService {
     const [collections, contentTypes, mediaFiles, users, webhooks] = await Promise.all([
       this.prisma.collection.count({ where: { tenantId } }),
       this.prisma.contentType.count({ where: { tenantId } }),
-      this.prisma.mediaFile.count({ where: { tenantId } }),
+      this.prisma.mediaItem.count({ where: { siteId: tenantId } }),
       this.prisma.user.count({ where: { tenantId } }),
       this.prisma.webhook.count({ where: { tenantId } }),
     ]);
@@ -210,8 +210,8 @@ export class PlanLimitsService {
    * Get current storage usage in MB
    */
   async getStorageUsage(tenantId: string): Promise<number> {
-    const result = await this.prisma.mediaFile.aggregate({
-      where: { tenantId },
+    const result = await this.prisma.mediaItem.aggregate({
+      where: { siteId: tenantId },
       _sum: {
         size: true,
       },
@@ -313,4 +313,3 @@ export class PlanLimitsService {
     return mapping[resourceType] || 'collections';
   }
 }
-

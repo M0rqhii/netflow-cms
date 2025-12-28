@@ -49,7 +49,12 @@ export class HttpExceptionFilter implements ExceptionFilter {
         const responseObj = exceptionResponse as any;
         message = responseObj.message || message;
         error = responseObj.error || null;
-        details = responseObj.details || null;
+        // Include validation errors - check both 'errors' and 'details' fields
+        if (responseObj.errors) {
+          details = responseObj.errors;
+        } else if (responseObj.details) {
+          details = responseObj.details;
+        }
       }
     } else if (exception instanceof Error) {
       message = exception.message;
@@ -91,13 +96,13 @@ export class HttpExceptionFilter implements ExceptionFilter {
       responseBody.error = error;
     }
 
-    // Add extended details in non-production mode
+    // Add extended details in non-production mode or validation errors
+    if (details) {
+      responseBody.details = details;
+    }
+    
+    // Add request metadata for debugging (only in non-production)
     if (!this.isProduction) {
-      if (details) {
-        responseBody.details = details;
-      }
-      
-      // Add request metadata for debugging
       responseBody.request = {
         method: request.method,
         url: request.url,

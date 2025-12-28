@@ -18,7 +18,7 @@ COPY packages/ui/package.json ./packages/ui/
 COPY apps/admin/package.json ./apps/admin/
 
 # Install dependencies
-RUN pnpm install --frozen-lockfile
+RUN pnpm install
 
 # Copy source code
 COPY packages/schemas ./packages/schemas

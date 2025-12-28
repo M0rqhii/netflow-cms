@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { SitePanelLayout } from '@/components/site-panel/SitePanelLayout';
 import { SectionHeader } from '@/components/site-panel/SectionHeader';
 import { PlaceholderCard } from '@/components/site-panel/PlaceholderCard';
@@ -9,18 +9,122 @@ import { Button } from '@repo/ui';
 import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@repo/ui';
 import { useParams } from 'next/navigation';
+import { fetchMyTenants, exchangeTenantToken, getTenantToken } from '@/lib/api';
+import { createApiClient } from '@repo/sdk';
+import type { TenantInfo, SiteDeployment } from '@repo/sdk';
+import { useToast } from '@/components/ui/Toast';
 
 export default function OverviewPage() {
   const params = useParams<{ slug: string }>();
   const slug = params?.slug as string;
+  const toast = useToast();
 
-  // Placeholder data - will be replaced with real data later
+  const [loading, setLoading] = useState(true);
+  const [tenantId, setTenantId] = useState<string | null>(null);
+  const [lastDeployment, setLastDeployment] = useState<SiteDeployment | null>(null);
+  const [publishing, setPublishing] = useState(false);
+  const [pagesCount, setPagesCount] = useState(0);
+  const [mediaFilesCount, setMediaFilesCount] = useState(0);
+
+  const apiClient = createApiClient();
+
+  const loadData = useCallback(async () => {
+    if (!slug) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const tenants = await fetchMyTenants();
+      const tenant = tenants.find((t: TenantInfo) => t.tenant.slug === slug);
+
+      if (!tenant) {
+        throw new Error(`Site with slug "${slug}" not found`);
+      }
+
+      const id = tenant.tenantId;
+      setTenantId(id);
+
+      let token = getTenantToken(id);
+      if (!token) {
+        token = await exchangeTenantToken(id);
+      }
+
+      const [deployment, pages, media] = await Promise.all([
+        apiClient.getLatestDeployment(token, id, 'production'),
+        apiClient.listPages(token, id, { environmentType: 'draft' }),
+        apiClient.listSiteMedia(token, id),
+      ]);
+
+      setLastDeployment(deployment);
+      setPagesCount(pages.length);
+      setMediaFilesCount(media.length);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to load data';
+      toast.push({
+        tone: 'error',
+        message,
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [slug, apiClient, toast]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  const handlePublishAll = async () => {
+    if (!tenantId) return;
+
+    try {
+      setPublishing(true);
+
+      let token = getTenantToken(tenantId);
+      if (!token) {
+        token = await exchangeTenantToken(tenantId);
+      }
+
+      await apiClient.publishSite(token, tenantId);
+
+      toast.push({
+        tone: 'success',
+        message: 'All pages published successfully',
+      });
+
+      await loadData();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to publish pages';
+      toast.push({
+        tone: 'error',
+        message,
+      });
+    } finally {
+      setPublishing(false);
+    }
+  };
+
+  const formatDate = (date: string | Date) => {
+    return new Date(date).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
   const siteName = slug || 'Site Name';
   const sitePlan = 'Pro';
   const stats = {
-    pages: '—',
-    mediaFiles: '—',
-    lastPublished: '—',
+    pages: pagesCount.toString(),
+    mediaFiles: mediaFilesCount.toString(),
+    lastPublished: lastDeployment
+      ? formatDate(lastDeployment.createdAt)
+      : 'Not published yet',
+    lastPublishStatus: lastDeployment?.status || null,
   };
 
   return (
@@ -82,8 +186,15 @@ export default function OverviewPage() {
               <CardTitle className="text-base">Last Published</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.lastPublished}</div>
-              <p className="text-sm text-muted mt-1">Most recent update</p>
+              <div className="text-lg font-semibold">{stats.lastPublished}</div>
+              <div className="flex items-center gap-2 mt-1">
+                <p className="text-sm text-muted">Most recent production publish</p>
+                {stats.lastPublishStatus && (
+                  <Badge tone={stats.lastPublishStatus === 'success' ? 'success' : 'error'}>
+                    {stats.lastPublishStatus === 'success' ? 'Success' : 'Failed'}
+                  </Badge>
+                )}
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -96,13 +207,36 @@ export default function OverviewPage() {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               <Button variant="outline" className="w-full" disabled>
-                Open Page Builder
+                <span className="mr-2 inline-flex h-4 w-4 items-center justify-center">
+                  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" className="h-4 w-4">
+                    <path d="M5 5h10v10H5z" />
+                    <path d="M5 10h10M10 5v10" strokeLinecap="round" />
+                  </svg>
+                </span>
+                Open Builder
               </Button>
               <Button variant="outline" className="w-full" disabled>
-                Manage Redirects
+                <span className="mr-2 inline-flex h-4 w-4 items-center justify-center">
+                  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" className="h-4 w-4">
+                    <rect x="4" y="4" width="10" height="12" rx="1.5" />
+                    <path d="M7 8h5M7 11h4" strokeLinecap="round" />
+                  </svg>
+                </span>
+                Create Page
               </Button>
-              <Button variant="outline" className="w-full" disabled>
-                Publishing Settings
+              <Button
+                variant="primary"
+                className="w-full"
+                onClick={handlePublishAll}
+                disabled={publishing || loading}
+              >
+                <span className="mr-2 inline-flex h-4 w-4 items-center justify-center">
+                  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" className="h-4 w-4">
+                    <path d="M5 4.5h10a1 1 0 011 1v9a1 1 0 01-1 1H5a1 1 0 01-1-1v-9a1 1 0 011-1z" />
+                    <path d="M6.5 7h7M6.5 10h7M6.5 13h4" strokeLinecap="round" />
+                  </svg>
+                </span>
+                {publishing ? 'Publishing...' : 'Publish All'}
               </Button>
             </div>
           </CardContent>
@@ -117,7 +251,7 @@ export default function OverviewPage() {
             <CardContent>
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted">Unpublished changes</span>
+                  <span className="text-sm text-muted">Unpublished drafts</span>
                   <Badge tone="warning">0</Badge>
                 </div>
                 <div className="flex items-center justify-between">
@@ -138,8 +272,10 @@ export default function OverviewPage() {
                   <Badge tone="success">0</Badge>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted">Last deployment</span>
-                  <span className="text-sm text-muted">—</span>
+                  <span className="text-sm text-muted">Last production publish</span>
+                  <span className="text-sm text-muted">
+                    {lastDeployment ? formatDate(lastDeployment.createdAt) : '—'}
+                  </span>
                 </div>
               </div>
             </CardContent>
@@ -154,7 +290,7 @@ export default function OverviewPage() {
           <CardContent>
             <EmptyState
               title="No pages yet"
-              description="Page Builder coming soon. You'll be able to create and manage pages here."
+              description="No pages yet. Create a page to start building your site."
             />
           </CardContent>
         </Card>

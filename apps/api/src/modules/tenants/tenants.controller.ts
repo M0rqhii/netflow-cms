@@ -46,7 +46,7 @@ export class TenantsController {
    * Create a new tenant (platform_admin only)
    */
   @Post()
-  @PlatformRoles(PlatformRole.PLATFORM_ADMIN)
+  @PlatformRoles(PlatformRole.ADMIN, PlatformRole.OWNER)
   @Permissions(Permission.TENANTS_WRITE)
   create(@Body() body: unknown) {
     const createTenantDto = CreateTenantDtoSchema.parse(body);
@@ -58,7 +58,7 @@ export class TenantsController {
    * List all tenants with pagination (platform_admin or org_owner)
    */
   @Get()
-  @PlatformRoles(PlatformRole.PLATFORM_ADMIN, PlatformRole.ORG_OWNER)
+  @PlatformRoles(PlatformRole.ADMIN, PlatformRole.OWNER)
   @Permissions(Permission.TENANTS_READ)
   findAll(
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
@@ -73,7 +73,7 @@ export class TenantsController {
    * NOTE: Must be before :id route to avoid routing conflicts
    */
   @Get('slug/:slug')
-  @PlatformRoles(PlatformRole.PLATFORM_ADMIN, PlatformRole.ORG_OWNER)
+  @PlatformRoles(PlatformRole.ADMIN, PlatformRole.OWNER)
   @Permissions(Permission.TENANTS_READ)
   findBySlug(@Param('slug') slug: string) {
     return this.tenantsService.findBySlug(slug);
@@ -84,7 +84,7 @@ export class TenantsController {
    * Get tenant by ID (platform_admin or org_owner)
    */
   @Get(':id')
-  @PlatformRoles(PlatformRole.PLATFORM_ADMIN, PlatformRole.ORG_OWNER)
+  @PlatformRoles(PlatformRole.ADMIN, PlatformRole.OWNER)
   @Permissions(Permission.TENANTS_READ)
   findOne(@Param('id') id: string) {
     return this.tenantsService.findOne(id);
@@ -95,7 +95,7 @@ export class TenantsController {
    * Update tenant (platform_admin only)
    */
   @Patch(':id')
-  @PlatformRoles(PlatformRole.PLATFORM_ADMIN)
+  @PlatformRoles(PlatformRole.ADMIN, PlatformRole.OWNER)
   @Permissions(Permission.TENANTS_WRITE)
   update(@Param('id') id: string, @Body() body: unknown) {
     const updateTenantDto = UpdateTenantDtoSchema.parse(body);
@@ -107,7 +107,7 @@ export class TenantsController {
    * Delete tenant (platform_admin only)
    */
   @Delete(':id')
-  @PlatformRoles(PlatformRole.PLATFORM_ADMIN)
+  @PlatformRoles(PlatformRole.ADMIN, PlatformRole.OWNER)
   @Permissions(Permission.TENANTS_DELETE)
   remove(@Param('id') id: string) {
     return this.tenantsService.remove(id);

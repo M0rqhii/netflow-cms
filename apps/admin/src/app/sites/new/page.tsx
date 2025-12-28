@@ -7,6 +7,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@repo/ui';
 import { Button } from '@repo/ui';
 import { Input } from '@repo/ui';
 import { useToast } from '@/components/ui/Toast';
+import { useTranslations } from '@/hooks/useTranslations';
 import { createTenant } from '@/lib/api';
 
 function slugify(text: string): string {
@@ -23,6 +24,7 @@ function isValidSlug(slug: string): boolean {
 }
 
 export default function NewSitePage() {
+  const t = useTranslations();
   const router = useRouter();
   const { push } = useToast();
   const [name, setName] = useState('');
@@ -52,13 +54,13 @@ export default function NewSitePage() {
 
     // Validation
     if (!normalizedName || normalizedName.length < 3) {
-      setError('Name must be at least 3 characters');
+      setError(t('newSite.nameMustBeAtLeast3Characters'));
       return;
     }
 
     if (!normalizedSlug || !isValidSlug(normalizedSlug)) {
       setSlug(normalizedSlug);
-      setError('Slug must be at least 3 characters and contain only lowercase letters, numbers, and hyphens');
+      setError(t('newSite.slugMustBeAtLeast3Characters'));
       return;
     }
 
@@ -71,12 +73,12 @@ export default function NewSitePage() {
 
       push({
         tone: 'success',
-        message: 'Site created successfully.',
+        message: t('newSite.siteCreatedSuccessfully'),
       });
 
       router.push(redirectSlug ? `/sites/${redirectSlug}` : '/sites');
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to create site';
+      const message = err instanceof Error ? err.message : t('newSite.failedToCreateSite');
       setError(message);
       push({
         tone: 'error',
@@ -90,37 +92,37 @@ export default function NewSitePage() {
   return (
     <div className="container py-8">
       <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Create New Site</h1>
+        <h1 className="text-2xl font-bold">{t('newSite.title')}</h1>
         <Link href="/sites">
-          <Button variant="outline">Cancel</Button>
+          <Button variant="outline">{t('common.cancel')}</Button>
         </Link>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Site Information</CardTitle>
+          <CardTitle>{t('newSite.siteInformation')}</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={onSubmit} className="space-y-4 max-w-lg">
             <Input
-              label="Site Name"
+              label={t('newSite.siteName')}
               value={name}
               onChange={(e) => handleNameChange(e.target.value)}
               required
               minLength={3}
-              placeholder="My Awesome Site"
-              helperText="Choose a descriptive name for your site"
+              placeholder={t('newSite.siteNamePlaceholder')}
+              helperText={t('newSite.siteNameHelperText')}
             />
 
             <Input
-              label="Slug"
+              label={t('sites.slug')}
               value={slug}
               onChange={(e) => handleSlugChange(e.target.value)}
               required
               minLength={3}
               pattern="[a-z0-9-]+"
-              placeholder="my-awesome-site"
-              helperText="URL-friendly identifier (lowercase letters, numbers, and hyphens only)"
+              placeholder={t('sites.slugPlaceholder')}
+              helperText={t('newSite.slugHelperText')}
             />
 
             <div className="flex items-center gap-2">
@@ -137,7 +139,7 @@ export default function NewSitePage() {
                 className="w-4 h-4"
               />
               <label htmlFor="autoSlug" className="text-sm text-muted">
-                Auto-generate slug from name
+                {t('newSite.autoGenerateSlugFromName')}
               </label>
             </div>
 
@@ -149,10 +151,10 @@ export default function NewSitePage() {
 
             <div className="flex items-center gap-2">
               <Button type="submit" variant="primary" disabled={loading}>
-                {loading ? 'Creating...' : 'Create Site'}
+                {loading ? t('newSite.creating') : t('newSite.create')}
               </Button>
               <Link href="/sites">
-                <Button type="button" variant="outline">Cancel</Button>
+                <Button type="button" variant="outline">{t('common.cancel')}</Button>
               </Link>
             </div>
           </form>

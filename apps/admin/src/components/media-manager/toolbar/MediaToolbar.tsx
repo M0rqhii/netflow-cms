@@ -7,6 +7,12 @@ interface MediaToolbarProps {
   onSearchChange: (value: string) => void;
   activeFilter: MediaFilter;
   onFilterChange: (filter: MediaFilter) => void;
+  onUploadClick?: () => void;
+  onDeleteClick?: () => void;
+  disableDelete?: boolean;
+  uploadDisabled?: boolean;
+  isLoading?: boolean;
+  error?: string;
 }
 
 const FILTERS: { id: MediaFilter; label: string }[] = [
@@ -16,9 +22,21 @@ const FILTERS: { id: MediaFilter; label: string }[] = [
   { id: 'documents', label: 'Documents' },
 ];
 
-export function MediaToolbar({ searchQuery, onSearchChange, activeFilter, onFilterChange }: MediaToolbarProps) {
+export function MediaToolbar({
+  searchQuery,
+  onSearchChange,
+  activeFilter,
+  onFilterChange,
+  onUploadClick,
+  onDeleteClick,
+  disableDelete,
+  uploadDisabled,
+  isLoading,
+  error,
+}: MediaToolbarProps) {
   return (
     <div className="space-y-3">
+      {error && <div className="text-sm text-red-600">{error}</div>}
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex-1 min-w-[220px]">
           <Input
@@ -27,10 +45,10 @@ export function MediaToolbar({ searchQuery, onSearchChange, activeFilter, onFilt
             onChange={(event) => onSearchChange(event.target.value)}
           />
         </div>
-        <Button variant="outline" disabled>
+        <Button variant="outline" onClick={onUploadClick} disabled={uploadDisabled || isLoading}>
           Upload
         </Button>
-        <Button variant="outline" disabled>
+        <Button variant="outline" onClick={onDeleteClick} disabled={disableDelete || isLoading}>
           Delete
         </Button>
       </div>

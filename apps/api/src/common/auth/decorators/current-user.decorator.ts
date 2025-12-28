@@ -7,9 +7,12 @@ import { createParamDecorator, ExecutionContext } from '@nestjs/common';
 export interface CurrentUserPayload {
   id: string;
   email: string;
-  role: string; // tenant role (admin, editor, viewer)
+  role: string; // Backward compatibility: tenant role (super_admin, tenant_admin, editor, viewer)
+  siteRole?: string; // Site role (viewer, editor, editor-in-chief, marketing, admin, owner)
+  platformRole?: string; // Platform role (user, editor-in-chief, admin, owner)
+  systemRole?: string; // System role (super_admin, system_admin, system_dev, system_support)
+  isSuperAdmin?: boolean; // Flaga dla super admin
   tenantId: string;
-  platformRole?: string; // platform role (platform_admin, org_owner, user)
 }
 
 export const CurrentUser = createParamDecorator(

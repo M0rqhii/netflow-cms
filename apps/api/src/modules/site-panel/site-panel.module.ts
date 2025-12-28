@@ -4,10 +4,32 @@ import { SiteEnvironmentsController } from './site-environments.controller';
 import { SitePagesController } from './site-pages.controller';
 import { SiteEnvironmentsService } from './site-environments.service';
 import { SitePagesService } from './site-pages.service';
+import { SiteMediaController } from './site-media.controller';
+import { SiteMediaService } from './site-media.service';
+import { SiteDeploymentsController } from './site-deployments.controller';
+import { SiteDeploymentsService } from './site-deployments.service';
+import { SiteEventsModule } from '../site-events/site-events.module';
 
 @Module({
-  controllers: [SiteEnvironmentsController, SitePagesController],
-  providers: [PrismaService, SiteEnvironmentsService, SitePagesService],
-  exports: [SiteEnvironmentsService, SitePagesService],
+  imports: [SiteEventsModule],
+  controllers: [
+    SiteEnvironmentsController,
+    SitePagesController,
+    SiteMediaController,
+    SiteDeploymentsController,
+  ],
+  providers: [
+    PrismaService,
+    SiteEnvironmentsService,
+    SitePagesService,
+    SiteMediaService,
+    SiteDeploymentsService,
+  ],
+  exports: [
+    SiteEnvironmentsService,
+    SitePagesService,
+    SiteMediaService,
+    SiteDeploymentsService,
+  ],
 })
 export class SitePanelModule {}

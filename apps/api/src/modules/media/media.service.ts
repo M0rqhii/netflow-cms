@@ -4,6 +4,7 @@ import { FileStorage } from '../../common/providers/interfaces/file-storage.inte
 import { UploadMediaDto } from './dto/upload-media.dto';
 import { QueryMediaDto } from './dto/query-media.dto';
 import { Prisma } from '@prisma/client';
+import { SiteEventsService } from '../site-events/site-events.service';
 
 /**
  * Media Service - handles media file operations
@@ -18,6 +19,7 @@ export class MediaService {
   constructor(
     private prisma: PrismaService,
     @Inject('FileStorage') private readonly fileStorage: FileStorage,
+    private readonly siteEvents: SiteEventsService,
   ) {}
 
   /**
@@ -33,7 +35,7 @@ export class MediaService {
     // Validate file size (max 50MB for MVP)
     const maxSize = 50 * 1024 * 1024; // 50MB
     if (file.size > maxSize) {
-      throw new BadRequestException(`File size exceeds maximum allowed size of ${maxSize / 1024 / 1024}MB`);
+      throw new BadRequestException(`File size exceeds maximum allowed size of ${maxSize / (1024 * 1024)}MB`);
     }
 
     // Validate MIME type
@@ -74,10 +76,11 @@ export class MediaService {
     });
 
     // Create media file record in database
-    return this.prisma.mediaFile.create({
+    const media = await this.prisma.mediaItem.create({
       data: {
-        tenantId,
-        filename: dto.filename || file.originalname,
+        siteId: tenantId,
+        fileName: dto.filename || file.originalname,
+        path: uploadResult.key,
         url: uploadResult.url,
         mimeType: dto.mimeType || file.mimetype,
         size: dto.size || uploadResult.size,
@@ -93,8 +96,8 @@ export class MediaService {
       },
       select: {
         id: true,
-        tenantId: true,
-        filename: true,
+        siteId: true,
+        fileName: true,
         url: true,
         mimeType: true,
         size: true,
@@ -114,6 +117,16 @@ export class MediaService {
         },
       },
     });
+
+    await this.siteEvents.recordEvent(
+      tenantId,
+      uploadedById ?? null,
+      'media_uploaded',
+      `Media "${media.fileName}" uploaded`,
+      { mediaId: media.id, mimeType: media.mimeType, size: media.size },
+    );
+
+    return media;
   }
 
   /**
@@ -124,7 +137,7 @@ export class MediaService {
     const skip = (page - 1) * pageSize;
 
     const where: any = {
-      tenantId,
+      siteId: tenantId,
     };
 
     if (mimeType) {
@@ -133,13 +146,13 @@ export class MediaService {
 
     if (search) {
       where.OR = [
-        { filename: { contains: search, mode: 'insensitive' } },
+        { fileName: { contains: search, mode: 'insensitive' } },
         { alt: { contains: search, mode: 'insensitive' } },
       ];
     }
 
     const [items, total] = await Promise.all([
-      this.prisma.mediaFile.findMany({
+      this.prisma.mediaItem.findMany({
         where,
         skip,
         take: pageSize,
@@ -148,8 +161,8 @@ export class MediaService {
         },
         select: {
           id: true,
-          tenantId: true,
-          filename: true,
+          siteId: true,
+          fileName: true,
           url: true,
           mimeType: true,
           size: true,
@@ -169,7 +182,7 @@ export class MediaService {
           },
         },
       }),
-      this.prisma.mediaFile.count({ where }),
+      this.prisma.mediaItem.count({ where }),
     ]);
 
     return {
@@ -189,21 +202,21 @@ export class MediaService {
    */
   async getLibraryStats(tenantId: string) {
     const [total, byMimeType, totalSize] = await Promise.all([
-      this.prisma.mediaFile.count({ where: { tenantId } }),
-      this.prisma.mediaFile.groupBy({
+      this.prisma.mediaItem.count({ where: { siteId: tenantId } }),
+      this.prisma.mediaItem.groupBy({
         by: ['mimeType'],
-        where: { tenantId },
+        where: { siteId: tenantId },
         _count: true,
       }),
-      this.prisma.mediaFile.aggregate({
-        where: { tenantId },
+      this.prisma.mediaItem.aggregate({
+        where: { siteId: tenantId },
         _sum: { size: true },
       }),
     ]);
 
     return {
       total,
-      totalSize: totalSize._sum.size || 0,
+      totalSize: totalSize._sum?.size || 0,
       byMimeType: byMimeType.map((item: any) => ({
         mimeType: item.mimeType,
         count: item._count,
@@ -215,15 +228,15 @@ export class MediaService {
    * Get a single media file by ID
    */
   async findOne(tenantId: string, id: string) {
-    const mediaFile = await this.prisma.mediaFile.findFirst({
+    const mediaFile = await this.prisma.mediaItem.findFirst({
       where: {
         id,
-        tenantId,
+        siteId: tenantId,
       },
       select: {
         id: true,
-        tenantId: true,
-        filename: true,
+        siteId: true,
+        fileName: true,
         url: true,
         mimeType: true,
         size: true,
@@ -261,17 +274,17 @@ export class MediaService {
       ? (data.metadata === null ? Prisma.JsonNull : data.metadata)
       : (mediaFile.metadata === null ? Prisma.JsonNull : mediaFile.metadata);
 
-    return this.prisma.mediaFile.update({
+    return this.prisma.mediaItem.update({
       where: { id: mediaFile.id },
       data: {
-        filename: data.filename || mediaFile.filename,
+        fileName: data.filename || mediaFile.fileName,
         alt: data.alt !== undefined ? data.alt : mediaFile.alt,
         metadata: metadataValue,
       },
       select: {
         id: true,
-        tenantId: true,
-        filename: true,
+        siteId: true,
+        fileName: true,
         url: true,
         mimeType: true,
         size: true,
@@ -297,7 +310,7 @@ export class MediaService {
    * Delete a media file
    * Uses FileStorage provider to delete the file, then removes DB record
    */
-  async remove(tenantId: string, id: string) {
+  async remove(tenantId: string, id: string, userId?: string) {
     const mediaFile = await this.findOne(tenantId, id);
 
     // Extract storage key from metadata if available
@@ -321,11 +334,18 @@ export class MediaService {
     }
 
     // Delete database record
-    await this.prisma.mediaFile.delete({
+    await this.prisma.mediaItem.delete({
       where: { id: mediaFile.id },
     });
+
+    await this.siteEvents.recordEvent(
+      tenantId,
+      userId ?? mediaFile.uploadedById ?? null,
+      'media_deleted',
+      `Media "${mediaFile.fileName}" deleted`,
+      { mediaId: mediaFile.id },
+    );
 
     return { success: true, deleted: mediaFile };
   }
 }
-

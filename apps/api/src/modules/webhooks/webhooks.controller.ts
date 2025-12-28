@@ -13,8 +13,10 @@ import {
 import { AuthGuard } from '../../common/auth/guards/auth.guard';
 import { TenantGuard } from '../../common/tenant/tenant.guard';
 import { RolesGuard } from '../../common/auth/guards/roles.guard';
+import { PermissionsGuard } from '../../common/auth/guards/permissions.guard';
 import { Roles } from '../../common/auth/decorators/roles.decorator';
-import { Role } from '../../common/auth/roles.enum';
+import { Permissions } from '../../common/auth/decorators/permissions.decorator';
+import { Role, Permission } from '../../common/auth/roles.enum';
 import { WebhooksService } from './webhooks.service';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 import { createWebhookSchema, updateWebhookSchema } from './dto';
@@ -24,7 +26,7 @@ import { Request } from 'express';
  * Webhooks Controller - RESTful API for webhook management
  * AI Note: All endpoints require authentication and tenant context
  */
-@UseGuards(AuthGuard, TenantGuard, RolesGuard)
+@UseGuards(AuthGuard, TenantGuard, RolesGuard, PermissionsGuard)
 @Controller('webhooks')
 export class WebhooksController {
   constructor(private readonly webhooksService: WebhooksService) {}
@@ -35,6 +37,7 @@ export class WebhooksController {
    */
   @Post()
   @Roles(Role.EDITOR, Role.TENANT_ADMIN, Role.SUPER_ADMIN)
+  @Permissions(Permission.COLLECTIONS_WRITE) // Webhooks are collection-related
   async create(
     @Body(new ZodValidationPipe(createWebhookSchema))
     body: any,
@@ -48,7 +51,7 @@ export class WebhooksController {
    * List all webhooks for a tenant (optionally filtered by collection)
    */
   @Get()
-  @Roles(Role.VIEWER, Role.EDITOR, Role.TENANT_ADMIN, Role.SUPER_ADMIN)
+  @Permissions(Permission.COLLECTIONS_READ) // Webhooks are collection-related
   async findAll(
     @Query('collectionId') collectionId: string | undefined,
     @Req() req: Request & { tenantId: string },
@@ -61,7 +64,7 @@ export class WebhooksController {
    * Get a single webhook by ID
    */
   @Get(':id')
-  @Roles(Role.VIEWER, Role.EDITOR, Role.TENANT_ADMIN, Role.SUPER_ADMIN)
+  @Permissions(Permission.COLLECTIONS_READ) // Webhooks are collection-related
   async findOne(
     @Param('id') id: string,
     @Req() req: Request & { tenantId: string },
@@ -75,6 +78,7 @@ export class WebhooksController {
    */
   @Put(':id')
   @Roles(Role.EDITOR, Role.TENANT_ADMIN, Role.SUPER_ADMIN)
+  @Permissions(Permission.COLLECTIONS_WRITE) // Webhooks are collection-related
   async update(
     @Param('id') id: string,
     @Body(new ZodValidationPipe(updateWebhookSchema))
@@ -90,6 +94,7 @@ export class WebhooksController {
    */
   @Delete(':id')
   @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN)
+  @Permissions(Permission.COLLECTIONS_DELETE) // Webhooks are collection-related
   async remove(
     @Param('id') id: string,
     @Req() req: Request & { tenantId: string },

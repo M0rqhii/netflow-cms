@@ -80,7 +80,7 @@ export default function TenantCmsPage() {
         <div className="card card-interactive">
           <div className="card-body">
             <h3 className="font-semibold mb-2">{t('settings.title')}</h3>
-            <p className="text-sm text-gray-600 mb-4">Zarządzaj ustawieniami, planem i brandingiem</p>
+            <p className="text-sm text-gray-600 mb-4">{t('tenantCms.manageSettingsPlanAndBranding')}</p>
             <Link href={`/tenant/${encodeURIComponent(slug)}/settings`} className="btn btn-primary">{t('common.view')} {t('settings.title')}</Link>
           </div>
         </div>

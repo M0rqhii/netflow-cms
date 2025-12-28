@@ -153,15 +153,15 @@ export function Sidebar() {
   ];
 
   return (
-    <aside className={clsx('sidebar hidden md:block transition-all', sidebarCollapsed ? 'w-16' : 'w-60')}>
-      <nav className="p-3 space-y-4">
+    <aside className={clsx('sidebar hidden md:block transition-all', sidebarCollapsed ? 'w-16' : 'w-60')} aria-label="Main navigation">
+      <nav className="p-3 space-y-4" role="navigation" aria-label="Main navigation">
         {sections.map((section, sectionIdx) => (
           <div key={sectionIdx} className="space-y-1">
             {!sidebarCollapsed && section.labelKey && (
               <div className="px-3 py-1.5">
-                <span className="text-xs font-semibold uppercase tracking-wider text-muted">
+                <h2 className="text-xs font-semibold uppercase tracking-wider text-muted">
                   {t(section.labelKey)}
-                </span>
+                </h2>
               </div>
             )}
             {section.items.map((it) => {
@@ -174,14 +174,15 @@ export function Sidebar() {
                   href={it.href}
                   className={clsx('nav-link tooltip', active && 'nav-link--active')}
                   aria-label={label}
+                  aria-current={active ? 'page' : undefined}
                   data-tip={sidebarCollapsed ? label : undefined}
                 >
-                  <span className="shrink-0" aria-hidden>{it.icon}</span>
+                  <span className="shrink-0" aria-hidden="true">{it.icon}</span>
                   {!sidebarCollapsed && (
                     <>
                       <span className="truncate">{label}</span>
                       {it.badge !== undefined && it.badge !== null && (
-                        <span className="ml-auto badge">{it.badge}</span>
+                        <span className="ml-auto badge" aria-label={`${it.badge} items`}>{it.badge}</span>
                       )}
                     </>
                   )}

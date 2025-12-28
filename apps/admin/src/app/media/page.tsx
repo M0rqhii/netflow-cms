@@ -22,7 +22,7 @@ export default function MediaRedirectPage() {
     <div className="container py-8">
       <div className="text-center">
         <p className="text-muted">{t('sites.sitePanelComingSoon')}</p>
-        <p className="text-sm text-muted mt-2">Media is managed in Site Panel (coming soon)</p>
+        <p className="text-sm text-muted mt-2">{t('redirects.mediaManagedInSitePanel')}</p>
       </div>
     </div>
   );

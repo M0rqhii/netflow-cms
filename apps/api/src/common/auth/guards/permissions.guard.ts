@@ -1,17 +1,28 @@
 import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { Permission, Role, PlatformRole, hasAnyPermission, hasAnyPlatformPermission } from '../roles.enum';
+import { 
+  Permission, 
+  Role, 
+  PlatformRole, 
+  SystemRole,
+  SiteRole,
+  hasAnyPermission, 
+  hasAnyPlatformPermission,
+  hasSystemPermission,
+  hasSitePermission,
+} from '../roles.enum';
 import { PERMISSIONS_KEY } from '../decorators/permissions.decorator';
 import { CurrentUserPayload } from '../decorators/current-user.decorator';
 
 /**
  * PermissionsGuard - central permission checking guard
- * AI Note: Checks both tenant-level and platform-level permissions
+ * AI Note: Checks system, site, and platform-level permissions
  * 
- * This guard:
- * 1. Checks tenant-level permissions (Role-based)
- * 2. Checks platform-level permissions (PlatformRole-based)
- * 3. Allows access if either check passes
+ * This guard checks in order:
+ * 1. System Role permissions (super_admin, system_admin, system_dev, system_support)
+ * 2. Site Role permissions (viewer, editor, editor-in-chief, marketing, admin, owner)
+ * 3. Platform Role permissions (user, editor-in-chief, admin, owner)
+ * 4. Backward compatibility: old Role permissions
  * 
  * Use with @Permissions() decorator: @Permissions(Permission.USERS_READ)
  */
@@ -37,21 +48,52 @@ export class PermissionsGuard implements CanActivate {
       throw new ForbiddenException('User not authenticated');
     }
 
-    // Check tenant-level permissions
-    const userRole = user.role as Role;
-    const hasTenantPermission = hasAnyPermission(userRole, requiredPermissions);
-
-    if (hasTenantPermission) {
-      return true;
+    // 1. Check System Role permissions (highest priority)
+    if (user.isSuperAdmin || user.systemRole === SystemRole.SUPER_ADMIN) {
+      return true; // Super admin has all permissions
     }
 
-    // Check platform-level permissions
-    const userPlatformRole = user.platformRole as PlatformRole | undefined;
-    if (userPlatformRole) {
-      const hasPlatformPermission = hasAnyPlatformPermission(userPlatformRole, requiredPermissions);
-      if (hasPlatformPermission) {
+    if (user.systemRole) {
+      const systemRole = user.systemRole as SystemRole;
+      const hasSystemPerm = requiredPermissions.some(perm => 
+        hasSystemPermission(systemRole, perm)
+      );
+      if (hasSystemPerm) {
         return true;
       }
+    }
+
+    // 2. Check Site Role permissions
+    if (user.siteRole) {
+      const siteRole = user.siteRole as SiteRole;
+      const hasSitePerm = requiredPermissions.some(perm => 
+        hasSitePermission(siteRole, perm)
+      );
+      if (hasSitePerm) {
+        return true;
+      }
+    }
+
+    // 3. Check Platform Role permissions
+    if (user.platformRole) {
+      const platformRole = user.platformRole as PlatformRole;
+      const hasPlatformPerm = requiredPermissions.some(perm => 
+        hasAnyPlatformPermission(platformRole, [perm])
+      );
+      if (hasPlatformPerm) {
+        return true;
+      }
+    }
+
+    // 4. Backward compatibility: Check old Role permissions
+    const userRole = user.role as Role;
+    if (userRole === Role.SUPER_ADMIN) {
+      return true;
+    }
+    
+    const hasTenantPermission = hasAnyPermission(userRole, requiredPermissions);
+    if (hasTenantPermission) {
+      return true;
     }
 
     throw new ForbiddenException(

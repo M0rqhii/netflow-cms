@@ -22,7 +22,7 @@ export function PageBuilderTopbar({
     { label: 'Sites', href: '/sites' },
     { label: slug || 'Site', href: `/sites/${encodeURIComponent(slug)}` },
     { label: 'Panel', href: `/sites/${encodeURIComponent(slug)}/panel` },
-    { label: 'Page Builder' },
+    { label: 'Design', href: `/sites/${encodeURIComponent(slug)}/panel/design` },
   ];
 
   return (

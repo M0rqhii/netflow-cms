@@ -1,10 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { SiteEventsService } from '../site-events/site-events.service';
 import { UpdateSeoSettingsDto } from './dto';
 
 @Injectable()
 export class SiteSeoService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly siteEvents: SiteEventsService) {}
 
   private defaultSettings(tenantId: string) {
     return {
@@ -30,7 +31,7 @@ export class SiteSeoService {
     });
   }
 
-  async updateSettings(tenantId: string, dto: UpdateSeoSettingsDto) {
+  async updateSettings(tenantId: string, dto: UpdateSeoSettingsDto, userId?: string) {
     const data = {
       ...(dto.title !== undefined ? { title: dto.title } : {}),
       ...(dto.description !== undefined ? { description: dto.description } : {}),
@@ -40,10 +41,20 @@ export class SiteSeoService {
       ...(dto.twitterCard !== undefined ? { twitterCard: dto.twitterCard } : {}),
     };
 
-    return this.prisma.seoSettings.upsert({
+    const settings = await this.prisma.seoSettings.upsert({
       where: { tenantId },
       update: data,
       create: { ...this.defaultSettings(tenantId), ...data },
     });
+
+    await this.siteEvents.recordEvent(
+      tenantId,
+      userId ?? null,
+      'seo_updated',
+      'SEO settings updated',
+      { tenantId },
+    );
+
+    return settings;
   }
 }

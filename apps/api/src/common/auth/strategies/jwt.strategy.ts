@@ -9,8 +9,11 @@ export interface JwtPayload {
   sub: string; // user id
   email: string;
   tenantId?: string; // optional for global token (Hub)
-  role: string; // tenant role (admin, editor, viewer)
-  platformRole?: string; // platform role (platform_admin, org_owner, user)
+  role: string; // Backward compatibility: tenant role (super_admin, tenant_admin, editor, viewer)
+  siteRole?: string; // Site role (viewer, editor, editor-in-chief, marketing, admin, owner)
+  platformRole?: string; // Platform role (user, editor-in-chief, admin, owner)
+  systemRole?: string; // System role (super_admin, system_admin, system_dev, system_support)
+  isSuperAdmin?: boolean; // Flaga dla super admin
 }
 
 @Injectable()
@@ -39,7 +42,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       select: {
         id: true,
         email: true,
-        role: true,
+        role: true, // Backward compatibility
+        siteRole: true,
+        platformRole: true,
+        systemRole: true,
+        isSuperAdmin: true,
         tenantId: true,
       },
     });
@@ -48,12 +55,16 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException('User not found');
     }
 
+    // Use values from database (most up-to-date) or fall back to token payload
     return {
       id: user.id,
       email: user.email,
-      role: payload.role || user.role, // Use role from token (tenant role)
+      role: payload.role || user.role, // Backward compatibility
+      siteRole: user.siteRole || payload.siteRole || undefined,
+      platformRole: user.platformRole || payload.platformRole || undefined,
+      systemRole: user.systemRole || payload.systemRole || undefined,
+      isSuperAdmin: user.isSuperAdmin || payload.isSuperAdmin || false,
       tenantId: payload.tenantId ?? user.tenantId,
-      platformRole: payload.platformRole, // Platform role from token
     };
   }
 }

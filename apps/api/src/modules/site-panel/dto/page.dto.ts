@@ -5,6 +5,7 @@ import {
   PublishPageSchema,
   PageQuerySchema,
   PageSchema,
+  UpdatePageContentSchema,
 } from '@repo/schemas';
 
 export const CreatePageDtoSchema = CreatePageSchema;
@@ -21,3 +22,6 @@ export type PageQueryDto = z.infer<typeof PageQuerySchema>;
 
 export const PageDtoSchema = PageSchema;
 export type PageDto = z.infer<typeof PageSchema>;
+
+export const UpdatePageContentDtoSchema = UpdatePageContentSchema;
+export type UpdatePageContentDto = z.infer<typeof UpdatePageContentSchema>;

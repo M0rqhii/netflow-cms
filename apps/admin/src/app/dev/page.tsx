@@ -19,6 +19,7 @@ import {
 import type { TenantInfo } from '@repo/sdk';
 
 const PRIVILEGED_ROLES = ['super_admin', 'tenant_admin'];
+const PRIVILEGED_PLATFORM_ROLES = ['platform_admin'];
 
 export default function DevPanelPage() {
   const appProfile = process.env.NEXT_PUBLIC_APP_PROFILE || process.env.NODE_ENV || 'development';
@@ -26,8 +27,25 @@ export default function DevPanelPage() {
   const token = getAuthToken();
   const payload = useMemo(() => decodeAuthToken(token), [token]);
   const userRole = (payload?.role as string) || '';
+  const userPlatformRole = (payload?.platformRole as string) || '';
+  const userSystemRole = (payload?.systemRole as string) || '';
+  const isSuperAdmin = (payload?.isSuperAdmin as boolean) || false;
   const userEmail = (payload?.email as string) || '';
-  const isPrivileged = PRIVILEGED_ROLES.includes(userRole);
+  const isPrivileged = 
+    PRIVILEGED_ROLES.includes(userRole) || 
+    PRIVILEGED_PLATFORM_ROLES.includes(userPlatformRole) ||
+    isSuperAdmin ||
+    userSystemRole === 'super_admin';
+  
+  // Debug: log token payload in development
+  if (process.env.NODE_ENV === 'development' && token) {
+    console.log('[Dev Panel] Token payload:', payload);
+    console.log('[Dev Panel] User role:', userRole);
+    console.log('[Dev Panel] User platform role:', userPlatformRole);
+    console.log('[Dev Panel] User system role:', userSystemRole);
+    console.log('[Dev Panel] Is super admin:', isSuperAdmin);
+    console.log('[Dev Panel] Is privileged:', isPrivileged);
+  }
 
   const [sites, setSites] = useState<TenantInfo[]>([]);
   const [loading, setLoading] = useState(false);
@@ -39,9 +57,56 @@ export default function DevPanelPage() {
   const [paymentEvents, setPaymentEvents] = useState<
     Array<{ id: string; tenantId: string; plan: string; status: string; currentPeriodStart?: string; currentPeriodEnd?: string; createdAt?: string }>
   >([]);
+  
+  // Check access via API if token doesn't have role (for old tokens)
+  const [accessVerified, setAccessVerified] = useState<boolean | null>(null);
+
+  // Verify access via API if token doesn't have role
+  useEffect(() => {
+    // Skip if already verified or if user is privileged from token
+    if (isProd || isPrivileged) {
+      if (accessVerified !== true) {
+        setAccessVerified(true);
+      }
+      return;
+    }
+    
+    // If token doesn't have role but user is logged in, try to verify access via API
+    // This handles cases where token was issued before role was added
+    // Only verify once (when accessVerified is null)
+    if (token && payload?.sub && accessVerified === null) {
+      // Set to false first to show loading state
+      setAccessVerified(false);
+      
+      // Verify access via API call
+      getDevSummary()
+        .then(() => {
+          setAccessVerified(true); // API call succeeded, user has access
+        })
+        .catch((error) => {
+          // Only set to false if it's a 403 Forbidden (insufficient permissions)
+          // 401 Unauthorized would be handled by global error handler
+          const isForbidden = error instanceof Error && 
+            (error.message.includes('403') || 
+             error.message.includes('Forbidden') ||
+             error.message.includes('Insufficient permissions'));
+          if (isForbidden) {
+            setAccessVerified(false); // API call failed with 403, user doesn't have access
+          } else {
+            // For other errors (network, etc.), reset to null to allow retry
+            setAccessVerified(null);
+          }
+        });
+    } else if (!token) {
+      setAccessVerified(false);
+    }
+    // Removed accessVerified from dependencies to prevent infinite loop
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, payload, isProd, isPrivileged]);
 
   useEffect(() => {
-    if (isProd || !isPrivileged) return;
+    // Only load data if not in production and user has verified access
+    if (isProd || (!isPrivileged && accessVerified !== true)) return;
     setLoading(true);
     setError(null);
     Promise.all([
@@ -76,10 +141,10 @@ export default function DevPanelPage() {
       })
       .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load dev data'))
       .finally(() => setLoading(false));
-  }, [isProd, isPrivileged]);
+  }, [isProd, isPrivileged, accessVerified]);
 
   useEffect(() => {
-    if (isProd || !isPrivileged) return;
+    if (isProd || (!isPrivileged && accessVerified !== true)) return;
     if (!sites.length) return;
     setUsersError(null);
     Promise.all(
@@ -96,7 +161,7 @@ export default function DevPanelPage() {
         setUsersCount(null);
         setUsersError('Unable to load users for sites.');
       });
-  }, [isProd, isPrivileged, sites]);
+  }, [isProd, isPrivileged, accessVerified, sites]);
 
   if (isProd) {
     return (
@@ -109,12 +174,25 @@ export default function DevPanelPage() {
     );
   }
 
-  if (!isPrivileged) {
+  // Show loading while verifying access
+  if (!isPrivileged && accessVerified === null) {
+    return (
+      <div className="container py-10">
+        <div className="flex items-center justify-center">
+          <LoadingSpinner />
+          <p className="ml-4">Verifying access...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show access denied if user doesn't have privileges
+  if (!isPrivileged && accessVerified === false) {
     return (
       <div className="container py-10">
         <EmptyState
           title="Access denied"
-          description="Only privileged users can access the Dev Panel."
+          description="Only privileged users (super_admin, tenant_admin, or platform_admin) can access the Dev Panel."
           action={{
             label: 'Back to dashboard',
             onClick: () => (window.location.href = '/dashboard'),
@@ -122,6 +200,11 @@ export default function DevPanelPage() {
         />
       </div>
     );
+  }
+
+  // Don't render content if access is not verified
+  if (!isPrivileged && accessVerified !== true) {
+    return null;
   }
 
   return (

@@ -257,3 +257,7 @@ Optymalizacja routingu i struktury została pomyślnie zakończona. Wprowadzono 
 4. Rozważyć dodanie Error Boundary dla lepszego error handling
 
 
+
+
+
+

@@ -14,6 +14,8 @@ import {
 } from '@nestjs/common';
 import { AuthGuard } from '../../common/auth/guards/auth.guard';
 import { TenantGuard } from '../../common/tenant/tenant.guard';
+import { RolesGuard } from '../../common/auth/guards/roles.guard';
+import { PermissionsGuard } from '../../common/auth/guards/permissions.guard';
 import { Permissions } from '../../common/auth/decorators/permissions.decorator';
 import { Permission } from '../../common/auth/roles.enum';
 import { CurrentTenant } from '../../common/decorators/current-tenant.decorator';
@@ -82,7 +84,7 @@ export class BillingController {
    * GET /billing/subscription/status
    */
   @Get('subscription/status')
-  @UseGuards(AuthGuard, TenantGuard)
+  @UseGuards(AuthGuard, TenantGuard, RolesGuard, PermissionsGuard)
   @Permissions(Permission.BILLING_READ)
   async getSubscriptionStatus(@CurrentTenant() tenantId: string) {
     return this.billingService.getSubscriptionStatus(tenantId);
@@ -93,7 +95,7 @@ export class BillingController {
    * GET /billing/subscriptions
    */
   @Get('subscriptions')
-  @UseGuards(AuthGuard, TenantGuard)
+  @UseGuards(AuthGuard, TenantGuard, RolesGuard, PermissionsGuard)
   @Permissions(Permission.BILLING_READ)
   async listSubscriptions(
     @CurrentTenant() tenantId: string,
@@ -107,7 +109,7 @@ export class BillingController {
    * GET /billing/subscriptions/:id
    */
   @Get('subscriptions/:id')
-  @UseGuards(AuthGuard, TenantGuard)
+  @UseGuards(AuthGuard, TenantGuard, RolesGuard, PermissionsGuard)
   @Permissions(Permission.BILLING_READ)
   async getSubscription(
     @CurrentTenant() tenantId: string,
@@ -121,7 +123,7 @@ export class BillingController {
    * POST /billing/subscriptions
    */
   @Post('subscriptions')
-  @UseGuards(AuthGuard, TenantGuard)
+  @UseGuards(AuthGuard, TenantGuard, RolesGuard, PermissionsGuard)
   @Permissions(Permission.BILLING_WRITE)
   async createSubscription(
     @CurrentTenant() tenantId: string,
@@ -135,7 +137,7 @@ export class BillingController {
    * PATCH /billing/subscriptions/:id
    */
   @Patch('subscriptions/:id')
-  @UseGuards(AuthGuard, TenantGuard)
+  @UseGuards(AuthGuard, TenantGuard, RolesGuard, PermissionsGuard)
   @Permissions(Permission.BILLING_WRITE)
   async updateSubscription(
     @CurrentTenant() tenantId: string,
@@ -150,7 +152,7 @@ export class BillingController {
    * DELETE /billing/subscriptions/:id
    */
   @Delete('subscriptions/:id')
-  @UseGuards(AuthGuard, TenantGuard)
+  @UseGuards(AuthGuard, TenantGuard, RolesGuard, PermissionsGuard)
   @Permissions(Permission.BILLING_WRITE)
   @HttpCode(HttpStatus.OK)
   async cancelSubscription(
@@ -165,7 +167,7 @@ export class BillingController {
    * GET /billing/invoices
    */
   @Get('invoices')
-  @UseGuards(AuthGuard, TenantGuard)
+  @UseGuards(AuthGuard, TenantGuard, RolesGuard, PermissionsGuard)
   @Permissions(Permission.BILLING_READ)
   async listInvoices(
     @CurrentTenant() tenantId: string,
@@ -179,7 +181,7 @@ export class BillingController {
    * GET /billing/invoices/:id
    */
   @Get('invoices/:id')
-  @UseGuards(AuthGuard, TenantGuard)
+  @UseGuards(AuthGuard, TenantGuard, RolesGuard, PermissionsGuard)
   @Permissions(Permission.BILLING_READ)
   async getInvoice(
     @CurrentTenant() tenantId: string,
@@ -193,7 +195,7 @@ export class BillingController {
    * GET /billing/payments
    */
   @Get('payments')
-  @UseGuards(AuthGuard, TenantGuard)
+  @UseGuards(AuthGuard, TenantGuard, RolesGuard, PermissionsGuard)
   @Permissions(Permission.BILLING_READ)
   async listPayments(
     @CurrentTenant() tenantId: string,
@@ -207,7 +209,7 @@ export class BillingController {
    * GET /billing/site/:id
    */
   @Get('site/:id')
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, RolesGuard, PermissionsGuard)
   @Permissions(Permission.BILLING_READ)
   async getSiteSubscription(@Param('id') siteId: string) {
     return this.billingService.getSiteSubscription(siteId);
@@ -218,7 +220,7 @@ export class BillingController {
    * POST /billing/site/:id/update
    */
   @Post('site/:id/update')
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, RolesGuard, PermissionsGuard)
   @Permissions(Permission.BILLING_WRITE)
   async updateSiteSubscription(
     @Param('id') siteId: string,
@@ -232,7 +234,7 @@ export class BillingController {
    * GET /billing/me
    */
   @Get('me')
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, RolesGuard, PermissionsGuard)
   @Permissions(Permission.BILLING_READ)
   async getMyBillingInfo(@CurrentUser() user: { id: string }) {
     return this.billingService.getMyBillingInfo(user.id);

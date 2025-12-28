@@ -1,10 +1,13 @@
 import {
   Controller,
   Get,
+  Post,
   Patch,
   Body,
   UseGuards,
   Param,
+  HttpCode,
+  HttpStatus,
   } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { AuthGuard } from '../../common/auth/guards/auth.guard';
@@ -96,6 +99,47 @@ export class UsersController {
     @CurrentUser() user: { role: string }
   ) {
     return this.usersService.getUserById(userId, tenantId, user.role);
+  }
+
+  /**
+   * POST /api/v1/users
+   * Create a new user (admin only)
+   * Security: Only super_admin can create super_admin users
+   */
+  @Post()
+  @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN)
+  @Permissions(Permission.USERS_WRITE)
+  @HttpCode(HttpStatus.CREATED)
+  createUser(
+    @CurrentTenant() tenantId: string,
+    @CurrentUser() user: { role: string },
+    @Body(new ZodValidationPipe(z.object({
+      email: z.string().email('Invalid email format'),
+      password: z.string().min(6, 'Password must be at least 6 characters'),
+      role: z.enum(['super_admin', 'tenant_admin', 'editor', 'viewer']),
+      preferredLanguage: z.enum(['pl', 'en']).optional().default('en'),
+    }))) body: { email: string; password: string; role: string; preferredLanguage?: 'pl' | 'en' }
+  ) {
+    return this.usersService.createUser(tenantId, body, user.role);
+  }
+
+  /**
+   * PATCH /api/v1/users/:id/role
+   * Update user role (admin only)
+   * Security: Only super_admin can assign super_admin role
+   */
+  @Patch(':id/role')
+  @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN)
+  @Permissions(Permission.USERS_WRITE)
+  updateUserRole(
+    @Param('id') userId: string,
+    @CurrentTenant() tenantId: string,
+    @CurrentUser() user: { role: string },
+    @Body(new ZodValidationPipe(z.object({
+      role: z.enum(['super_admin', 'tenant_admin', 'editor', 'viewer']),
+    }))) body: { role: string }
+  ) {
+    return this.usersService.updateUserRole(userId, tenantId, body.role, user.role);
   }
 }
 

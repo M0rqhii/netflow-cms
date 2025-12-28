@@ -51,3 +51,7 @@ export interface DomainProvider {
   getDomainStatus?(domain: string, tenantId: string): Promise<DomainConfigurationResult | null>;
 }
 
+
+
+
+

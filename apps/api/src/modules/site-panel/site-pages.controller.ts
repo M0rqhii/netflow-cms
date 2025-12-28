@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   ForbiddenException,
   Get,
   Param,
@@ -18,12 +19,14 @@ import { Roles } from '../../common/auth/decorators/roles.decorator';
 import { CurrentTenant } from '../../common/decorators/current-tenant.decorator';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 import { Role, Permission } from '../../common/auth/roles.enum';
+import { CurrentUser, CurrentUserPayload } from '../../common/auth/decorators/current-user.decorator';
 import { SitePagesService } from './site-pages.service';
 import {
   CreatePageDtoSchema,
   PageQueryDtoSchema,
   PublishPageDtoSchema,
   UpdatePageDtoSchema,
+  UpdatePageContentDtoSchema,
 } from './dto';
 
 @UseGuards(AuthGuard, TenantGuard, RolesGuard, PermissionsGuard)
@@ -53,10 +56,11 @@ export class SitePagesController {
   create(
     @Param('siteId') siteId: string,
     @CurrentTenant() tenantId: string,
+    @CurrentUser() user: CurrentUserPayload,
     @Body(new ZodValidationPipe(CreatePageDtoSchema)) body: unknown,
   ) {
     this.assertTenantScope(siteId, tenantId);
-    return this.pages.create(tenantId, body as any);
+    return this.pages.create(tenantId, body as any, user?.id);
   }
 
   @Get(':pageId')
@@ -76,10 +80,11 @@ export class SitePagesController {
     @Param('siteId') siteId: string,
     @CurrentTenant() tenantId: string,
     @Param('pageId') pageId: string,
+    @CurrentUser() user: CurrentUserPayload,
     @Body(new ZodValidationPipe(UpdatePageDtoSchema)) body: unknown,
   ) {
     this.assertTenantScope(siteId, tenantId);
-    return this.pages.update(tenantId, pageId, body as any);
+    return this.pages.update(tenantId, pageId, body as any, user?.id);
   }
 
   @Post(':pageId/publish')
@@ -89,9 +94,35 @@ export class SitePagesController {
     @Param('siteId') siteId: string,
     @CurrentTenant() tenantId: string,
     @Param('pageId') pageId: string,
+    @CurrentUser() user: CurrentUserPayload,
     @Body(new ZodValidationPipe(PublishPageDtoSchema)) body: unknown,
   ) {
     this.assertTenantScope(siteId, tenantId);
-    return this.pages.publish(tenantId, pageId, body as any);
+    return this.pages.publish(tenantId, pageId, body as any, user?.id);
+  }
+
+  @Delete(':pageId')
+  @Permissions(Permission.PAGES_WRITE)
+  delete(
+    @Param('siteId') siteId: string,
+    @CurrentTenant() tenantId: string,
+    @Param('pageId') pageId: string,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    this.assertTenantScope(siteId, tenantId);
+    return this.pages.delete(tenantId, pageId, user?.id);
+  }
+
+  @Patch(':pageId/content')
+  @Permissions(Permission.PAGES_WRITE)
+  updateContent(
+    @Param('siteId') siteId: string,
+    @CurrentTenant() tenantId: string,
+    @Param('pageId') pageId: string,
+    @CurrentUser() user: CurrentUserPayload,
+    @Body(new ZodValidationPipe(UpdatePageContentDtoSchema)) body: unknown,
+  ) {
+    this.assertTenantScope(siteId, tenantId);
+    return this.pages.updateContent(tenantId, pageId, (body as any).content, user?.id);
   }
 }

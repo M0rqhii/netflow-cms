@@ -28,8 +28,10 @@ export class RoleBasedThrottlerGuard extends ThrottlerGuard {
   }
 
   protected getLimit(context: ExecutionContext): number {
-    // In development mode, allow much higher limits to avoid throttling issues
-    const isDevelopment = process.env.NODE_ENV === 'development';
+    // Check environment consistently with AppModule and HttpExceptionFilter
+    // Default to development if neither APP_PROFILE nor NODE_ENV is set
+    const profile = process.env.APP_PROFILE || process.env.NODE_ENV || 'development';
+    const isDevelopment = profile !== 'production';
     
     // First check if @Throttle decorator is set - if so, use that limit
     const handler = context.getHandler();
@@ -39,7 +41,11 @@ export class RoleBasedThrottlerGuard extends ThrottlerGuard {
     if (throttlerMetadata && throttlerMetadata.length >= 1) {
       // @Throttle decorator limit takes precedence
       // In development, set to very high limit (effectively unlimited)
-      return isDevelopment ? 999999 : throttlerMetadata[0];
+      const limit = isDevelopment ? 999999 : throttlerMetadata[0];
+      if (isDevelopment && process.env.DEBUG_THROTTLER === 'true') {
+        console.log(`[Throttler] Using decorator limit: ${limit} (dev mode)`);
+      }
+      return limit;
     }
 
     // Otherwise, use role-based limits
@@ -49,6 +55,9 @@ export class RoleBasedThrottlerGuard extends ThrottlerGuard {
     // Different limits based on role
     // In development, set to very high limit (effectively unlimited)
     if (isDevelopment) {
+      if (process.env.DEBUG_THROTTLER === 'true') {
+        console.log(`[Throttler] Development mode - unlimited requests allowed`);
+      }
       return 999999; // Effectively unlimited in development
     }
     

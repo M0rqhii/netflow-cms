@@ -44,7 +44,13 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastCtx.Provider value={value}>
       {children}
-      <div className="fixed right-4 top-16 z-50 space-y-2" role="region" aria-live="polite" aria-label="Notifications">
+      <div 
+        className="fixed right-4 top-16 z-50 space-y-2" 
+        role="region" 
+        aria-live="polite" 
+        aria-atomic="false"
+        aria-label="Notifications"
+      >
         {toasts.map((t) => {
           let border = 'border-gray-200';
           // Border color will be handled by CSS dark mode rules
@@ -54,20 +60,26 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
           else if (t.tone === 'warning') toneColor = '#f59e0b';
           else toneColor = 'var(--color-primary)';
           return (
-            <div key={t.id} className={`rounded-lg border px-4 py-3 shadow-md bg-card`} style={{ borderColor: 'rgba(0,0,0,0.08)' }} role="status">
+            <div 
+              key={t.id} 
+              className={`rounded-lg border px-4 py-3 shadow-md bg-card`} 
+              style={{ borderColor: 'rgba(0,0,0,0.08)' }} 
+              role="status"
+              aria-live={t.tone === 'error' ? 'assertive' : 'polite'}
+            >
               <div className="flex items-start gap-2">
-                <span aria-hidden style={{ color: toneColor }}>
+                <span aria-hidden="true" style={{ color: toneColor }}>
                   {t.tone === 'success' && (
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 6 9 17l-5-5"/></svg>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
                   )}
                   {t.tone === 'error' && (
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
                   )}
                   {t.tone === 'warning' && (
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
                   )}
                   {(!t.tone || t.tone === 'info') && (
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
                   )}
                 </span>
                 <div>

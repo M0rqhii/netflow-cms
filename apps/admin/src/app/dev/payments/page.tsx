@@ -9,6 +9,7 @@ import { LoadingSpinner } from '@repo/ui';
 import { DevPanelLayout } from '@/components/dev-panel/DevPanelLayout';
 
 const PRIVILEGED_ROLES = ['super_admin', 'tenant_admin'];
+const PRIVILEGED_PLATFORM_ROLES = ['platform_admin'];
 
 export default function DevPaymentsPage() {
   const appProfile = process.env.NEXT_PUBLIC_APP_PROFILE || process.env.NODE_ENV || 'development';
@@ -16,7 +17,10 @@ export default function DevPaymentsPage() {
   const token = getAuthToken();
   const payload = useMemo(() => decodeAuthToken(token), [token]);
   const userRole = (payload?.role as string) || '';
-  const isPrivileged = PRIVILEGED_ROLES.includes(userRole);
+  const userPlatformRole = (payload?.platformRole as string) || '';
+  const isPrivileged = 
+    PRIVILEGED_ROLES.includes(userRole) || 
+    PRIVILEGED_PLATFORM_ROLES.includes(userPlatformRole);
   const [payments, setPayments] = useState<
     Array<{ id: string; tenantId: string; plan: string; status: string; currentPeriodStart?: string; currentPeriodEnd?: string; createdAt?: string }>
   >([]);
@@ -29,7 +33,16 @@ export default function DevPaymentsPage() {
     setError(null);
     getDevPayments()
       .then((data) => setPayments(data))
-      .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load payment events'))
+      .catch((e) => {
+        // Don't show error for 403 Forbidden - user will see access denied message
+        const isForbidden = e instanceof Error && 
+          (e.message.includes('403') || 
+           e.message.includes('Forbidden') ||
+           e.message.includes('Insufficient permissions'));
+        if (!isForbidden) {
+          setError(e instanceof Error ? e.message : 'Failed to load payment events');
+        }
+      })
       .finally(() => setLoading(false));
   }, [isProd, isPrivileged]);
 
