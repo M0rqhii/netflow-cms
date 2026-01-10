@@ -8,10 +8,8 @@ import {
   Body,
   Query,
   UseGuards,
-  Req,
 } from '@nestjs/common';
 import { AuthGuard } from '../../common/auth/guards/auth.guard';
-import { TenantGuard } from '../../common/tenant/tenant.guard';
 import { RolesGuard } from '../../common/auth/guards/roles.guard';
 import { PermissionsGuard } from '../../common/auth/guards/permissions.guard';
 import { Roles } from '../../common/auth/decorators/roles.decorator';
@@ -20,13 +18,13 @@ import { Role, Permission } from '../../common/auth/roles.enum';
 import { WebhooksService } from './webhooks.service';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 import { createWebhookSchema, updateWebhookSchema } from './dto';
-import { Request } from 'express';
+import { CurrentSite } from '../../common/decorators/current-site.decorator';
 
 /**
  * Webhooks Controller - RESTful API for webhook management
- * AI Note: All endpoints require authentication and tenant context
+ * AI Note: All endpoints require authentication and site context
  */
-@UseGuards(AuthGuard, TenantGuard, RolesGuard, PermissionsGuard)
+@UseGuards(AuthGuard, RolesGuard, PermissionsGuard)
 @Controller('webhooks')
 export class WebhooksController {
   constructor(private readonly webhooksService: WebhooksService) {}
@@ -41,22 +39,22 @@ export class WebhooksController {
   async create(
     @Body(new ZodValidationPipe(createWebhookSchema))
     body: any,
-    @Req() req: Request & { tenantId: string },
+    @CurrentSite() siteId: string,
   ) {
-    return this.webhooksService.create(req.tenantId, body);
+    return this.webhooksService.create(siteId, body);
   }
 
   /**
    * GET /api/v1/webhooks
-   * List all webhooks for a tenant (optionally filtered by collection)
+   * List all webhooks for a site (optionally filtered by collection)
    */
   @Get()
   @Permissions(Permission.COLLECTIONS_READ) // Webhooks are collection-related
   async findAll(
     @Query('collectionId') collectionId: string | undefined,
-    @Req() req: Request & { tenantId: string },
+    @CurrentSite() siteId: string,
   ) {
-    return this.webhooksService.findAll(req.tenantId, collectionId);
+    return this.webhooksService.findAll(siteId, collectionId);
   }
 
   /**
@@ -67,9 +65,9 @@ export class WebhooksController {
   @Permissions(Permission.COLLECTIONS_READ) // Webhooks are collection-related
   async findOne(
     @Param('id') id: string,
-    @Req() req: Request & { tenantId: string },
+    @CurrentSite() siteId: string,
   ) {
-    return this.webhooksService.findOne(req.tenantId, id);
+    return this.webhooksService.findOne(siteId, id);
   }
 
   /**
@@ -83,9 +81,9 @@ export class WebhooksController {
     @Param('id') id: string,
     @Body(new ZodValidationPipe(updateWebhookSchema))
     body: any,
-    @Req() req: Request & { tenantId: string },
+    @CurrentSite() siteId: string,
   ) {
-    return this.webhooksService.update(req.tenantId, id, body);
+    return this.webhooksService.update(siteId, id, body);
   }
 
   /**
@@ -97,9 +95,9 @@ export class WebhooksController {
   @Permissions(Permission.COLLECTIONS_DELETE) // Webhooks are collection-related
   async remove(
     @Param('id') id: string,
-    @Req() req: Request & { tenantId: string },
+    @CurrentSite() siteId: string,
   ) {
-    return this.webhooksService.remove(req.tenantId, id);
+    return this.webhooksService.remove(siteId, id);
   }
 }
 

@@ -14,10 +14,12 @@ import {
 } from '@nestjs/common';
 import { AuthGuard } from '../../common/auth/guards/auth.guard';
 import { PlatformRolesGuard } from '../../common/auth/guards/platform-roles.guard';
+import { RolesGuard } from '../../common/auth/guards/roles.guard';
 import { PermissionsGuard } from '../../common/auth/guards/permissions.guard';
 import { PlatformRoles } from '../../common/auth/decorators/platform-roles.decorator';
+import { Roles } from '../../common/auth/decorators/roles.decorator';
 import { Permissions } from '../../common/auth/decorators/permissions.decorator';
-import { PlatformRole, Permission } from '../../common/auth/roles.enum';
+import { PlatformRole, Permission, Role } from '../../common/auth/roles.enum';
 import { CurrentUser } from '../../common/auth/decorators/current-user.decorator';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { TenantsService } from './tenants.service';
@@ -116,10 +118,11 @@ export class TenantsController {
   /**
    * GET /api/v1/tenants/:id/subscription
    * Get subscription for a specific tenant (user must have access to this tenant)
+   * Allows TENANT_ADMIN and SUPER_ADMIN roles
    */
   @Get(':id/subscription')
-  @UseGuards(AuthGuard, PermissionsGuard)
-  @Permissions(Permission.BILLING_READ)
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN)
   async getTenantSubscription(
     @CurrentUser() user: { id: string },
     @Param('id') tenantId: string,

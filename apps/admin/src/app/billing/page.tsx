@@ -37,124 +37,136 @@ export default function BillingPage() {
     }
 
     fetchBillingData();
-  }, [pushToast]);
+  }, [pushToast, t]);
 
   if (error) {
     return (
-      <div className="container py-8">
-        <h1 className="text-2xl font-bold mb-6">{t('billing.title')}</h1>
-        <Card>
-          <CardContent className="py-8">
-            <div className="text-center text-red-600">
-              <p className="font-semibold">{t('billing.errorLoadingBillingData')}</p>
-              <p className="text-sm mt-2">{error}</p>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground mb-6">{t('billing.title')}</h1>
+          <Card className="border-0 shadow-sm">
+            <CardContent className="p-4 sm:p-6">
+              <div className="text-center text-red-600 dark:text-red-400">
+                <p className="font-semibold text-sm sm:text-base">{t('billing.errorLoadingBillingData')}</p>
+                <p className="text-xs sm:text-sm mt-2">{error}</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="container py-8">
-      <h1 className="text-2xl font-bold mb-6">{t('billing.title')}</h1>
+    <div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 sm:py-3">
+        {/* Header */}
+        <div className="mb-2 sm:mb-3">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground mb-0.5 sm:mb-1">
+            {t('billing.title')}
+          </h1>
+          <p className="text-[10px] sm:text-xs text-muted">
+            Zarządzaj subskrypcjami i historią płatności
+          </p>
+        </div>
 
-      <div className="space-y-6">
-        {/* Active Subscriptions */}
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('billing.currentPlans')}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="py-8">
-                <Skeleton variant="rectangular" width="100%" height={200} />
-              </div>
-            ) : subscriptions.length === 0 ? (
-              <EmptyState
-                title={t('billing.noActiveSubscriptions')}
-                description={t('billing.subscriptionsWillAppear')}
-              />
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="text-left text-muted border-b">
-                      <th className="py-3 px-4 font-semibold">{t('billing.site')}</th>
-                      <th className="py-3 px-4 font-semibold">{t('billing.plan')}</th>
-                      <th className="py-3 px-4 font-semibold">{t('billing.status')}</th>
-                      <th className="py-3 px-4 font-semibold">{t('billing.nextRenewal')}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {subscriptions.map((sub) => (
-                      <tr key={sub.id} className="border-b border-gray-200 hover:bg-gray-50">
-                        <td className="py-3 px-4">{sub.tenant?.name || '-'}</td>
-                        <td className="py-3 px-4">{sub.plan}</td>
-                        <td className="py-3 px-4">
-                          <Badge tone={sub.status === 'active' ? 'success' : 'default'}>
-                            {sub.status}
-                          </Badge>
-                        </td>
-                        <td className="py-3 px-4 text-muted">
-                          {sub.currentPeriodEnd ? new Date(sub.currentPeriodEnd).toLocaleDateString() : '-'}
-                        </td>
+        <div className="space-y-2 sm:space-y-3">
+          {/* Active Subscriptions */}
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="pb-1.5 sm:pb-2 px-3 sm:px-4 pt-2 sm:pt-3">
+              <CardTitle className="text-sm sm:text-base font-semibold">{t('billing.currentPlans')}</CardTitle>
+            </CardHeader>
+            <CardContent className="px-3 sm:px-4 pb-2 sm:pb-3">
+              {loading ? (
+                <div className="py-8">
+                  <Skeleton variant="rectangular" width="100%" height={200} />
+                </div>
+              ) : subscriptions.length === 0 ? (
+                <EmptyState
+                  title={t('billing.noActiveSubscriptions')}
+                  description={t('billing.subscriptionsWillAppear')}
+                />
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-left text-muted border-b border-border">
+                        <th className="py-2 px-3 font-semibold text-[10px] sm:text-xs">{t('billing.site')}</th>
+                        <th className="py-2 px-3 font-semibold text-[10px] sm:text-xs">{t('billing.plan')}</th>
+                        <th className="py-2 px-3 font-semibold text-[10px] sm:text-xs">{t('billing.status')}</th>
+                        <th className="py-2 px-3 font-semibold text-[10px] sm:text-xs">{t('billing.nextRenewal')}</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                    </thead>
+                    <tbody>
+                      {subscriptions.map((sub) => (
+                        <tr key={sub.id} className="border-b border-border hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                          <td className="py-2 px-3 text-xs sm:text-sm">{sub.site?.name || '-'}</td>
+                          <td className="py-2 px-3 text-xs sm:text-sm">{sub.plan}</td>
+                          <td className="py-2 px-3">
+                            <Badge tone={sub.status === 'active' ? 'success' : 'default'} className="text-[9px] sm:text-[10px]">
+                              {sub.status}
+                            </Badge>
+                          </td>
+                          <td className="py-2 px-3 text-xs sm:text-sm text-muted">
+                            {sub.currentPeriodEnd ? new Date(sub.currentPeriodEnd).toLocaleDateString() : '-'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
-        {/* Payment History */}
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('billing.paymentHistory')}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="py-8">
-                <Skeleton variant="rectangular" width="100%" height={200} />
-              </div>
-            ) : invoices.length === 0 ? (
-              <EmptyState
-                title={t('billing.noPaymentHistory')}
-                description={t('billing.invoicesWillAppear')}
-              />
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="text-left text-muted border-b">
-                      <th className="py-3 px-4 font-semibold">{t('billing.site')}</th>
-                      <th className="py-3 px-4 font-semibold">{t('billing.date')}</th>
-                      <th className="py-3 px-4 font-semibold">{t('billing.amount')}</th>
-                      <th className="py-3 px-4 font-semibold">{t('billing.status')}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {invoices.map((inv) => (
-                      <tr key={inv.id} className="border-b border-gray-200 hover:bg-gray-50">
-                        <td className="py-3 px-4">{inv.tenant?.name || '-'}</td>
-                        <td className="py-3 px-4 text-muted">{new Date(inv.createdAt).toLocaleDateString()}</td>
-                        <td className="py-3 px-4">
-                          {inv.amount} {inv.currency}
-                        </td>
-                        <td className="py-3 px-4">
-                          <Badge tone={inv.status === 'paid' ? 'success' : 'default'}>
-                            {inv.status}
-                          </Badge>
-                        </td>
+          {/* Payment History */}
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="pb-1.5 sm:pb-2 px-3 sm:px-4 pt-2 sm:pt-3">
+              <CardTitle className="text-sm sm:text-base font-semibold">{t('billing.paymentHistory')}</CardTitle>
+            </CardHeader>
+            <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
+              {loading ? (
+                <div className="py-8">
+                  <Skeleton variant="rectangular" width="100%" height={200} />
+                </div>
+              ) : invoices.length === 0 ? (
+                <EmptyState
+                  title={t('billing.noPaymentHistory')}
+                  description={t('billing.invoicesWillAppear')}
+                />
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-left text-muted border-b border-border">
+                        <th className="py-2 px-3 font-semibold text-[10px] sm:text-xs">{t('billing.site')}</th>
+                        <th className="py-2 px-3 font-semibold text-[10px] sm:text-xs">{t('billing.date')}</th>
+                        <th className="py-2 px-3 font-semibold text-[10px] sm:text-xs">{t('billing.amount')}</th>
+                        <th className="py-2 px-3 font-semibold text-[10px] sm:text-xs">{t('billing.status')}</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                    </thead>
+                    <tbody>
+                      {invoices.map((inv) => (
+                        <tr key={inv.id} className="border-b border-border hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                          <td className="py-2 px-3 text-xs sm:text-sm">{inv.site?.name || '-'}</td>
+                          <td className="py-2 px-3 text-xs sm:text-sm text-muted">{new Date(inv.createdAt).toLocaleDateString()}</td>
+                          <td className="py-2 px-3 text-xs sm:text-sm">
+                            {inv.amount} {inv.currency}
+                          </td>
+                          <td className="py-2 px-3">
+                            <Badge tone={inv.status === 'paid' ? 'success' : 'default'} className="text-[9px] sm:text-[10px]">
+                              {inv.status}
+                            </Badge>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );

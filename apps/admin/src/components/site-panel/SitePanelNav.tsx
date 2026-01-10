@@ -36,13 +36,12 @@ function PagesIcon() {
   );
 }
 
-function CollectionsIcon() {
+function ContentIcon() {
   return (
     <IconWrapper>
       <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" className="h-4 w-4" aria-hidden="true">
-        <rect x="3" y="4" width="14" height="4" rx="1" />
-        <rect x="3" y="10" width="6" height="6" rx="1" />
-        <rect x="11" y="10" width="6" height="6" rx="1" />
+        <rect x="4" y="4" width="12" height="12" rx="2" />
+        <path d="M7 7h6M7 10h6M7 13h4" strokeLinecap="round" />
       </svg>
     </IconWrapper>
   );
@@ -71,33 +70,11 @@ function SeoIcon() {
   );
 }
 
-function SnapshotIcon() {
-  return (
-    <IconWrapper>
-      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" className="h-4 w-4" aria-hidden="true">
-        <rect x="4" y="5" width="12" height="10" rx="2" />
-        <path d="M7 8.5l3 2 3-2" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    </IconWrapper>
-  );
-}
-
 function ActivityIcon() {
   return (
     <IconWrapper>
       <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" className="h-4 w-4" aria-hidden="true">
         <path d="M3 10h2l2 5 4-10 2 5h2" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    </IconWrapper>
-  );
-}
-
-function DesignIcon() {
-  return (
-    <IconWrapper>
-      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" className="h-4 w-4" aria-hidden="true">
-        <path d="M5 5h10v10H5z" />
-        <path d="M5 10h10M10 5v10" strokeLinecap="round" />
       </svg>
     </IconWrapper>
   );
@@ -146,14 +123,12 @@ export function SitePanelNav({ slug }: SitePanelNavProps) {
   const navItems = [
     { id: 'overview', labelKey: 'sitePanelNav.overview', hintKey: 'sitePanelNav.overviewHint', href: '/panel/overview', icon: OverviewIcon },
     { id: 'pages', labelKey: 'sitePanelNav.pages', hintKey: 'sitePanelNav.pagesHint', href: '/panel/pages', icon: PagesIcon },
-    { id: 'deployments', labelKey: 'sitePanelNav.deployments', hintKey: 'sitePanelNav.deploymentsHint', href: '/panel/deployments', icon: DeploymentsIcon },
-    { id: 'collections', labelKey: 'sitePanelNav.collections', hintKey: 'sitePanelNav.collectionsHint', href: '/panel/collections', icon: CollectionsIcon },
+    { id: 'content', labelKey: 'sitePanelNav.content', hintKey: 'sitePanelNav.contentHint', href: '/panel/content', icon: ContentIcon },
     { id: 'media', labelKey: 'sitePanelNav.media', hintKey: 'sitePanelNav.mediaHint', href: '/panel/media', icon: MediaIcon },
     { id: 'marketing', labelKey: 'sitePanelNav.marketing', hintKey: 'sitePanelNav.marketingHint', href: '/panel/marketing', icon: MarketingIcon },
+    { id: 'deployments', labelKey: 'sitePanelNav.deployments', hintKey: 'sitePanelNav.deploymentsHint', href: '/panel/deployments', icon: DeploymentsIcon },
     { id: 'seo', labelKey: 'sitePanelNav.seo', hintKey: 'sitePanelNav.seoHint', href: '/panel/seo', icon: SeoIcon },
-    { id: 'snapshots', labelKey: 'sitePanelNav.snapshots', hintKey: 'sitePanelNav.snapshotsHint', href: '/panel/snapshots', icon: SnapshotIcon },
     { id: 'activity', labelKey: 'sitePanelNav.activity', hintKey: 'sitePanelNav.activityHint', href: '/panel/activity', icon: ActivityIcon },
-    { id: 'design', labelKey: 'sitePanelNav.design', hintKey: 'sitePanelNav.designHint', href: '/panel/design', icon: DesignIcon },
     { id: 'settings', labelKey: 'sitePanelNav.settings', hintKey: 'sitePanelNav.settingsHint', href: '/panel/settings', icon: SettingsIcon },
   ];
 

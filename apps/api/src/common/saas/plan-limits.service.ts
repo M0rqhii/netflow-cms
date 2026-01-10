@@ -190,11 +190,11 @@ export class PlanLimitsService {
    */
   async getResourceCounts(tenantId: string) {
     const [collections, contentTypes, mediaFiles, users, webhooks] = await Promise.all([
-      this.prisma.collection.count({ where: { tenantId } }),
-      this.prisma.contentType.count({ where: { tenantId } }),
+      this.prisma.collection.count({ where: { siteId: tenantId } }),
+      this.prisma.contentType.count({ where: { siteId: tenantId } }),
       this.prisma.mediaItem.count({ where: { siteId: tenantId } }),
-      this.prisma.user.count({ where: { tenantId } }),
-      this.prisma.webhook.count({ where: { tenantId } }),
+      this.prisma.user.count({ where: { orgId: tenantId } }),
+      this.prisma.webhook.count({ where: { siteId: tenantId } }),
     ]);
 
     return {

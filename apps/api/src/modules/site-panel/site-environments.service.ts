@@ -13,7 +13,7 @@ export class SiteEnvironmentsService {
 
   private async ensureDefaults(tenantId: string): Promise<void> {
     const existing = await this.prisma.siteEnvironment.findMany({
-      where: { tenantId },
+      where: { siteId: tenantId },
       select: { type: true },
     });
     const haveDraft = existing.some((env) => env.type === EnvironmentType.DRAFT);
@@ -23,14 +23,14 @@ export class SiteEnvironmentsService {
     if (!haveDraft) {
       createOps.push(
         this.prisma.siteEnvironment.create({
-          data: { tenantId, type: EnvironmentType.DRAFT },
+          data: { siteId: tenantId, type: EnvironmentType.DRAFT },
         }),
       );
     }
     if (!haveProduction) {
       createOps.push(
         this.prisma.siteEnvironment.create({
-          data: { tenantId, type: EnvironmentType.PRODUCTION },
+          data: { siteId: tenantId, type: EnvironmentType.PRODUCTION },
         }),
       );
     }
@@ -43,7 +43,7 @@ export class SiteEnvironmentsService {
   async list(tenantId: string) {
     await this.ensureDefaults(tenantId);
     return this.prisma.siteEnvironment.findMany({
-      where: { tenantId },
+      where: { siteId: tenantId },
       orderBy: { createdAt: 'asc' },
     });
   }
@@ -52,7 +52,7 @@ export class SiteEnvironmentsService {
     const type = this.mapType(dto.type);
     try {
       return await this.prisma.siteEnvironment.create({
-        data: { tenantId, type },
+        data: { siteId: tenantId, type },
       });
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
@@ -64,7 +64,7 @@ export class SiteEnvironmentsService {
 
   async getById(tenantId: string, environmentId: string) {
     const env = await this.prisma.siteEnvironment.findFirst({
-      where: { id: environmentId, tenantId },
+      where: { id: environmentId, siteId: tenantId },
     });
     if (!env) {
       throw new NotFoundException('Environment not found for this site');
@@ -74,12 +74,12 @@ export class SiteEnvironmentsService {
 
   async getByTypeOrCreate(tenantId: string, type: EnvironmentType) {
     const env = await this.prisma.siteEnvironment.findFirst({
-      where: { tenantId, type },
+      where: { siteId: tenantId, type },
     });
     if (env) return env;
 
     return this.prisma.siteEnvironment.create({
-      data: { tenantId, type },
+      data: { siteId: tenantId, type },
     });
   }
 }

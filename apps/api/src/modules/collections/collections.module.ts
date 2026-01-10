@@ -32,16 +32,20 @@ import { CollectionItemsService } from './services/items.service';
         const host = process.env.REDIS_HOST ?? 'localhost';
         const port = process.env.REDIS_PORT ?? '6379';
         const url = process.env.REDIS_URL ?? `redis://${host}:${port}`;
+        const logger = new Logger('CollectionsModule');
         try {
           const store = await redisStore({ url });
+          logger.log(`Redis cache connected at ${url}`);
           return {
             store,
             ttl: 30, // seconds
           };
         } catch (error) {
-          const logger = new Logger('CollectionsModule');
-          logger.error(`Failed to connect to Redis at ${url}.`, error);
-          throw error;
+          logger.warn(`Redis unavailable at ${url}, falling back to memory store`, error);
+          // Fallback to memory store
+          return {
+            ttl: 30, // seconds
+          };
         }
       },
     }),

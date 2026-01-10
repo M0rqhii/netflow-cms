@@ -15,13 +15,13 @@ export class HooksService {
   /**
    * Create a hook
    */
-  async create(tenantId: string, dto: CreateHookDto) {
+  async create(siteId: string, dto: CreateHookDto) {
     // Validate collection exists if collectionId provided
     if (dto.collectionId) {
       const collection = await this.prisma.collection.findFirst({
         where: {
           id: dto.collectionId,
-          tenantId,
+          siteId,
         },
       });
       if (!collection) {
@@ -33,7 +33,7 @@ export class HooksService {
 
     return this.prisma.hook.create({
       data: {
-        tenantId,
+        siteId,
         collectionId: dto.collectionId || null,
         name: dto.name,
         type: dto.type,
@@ -47,12 +47,12 @@ export class HooksService {
   }
 
   /**
-   * Get all hooks for a tenant (optionally filtered by collection)
+   * Get all hooks for a site (optionally filtered by collection)
    */
-  async findAll(tenantId: string, collectionId?: string) {
+  async findAll(siteId: string, collectionId?: string) {
     return this.prisma.hook.findMany({
       where: {
-        tenantId,
+        siteId,
         ...(collectionId ? { collectionId } : {}),
       },
       orderBy: [
@@ -65,11 +65,11 @@ export class HooksService {
   /**
    * Get a single hook by ID
    */
-  async findOne(tenantId: string, id: string) {
+  async findOne(siteId: string, id: string) {
     const hook = await this.prisma.hook.findFirst({
       where: {
         id,
-        tenantId,
+        siteId,
       },
     });
 
@@ -83,15 +83,15 @@ export class HooksService {
   /**
    * Update a hook
    */
-  async update(tenantId: string, id: string, dto: UpdateHookDto) {
-    await this.findOne(tenantId, id);
+  async update(siteId: string, id: string, dto: UpdateHookDto) {
+    await this.findOne(siteId, id);
 
     // Validate collection if collectionId is being updated
     if (dto.collectionId !== undefined && dto.collectionId !== null) {
       const collection = await this.prisma.collection.findFirst({
         where: {
           id: dto.collectionId,
-          tenantId,
+          siteId,
         },
       });
       if (!collection) {
@@ -119,8 +119,8 @@ export class HooksService {
   /**
    * Delete a hook
    */
-  async remove(tenantId: string, id: string) {
-    await this.findOne(tenantId, id);
+  async remove(siteId: string, id: string) {
+    await this.findOne(siteId, id);
     await this.prisma.hook.delete({
       where: { id },
     });
@@ -132,7 +132,7 @@ export class HooksService {
    * AI Note: Executes hooks in priority order (lower priority = earlier execution)
    */
   async executeHooks(
-    tenantId: string,
+    siteId: string,
     event: string,
     data: any,
     collectionId?: string,
@@ -140,7 +140,7 @@ export class HooksService {
     // Get active hooks for this event
     const hooks = await this.prisma.hook.findMany({
       where: {
-        tenantId,
+        siteId,
         event,
         active: true,
         OR: [

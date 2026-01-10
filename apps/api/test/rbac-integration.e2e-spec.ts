@@ -580,7 +580,7 @@ describe('RBAC Integration Tests', () => {
       expect(response.body.length).toBeGreaterThan(0);
 
       // Check structure of each capability
-      const builderView = response.body.find((c: any) => c.key === 'builder.view'));
+      const builderView = response.body.find((c: any) => c.key === 'builder.view');
       expect(builderView).toBeDefined();
       expect(builderView).toHaveProperty('allowed');
       expect(builderView).toHaveProperty('reason');
@@ -790,4 +790,8 @@ describe('RBAC Integration Tests', () => {
     });
   });
 });
+
+
+
+
 

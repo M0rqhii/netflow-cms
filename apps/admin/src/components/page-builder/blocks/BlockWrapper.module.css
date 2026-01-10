@@ -1,0 +1,108 @@
+/**
+ * BlockWrapper Styles
+ */
+
+.wrapper {
+  position: relative;
+  transition: all 0.15s ease;
+}
+
+/* Selection state */
+.wrapper.selected {
+  outline: 2px solid var(--primary-color, #3b82f6);
+  outline-offset: 2px;
+}
+
+/* Hover state (when not selected) */
+.wrapper.hoverable:hover {
+  outline: 2px solid rgba(59, 130, 246, 0.4);
+  outline-offset: 1px;
+}
+
+/* Dragging state */
+.wrapper.dragging {
+  z-index: 50;
+  opacity: 0.5;
+}
+
+/* Locked state */
+.wrapper.locked {
+  opacity: 0.75;
+}
+
+/* Hidden state */
+.wrapper.hidden {
+  opacity: 0.5;
+}
+
+/* Drag handle */
+.dragHandle {
+  position: absolute;
+  left: -4px;
+  top: 50%;
+  transform: translateY(-50%) translateX(-100%);
+  opacity: 0;
+  transition: opacity 0.15s;
+  cursor: grab;
+  padding: 4px;
+  border-radius: 4px;
+  background: var(--bg-secondary, #f5f5f5);
+  color: var(--text-tertiary, #999);
+}
+
+.dragHandle:hover {
+  background: var(--bg-hover, #e8e8e8);
+  color: var(--text-secondary, #666);
+}
+
+.dragHandle:active {
+  cursor: grabbing;
+}
+
+.wrapper:hover .dragHandle,
+.dragHandle.visible {
+  opacity: 1;
+}
+
+.dragIcon {
+  width: 16px;
+  height: 16px;
+}
+
+/* Lock indicator */
+.lockIndicator {
+  position: absolute;
+  left: -4px;
+  top: 4px;
+  transform: translateX(-100%);
+  padding: 4px;
+  border-radius: 4px;
+  background: rgba(245, 158, 11, 0.1);
+  color: var(--warning-color, #f59e0b);
+}
+
+.lockIcon {
+  width: 12px;
+  height: 12px;
+}
+
+/* Type label */
+.typeLabel {
+  position: absolute;
+  top: -24px;
+  left: 0;
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: var(--text-primary, #1a1a1a);
+  color: white;
+  opacity: 0;
+  transition: opacity 0.15s;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.wrapper:hover .typeLabel,
+.typeLabel.visible {
+  opacity: 1;
+}

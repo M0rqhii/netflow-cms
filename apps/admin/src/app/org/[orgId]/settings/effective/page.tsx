@@ -4,20 +4,21 @@ import { useEffect, useMemo, useState } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import {
   decodeAuthToken,
-  fetchMyTenants,
+  fetchMySites,
   fetchRbacCapabilities,
   fetchRbacEffectivePermissions,
-  fetchTenantUsers,
+  fetchOrgUsers,
   getAuthToken,
   type EffectivePermission,
   type UserSummary,
 } from '@/lib/api';
-import type { TenantInfo } from '@repo/sdk';
+import type { SiteInfo } from '@repo/sdk';
 import { CAPABILITY_MODULES, type CapabilityModule, type RbacCapability } from '@repo/schemas';
 import { Button, Card, CardContent, CardHeader, CardTitle, EmptyState, LoadingSpinner } from '@repo/ui';
 import Badge from '@/components/ui/Badge';
 import SearchAndFilters from '@/components/ui/SearchAndFilters';
 import { useToast } from '@/components/ui/Toast';
+import { toFriendlyMessage } from '@/lib/errors';
 
 const MODULE_LABELS: Record<CapabilityModule, string> = {
   org: 'Organization',
@@ -47,7 +48,7 @@ export default function OrgEffectivePermissionsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [users, setUsers] = useState<UserSummary[]>([]);
-  const [sites, setSites] = useState<TenantInfo[]>([]);
+  const [sites, setSites] = useState<SiteInfo[]>([]);
   const [capabilities, setCapabilities] = useState<RbacCapability[]>([]);
   const [effective, setEffective] = useState<EffectivePermission[]>([]);
   const [selectedUserId, setSelectedUserId] = useState('');
@@ -62,15 +63,15 @@ export default function OrgEffectivePermissionsPage() {
     setError(null);
     try {
       const [usersData, sitesData, capabilitiesData] = await Promise.all([
-        fetchTenantUsers(orgId),
-        fetchMyTenants(),
+        fetchOrgUsers(orgId),
+        fetchMySites(),
         fetchRbacCapabilities(orgId),
       ]);
       setUsers(usersData);
       setSites(sitesData);
       setCapabilities(capabilitiesData);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load effective permissions data.');
+      setError(toFriendlyMessage(err, 'Nie udało się wczytać danych uprawnień.'));
     } finally {
       setLoading(false);
     }
@@ -89,7 +90,7 @@ export default function OrgEffectivePermissionsPage() {
       });
       setEffective(data);
     } catch (err) {
-      push({ tone: 'error', message: err instanceof Error ? err.message : 'Failed to load effective permissions.' });
+      push({ tone: 'error', message: toFriendlyMessage(err, 'Nie udało się wczytać uprawnień.') });
     } finally {
       setLoadingEffective(false);
     }
@@ -162,16 +163,16 @@ export default function OrgEffectivePermissionsPage() {
             Effective permissions
             <span 
               className="text-sm text-muted font-normal cursor-help"
-              title="Effective permissions show what a user can actually do after combining all their roles (org + site) and applying policies. This is the final result that determines access."
+              title="To jest realny dostęp po połączeniu ról organizacji i stron oraz ustawień organizacji."
             >
-              (ℹ️ What user can actually do)
+              (ℹ️ Realny dostęp)
             </span>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
             <p className="text-sm text-blue-900 dark:text-blue-100">
-              <strong>How it works:</strong> Effective permissions combine organization roles, site-specific roles, and policy restrictions to show the final permissions a user has. Select a user and optionally a site to see their actual capabilities.
+              <strong>Jak to działa:</strong> Łączymy role organizacji i stron z ustawieniami organizacji, aby pokazać realny dostęp. Wybierz użytkownika i opcjonalnie stronę, aby zobaczyć wynik.
             </p>
           </div>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -199,8 +200,8 @@ export default function OrgEffectivePermissionsPage() {
               >
                 <option value="">Organization scope</option>
                 {sites.map((site) => (
-                  <option key={site.tenantId} value={site.tenantId}>
-                    {site.tenant.name}
+                  <option key={site.siteId} value={site.siteId}>
+                    {site.site.name}
                   </option>
                 ))}
               </select>
@@ -212,7 +213,7 @@ export default function OrgEffectivePermissionsPage() {
       <SearchAndFilters
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
-        placeholder="Search capabilities"
+        placeholder="Szukaj opcji"
         filters={[
           {
             key: 'module',
@@ -231,11 +232,11 @@ export default function OrgEffectivePermissionsPage() {
       />
 
       {!selectedUserId ? (
-        <EmptyState title="Select a user" description="Choose a user to see effective permissions." />
+        <EmptyState title="Wybierz użytkownika" description="Wybierz użytkownika, aby zobaczyć realny dostęp." />
       ) : loadingEffective ? (
-        <LoadingSpinner text="Calculating effective permissions..." />
+        <LoadingSpinner text="Liczenie dostępu..." />
       ) : groupedCapabilities.length === 0 ? (
-        <EmptyState title="No capabilities" description="No capabilities match the current filters." />
+        <EmptyState title="Brak opcji" description="Nic nie pasuje do wybranych filtrów." />
       ) : (
         groupedCapabilities.map((group) => (
           <Card key={group.module}>
@@ -248,11 +249,11 @@ export default function OrgEffectivePermissionsPage() {
                   <caption className="sr-only">Effective permissions for {MODULE_LABELS[group.module]}</caption>
                   <thead>
                     <tr className="text-left text-muted border-b">
-                      <th className="py-3 px-4 font-semibold">Capability</th>
-                      <th className="py-3 px-4 font-semibold">Allowed</th>
-                      <th className="py-3 px-4 font-semibold">Policy</th>
-                      <th className="py-3 px-4 font-semibold">Reason</th>
-                      <th className="py-3 px-4 font-semibold">Role sources</th>
+                      <th className="py-3 px-4 font-semibold">Opcja</th>
+                      <th className="py-3 px-4 font-semibold">Dostęp</th>
+                      <th className="py-3 px-4 font-semibold">Ustawienie</th>
+                      <th className="py-3 px-4 font-semibold">Powód</th>
+                      <th className="py-3 px-4 font-semibold">Źródła ról</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -262,7 +263,7 @@ export default function OrgEffectivePermissionsPage() {
                       const policyEnabled = entry?.policyEnabled ?? capability.policyEnabled ?? true;
                       const reason =
                         entry?.reason ||
-                        (allowed ? 'Granted by role' : policyEnabled ? 'Not granted' : 'Blocked by policy');
+                        (allowed ? 'Z roli' : policyEnabled ? 'Brak w rolach' : 'Wyłączone w ustawieniach organizacji');
                       return (
                         <tr key={capability.key} className="border-b border-gray-200 hover:bg-gray-50 transition-colors">
                           <td className="py-3 px-4 align-top">
@@ -271,12 +272,12 @@ export default function OrgEffectivePermissionsPage() {
                           </td>
                           <td className="py-3 px-4 align-top">
                             <Badge tone={allowed ? 'success' : 'default'}>
-                              {allowed ? 'Allowed' : 'Blocked'}
+                              {allowed ? 'Tak' : 'Nie'}
                             </Badge>
                           </td>
                           <td className="py-3 px-4 align-top">
                             <Badge tone={policyEnabled ? 'success' : 'error'}>
-                              {policyEnabled ? 'Enabled' : 'Disabled'}
+                              {policyEnabled ? 'Włączone' : 'Wyłączone'}
                             </Badge>
                           </td>
                           <td className="py-3 px-4 align-top text-sm text-muted">{reason}</td>

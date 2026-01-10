@@ -6,7 +6,7 @@ import { useTranslations } from '@/hooks/useTranslations';
 
 /**
  * Redirect /types to /sites
- * Content Types are managed per-site in Site Panel (/tenant/[slug]/types)
+ * Content Types are managed per-site in Site Panel (/sites/[slug]/types)
  * This global page is deprecated - use Platform Panel (/sites) instead
  */
 export default function TypesRedirectPage() {

@@ -13,7 +13,7 @@ import { Permissions } from '../../common/auth/decorators/permissions.decorator'
 import { Permission } from '../../common/auth/roles.enum';
 import { CurrentUser } from '../../common/auth/decorators/current-user.decorator';
 import { CurrentUserPayload } from '../../common/auth/decorators/current-user.decorator';
-import { CurrentTenant } from '../../common/decorators/current-tenant.decorator';
+import { CurrentSite } from '../../common/decorators/current-site.decorator';
 
 @Controller('api/v1/collections/:collectionSlug/items/:itemId/versions')
 @UseGuards(AuthGuard, PermissionsGuard)
@@ -28,10 +28,10 @@ export class ContentVersioningController {
   @Get()
   @Permissions(Permission.ITEMS_READ)
   async getVersionHistory(
-    @CurrentTenant() tenantId: string,
+    @CurrentSite() siteId: string,
     @Param('itemId') itemId: string,
   ) {
-    return this.versioningService.getVersionHistory(tenantId, itemId);
+    return this.versioningService.getVersionHistory(siteId, itemId);
   }
 
   /**
@@ -40,12 +40,12 @@ export class ContentVersioningController {
   @Get(':version')
   @Permissions(Permission.ITEMS_READ)
   async getVersion(
-    @CurrentTenant() tenantId: string,
+    @CurrentSite() siteId: string,
     @Param('itemId') itemId: string,
     @Param('version') version: string,
   ) {
     return this.versioningService.getVersion(
-      tenantId,
+      siteId,
       itemId,
       parseInt(version, 10),
     );
@@ -57,13 +57,13 @@ export class ContentVersioningController {
   @Get('diff/:version1/:version2')
   @Permissions(Permission.ITEMS_READ)
   async getVersionDiff(
-    @CurrentTenant() tenantId: string,
+    @CurrentSite() siteId: string,
     @Param('itemId') itemId: string,
     @Param('version1') version1: string,
     @Param('version2') version2: string,
   ) {
     return this.versioningService.getVersionDiff(
-      tenantId,
+      siteId,
       itemId,
       parseInt(version1, 10),
       parseInt(version2, 10),
@@ -76,14 +76,14 @@ export class ContentVersioningController {
   @Post(':version/restore')
   @Permissions(Permission.ITEMS_UPDATE)
   async restoreVersion(
-    @CurrentTenant() tenantId: string,
+    @CurrentSite() siteId: string,
     @Param('itemId') itemId: string,
     @Param('version') version: string,
     @CurrentUser() user: CurrentUserPayload,
     @Body() body?: { changeNote?: string },
   ) {
     return this.versioningService.restoreVersion(
-      tenantId,
+      siteId,
       itemId,
       parseInt(version, 10),
       user.id,

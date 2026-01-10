@@ -1,0 +1,47 @@
+/**
+ * Canvas Styles
+ */
+
+.canvasContainer {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  padding: 24px;
+  background: var(--canvas-bg, #f5f5f5);
+  overflow: auto;
+  min-height: 0;
+}
+
+.canvas {
+  width: 100%;
+  min-height: calc(100vh - 200px);
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: max-width 0.3s ease;
+  position: relative;
+}
+
+.canvas.responsiveMode {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+}
+
+.canvas.previewMode {
+  pointer-events: none;
+}
+
+.canvas.previewMode * {
+  cursor: default !important;
+}
+
+.blockTree {
+  min-height: 200px;
+  padding: 16px;
+}
+
+/* Drop target highlight */
+.canvas [data-drop-target="true"] {
+  outline: 2px dashed var(--primary-color, #3b82f6);
+  outline-offset: -2px;
+  background-color: rgba(59, 130, 246, 0.05);
+}

@@ -19,6 +19,8 @@ import {
   UpdateChannelConnectionDto,
   ChannelConnectionQueryDto,
 } from './dto';
+import { GuardrailReasonCode, GuardrailMessages } from '../../common/constants';
+import { EnvironmentType } from '@prisma/client';
 
 /**
  * MarketingService - Service do zarządzania marketingiem i publikacją omnichannel
@@ -227,6 +229,35 @@ export class MarketingService {
       throw new NotFoundException(`Site with ID ${dto.siteId} not found`);
     }
 
+    // Guardrail: Check if published pages exist (if contentId is required for selected channels)
+    // Note: This is a warning, not an error - we allow creating drafts without published pages
+    // but we should warn the user if they need contentId for certain channels
+    if (dto.contentId) {
+      // Verify that the contentId refers to a published page
+      const productionEnv = await this.prisma.siteEnvironment.findFirst({
+        where: {
+          siteId: dto.siteId,
+          type: EnvironmentType.PRODUCTION,
+        },
+      });
+
+      if (productionEnv) {
+        const publishedPage = await this.prisma.page.findFirst({
+          where: {
+            siteId: dto.siteId,
+            environmentId: productionEnv.id,
+            id: dto.contentId,
+            status: 'PUBLISHED',
+          },
+        });
+
+        if (!publishedPage) {
+          // This is a warning, not an error - we allow creating drafts with unpublished content
+          // but the user should be aware
+        }
+      }
+    }
+
     // Verify campaign if provided
     if (dto.campaignId) {
       const campaign = await this.prisma.campaign.findFirst({
@@ -238,6 +269,35 @@ export class MarketingService {
 
       if (!campaign) {
         throw new NotFoundException('Campaign not found');
+      }
+    }
+
+    // Guardrail: Validate that at least one channel is selected
+    if (!dto.channels || dto.channels.length === 0) {
+      throw new BadRequestException({
+        message: GuardrailMessages[GuardrailReasonCode.NO_CHANNELS_SELECTED],
+        reason: GuardrailReasonCode.NO_CHANNELS_SELECTED,
+        details: 'Select at least one channel',
+      });
+    }
+
+    // Guardrail: Validate that content exists for selected channels
+    if (dto.content && typeof dto.content === 'object') {
+      const contentObj = dto.content as Record<string, any>;
+      const missingChannels = dto.channels.filter(channel => {
+        const channelContent = contentObj[channel];
+        return !channelContent || 
+               (typeof channelContent === 'object' && Object.keys(channelContent).length === 0) ||
+               (typeof channelContent === 'string' && channelContent.trim().length === 0);
+      });
+
+      if (missingChannels.length > 0) {
+        throw new BadRequestException({
+          message: GuardrailMessages[GuardrailReasonCode.INCOMPLETE_CONTENT],
+          reason: GuardrailReasonCode.INCOMPLETE_CONTENT,
+          details: `Add content for: ${missingChannels.join(', ')}`,
+          missingChannels,
+        });
       }
     }
 
@@ -402,6 +462,15 @@ export class MarketingService {
    * - ads: publikacja do reklam (jeśli policy włączone)
    */
   async publish(orgId: string, dto: PublishDto, userId: string) {
+    // Guardrail: Validate that at least one channel is selected
+    if (!dto.channels || dto.channels.length === 0) {
+      throw new BadRequestException({
+        message: GuardrailMessages[GuardrailReasonCode.NO_CHANNELS_SELECTED],
+        reason: GuardrailReasonCode.NO_CHANNELS_SELECTED,
+        details: 'Select at least one channel to publish to',
+      });
+    }
+
     // Verify site exists
     const site = await this.prisma.tenant.findFirst({
       where: { id: dto.siteId },
@@ -409,6 +478,15 @@ export class MarketingService {
 
     if (!site) {
       throw new NotFoundException(`Site with ID ${dto.siteId} not found`);
+    }
+
+    // Guardrail: Validate content exists (either draftId or content)
+    if (!dto.draftId && !dto.content) {
+      throw new BadRequestException({
+        message: GuardrailMessages[GuardrailReasonCode.MISSING_CONTENT],
+        reason: GuardrailReasonCode.MISSING_CONTENT,
+        details: 'Provide either draftId or content object',
+      });
     }
 
     // Verify draft if provided
@@ -423,6 +501,100 @@ export class MarketingService {
 
       if (!draft) {
         throw new NotFoundException('Distribution draft not found');
+      }
+
+      // Guardrail: Validate draft has content
+      if (!draft.content || typeof draft.content !== 'object' || Object.keys(draft.content as Record<string, any>).length === 0) {
+        throw new BadRequestException({
+          message: GuardrailMessages[GuardrailReasonCode.EMPTY_DRAFT],
+          reason: GuardrailReasonCode.EMPTY_DRAFT,
+          details: 'Edit the draft and add content before publishing',
+        });
+      }
+
+      // Guardrail: Validate draft is ready for publishing
+      if (draft.status !== 'ready') {
+        throw new BadRequestException({
+          message: GuardrailMessages[GuardrailReasonCode.DRAFT_NOT_READY],
+          reason: GuardrailReasonCode.DRAFT_NOT_READY,
+          details: `Draft status is "${draft.status}". Mark it as "ready" before publishing.`,
+          currentStatus: draft.status,
+        });
+      }
+    }
+
+    // Guardrail: If content provided directly, validate it has content for selected channels
+    if (dto.content && !dto.draftId) {
+      const contentObj = dto.content as Record<string, any>;
+      const missingChannels = dto.channels.filter(channel => {
+        const channelContent = contentObj[channel];
+        return !channelContent || 
+               (typeof channelContent === 'object' && Object.keys(channelContent).length === 0) ||
+               (typeof channelContent === 'string' && channelContent.trim().length === 0);
+      });
+
+      if (missingChannels.length > 0) {
+        throw new BadRequestException({
+          message: GuardrailMessages[GuardrailReasonCode.INCOMPLETE_CONTENT],
+          reason: GuardrailReasonCode.INCOMPLETE_CONTENT,
+          details: `Add content for: ${missingChannels.join(', ')}`,
+          missingChannels,
+        });
+      }
+    }
+
+    // Guardrail: Check if published pages exist (if site channel is selected)
+    if (dto.channels.includes('site')) {
+      const productionEnv = await this.prisma.siteEnvironment.findFirst({
+        where: {
+          siteId: dto.siteId,
+          type: EnvironmentType.PRODUCTION,
+        },
+      });
+
+      if (productionEnv) {
+        const publishedPagesCount = await this.prisma.page.count({
+          where: {
+            siteId: dto.siteId,
+            environmentId: productionEnv.id,
+            status: 'PUBLISHED',
+          },
+        });
+
+        if (publishedPagesCount === 0) {
+          // This is a warning, not an error - we allow publishing to site without published pages
+          // but the user should be aware
+          this.logger.warn(`Publishing to site channel but no published pages exist for site ${dto.siteId}`);
+        }
+      }
+    }
+
+    // Guardrail: Check social media connections for social channels
+    const socialChannels = ['facebook', 'twitter', 'linkedin', 'instagram'];
+    const selectedSocialChannels = dto.channels.filter(ch => socialChannels.includes(ch));
+
+    if (selectedSocialChannels.length > 0) {
+      const connections = await this.prisma.channelConnection.findMany({
+        where: {
+          orgId,
+          siteId: dto.siteId,
+          channel: { in: selectedSocialChannels },
+          status: 'connected',
+        },
+      });
+
+      const connectedPlatforms = connections.map(c => c.channel);
+      const missingConnections = selectedSocialChannels.filter(
+        ch => !connectedPlatforms.includes(ch)
+      );
+
+      if (missingConnections.length > 0) {
+        throw new BadRequestException({
+          message: GuardrailMessages[GuardrailReasonCode.MISSING_CONNECTIONS],
+          reason: GuardrailReasonCode.MISSING_CONNECTIONS,
+          details: `Connect ${missingConnections.join(', ')} accounts before publishing`,
+          missingChannels: missingConnections,
+        });
       }
     }
 

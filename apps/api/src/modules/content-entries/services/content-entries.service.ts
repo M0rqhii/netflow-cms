@@ -16,7 +16,7 @@ import {
 
 /**
  * ContentEntriesService - business logic dla Content Entries
- * AI Note: Zawsze filtruj po tenantId - multi-tenant isolation
+ * AI Note: Zawsze filtruj po siteId - site isolation
  */
 @Injectable()
 export class ContentEntriesService {
@@ -29,17 +29,17 @@ export class ContentEntriesService {
   /**
    * Get content type by slug with caching
    */
-  private async getContentType(tenantId: string, slug: string): Promise<{
+  private async getContentType(siteId: string, slug: string): Promise<{
     id: string;
-    tenantId: string;
+    siteId: string;
     slug: string;
     name: string;
     schema: Record<string, unknown>;
   }> {
-    const cacheKey = `ct:${tenantId}:${slug}`;
+    const cacheKey = `ct:${siteId}:${slug}`;
     const cached = await this.cache.get<{
       id: string;
-      tenantId: string;
+      siteId: string;
       slug: string;
       name: string;
       schema: Record<string, unknown>;
@@ -49,7 +49,7 @@ export class ContentEntriesService {
       return cached;
     }
 
-    const contentType = await this.contentTypesService.getBySlug(tenantId, slug);
+    const contentType = await this.contentTypesService.getBySlug(siteId, slug);
 
     // Optimized: Increased TTL for content types (they change infrequently)
     await this.cache.set(cacheKey, contentType, 600 * 1000); // 10 minutes TTL in milliseconds
@@ -151,19 +151,19 @@ export class ContentEntriesService {
    * Create a new content entry
    */
   async create(
-    tenantId: string,
+    siteId: string,
     contentTypeSlug: string,
     dto: CreateContentEntryDto,
     userId?: string
   ) {
-    const contentType = await this.getContentType(tenantId, contentTypeSlug);
+    const contentType = await this.getContentType(siteId, contentTypeSlug);
     const schema = contentType.schema as Record<string, unknown>;
     
     await this.validateDataAgainstSchema(schema, dto.data);
 
     return this.prisma.contentEntry.create({
       data: {
-        tenantId,
+        siteId,
         contentTypeId: contentType.id,
         data: dto.data,
         status: dto.status || 'draft',
@@ -172,7 +172,7 @@ export class ContentEntriesService {
       },
       select: {
         id: true,
-        tenantId: true,
+        siteId: true,
         contentTypeId: true,
         data: true,
         status: true,
@@ -192,11 +192,11 @@ export class ContentEntriesService {
    * Optimized: Uses PostgreSQL JSON operators for efficient filtering
    */
   async list(
-    tenantId: string,
+    siteId: string,
     contentTypeSlug: string,
     query: ContentEntryQueryDto
   ) {
-    const contentType = await this.getContentType(tenantId, contentTypeSlug);
+    const contentType = await this.getContentType(siteId, contentTypeSlug);
     const skip = (query.page - 1) * query.pageSize;
 
     // Validate filter fields exist in schema to prevent injection
@@ -208,10 +208,10 @@ export class ContentEntriesService {
     // Build WHERE conditions for raw SQL
     // Note: Use table alias 'ce' to avoid ambiguous column references when JOINing with content_types
     const conditions: string[] = [
-      `ce."tenantId" = $1`,
+      `ce."siteId" = $1`,
       `ce."contentTypeId" = $2`,
     ];
-    const params: any[] = [tenantId, contentType.id];
+    const params: any[] = [siteId, contentType.id];
     let paramIndex = 3;
 
     if (query.status) {
@@ -313,7 +313,7 @@ export class ContentEntriesService {
       `
         SELECT 
           ce.id,
-          ce."tenantId",
+          ce."siteId",
           ce."contentTypeId",
           ce.data,
           ce.status,
@@ -365,18 +365,18 @@ export class ContentEntriesService {
   /**
    * Get a single content entry by ID
    */
-  async get(tenantId: string, contentTypeSlug: string, id: string) {
-    const contentType = await this.getContentType(tenantId, contentTypeSlug);
+  async get(siteId: string, contentTypeSlug: string, id: string) {
+    const contentType = await this.getContentType(siteId, contentTypeSlug);
     
     const entry = await this.prisma.contentEntry.findFirst({
       where: {
-        tenantId,
+        siteId,
         contentTypeId: contentType.id,
         id,
       },
       select: {
         id: true,
-        tenantId: true,
+        siteId: true,
         contentTypeId: true,
         data: true,
         status: true,
@@ -408,23 +408,23 @@ export class ContentEntriesService {
    * Update a content entry
    */
   async update(
-    tenantId: string,
+    siteId: string,
     contentTypeSlug: string,
     id: string,
     dto: UpdateContentEntryDto,
     userId?: string
   ) {
-    const contentType = await this.getContentType(tenantId, contentTypeSlug);
+    const contentType = await this.getContentType(siteId, contentTypeSlug);
     
     const current = await this.prisma.contentEntry.findFirst({
       where: {
-        tenantId,
+        siteId,
         contentTypeId: contentType.id,
         id,
       },
       select: {
         id: true,
-        tenantId: true,
+        siteId: true,
         contentTypeId: true,
         data: true,
         status: true,
@@ -467,7 +467,7 @@ export class ContentEntriesService {
       data: updateData as any,
       select: {
         id: true,
-        tenantId: true,
+        siteId: true,
         contentTypeId: true,
         data: true,
         status: true,
@@ -492,18 +492,18 @@ export class ContentEntriesService {
   /**
    * Delete a content entry
    */
-  async remove(tenantId: string, contentTypeSlug: string, id: string) {
-    const contentType = await this.getContentType(tenantId, contentTypeSlug);
+  async remove(siteId: string, contentTypeSlug: string, id: string) {
+    const contentType = await this.getContentType(siteId, contentTypeSlug);
     
     const entry = await this.prisma.contentEntry.findFirst({
       where: {
-        tenantId,
+        siteId,
         contentTypeId: contentType.id,
         id,
       },
       select: {
         id: true,
-        tenantId: true,
+        siteId: true,
         contentTypeId: true,
         data: true,
         status: true,

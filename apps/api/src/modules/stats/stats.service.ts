@@ -24,8 +24,8 @@ export class StatsService {
         this.prisma.user.count(),
       ]);
 
-      // Count active tenants (tenants with at least one user)
-      const activeTenants = await this.prisma.tenant.count({
+      // Count active tenants (organizations with at least one user)
+      const activeTenants = await this.prisma.organization.count({
         where: {
           users: {
             some: {},
@@ -46,7 +46,31 @@ export class StatsService {
       throw error;
     }
   }
+
+  /**
+   * Get tenant-specific statistics
+   * Returns counts of collections and media files for a tenant
+   */
+  async getTenantStats(tenantId: string) {
+    try {
+      const [collections, media] = await Promise.all([
+        this.prisma.collection.count({ where: { siteId: tenantId } }),
+        this.prisma.mediaItem.count({ where: { siteId: tenantId } }),
+      ]);
+
+      return {
+        collections,
+        media,
+      };
+    } catch (error) {
+      this.logger.error('Failed to fetch tenant stats', error instanceof Error ? error.stack : String(error));
+      throw error;
+    }
+  }
 }
+
+
+
 
 
 

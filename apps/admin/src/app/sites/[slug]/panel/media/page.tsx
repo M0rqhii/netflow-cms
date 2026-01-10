@@ -1,10 +1,23 @@
 "use client";
 
-import React from 'react';
+import React, { Suspense } from 'react';
+import dynamic from 'next/dynamic';
 import { useParams } from 'next/navigation';
 import { SitePanelLayout } from '@/components/site-panel/SitePanelLayout';
 import { SectionHeader } from '@/components/site-panel/SectionHeader';
-import { MediaManager } from '@/components/media-manager/MediaManager';
+import { LoadingSpinner } from '@repo/ui';
+
+const MediaManager = dynamic(
+  () => import('@/components/media-manager/MediaManager').then(mod => ({ default: mod.MediaManager })),
+  {
+    loading: () => (
+      <div className="flex items-center justify-center py-12">
+        <LoadingSpinner text="Loading media manager..." />
+      </div>
+    ),
+    ssr: false,
+  }
+);
 
 export default function MediaPage() {
   const params = useParams<{ slug: string }>();
@@ -19,11 +32,20 @@ export default function MediaPage() {
           action={undefined}
         />
 
-        <MediaManager siteSlug={slug} />
+        <Suspense fallback={
+          <div className="flex items-center justify-center py-12">
+            <LoadingSpinner text="Loading media manager..." />
+          </div>
+        }>
+          <MediaManager siteSlug={slug} />
+        </Suspense>
       </div>
     </SitePanelLayout>
   );
 }
+
+
+
 
 
 

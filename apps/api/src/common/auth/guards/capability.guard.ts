@@ -5,8 +5,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-// @ts-ignore - TypeScript module resolution issue, but works at runtime via DI
-import { RbacService } from '../../modules/rbac/rbac.service';
+import { RbacService } from '../../../modules/rbac/rbac.service';
 import { CurrentUserPayload } from '../decorators/current-user.decorator';
 import { CAPABILITY_KEY } from '../decorators/capabilities.decorator';
 

@@ -21,7 +21,10 @@
     "submit": "Submit",
     "reset": "Reset",
     "all": "All",
-    "noResults": "No results"
+    "noResults": "No results",
+    "menu": "Menu",
+    "closeMenu": "Close menu",
+    "backToSite": "Back to Site"
   },
   "auth": {
     "login": "Login",
@@ -33,13 +36,13 @@
     "loggingIn": "Logging in...",
     "loginTitle": "Platform Login",
     "loginSubtitle": "Sign in to access your platform",
-    "loginNote": "No tenant ID required — this is global login",
+    "loginNote": "No site ID required — this is global login",
     "invalidCredentials": "Invalid credentials",
     "loginFailed": "Login failed"
   },
   "navigation": {
     "dashboard": "Overview",
-    "tenants": "Tenants",
+    "sites": "Sites",
     "sites": "Projects",
     "media": "Media",
     "users": "Users",
@@ -53,7 +56,8 @@
     "management": "Management",
     "business": "Business",
     "development": "Development",
-    "dev": "Dev Panel"
+    "dev": "Dev Panel",
+    "orgSettings": "Organization Settings"
   },
   "dashboard": {
     "title": "Overview",
@@ -76,7 +80,7 @@
     "collections": "Collections",
     "media": "Media Files",
     "totalSites": "Total Projects",
-    "totalTenants": "Total Projects",
+    "totalSites": "Total Projects",
     "users": "Users",
     "active": "Active",
     "total": "Total",
@@ -172,7 +176,7 @@
     "details": "Details",
     "name": "Name",
     "slug": "Slug",
-    "tenantId": "Tenant ID",
+    "siteId": "Site ID",
     "created": "Created",
     "updated": "Updated",
     "yourRole": "Your role",
@@ -197,7 +201,7 @@
     "nameMustBeAtLeast3Characters": "Name must be at least 3 characters",
     "slugMustBeAtLeast3Characters": "Slug must be at least 3 characters and contain only lowercase letters, numbers, and hyphens"
   },
-  "tenantCms": {
+  "siteCms": {
     "manageSettingsPlanAndBranding": "Manage settings, plan and branding"
   },
   "billing": {
@@ -239,6 +243,8 @@
     "overviewHint": "Snapshot & health",
     "pages": "Pages",
     "pagesHint": "Edit specific pages (draft & publish)",
+    "content": "Content",
+    "contentHint": "CMS entries",
     "deployments": "Deployments",
     "deploymentsHint": "Publish history",
     "collections": "Collections",
@@ -258,21 +264,15 @@
     "settings": "Configuration",
     "settingsHint": "Site configuration"
   },
-  "common": {
-    "menu": "Menu",
-    "closeMenu": "Close menu",
-    "back": "Back",
-    "backToSite": "Back to Site"
-  },
-  "tenants": {
-    "title": "Tenants",
-    "create": "Create Tenant",
+  "legacySites": {
+    "title": "Sites",
+    "create": "Create Site",
     "name": "Name",
     "slug": "Slug",
     "plan": "Plan",
     "createdAt": "Created At",
     "actions": "Actions",
-    "noTenants": "No tenants found"
+    "noSites": "No sites found"
   },
   "sites": {
     "title": "Projects",
@@ -514,7 +514,7 @@
     "serverError": "Server error",
     "validationError": "Validation error",
     "error": "Error",
-    "failedToSwitchTenant": "Failed to switch tenant. Please try again.",
+    "failedToSwitchSite": "Failed to switch site. Please try again.",
     "failedToLoad": "Failed to load data. Please refresh the page.",
     "failedToSave": "Failed to save changes. Please try again.",
     "failedToDelete": "Failed to delete item. Please try again."
@@ -537,4 +537,3 @@
     "pageBuilderHint": "Use the page builder to create and edit pages. Changes are saved to draft first, then you can publish to production."
   }
 }
-

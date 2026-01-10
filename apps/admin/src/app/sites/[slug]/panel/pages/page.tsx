@@ -10,9 +10,10 @@ import { EmptyState, Button, Input } from '@repo/ui';
 import { Badge } from '@/components/ui/Badge';
 import { useToast } from '@/components/ui/Toast';
 import { useTranslations } from '@/hooks/useTranslations';
-import { fetchMyTenants, exchangeTenantToken, getTenantToken } from '@/lib/api';
+import { fetchMySites, exchangeSiteToken, getSiteToken } from '@/lib/api';
+import { trackOnboardingSuccess } from '@/lib/onboarding';
 import { createApiClient } from '@repo/sdk';
-import type { TenantInfo, SitePage, SiteEnvironment } from '@repo/sdk';
+import type { SiteInfo, SitePage, SiteEnvironment } from '@repo/sdk';
 
 type PageWithEnvironment = SitePage & {
   environment?: SiteEnvironment;
@@ -28,7 +29,7 @@ export default function PagesPage() {
   const [loading, setLoading] = useState(true);
   const [pages, setPages] = useState<PageWithEnvironment[]>([]);
   const [environments, setEnvironments] = useState<SiteEnvironment[]>([]);
-  const [tenantId, setTenantId] = useState<string | null>(null);
+  const [siteId, setSiteId] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingPage, setEditingPage] = useState<PageWithEnvironment | null>(null);
   const [deletingPageId, setDeletingPageId] = useState<string | null>(null);
@@ -44,6 +45,10 @@ export default function PagesPage() {
 
   const apiClient = createApiClient();
 
+  useEffect(() => {
+    trackOnboardingSuccess('editor_opened');
+  }, []);
+
   const loadData = useCallback(async () => {
     if (!slug) {
       setLoading(false);
@@ -53,19 +58,19 @@ export default function PagesPage() {
     try {
       setLoading(true);
 
-      const tenants = await fetchMyTenants();
-      const tenant = tenants.find((t: TenantInfo) => t.tenant.slug === slug);
+      const sites = await fetchMySites();
+      const site = sites.find((s: SiteInfo) => s.site.slug === slug);
 
-      if (!tenant) {
+      if (!site) {
         throw new Error(`Site with slug "${slug}" not found`);
       }
 
-      const id = tenant.tenantId;
-      setTenantId(id);
+      const id = site.siteId;
+      setSiteId(id);
 
-      let token = getTenantToken(id);
+      let token = getSiteToken(id);
       if (!token) {
-        token = await exchangeTenantToken(id);
+        token = await exchangeSiteToken(id);
       }
 
       const [pagesData, environmentsData] = await Promise.all([
@@ -98,7 +103,7 @@ export default function PagesPage() {
     } finally {
       setLoading(false);
     }
-  }, [slug, apiClient, toast, createEnvironmentId]);
+  }, [slug, apiClient, toast, t]);
 
   useEffect(() => {
     loadData();
@@ -106,17 +111,37 @@ export default function PagesPage() {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!tenantId || !createEnvironmentId) return;
+    if (!siteId || !createEnvironmentId) return;
+
+    // GUARDRAIL: Walidacja tytułu
+    if (!createTitle || createTitle.trim().length === 0) {
+      toast.push({
+        tone: 'error',
+        message: 'Tytuł strony jest wymagany',
+      });
+      return;
+    }
+
+    // GUARDRAIL: Walidacja slug
+    const finalSlug = createSlug || createTitle.toLowerCase().replace(/\s+/g, '-');
+    const slugRegex = /^[a-z0-9-]+$/;
+    if (!slugRegex.test(finalSlug)) {
+      toast.push({
+        tone: 'error',
+        message: 'Slug może zawierać tylko małe litery, cyfry i myślniki',
+      });
+      return;
+    }
 
     try {
-      let token = getTenantToken(tenantId);
+      let token = getSiteToken(siteId);
       if (!token) {
-        token = await exchangeTenantToken(tenantId);
+        token = await exchangeSiteToken(siteId);
       }
 
-      await apiClient.createPage(token, tenantId, {
+      const newPage = await apiClient.createPage(token, siteId, {
         environmentId: createEnvironmentId,
-        slug: createSlug || createTitle.toLowerCase().replace(/\s+/g, '-'),
+        slug: finalSlug,
         title: createTitle,
         status: 'draft',
         content: {},
@@ -124,15 +149,21 @@ export default function PagesPage() {
 
       toast.push({
         tone: 'success',
-        message: t('pages.pageCreatedSuccessfully'),
+        message: 'Strona utworzona pomyślnie',
       });
 
       setShowCreateModal(false);
       setCreateTitle('');
       setCreateSlug('');
-      await loadData();
+      
+      // Redirect to page builder with new page
+      if (newPage && newPage.id) {
+        router.push(`/sites/${slug}/panel/page-builder?pageId=${newPage.id}`);
+      } else {
+        await loadData();
+      }
     } catch (err) {
-      const message = err instanceof Error ? err.message : t('pages.failedToCreatePage');
+      const message = err instanceof Error ? err.message : 'Błąd podczas tworzenia strony';
       toast.push({
         tone: 'error',
         message,
@@ -142,15 +173,15 @@ export default function PagesPage() {
 
   const handleEdit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!tenantId || !editingPage) return;
+    if (!siteId || !editingPage) return;
 
     try {
-      let token = getTenantToken(tenantId);
+      let token = getSiteToken(siteId);
       if (!token) {
-        token = await exchangeTenantToken(tenantId);
+        token = await exchangeSiteToken(siteId);
       }
 
-      await apiClient.updatePage(token, tenantId, editingPage.id, {
+      await apiClient.updatePage(token, siteId, editingPage.id, {
         title: editTitle,
         slug: editSlug,
       });
@@ -174,15 +205,15 @@ export default function PagesPage() {
   };
 
   const handleDelete = async (pageId: string) => {
-    if (!tenantId) return;
+    if (!siteId) return;
 
     try {
-      let token = getTenantToken(tenantId);
+      let token = getSiteToken(siteId);
       if (!token) {
-        token = await exchangeTenantToken(tenantId);
+        token = await exchangeSiteToken(siteId);
       }
 
-      await apiClient.deletePage(token, tenantId, pageId);
+      await apiClient.deletePage(token, siteId, pageId);
 
       toast.push({
         tone: 'success',
@@ -262,14 +293,18 @@ export default function PagesPage() {
             {pages.length === 0 ? (
               <div className="py-12">
                 <EmptyState
-                  title={t('pages.noPagesYet')}
-                  description={t('pages.createPageToStart')}
+                  title="Zacznij od utworzenia pierwszej podstrony"
+                  description="Podstrony to elementy Twojej witryny. Dodaj pierwszą, aby zacząć budować."
                   icon={
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-8 w-8">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-10 w-10">
                       <rect x="5" y="4" width="12" height="15" rx="2" />
                       <path d="M8 9h6M8 13h4" strokeLinecap="round" />
                     </svg>
                   }
+                  action={{
+                    label: "Utwórz podstronę",
+                    onClick: () => setShowCreateModal(true),
+                  }}
                 />
               </div>
             ) : (
@@ -320,13 +355,13 @@ export default function PagesPage() {
                                 variant="primary"
                                 size="sm"
                                 onClick={async () => {
-                                  if (!tenantId) return;
+                                  if (!siteId) return;
                                   try {
-                                    let token = getTenantToken(tenantId);
+                                    let token = getSiteToken(siteId);
                                     if (!token) {
-                                      token = await exchangeTenantToken(tenantId);
+                                      token = await exchangeSiteToken(siteId);
                                     }
-                                    await apiClient.publishPage(token, tenantId, page.id);
+                                    await apiClient.publishPage(token, siteId, page.id);
                                     toast.push({
                                       tone: 'success',
                                       message: t('pages.pagePublishedSuccessfully'),

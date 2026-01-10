@@ -1,0 +1,27 @@
+/**
+ * Block Renderer Styles
+ */
+
+.childrenContainer {
+  min-height: 40px;
+  position: relative;
+}
+
+.childrenContainer[data-drop-target="true"] {
+  background-color: rgba(59, 130, 246, 0.05);
+  outline: 2px dashed var(--primary-color, #3b82f6);
+  outline-offset: -2px;
+}
+
+.emptyPlaceholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60px;
+  padding: 16px;
+  border: 2px dashed var(--border-color, #e0e0e0);
+  border-radius: 4px;
+  font-size: 13px;
+  color: var(--text-tertiary, #999);
+  text-align: center;
+}

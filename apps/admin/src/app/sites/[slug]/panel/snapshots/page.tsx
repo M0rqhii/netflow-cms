@@ -7,8 +7,8 @@ import { SectionHeader } from '@/components/site-panel/SectionHeader';
 import { Card, CardContent, Button, Input } from '@repo/ui';
 import { useToast } from '@/components/ui/Toast';
 import { SnapshotTable } from '@/components/site-panel/snapshots/SnapshotTable';
-import { fetchMyTenants, exchangeTenantToken, getTenantToken } from '@/lib/api';
-import { createApiClient, type TenantInfo, type SiteSnapshot } from '@repo/sdk';
+import { fetchMySites, exchangeSiteToken, getSiteToken } from '@/lib/api';
+import { createApiClient, type SiteInfo, type SiteSnapshot } from '@repo/sdk';
 
 export default function SnapshotsPage() {
   const params = useParams<{ slug: string }>();
@@ -16,7 +16,7 @@ export default function SnapshotsPage() {
   const toast = useToast();
   const apiClient = createApiClient();
 
-  const [tenantId, setTenantId] = useState<string | null>(null);
+  const [siteId, setSiteId] = useState<string | null>(null);
   const [snapshots, setSnapshots] = useState<SiteSnapshot[]>([]);
   const [label, setLabel] = useState('');
   const [loading, setLoading] = useState(true);
@@ -27,17 +27,17 @@ export default function SnapshotsPage() {
     if (!slug) return;
     setLoading(true);
     try {
-      const tenants = await fetchMyTenants();
-      const tenant = tenants.find((t: TenantInfo) => t.tenant.slug === slug);
-      if (!tenant) {
+      const sites = await fetchMySites();
+      const site = sites.find((s: SiteInfo) => s.site.slug === slug);
+      if (!site) {
         throw new Error(`Site with slug "${slug}" not found`);
       }
-      setTenantId(tenant.tenantId);
-      let token = getTenantToken(tenant.tenantId);
+      setSiteId(site.siteId);
+      let token = getSiteToken(site.siteId);
       if (!token) {
-        token = await exchangeTenantToken(tenant.tenantId);
+        token = await exchangeSiteToken(site.siteId);
       }
-      const list = await apiClient.listSnapshots(token, tenant.tenantId);
+      const list = await apiClient.listSnapshots(token, site.siteId);
       setSnapshots(list);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to load snapshots';
@@ -52,14 +52,14 @@ export default function SnapshotsPage() {
   }, [loadSnapshots]);
 
   const handleCreate = async () => {
-    if (!tenantId) return;
+    if (!siteId) return;
     setCreating(true);
     try {
-      let token = getTenantToken(tenantId);
+      let token = getSiteToken(siteId);
       if (!token) {
-        token = await exchangeTenantToken(tenantId);
+        token = await exchangeSiteToken(siteId);
       }
-      await apiClient.createSnapshot(token, tenantId, label.trim() || undefined);
+      await apiClient.createSnapshot(token, siteId, label.trim() || undefined);
       setLabel('');
       toast.push({ tone: 'success', message: 'Snapshot created' });
       await loadSnapshots();
@@ -72,7 +72,7 @@ export default function SnapshotsPage() {
   };
 
   const handleRestore = async (snapshotId: string) => {
-    if (!tenantId) return;
+    if (!siteId) return;
     const confirmed = typeof window !== 'undefined'
       ? window.confirm('This will revert your pages and SEO to the snapshot state. Continue?')
       : true;
@@ -80,11 +80,11 @@ export default function SnapshotsPage() {
 
     setRestoringId(snapshotId);
     try {
-      let token = getTenantToken(tenantId);
+      let token = getSiteToken(siteId);
       if (!token) {
-        token = await exchangeTenantToken(tenantId);
+        token = await exchangeSiteToken(siteId);
       }
-      await apiClient.restoreSnapshot(token, tenantId, snapshotId);
+      await apiClient.restoreSnapshot(token, siteId, snapshotId);
       toast.push({ tone: 'success', message: 'Snapshot restored' });
       await loadSnapshots();
     } catch (error) {
@@ -101,7 +101,7 @@ export default function SnapshotsPage() {
         <SectionHeader
           title="Snapshots"
           description="Create JSON backups of your site pages, SEO, and feature flags. Restore to rewind changes."
-          action={{ label: 'Create snapshot', onClick: handleCreate, disabled: creating || !tenantId }}
+          action={{ label: 'Create snapshot', onClick: handleCreate, disabled: creating || !siteId }}
         />
 
         <Card>
@@ -116,7 +116,7 @@ export default function SnapshotsPage() {
                   disabled={creating || loading}
                 />
               </div>
-              <Button onClick={handleCreate} disabled={creating || !tenantId}>
+              <Button onClick={handleCreate} disabled={creating || !siteId}>
                 {creating ? 'Saving�' : 'Create snapshot'}
               </Button>
             </div>

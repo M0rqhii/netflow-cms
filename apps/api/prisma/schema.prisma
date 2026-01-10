@@ -1,5 +1,6 @@
 // Prisma Schema - Multi-Tenant Headless CMS
-// AI Note: Zawsze dodawaj tenantId do każdego modelu dla izolacji danych
+// AI Note: Używamy orgId dla organizacji (Organization) i siteId dla stron (Site)
+// Organization może mieć wiele Site, Site należy do jednej Organization
 
 generator client {
   provider = "prisma-client-js"
@@ -10,8 +11,8 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Tenant model - organizacje korzystające z platformy
-model Tenant {
+// Organization model - organizacje użytkowników na platformie
+model Organization {
   id        String   @id @default(uuid())
   name      String
   slug      String   @unique
@@ -22,39 +23,72 @@ model Tenant {
 
   // Relations
   users             User[]
-  contentTypes      ContentType[]
-  contentEntries    ContentEntry[]
-  collections       Collection[]
-  collectionItems   CollectionItem[]
-  collectionItemVersions CollectionItemVersion[]
-  mediaFiles        MediaItem[]
-  memberships       UserTenant[]
-  contentReviews    ContentReview[]
-  contentComments   ContentComment[]
-  tasks             Task[]
-  collectionRoles   CollectionRole[]
-  webhooks          Webhook[]
-  webhookDeliveries WebhookDelivery[]
-  hooks             Hook[]
+  memberships       UserOrg[]
+  sites             Site[]
   subscriptions     Subscription[]
   invoices          Invoice[]
   payments          Payment[]
   usageTracking     UsageTracking[]
-  seoSettings       SeoSettings?
-  siteEnvironments  SiteEnvironment[]
-  pages             Page[]
-  featureOverrides  SiteFeatureOverride[]
-  deployments       SiteDeployment[]
-  snapshots         SiteSnapshot[]
-  siteEvents        SiteEvent[]
   roles             Role[]
   userRoles         UserRole[]
-  orgPolicies      OrgPolicy[]
+  orgPolicies       OrgPolicy[]
   campaigns         Campaign[]
   distributionDrafts DistributionDraft[]
   channelConnections ChannelConnection[]
   publishJobs       PublishJob[]
   publishResults    PublishResult[]
+
+  @@map("organizations")
+}
+
+// Site model - strony należące do organizacji
+model Site {
+  id        String   @id @default(uuid())
+  orgId     String
+  name      String
+  slug      String
+  settings  Json     @default("{}")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization     Organization     @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  contentTypes     ContentType[]
+  contentEntries   ContentEntry[]
+  collections      Collection[]
+  collectionItems  CollectionItem[]
+  collectionItemVersions CollectionItemVersion[]
+  mediaFiles       MediaItem[]
+  contentReviews   ContentReview[]
+  contentComments  ContentComment[]
+  tasks            Task[]
+  collectionRoles  CollectionRole[]
+  webhooks         Webhook[]
+  webhookDeliveries WebhookDelivery[]
+  hooks            Hook[]
+  seoSettings      SeoSettings?
+  siteEnvironments SiteEnvironment[]
+  pages            Page[]
+  featureOverrides SiteFeatureOverride[]
+  deployments      SiteDeployment[]
+  snapshots        SiteSnapshot[]
+  siteEvents       SiteEvent[]
+  devDomainRecords DevDomainRecord[]
+
+  @@unique([orgId, slug])
+  @@index([orgId])
+  @@map("sites")
+}
+
+// Tenant model - DEPRECATED: Używany tylko dla backward compatibility
+// TODO: Usunąć po zakończeniu migracji
+model Tenant {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  plan      String   @default("free")
+  settings  Json     @default("{}")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("tenants")
 }
@@ -62,7 +96,7 @@ model Tenant {
 // User model - użytkownicy w systemie
 model User {
   id                String   @id @default(uuid())
-  tenantId          String
+  orgId             String   @map("org_id") // Główna organizacja
   email             String
   passwordHash      String
   role              String   @default("viewer") // Backward compatibility: super_admin, tenant_admin, editor, viewer
@@ -74,13 +108,13 @@ model User {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
-  // Optional memberships table to enable multi-tenant users (forward-compatible)
-  memberships UserTenant[]
+  // Multi-org membership
+  memberships UserOrg[]
 
-  @@unique([tenantId, email])
-  @@index([tenantId])
+  @@unique([orgId, email])
+  @@index([orgId])
   @@index([isSuperAdmin])
   @@index([systemRole])
   @@index([siteRole])
@@ -91,25 +125,25 @@ model User {
 // ContentType model - definicje typów treści
 model ContentType {
   id        String   @id @default(uuid())
-  tenantId  String
+  siteId    String
   name      String
   slug      String
   schema    Json // Zod schema jako JSON
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  tenant         Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  site          Site           @relation(fields: [siteId], references: [id], onDelete: Cascade)
   contentEntries ContentEntry[]
 
-  @@unique([tenantId, slug])
-  @@index([tenantId])
+  @@unique([siteId, slug])
+  @@index([siteId])
   @@map("content_types")
 }
 
 // ContentEntry model - wpisy treści
 model ContentEntry {
   id            String    @id @default(uuid())
-  tenantId      String
+  siteId        String
   contentTypeId String
   data          Json // Dane treści zgodne ze schematem ContentType
   status        String    @default("draft") // draft, review, published, archived
@@ -121,25 +155,25 @@ model ContentEntry {
   createdById   String? // ID użytkownika który utworzył
   updatedById   String? // ID użytkownika który ostatnio zaktualizował
 
-  tenant      Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  contentType ContentType      @relation(fields: [contentTypeId], references: [id], onDelete: Cascade)
-  reviews     ContentReview[]
-  comments    ContentComment[]
-  tasks       Task[]
+  site         Site            @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  contentType  ContentType     @relation(fields: [contentTypeId], references: [id], onDelete: Cascade)
+  reviews      ContentReview[]
+  comments     ContentComment[]
+  tasks        Task[]
 
-  @@index([tenantId])
-  @@index([tenantId, contentTypeId])
-  @@index([tenantId, status])
-  @@index([tenantId, createdAt])
-  @@index([tenantId, publishedAt])
+  @@index([siteId])
+  @@index([siteId, contentTypeId])
+  @@index([siteId, status])
+  @@index([siteId, createdAt])
+  @@index([siteId, publishedAt])
   @@map("content_entries")
 }
 
 // Collection model - kolekcje treści (rozszerzenie ContentType z wersjonowaniem)
 model Collection {
   id         String   @id @default(uuid())
-  tenantId   String
-  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  siteId     String
+  site       Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
   slug       String
   name       String
   schemaJson Json // Zod schema jako JSON
@@ -152,16 +186,16 @@ model Collection {
   webhooks     Webhook[]
   hooks        Hook[]
 
-  @@unique([tenantId, slug])
-  @@index([tenantId])
+  @@unique([siteId, slug])
+  @@index([siteId])
   @@map("collections")
 }
 
 // CollectionItem model - elementy kolekcji z wersjonowaniem
 model CollectionItem {
   id           String     @id @default(uuid())
-  tenantId     String
-  tenant       Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  siteId       String
+  site         Site       @relation(fields: [siteId], references: [id], onDelete: Cascade)
   collectionId String
   collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
   status       ItemStatus @default(DRAFT)
@@ -176,9 +210,9 @@ model CollectionItem {
 
   versions     CollectionItemVersion[]
 
-  @@index([tenantId, collectionId])
-  @@index([tenantId, status])
-  @@index([tenantId, createdAt])
+  @@index([siteId, collectionId])
+  @@index([siteId, status])
+  @@index([siteId, createdAt])
   @@index([collectionId, status])
   @@map("collection_items")
 }
@@ -186,8 +220,8 @@ model CollectionItem {
 // CollectionItemVersion model - historia wersji elementów kolekcji
 model CollectionItemVersion {
   id           String         @id @default(uuid())
-  tenantId     String
-  tenant       Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  siteId       String
+  site         Site           @relation(fields: [siteId], references: [id], onDelete: Cascade)
   itemId       String
   item         CollectionItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
   version      Int // Numer wersji (1, 2, 3...)
@@ -197,9 +231,9 @@ model CollectionItemVersion {
   changedBy    String? // ID użytkownika który wprowadził zmianę
   createdAt    DateTime       @default(now())
 
-  @@index([tenantId, itemId])
-  @@index([tenantId, itemId, version])
-  @@index([tenantId, createdAt])
+  @@index([siteId, itemId])
+  @@index([siteId, itemId, version])
+  @@index([siteId, createdAt])
   @@map("collection_item_versions")
 }
 
@@ -220,8 +254,8 @@ enum Plan {
 // MediaItem model - stored media assets per site
 model MediaItem {
   id           String   @id @default(cuid())
-  siteId       String   @map("tenantId")
-  tenant       Tenant   @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  siteId       String
+  site         Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
   fileName     String   @map("filename")
   path         String
   url          String
@@ -241,7 +275,26 @@ model MediaItem {
   @@map("media_files")
 }
 
-// UserTenant join table — forward-compatible multi-tenant membership
+// UserOrg join table - członkostwo użytkownika w wielu organizacjach
+model UserOrg {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  orgId     String   @map("org_id")
+  role      String   @default("viewer")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, orgId])
+  @@index([orgId])
+  @@index([userId])
+  @@map("user_orgs")
+}
+
+// UserTenant join table — DEPRECATED: Używany tylko dla backward compatibility
+// TODO: Usunąć po zakończeniu migracji
 model UserTenant {
   id        String   @id @default(uuid())
   userId    String   @map("user_id")
@@ -249,9 +302,6 @@ model UserTenant {
   role      String   @default("viewer")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
-
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@unique([userId, tenantId])
   @@index([tenantId])
@@ -263,17 +313,17 @@ model UserTenant {
 model ContentReview {
   id             String   @id @default(uuid())
   contentEntryId String
-  tenantId       String
+  siteId         String
   reviewerId     String // ID użytkownika który recenzuje
   status         String // approved, rejected, changes_requested
   comment        String? // Komentarz recenzenta
   createdAt      DateTime @default(now())
 
-  tenant       Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  site         Site         @relation(fields: [siteId], references: [id], onDelete: Cascade)
   contentEntry ContentEntry @relation(fields: [contentEntryId], references: [id], onDelete: Cascade)
 
   @@index([contentEntryId])
-  @@index([tenantId])
+  @@index([siteId])
   @@index([reviewerId])
   @@index([createdAt])
   @@map("content_reviews")
@@ -283,18 +333,18 @@ model ContentReview {
 model ContentComment {
   id             String   @id @default(uuid())
   contentEntryId String
-  tenantId       String
+  siteId         String
   authorId       String // ID użytkownika który dodał komentarz
   content        String // Treść komentarza
   resolved       Boolean  @default(false) // Czy komentarz został rozwiązany
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  tenant       Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  site         Site         @relation(fields: [siteId], references: [id], onDelete: Cascade)
   contentEntry ContentEntry @relation(fields: [contentEntryId], references: [id], onDelete: Cascade)
 
   @@index([contentEntryId])
-  @@index([tenantId])
+  @@index([siteId])
   @@index([authorId])
   @@index([createdAt])
   @@map("content_comments")
@@ -303,7 +353,7 @@ model ContentComment {
 // Task model - zadania w workflow (tasks)
 model Task {
   id            String   @id @default(uuid())
-  tenantId       String
+  siteId        String
   contentEntryId String? // Opcjonalne powiązanie z content entry
   collectionItemId String? // Opcjonalne powiązanie z collection item
   title          String
@@ -317,12 +367,12 @@ model Task {
   createdAt      DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  contentEntry ContentEntry? @relation(fields: [contentEntryId], references: [id], onDelete: Cascade)
+  site         Site            @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  contentEntry ContentEntry?   @relation(fields: [contentEntryId], references: [id], onDelete: Cascade)
 
-  @@index([tenantId])
-  @@index([tenantId, status])
-  @@index([tenantId, assignedToId])
+  @@index([siteId])
+  @@index([siteId, status])
+  @@index([siteId, assignedToId])
   @@index([contentEntryId])
   @@index([collectionItemId])
   @@map("tasks")
@@ -345,7 +395,7 @@ enum TaskPriority {
 // CollectionRole model - role per kolekcja z granularnymi uprawnieniami (rozszerzenie RBAC)
 model CollectionRole {
   id           String   @id @default(uuid())
-  tenantId     String
+  siteId       String
   collectionId String
   userId       String
   role         String   @default("viewer") // viewer, editor, admin (backward compatibility)
@@ -357,21 +407,21 @@ model CollectionRole {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  tenant     Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  site       Site       @relation(fields: [siteId], references: [id], onDelete: Cascade)
   collection Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
 
   @@unique([collectionId, userId])
-  @@index([tenantId])
+  @@index([siteId])
   @@index([collectionId])
   @@index([userId])
   @@map("collection_roles")
 }
 
-// Webhook model - konfiguracja webhooków per tenant/kolekcja
+// Webhook model - konfiguracja webhooków per site/kolekcja
 model Webhook {
   id          String   @id @default(uuid())
-  tenantId    String
-  collectionId String? // Opcjonalne - jeśli null, webhook jest globalny dla tenant
+  siteId      String
+  collectionId String? // Opcjonalne - jeśli null, webhook jest globalny dla site
   url         String // URL do którego wysyłane są webhooki
   events      String[] // Lista eventów (content.created, content.updated, etc.)
   secret      String // Secret do podpisywania HMAC
@@ -382,21 +432,21 @@ model Webhook {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  tenant     Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  collection Collection?        @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  site       Site             @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  collection Collection?      @relation(fields: [collectionId], references: [id], onDelete: Cascade)
   deliveries WebhookDelivery[]
 
-  @@index([tenantId])
+  @@index([siteId])
   @@index([collectionId])
   @@index([active])
   @@map("webhooks")
 }
 
-// Hook model - konfigurowalne hooki per tenant/collection (rozszerzalność)
+// Hook model - konfigurowalne hooki per site/collection (rozszerzalność)
 model Hook {
   id           String   @id @default(uuid())
-  tenantId     String
-  collectionId String? // Opcjonalne - jeśli null, hook jest globalny dla tenant
+  siteId       String
+  collectionId String? // Opcjonalne - jeśli null, hook jest globalny dla site
   name         String // Nazwa hooka (np. "beforeCreate", "afterPublish")
   type         String // Typ hooka: "before" | "after" | "transform"
   event        String // Event który wyzwala hook (np. "item.create", "item.publish")
@@ -407,10 +457,10 @@ model Hook {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  tenant     Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  site       Site       @relation(fields: [siteId], references: [id], onDelete: Cascade)
   collection Collection? @relation(fields: [collectionId], references: [id], onDelete: Cascade)
 
-  @@index([tenantId])
+  @@index([siteId])
   @@index([collectionId])
   @@index([active])
   @@index([event])
@@ -421,7 +471,7 @@ model Hook {
 model WebhookDelivery {
   id          String    @id @default(uuid())
   webhookId   String
-  tenantId    String
+  siteId      String
   event       String // Nazwa eventu
   status      String // success, failed, pending
   statusCode  Int? // HTTP status code
@@ -432,21 +482,21 @@ model WebhookDelivery {
   createdAt   DateTime  @default(now())
 
   webhook Webhook @relation(fields: [webhookId], references: [id], onDelete: Cascade)
-  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  site    Site    @relation(fields: [siteId], references: [id], onDelete: Cascade)
 
   @@index([webhookId])
-  @@index([tenantId])
+  @@index([siteId])
   @@index([status])
   @@index([createdAt])
   @@map("webhook_deliveries")
 }
 
-// Subscription model - subskrypcje planów dla tenantów (SiteSubscription)
+// Subscription model - subskrypcje planów dla organizacji
 // renewalDate = currentPeriodEnd (mapowane w API)
 model Subscription {
   id                  String    @id @default(uuid())
-  tenantId            String    // siteId - ID tenant/site
-  tenant              Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  orgId               String    // ID organizacji
+  organization        Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
   plan                String     @default("BASIC") // BASIC, PRO (używa Plan enum wartości jako string)
   status              String     @default("active") // active, cancelled, past_due, trialing
   currentPeriodStart  DateTime
@@ -462,7 +512,7 @@ model Subscription {
 
   invoices Invoice[]
 
-  @@index([tenantId])
+  @@index([orgId])
   @@index([status])
   @@index([plan])
   @@index([stripeSubscriptionId])
@@ -473,8 +523,8 @@ model Subscription {
 // Invoice model - faktury dla subskrypcji
 model Invoice {
   id              String    @id @default(uuid())
-  tenantId        String
-  tenant          Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  orgId           String
+  organization    Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
   subscriptionId  String?
   subscription    Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
   amount          Decimal   @db.Decimal(10, 2)
@@ -490,7 +540,7 @@ model Invoice {
 
   payments Payment[]
 
-  @@index([tenantId])
+  @@index([orgId])
   @@index([subscriptionId])
   @@index([status])
   @@index([invoiceNumber])
@@ -501,8 +551,8 @@ model Invoice {
 // Payment model - płatności za faktury
 model Payment {
   id                  String    @id @default(uuid())
-  tenantId            String
-  tenant              Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  orgId               String
+  organization        Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
   invoiceId           String?
   invoice             Invoice?   @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
   amount              Decimal   @db.Decimal(10, 2)
@@ -515,18 +565,18 @@ model Payment {
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
 
-  @@index([tenantId])
+  @@index([orgId])
   @@index([invoiceId])
   @@index([status])
   @@index([stripePaymentIntentId])
   @@map("payments")
 }
 
-// UsageTracking model - śledzenie użycia zasobów per tenant/period
+// UsageTracking model - śledzenie użycia zasobów per organization/period
 model UsageTracking {
   id           String   @id @default(uuid())
-  tenantId     String
-  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  orgId        String
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
   resourceType String // collections, contentTypes, mediaFiles, users, storageMB, apiRequests
   count        Int      @default(0)
   period       String   @db.Char(7) // Format: YYYY-MM
@@ -534,9 +584,9 @@ model UsageTracking {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  @@unique([tenantId, resourceType, period])
-  @@index([tenantId])
-  @@index([tenantId, period])
+  @@unique([orgId, resourceType, period])
+  @@index([orgId])
+  @@index([orgId, period])
   @@index([resourceType])
   @@map("usage_tracking")
 }
@@ -567,7 +617,8 @@ model DevEmailLog {
 model DevDomainRecord {
   id        String   @id @default(uuid())
   domain    String
-  tenantId  String
+  siteId    String
+  site      Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
   targetUrl String?
   status    String   @default("configured") // configured, pending, failed
   sslStatus String   @default("active") // active, pending, failed
@@ -575,17 +626,18 @@ model DevDomainRecord {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([domain, tenantId])
-  @@index([tenantId])
+  @@unique([domain, siteId])
+  @@index([siteId])
   @@index([domain])
   @@index([status])
   @@map("dev_domain_records")
 }
 
-// SEO settings per site (skeleton)
+// SEO settings per site
 model SeoSettings {
   id            String   @id @default(uuid())
-  tenantId      String
+  siteId        String
+  site          Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
   title         String?
   description   String?
   ogTitle       String?
@@ -595,33 +647,31 @@ model SeoSettings {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@unique([tenantId])
-  @@index([tenantId])
+  @@unique([siteId])
+  @@index([siteId])
   @@map("seo_settings")
 }
 
-// Site environments - per-tenant deployment environments (draft, production, etc.)
+// Site environments - per-site deployment environments (draft, production, etc.)
 model SiteEnvironment {
   id        String           @id @default(uuid())
-  tenantId  String
+  siteId    String
   type      EnvironmentType
   createdAt DateTime         @default(now())
   updatedAt DateTime         @updatedAt
 
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  pages  Page[]
+  site  Site    @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  pages Page[]
 
-  @@unique([tenantId, type])
-  @@index([tenantId])
+  @@unique([siteId, type])
+  @@index([siteId])
   @@map("site_environments")
 }
 
 // Pages - per-environment site pages for Site Panel
 model Page {
   id            String       @id @default(uuid())
-  tenantId      String
+  siteId       String
   environmentId String
   slug          String
   title         String
@@ -631,13 +681,13 @@ model Page {
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
 
-  tenant       Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  environment  SiteEnvironment @relation(fields: [environmentId], references: [id], onDelete: Cascade)
+  site        Site            @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  environment SiteEnvironment @relation(fields: [environmentId], references: [id], onDelete: Cascade)
 
-  @@unique([tenantId, environmentId, slug], name: "tenant_env_slug")
-  @@index([tenantId, environmentId])
-  @@index([tenantId, status])
-  @@index([tenantId, slug])
+  @@unique([siteId, environmentId, slug], name: "site_env_slug")
+  @@index([siteId, environmentId])
+  @@index([siteId, status])
+  @@index([siteId, slug])
   @@map("pages")
 }
 
@@ -656,11 +706,10 @@ enum PageStatus {
 model SiteFeatureOverride {
   id        String   @id @default(cuid())
   siteId    String
+  site      Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
   featureKey String
   enabled   Boolean
   createdAt DateTime @default(now())
-
-  tenant Tenant @relation(fields: [siteId], references: [id], onDelete: Cascade)
 
   @@unique([siteId, featureKey])
   @@index([siteId])
@@ -672,11 +721,10 @@ model SiteFeatureOverride {
 model SiteSnapshot {
   id        String   @id @default(cuid())
   siteId    String
+  site      Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
   label     String
   data      Json
   createdAt DateTime @default(now())
-
-  tenant Tenant @relation(fields: [siteId], references: [id], onDelete: Cascade)
 
   @@index([siteId])
   @@map("site_snapshots")
@@ -686,13 +734,12 @@ model SiteSnapshot {
 model SiteEvent {
   id        String   @id @default(cuid())
   siteId    String
+  site      Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
   userId    String?
   type      String
   message   String
   metadata  Json?
   createdAt DateTime @default(now())
-
-  tenant Tenant @relation(fields: [siteId], references: [id], onDelete: Cascade)
 
   @@index([siteId, createdAt])
   @@map("site_events")
@@ -702,13 +749,12 @@ model SiteEvent {
 model SiteDeployment {
   id        String   @id @default(cuid())
   siteId    String
+  site      Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
   env       String   // e.g. 'production'
   type      String   // e.g. 'publish'
   status    String   // 'success' | 'failed'
   message   String?
   createdAt DateTime @default(now())
-
-  tenant Tenant @relation(fields: [siteId], references: [id], onDelete: Cascade)
 
   @@index([siteId, createdAt])
   @@index([siteId, env])
@@ -741,7 +787,7 @@ model Capability {
 // Role model - role systemowe (preset, immutable) i custom (edytowalne)
 model Role {
   id          String   @id @default(uuid())
-  orgId        String    // tenantId - organizacja do której należy rola
+  orgId       String   // Organizacja do której należy rola
   name        String   // e.g. "Org Owner", "Site Admin", "Custom Role 1"
   description String?  // Opis roli
   type        String   // SYSTEM | CUSTOM
@@ -750,9 +796,9 @@ model Role {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  tenant          Tenant          @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  organization     Organization     @relation(fields: [orgId], references: [id], onDelete: Cascade)
   roleCapabilities RoleCapability[]
-  userRoles       UserRole[]
+  userRoles        UserRole[]
 
   @@unique([orgId, name, scope])
   @@index([orgId])
@@ -780,14 +826,14 @@ model RoleCapability {
 // UserRole model - przypisanie ról do użytkowników (scope ORG lub SITE)
 model UserRole {
   id        String   @id @default(uuid())
-  orgId     String   // tenantId - organizacja
+  orgId     String   // Organizacja
   userId    String   // ID użytkownika
   roleId    String   // ID roli
   siteId    String?  // nullable - jeśli null, to rola ORG scope; jeśli ustawione, to SITE scope
   createdAt DateTime @default(now())
 
-  tenant Tenant @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  role         Role         @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
   @@index([orgId, userId])
   @@index([orgId, siteId])
@@ -800,14 +846,14 @@ model UserRole {
 // OrgPolicy model - globalne włączanie/wyłączanie capabilities w organizacji (⚠️ policy toggle)
 model OrgPolicy {
   id             String   @id @default(uuid())
-  orgId          String   // tenantId - organizacja
+  orgId          String   // Organizacja
   capabilityKey  String   // Klucz capability (np. "builder.rollback")
   enabled        Boolean  @default(true) // Czy capability jest włączone w organizacji
   createdByUserId String? // ID użytkownika który ustawił policy
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  tenant Tenant @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
   @@unique([orgId, capabilityKey])
   @@index([orgId])
@@ -842,7 +888,7 @@ model AuditLog {
 // Campaign model - kampanie marketingowe
 model Campaign {
   id          String   @id @default(uuid())
-  orgId       String   // tenantId - organizacja
+  orgId       String   // Organizacja
   siteId      String   // ID strony
   name        String   // Nazwa kampanii
   description String?  // Opis kampanii
@@ -853,9 +899,9 @@ model Campaign {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  tenant           Tenant            @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  organization      Organization      @relation(fields: [orgId], references: [id], onDelete: Cascade)
   distributionDrafts DistributionDraft[]
-  publishJobs      PublishJob[]
+  publishJobs       PublishJob[]
 
   @@index([orgId, siteId])
   @@index([orgId, status])
@@ -867,7 +913,7 @@ model Campaign {
 // DistributionDraft model - wersje postów do publikacji (draft)
 model DistributionDraft {
   id          String   @id @default(uuid())
-  orgId       String   // tenantId - organizacja
+  orgId       String   // Organizacja
   siteId      String   // ID strony
   campaignId  String?  // Opcjonalne powiązanie z kampanią
   contentId   String?  // ID treści z CMS (opcjonalne)
@@ -880,9 +926,9 @@ model DistributionDraft {
   createdAt   DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  tenant      Tenant       @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  campaign    Campaign?    @relation(fields: [campaignId], references: [id], onDelete: SetNull)
-  publishJobs PublishJob[]
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  campaign     Campaign?     @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  publishJobs  PublishJob[]
 
   @@index([orgId, siteId])
   @@index([orgId, status])
@@ -895,7 +941,7 @@ model DistributionDraft {
 // ChannelConnection model - połączenia z kanałami social media (stub)
 model ChannelConnection {
   id          String   @id @default(uuid())
-  orgId       String   // tenantId - organizacja
+  orgId       String   // Organizacja
   siteId      String   // ID strony
   channel     String   // facebook, twitter, linkedin, instagram, ads
   channelId   String?  // ID konta w kanale (np. Facebook Page ID)
@@ -908,7 +954,7 @@ model ChannelConnection {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  tenant Tenant @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
   @@unique([orgId, siteId, channel])
   @@index([orgId, siteId])
@@ -920,7 +966,7 @@ model ChannelConnection {
 // PublishJob model - joby publikacji (zapis stanu publikacji)
 model PublishJob {
   id              String   @id @default(uuid())
-  orgId           String   // tenantId - organizacja
+  orgId           String   // Organizacja
   siteId          String   // ID strony
   campaignId      String?  // Opcjonalne powiązanie z kampanią
   draftId         String?  // Opcjonalne powiązanie z draftem
@@ -932,8 +978,8 @@ model PublishJob {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  tenant          Tenant           @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  campaign        Campaign?        @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  organization    Organization      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  campaign        Campaign?         @relation(fields: [campaignId], references: [id], onDelete: SetNull)
   draft           DistributionDraft? @relation(fields: [draftId], references: [id], onDelete: SetNull)
   publishResults  PublishResult[]
 
@@ -950,7 +996,7 @@ model PublishJob {
 model PublishResult {
   id          String   @id @default(uuid())
   jobId       String   // ID joba publikacji
-  orgId       String   // tenantId - organizacja
+  orgId       String   // Organizacja
   siteId      String   // ID strony
   channel     String   // site, facebook, twitter, linkedin, instagram, ads
   status      String   // success, failed, skipped
@@ -961,8 +1007,8 @@ model PublishResult {
   metadata    Json     @default("{}") // Dodatkowe metadane
   createdAt   DateTime @default(now())
 
-  tenant Tenant      @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  job    PublishJob  @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  job          PublishJob    @relation(fields: [jobId], references: [id], onDelete: Cascade)
 
   @@index([jobId])
   @@index([orgId, siteId])

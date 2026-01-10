@@ -1,0 +1,39 @@
+/**
+ * Drag Preview Styles
+ */
+
+.preview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: white;
+  border: 2px solid var(--primary-color, #3b82f6);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary, #1a1a1a);
+  white-space: nowrap;
+  cursor: grabbing;
+}
+
+.icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  color: var(--primary-color, #3b82f6);
+}
+
+.icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.label {
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

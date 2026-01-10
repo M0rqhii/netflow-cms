@@ -12,7 +12,9 @@ import {
   FileTypeValidator,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { Throttle } from '@nestjs/throttler';
 import { AuthGuard } from '../../common/auth/guards/auth.guard';
+import { CurrentSite } from '../../common/decorators/current-site.decorator';
 import { CurrentUser, CurrentUserPayload } from '../../common/auth/decorators/current-user.decorator';
 import { SiteMediaService } from './site-media.service';
 
@@ -22,14 +24,21 @@ export class SiteMediaController {
   constructor(private readonly siteMediaService: SiteMediaService) {}
 
   @Get()
-  async list(@Param('siteId') siteId: string, @CurrentUser() user: CurrentUserPayload) {
+  @Throttle(1000, 60) // 1000 requests per minute - high limit for media operations
+  async list(
+    @Param('siteId') siteId: string,
+    @CurrentSite() _: string, // Validated by middleware
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
     return this.siteMediaService.list(siteId, user.id);
   }
 
   @Post()
+  @Throttle(500, 60) // 500 requests per minute - high limit for uploads
   @UseInterceptors(FileInterceptor('file'))
   async upload(
     @Param('siteId') siteId: string,
+    @CurrentSite() _: string, // Validated by middleware
     @CurrentUser() user: CurrentUserPayload,
     @UploadedFile(
       new ParseFilePipe({
@@ -41,13 +50,16 @@ export class SiteMediaController {
     )
     file: Express.Multer.File,
   ) {
+    // siteId is validated by middleware to match currentSiteId
     return this.siteMediaService.upload({ siteId, userId: user.id, file });
   }
 
   @Delete(':mediaId')
+  @Throttle(500, 60) // 500 requests per minute - high limit for deletes
   async delete(
     @Param('siteId') siteId: string,
     @Param('mediaId') mediaId: string,
+    @CurrentSite() _: string, // Validated by middleware
     @CurrentUser() user: CurrentUserPayload,
   ) {
     return this.siteMediaService.delete(siteId, user.id, mediaId);

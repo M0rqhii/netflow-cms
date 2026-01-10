@@ -82,9 +82,9 @@ export class AccountController {
   /**
    * GET /api/v1/account/billing-info
    * Get billing information for current user
+   * Note: Users can always access their own billing information, no special permission required
    */
   @Get('billing-info')
-  @Permissions(Permission.BILLING_READ)
   async getBillingInfo(@CurrentUser() user: { id: string }) {
     return this.accountService.getBillingInfo(user.id);
   }
@@ -92,9 +92,9 @@ export class AccountController {
   /**
    * PATCH /api/v1/account/billing-info
    * Update billing information for current user
+   * Note: Users can always update their own billing information, no special permission required
    */
   @Patch('billing-info')
-  @Permissions(Permission.BILLING_WRITE)
   async updateBillingInfo(
     @CurrentUser() user: { id: string },
     @Body(new ZodValidationPipe(UpdateBillingInfoDtoSchema)) dto: UpdateBillingInfoDto,

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { CAPABILITY_REGISTRY, getCapabilityByKey } from '@repo/schemas';
+import { CAPABILITY_REGISTRY, getCapabilityByKey, type CapabilityDefinition } from '@repo/schemas';
 
 export type RbacCanParams = {
   userId: string;
@@ -33,7 +33,7 @@ export class RbacEvaluatorService {
   async getEffectiveCapabilities(params: Omit<RbacCanParams, 'capabilityKey'>) {
     const context = await this.buildContext(params.orgId, params.userId, params.siteId);
 
-    return CAPABILITY_REGISTRY.map(capability => ({
+    return CAPABILITY_REGISTRY.map((capability: CapabilityDefinition) => ({
       key: capability.key,
       ...this.evaluateWithContext(capability.key, context),
     }));

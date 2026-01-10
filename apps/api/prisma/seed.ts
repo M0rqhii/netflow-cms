@@ -14,8 +14,8 @@ function hashPassword(password: string): string {
 async function main() {
   console.log('🌱 Seeding database...');
 
-  // Create demo tenants
-  const tenant1 = await prisma.tenant.upsert({
+  // Create demo organizations
+  const org1 = await prisma.organization.upsert({
     where: { slug: 'acme-corp' },
     update: {},
     create: {
@@ -34,7 +34,7 @@ async function main() {
     },
   });
 
-  const tenant2 = await prisma.tenant.upsert({
+  const org2 = await prisma.organization.upsert({
     where: { slug: 'demo-company' },
     update: {},
     create: {
@@ -53,7 +53,33 @@ async function main() {
     },
   });
 
-  console.log('✅ Created tenants:', tenant1.slug, tenant2.slug);
+  // Create sites for organizations
+  const site1 = await prisma.site.upsert({
+    where: { orgId_slug: { orgId: org1.id, slug: 'acme-corp-site' } },
+    update: {},
+    create: {
+      id: '00000000-0000-0000-0000-000000000010',
+      orgId: org1.id,
+      name: 'Acme Corporation Site',
+      slug: 'acme-corp-site',
+      settings: {},
+    },
+  });
+
+  const site2 = await prisma.site.upsert({
+    where: { orgId_slug: { orgId: org2.id, slug: 'demo-company-site' } },
+    update: {},
+    create: {
+      id: '00000000-0000-0000-0000-000000000011',
+      orgId: org2.id,
+      name: 'Demo Company Site',
+      slug: 'demo-company-site',
+      settings: {},
+    },
+  });
+
+  console.log('✅ Created organizations:', org1.slug, org2.slug);
+  console.log('✅ Created sites:', site1.slug, site2.slug);
 
   // Create users for tenant1
   // Note: In production, use bcrypt/argon2 for password hashing
@@ -61,15 +87,15 @@ async function main() {
 
   const adminUser = await prisma.user.upsert({
     where: {
-      tenantId_email: {
-        tenantId: tenant1.id,
+      orgId_email: {
+        orgId: org1.id,
         email: 'admin@acme-corp.com',
       },
     },
     update: {},
     create: {
       id: '00000000-0000-0000-0000-000000000010',
-      tenantId: tenant1.id,
+      orgId: org1.id,
       email: 'admin@acme-corp.com',
       passwordHash,
       role: 'tenant_admin',
@@ -78,15 +104,15 @@ async function main() {
 
   const editorUser = await prisma.user.upsert({
     where: {
-      tenantId_email: {
-        tenantId: tenant1.id,
+      orgId_email: {
+        orgId: org1.id,
         email: 'editor@acme-corp.com',
       },
     },
     update: {},
     create: {
       id: '00000000-0000-0000-0000-000000000011',
-      tenantId: tenant1.id,
+      orgId: org1.id,
       email: 'editor@acme-corp.com',
       passwordHash,
       role: 'editor',
@@ -95,15 +121,15 @@ async function main() {
 
   const viewerUser = await prisma.user.upsert({
     where: {
-      tenantId_email: {
-        tenantId: tenant1.id,
+      orgId_email: {
+        orgId: org1.id,
         email: 'viewer@acme-corp.com',
       },
     },
     update: {},
     create: {
       id: '00000000-0000-0000-0000-000000000012',
-      tenantId: tenant1.id,
+      orgId: org1.id,
       email: 'viewer@acme-corp.com',
       passwordHash,
       role: 'viewer',
@@ -115,15 +141,15 @@ async function main() {
   // Create content type for tenant1
   const articleContentType = await prisma.contentType.upsert({
     where: {
-      tenantId_slug: {
-        tenantId: tenant1.id,
+      siteId_slug: {
+      siteId: site1.id,
         slug: 'article',
       },
     },
     update: {},
     create: {
       id: '00000000-0000-0000-0000-000000000020',
-      tenantId: tenant1.id,
+      siteId: site1.id,
       name: 'Article',
       slug: 'article',
       schema: {
@@ -158,7 +184,7 @@ async function main() {
     update: {},
     create: {
       id: '00000000-0000-0000-0000-000000000030',
-      tenantId: tenant1.id,
+      siteId: site1.id,
       contentTypeId: articleContentType.id,
       status: 'published',
       data: {
@@ -175,7 +201,7 @@ async function main() {
     update: {},
     create: {
       id: '00000000-0000-0000-0000-000000000031',
-      tenantId: tenant1.id,
+      siteId: site1.id,
       contentTypeId: articleContentType.id,
       status: 'draft',
       data: {
@@ -191,15 +217,15 @@ async function main() {
   // Create collection for tenant1
   const blogCollection = await prisma.collection.upsert({
     where: {
-      tenantId_slug: {
-        tenantId: tenant1.id,
+      siteId_slug: {
+      siteId: site1.id,
         slug: 'blog-posts',
       },
     },
     update: {},
     create: {
       id: '00000000-0000-0000-0000-000000000040',
-      tenantId: tenant1.id,
+      siteId: site1.id,
       name: 'Blog Posts',
       slug: 'blog-posts',
       schemaJson: {
@@ -237,7 +263,7 @@ async function main() {
     update: {},
     create: {
       id: '00000000-0000-0000-0000-000000000050',
-      tenantId: tenant1.id,
+      siteId: site1.id,
       collectionId: blogCollection.id,
       status: 'PUBLISHED',
       version: 1,
@@ -259,7 +285,7 @@ async function main() {
     update: {},
     create: {
       id: '00000000-0000-0000-0000-000000000051',
-      tenantId: tenant1.id,
+      siteId: site1.id,
       collectionId: blogCollection.id,
       status: 'DRAFT',
       version: 1,
@@ -283,7 +309,7 @@ async function main() {
     update: {},
     create: {
       id: '00000000-0000-0000-0000-000000000060',
-      siteId: tenant1.id,
+      siteId: site1.id,
       fileName: 'hero-image.jpg',
       path: '/media/hero-image.jpg',
       url: 'https://example.com/media/hero-image.jpg',
@@ -305,7 +331,7 @@ async function main() {
     update: {},
     create: {
       id: '00000000-0000-0000-0000-000000000061',
-      siteId: tenant1.id,
+      siteId: site1.id,
       fileName: 'document.pdf',
       path: '/media/document.pdf',
       url: 'https://example.com/media/document.pdf',
@@ -321,15 +347,15 @@ async function main() {
   // Create user for tenant2
   const tenant2User = await prisma.user.upsert({
     where: {
-      tenantId_email: {
-        tenantId: tenant2.id,
+      orgId_email: {
+        orgId: org2.id,
         email: 'user@demo-company.com',
       },
     },
     update: {},
     create: {
       id: '00000000-0000-0000-0000-000000000070',
-      tenantId: tenant2.id,
+      orgId: org2.id,
       email: 'user@demo-company.com',
       passwordHash,
       role: 'tenant_admin',
@@ -446,14 +472,14 @@ async function main() {
   const orgOwnerRole = await prisma.role.upsert({
     where: {
       orgId_name_scope: {
-        orgId: tenant1.id,
+        orgId: org1.id,
         name: 'Org Owner',
         scope: 'ORG',
       },
     },
     update: {},
     create: {
-      orgId: tenant1.id,
+      orgId: org1.id,
       name: 'Org Owner',
       description: 'Full access to organization including billing and role management',
       type: 'SYSTEM',
@@ -475,14 +501,14 @@ async function main() {
   const orgAdminRole = await prisma.role.upsert({
     where: {
       orgId_name_scope: {
-        orgId: tenant1.id,
+        orgId: org1.id,
         name: 'Org Admin',
         scope: 'ORG',
       },
     },
     update: {},
     create: {
-      orgId: tenant1.id,
+      orgId: org1.id,
       name: 'Org Admin',
       description: 'Full technical access except billing and role management',
       type: 'SYSTEM',
@@ -506,14 +532,14 @@ async function main() {
   const orgMemberRole = await prisma.role.upsert({
     where: {
       orgId_name_scope: {
-        orgId: tenant1.id,
+        orgId: org1.id,
         name: 'Org Member',
         scope: 'ORG',
       },
     },
     update: {},
     create: {
-      orgId: tenant1.id,
+      orgId: org1.id,
       name: 'Org Member',
       description: 'Basic organization member with minimal permissions',
       type: 'SYSTEM',
@@ -535,14 +561,14 @@ async function main() {
   const siteAdminRole = await prisma.role.upsert({
     where: {
       orgId_name_scope: {
-        orgId: tenant1.id,
+        orgId: org1.id,
         name: 'Site Admin',
         scope: 'SITE',
       },
     },
     update: {},
     create: {
-      orgId: tenant1.id,
+      siteId: site1.id,
       name: 'Site Admin',
       description: 'Full access to site builder, content, and site settings',
       type: 'SYSTEM',
@@ -572,14 +598,15 @@ async function main() {
   const editorInChiefRole = await prisma.role.upsert({
     where: {
       orgId_name_scope: {
-        orgId: tenant1.id,
+        orgId: org1.id,
         name: 'Editor-in-Chief',
         scope: 'SITE',
       },
     },
     update: {},
     create: {
-      orgId: tenant1.id,
+      orgId: org1.id,
+      siteId: site1.id,
       name: 'Editor-in-Chief',
       description: 'Can edit, save drafts, publish, and rollback',
       type: 'SYSTEM',
@@ -604,14 +631,15 @@ async function main() {
   const editorRole = await prisma.role.upsert({
     where: {
       orgId_name_scope: {
-        orgId: tenant1.id,
+        orgId: org1.id,
         name: 'Editor',
         scope: 'SITE',
       },
     },
     update: {},
     create: {
-      orgId: tenant1.id,
+      orgId: org1.id,
+      siteId: site1.id,
       name: 'Editor',
       description: 'Can edit and save drafts, but cannot publish',
       type: 'SYSTEM',
@@ -634,14 +662,15 @@ async function main() {
   const publisherRole = await prisma.role.upsert({
     where: {
       orgId_name_scope: {
-        orgId: tenant1.id,
+        orgId: org1.id,
         name: 'Publisher',
         scope: 'SITE',
       },
     },
     update: {},
     create: {
-      orgId: tenant1.id,
+      orgId: org1.id,
+      siteId: site1.id,
       name: 'Publisher',
       description: 'Can publish and rollback, but cannot edit',
       type: 'SYSTEM',
@@ -664,14 +693,14 @@ async function main() {
   const viewerRole = await prisma.role.upsert({
     where: {
       orgId_name_scope: {
-        orgId: tenant1.id,
+        orgId: org1.id,
         name: 'Viewer',
         scope: 'SITE',
       },
     },
     update: {},
     create: {
-      orgId: tenant1.id,
+      siteId: site1.id,
       name: 'Viewer',
       description: 'Read-only access to builder, content, and analytics',
       type: 'SYSTEM',
@@ -694,14 +723,14 @@ async function main() {
   const marketingManagerRole = await prisma.role.upsert({
     where: {
       orgId_name_scope: {
-        orgId: tenant1.id,
+      siteId: site1.id,
         name: 'Marketing Manager',
         scope: 'SITE',
       },
     },
     update: {},
     create: {
-      orgId: tenant1.id,
+      siteId: site1.id,
       name: 'Marketing Manager',
       description: 'Full marketing access including campaigns and ads',
       type: 'SYSTEM',
@@ -725,14 +754,14 @@ async function main() {
   const marketingEditorRole = await prisma.role.upsert({
     where: {
       orgId_name_scope: {
-        orgId: tenant1.id,
+      siteId: site1.id,
         name: 'Marketing Editor',
         scope: 'SITE',
       },
     },
     update: {},
     create: {
-      orgId: tenant1.id,
+      siteId: site1.id,
       name: 'Marketing Editor',
       description: 'Can edit marketing content',
       type: 'SYSTEM',
@@ -754,14 +783,14 @@ async function main() {
   const marketingPublisherRole = await prisma.role.upsert({
     where: {
       orgId_name_scope: {
-        orgId: tenant1.id,
+      siteId: site1.id,
         name: 'Marketing Publisher',
         scope: 'SITE',
       },
     },
     update: {},
     create: {
-      orgId: tenant1.id,
+      siteId: site1.id,
       name: 'Marketing Publisher',
       description: 'Can publish marketing content',
       type: 'SYSTEM',
@@ -783,14 +812,14 @@ async function main() {
   const marketingViewerRole = await prisma.role.upsert({
     where: {
       orgId_name_scope: {
-        orgId: tenant1.id,
+      siteId: site1.id,
         name: 'Marketing Viewer',
         scope: 'SITE',
       },
     },
     update: {},
     create: {
-      orgId: tenant1.id,
+      siteId: site1.id,
       name: 'Marketing Viewer',
       description: 'Read-only access to marketing',
       type: 'SYSTEM',
@@ -824,13 +853,13 @@ async function main() {
     await prisma.orgPolicy.upsert({
       where: {
         orgId_capabilityKey: {
-          orgId: tenant1.id,
+        siteId: site1.id,
           capabilityKey: capData.key,
         },
       },
       update: { enabled },
       create: {
-        orgId: tenant1.id,
+      siteId: site1.id,
         capabilityKey: capData.key,
         enabled,
         createdByUserId: adminUser.id,
@@ -848,7 +877,7 @@ async function main() {
     update: {},
     create: {
       id: '00000000-0000-0000-0000-000000000100',
-      orgId: tenant1.id,
+      orgId: org1.id,
       userId: adminUser.id,
       roleId: orgOwnerRole.id,
       siteId: null, // ORG scope
@@ -860,13 +889,13 @@ async function main() {
   console.log('\n🎉 Seed completed successfully!');
   // Create super admin user (liwiusz01@gmail.com)
   const superAdminPasswordHash = hashPassword('Liwia2015!');
-  const superAdminTenant = await prisma.tenant.findFirst({
+  const superAdminOrg = await prisma.organization.findFirst({
     where: { slug: 'platform-admin' },
   });
 
-  let platformAdminTenant;
-  if (!superAdminTenant) {
-    platformAdminTenant = await prisma.tenant.upsert({
+  let platformAdminOrg;
+  if (!superAdminOrg) {
+    platformAdminOrg = await prisma.organization.upsert({
       where: { slug: 'platform-admin' },
       update: {},
       create: {
@@ -877,13 +906,13 @@ async function main() {
       },
     });
   } else {
-    platformAdminTenant = superAdminTenant;
+    platformAdminOrg = superAdminOrg;
   }
 
   const superAdminUser = await prisma.user.upsert({
     where: {
-      tenantId_email: {
-        tenantId: platformAdminTenant.id,
+      orgId_email: {
+        orgId: platformAdminOrg.id,
         email: 'liwiusz01@gmail.com',
       },
     },
@@ -892,7 +921,7 @@ async function main() {
       role: 'super_admin',
     },
     create: {
-      tenantId: platformAdminTenant.id,
+      orgId: platformAdminOrg.id,
       email: 'liwiusz01@gmail.com',
       passwordHash: superAdminPasswordHash,
       role: 'super_admin',

@@ -6,6 +6,7 @@ import clsx from 'clsx';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
 
 const TABS = [
+  { key: 'general', label: 'General', href: (orgId: string) => `/org/${orgId}/settings/general` },
   { key: 'roles', label: 'Roles', href: (orgId: string) => `/org/${orgId}/settings/roles` },
   { key: 'policies', label: 'Policies', href: (orgId: string) => `/org/${orgId}/settings/policies` },
   { key: 'assignments', label: 'Assignments', href: (orgId: string) => `/org/${orgId}/settings/assignments` },
@@ -28,14 +29,14 @@ export default function OrgSettingsLayout({ children }: { children: React.ReactN
       />
 
       <div className="mb-6">
-        <h1 className="text-2xl font-bold">RBAC Settings</h1>
+        <h1 className="text-2xl font-bold">Organization Settings</h1>
         <p className="text-sm text-muted">
-          Roles, policies, assignments, and effective permissions for this organization.
+          Manage your organization settings, roles, policies, and access control.
         </p>
       </div>
 
       <div className="mb-6 border-b border-gray-200">
-        <nav className="flex flex-wrap gap-2" aria-label="RBAC settings tabs">
+        <nav className="flex flex-wrap gap-2" aria-label="Tabs">
           {TABS.map((tab) => {
             const href = tab.href(orgId);
             const active = pathname?.startsWith(href);

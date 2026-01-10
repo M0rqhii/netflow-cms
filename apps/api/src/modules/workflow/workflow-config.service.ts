@@ -16,11 +16,11 @@ export class WorkflowConfigService {
   /**
    * Get workflow configuration for a collection
    */
-  async getWorkflowConfig(tenantId: string, collectionId: string) {
+  async getWorkflowConfig(siteId: string, collectionId: string) {
     const collection = await this.prisma.collection.findFirst({
       where: {
         id: collectionId,
-        tenantId,
+        siteId,
       },
       select: {
         id: true,
@@ -65,7 +65,7 @@ export class WorkflowConfigService {
    * Update workflow configuration for a collection
    */
   async updateWorkflowConfig(
-    tenantId: string,
+    siteId: string,
     collectionId: string,
     config: {
       stages?: string[];
@@ -80,7 +80,7 @@ export class WorkflowConfigService {
     const collection = await this.prisma.collection.findFirst({
       where: {
         id: collectionId,
-        tenantId,
+        siteId,
       },
     });
 
@@ -110,14 +110,14 @@ export class WorkflowConfigService {
    * Create automatic tasks when status changes
    */
   async createAutoTasks(
-    tenantId: string,
+    siteId: string,
     collectionId: string,
     itemId: string,
     oldStatus: string,
     newStatus: string,
     userId: string,
   ) {
-    const config = await this.getWorkflowConfig(tenantId, collectionId);
+    const config = await this.getWorkflowConfig(siteId, collectionId);
     const autoTasks = (config as any).autoTasks || {};
 
     const tasks: Array<Promise<any>> = [];
@@ -125,7 +125,7 @@ export class WorkflowConfigService {
     // Task on review
     if (newStatus === 'review' && oldStatus !== 'review' && autoTasks.onReview?.enabled) {
       tasks.push(
-        this.tasksService.create(tenantId, userId, {
+        this.tasksService.create(siteId, userId, {
           title: autoTasks.onReview.title || 'Review content',
           description: autoTasks.onReview.description || 'Content has been submitted for review',
           priority: (autoTasks.onReview.priority as any) || 'MEDIUM',
@@ -138,7 +138,7 @@ export class WorkflowConfigService {
     // Task on approved
     if (newStatus === 'approved' && oldStatus !== 'approved' && autoTasks.onApproved?.enabled) {
       tasks.push(
-        this.tasksService.create(tenantId, userId, {
+        this.tasksService.create(siteId, userId, {
           title: autoTasks.onApproved.title || 'Content approved',
           description: autoTasks.onApproved.description || 'Content has been approved and is ready for publishing',
           priority: (autoTasks.onApproved.priority as any) || 'LOW',
@@ -151,7 +151,7 @@ export class WorkflowConfigService {
     // Task on published
     if (newStatus === 'published' && oldStatus !== 'published' && autoTasks.onPublished?.enabled) {
       tasks.push(
-        this.tasksService.create(tenantId, userId, {
+        this.tasksService.create(siteId, userId, {
           title: autoTasks.onPublished.title || 'Content published',
           description: autoTasks.onPublished.description || 'Content has been published',
           priority: (autoTasks.onPublished.priority as any) || 'LOW',

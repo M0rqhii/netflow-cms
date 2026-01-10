@@ -12,13 +12,12 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { AuthGuard } from '../../../common/auth/guards/auth.guard';
-import { TenantGuard } from '../../../common/tenant/tenant.guard';
 import { RolesGuard } from '../../../common/auth/guards/roles.guard';
 import { PermissionsGuard } from '../../../common/auth/guards/permissions.guard';
 import { Permissions } from '../../../common/auth/decorators/permissions.decorator';
 import { Permission } from '../../../common/auth/roles.enum';
 import { CurrentUser, CurrentUserPayload } from '../../../common/auth/decorators/current-user.decorator';
-import { CurrentTenant } from '../../../common/decorators/current-tenant.decorator';
+import { CurrentSite } from '../../../common/decorators/current-site.decorator';
 import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe';
 import { ContentWorkflowService } from '../services/content-workflow.service';
 import {
@@ -29,9 +28,9 @@ import {
 
 /**
  * ContentWorkflowController - RESTful API dla workflow treści (review, comments)
- * AI Note: Wszystkie endpointy wymagają autentykacji i X-Tenant-ID header
+ * AI Note: Wszystkie endpointy wymagają autentykacji i X-Site-ID header
  */
-@UseGuards(AuthGuard, TenantGuard, RolesGuard, PermissionsGuard)
+@UseGuards(AuthGuard, RolesGuard, PermissionsGuard)
 @Controller('content/:contentTypeSlug/:entryId')
 export class ContentWorkflowController {
   constructor(private readonly workflowService: ContentWorkflowService) {}
@@ -44,12 +43,12 @@ export class ContentWorkflowController {
   @Permissions(Permission.CONTENT_WRITE)
   @HttpCode(HttpStatus.OK)
   submitForReview(
-    @CurrentTenant() tenantId: string,
+    @CurrentSite() siteId: string,
     @CurrentUser() user: CurrentUserPayload,
     @Param('contentTypeSlug') contentTypeSlug: string,
     @Param('entryId') entryId: string,
   ) {
-    return this.workflowService.submitForReview(tenantId, contentTypeSlug, entryId, user.id);
+    return this.workflowService.submitForReview(siteId, contentTypeSlug, entryId, user.id);
   }
 
   /**
@@ -60,14 +59,14 @@ export class ContentWorkflowController {
   @Permissions(Permission.CONTENT_REVIEW)
   @HttpCode(HttpStatus.OK)
   reviewContent(
-    @CurrentTenant() tenantId: string,
+    @CurrentSite() siteId: string,
     @CurrentUser() user: CurrentUserPayload,
     @Param('contentTypeSlug') contentTypeSlug: string,
     @Param('entryId') entryId: string,
     @Body(new ZodValidationPipe(reviewContentSchema)) dto: unknown,
   ) {
     return this.workflowService.reviewContent(
-      tenantId,
+      siteId,
       contentTypeSlug,
       entryId,
       user.id,
@@ -82,11 +81,11 @@ export class ContentWorkflowController {
   @Get('reviews')
   @Permissions(Permission.CONTENT_READ)
   getReviewHistory(
-    @CurrentTenant() tenantId: string,
+    @CurrentSite() siteId: string,
     @Param('contentTypeSlug') contentTypeSlug: string,
     @Param('entryId') entryId: string,
   ) {
-    return this.workflowService.getReviewHistory(tenantId, contentTypeSlug, entryId);
+    return this.workflowService.getReviewHistory(siteId, contentTypeSlug, entryId);
   }
 
   /**
@@ -96,14 +95,14 @@ export class ContentWorkflowController {
   @Post('comments')
   @Permissions(Permission.CONTENT_COMMENT)
   createComment(
-    @CurrentTenant() tenantId: string,
+    @CurrentSite() siteId: string,
     @CurrentUser() user: CurrentUserPayload,
     @Param('contentTypeSlug') contentTypeSlug: string,
     @Param('entryId') entryId: string,
     @Body(new ZodValidationPipe(createCommentSchema)) dto: unknown,
   ) {
     return this.workflowService.createComment(
-      tenantId,
+      siteId,
       contentTypeSlug,
       entryId,
       user.id,
@@ -118,13 +117,13 @@ export class ContentWorkflowController {
   @Get('comments')
   @Permissions(Permission.CONTENT_READ)
   getComments(
-    @CurrentTenant() tenantId: string,
+    @CurrentSite() siteId: string,
     @Param('contentTypeSlug') contentTypeSlug: string,
     @Param('entryId') entryId: string,
     @Query('includeResolved') includeResolved?: string,
   ) {
     return this.workflowService.getComments(
-      tenantId,
+      siteId,
       contentTypeSlug,
       entryId,
       includeResolved === 'true',
@@ -138,7 +137,7 @@ export class ContentWorkflowController {
   @Patch('comments/:commentId')
   @Permissions(Permission.CONTENT_COMMENT)
   updateComment(
-    @CurrentTenant() tenantId: string,
+    @CurrentSite() siteId: string,
     @CurrentUser() user: CurrentUserPayload,
     @Param('contentTypeSlug') contentTypeSlug: string,
     @Param('entryId') entryId: string,
@@ -146,7 +145,7 @@ export class ContentWorkflowController {
     @Body(new ZodValidationPipe(updateCommentSchema)) dto: unknown,
   ) {
     return this.workflowService.updateComment(
-      tenantId,
+      siteId,
       contentTypeSlug,
       entryId,
       commentId,
@@ -163,14 +162,14 @@ export class ContentWorkflowController {
   @Permissions(Permission.CONTENT_COMMENT)
   @HttpCode(HttpStatus.OK)
   deleteComment(
-    @CurrentTenant() tenantId: string,
+    @CurrentSite() siteId: string,
     @CurrentUser() user: CurrentUserPayload,
     @Param('contentTypeSlug') contentTypeSlug: string,
     @Param('entryId') entryId: string,
     @Param('commentId') commentId: string,
   ) {
     return this.workflowService.deleteComment(
-      tenantId,
+      siteId,
       contentTypeSlug,
       entryId,
       commentId,

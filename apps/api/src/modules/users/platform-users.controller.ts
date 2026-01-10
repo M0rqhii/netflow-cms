@@ -80,10 +80,10 @@ export class PlatformUsersController {
           platformRole: true,
           systemRole: true,
           isSuperAdmin: true,
-          tenantId: true,
+          orgId: true,
           createdAt: true,
           updatedAt: true,
-          tenant: {
+          organization: {
             select: {
               id: true,
               name: true,
@@ -149,11 +149,11 @@ export class PlatformUsersController {
         platformRole: true,
         systemRole: true,
         isSuperAdmin: true,
-        tenantId: true,
+        orgId: true,
         preferredLanguage: true,
         createdAt: true,
         updatedAt: true,
-        tenant: {
+        organization: {
           select: {
             id: true,
             name: true,
@@ -250,7 +250,7 @@ export class PlatformUsersController {
       data: {
         email: dto.email,
         passwordHash,
-        tenantId: tenant.id,
+        orgId: tenant.id,
         role: dto.role || siteRole, // Backward compatibility
         siteRole,
         platformRole,
@@ -266,7 +266,7 @@ export class PlatformUsersController {
         platformRole: true,
         systemRole: true,
         isSuperAdmin: true,
-        tenantId: true,
+        orgId: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -363,7 +363,7 @@ export class PlatformUsersController {
         platformRole: true,
         systemRole: true,
         isSuperAdmin: true,
-        tenantId: true,
+        orgId: true,
         updatedAt: true,
       },
     });

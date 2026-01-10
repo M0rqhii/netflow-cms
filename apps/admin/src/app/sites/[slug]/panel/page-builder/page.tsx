@@ -1,16 +1,36 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, Suspense } from 'react';
+import dynamic from 'next/dynamic';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
-import { fetchMyTenants, exchangeTenantToken, getTenantToken } from '@/lib/api';
+import { DndContext, DragOverlay, KeyboardSensor, PointerSensor, useSensor, useSensors, DragStartEvent, DragEndEvent } from '@dnd-kit/core';
+import { fetchMySites, exchangeSiteToken, getSiteToken } from '@/lib/api';
+import { trackOnboardingSuccess } from '@/lib/onboarding';
 import { createApiClient } from '@repo/sdk';
-import type { TenantInfo, SitePage, SiteEnvironment } from '@repo/sdk';
+import type { SiteInfo, SitePage, SiteEnvironment } from '@repo/sdk';
 import { useToast } from '@/components/ui/Toast';
 import { Badge } from '@/components/ui/Badge';
-import { Button } from '@repo/ui';
-import { BlockBrowser } from '@/components/page-builder/sidebar-left/BlockBrowser';
-import { PageBuilderCanvas } from '@/components/page-builder/canvas/PageBuilderCanvas';
-import { PropertiesPanel } from '@/components/page-builder/sidebar-right/PropertiesPanel';
+import { Tooltip } from '@/components/ui/Tooltip';
+import { Button, LoadingSpinner } from '@repo/ui';
+import { PageBuilderProvider } from '@/components/page-builder/PageBuilderContext';
+import { usePageBuilderStore } from '@/stores/page-builder-store';
+import { registerAllBlocks } from '@/components/page-builder/blocks/registerBlocks';
+import { isNewBlockDrag, getDraggedType, validateDrop, type DragData } from '@/lib/page-builder/dnd-utils';
+
+const BlockBrowser = dynamic(
+  () => import('@/components/page-builder/sidebar-left/BlockBrowser').then(mod => ({ default: mod.BlockBrowser })),
+  { ssr: false }
+);
+
+const PageBuilderCanvas = dynamic(
+  () => import('@/components/page-builder/canvas/PageBuilderCanvas').then(mod => ({ default: mod.PageBuilderCanvas })),
+  { ssr: false }
+);
+
+const PropertiesPanel = dynamic(
+  () => import('@/components/page-builder/sidebar-right/PropertiesPanel').then(mod => ({ default: mod.PropertiesPanel })),
+  { ssr: false }
+);
 
 export default function PageBuilderPage() {
   const params = useParams<{ slug: string }>();
@@ -27,9 +47,24 @@ export default function PageBuilderPage() {
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [showPublishModal, setShowPublishModal] = useState(false);
-  const [tenantId, setTenantId] = useState<string | null>(null);
+  const [siteId, setSiteId] = useState<string | null>(null);
 
   const apiClient = createApiClient();
+
+  useEffect(() => {
+    trackOnboardingSuccess('editor_opened');
+  }, []);
+
+  // GUARDRAIL: Redirect jeśli brak pageId
+  useEffect(() => {
+    if (!pageId) {
+      toast.push({
+        tone: 'info',
+        message: 'Wybierz stronę do edycji',
+      });
+      router.push(`/sites/${slug}/panel/pages`);
+    }
+  }, [pageId, slug, router, toast]);
 
   const loadPage = useCallback(async () => {
     if (!slug || !pageId) {
@@ -40,19 +75,19 @@ export default function PageBuilderPage() {
     try {
       setLoading(true);
 
-      const tenants = await fetchMyTenants();
-      const tenant = tenants.find((t: TenantInfo) => t.tenant.slug === slug);
+      const sites = await fetchMySites();
+      const site = sites.find((s: SiteInfo) => s.site.slug === slug);
 
-      if (!tenant) {
+      if (!site) {
         throw new Error(`Site with slug "${slug}" not found`);
       }
 
-      const id = tenant.tenantId;
-      setTenantId(id);
+      const id = site.siteId;
+      setSiteId(id);
 
-      let token = getTenantToken(id);
+      let token = getSiteToken(id);
       if (!token) {
-        token = await exchangeTenantToken(id);
+        token = await exchangeSiteToken(id);
       }
 
       const [pageData, environmentsData] = await Promise.all([
@@ -83,17 +118,17 @@ export default function PageBuilderPage() {
   }, [loadPage]);
 
   const handleSave = async () => {
-    if (!tenantId || !pageId) return;
+    if (!siteId || !pageId) return;
 
     try {
       setSaving(true);
 
-      let token = getTenantToken(tenantId);
+      let token = getSiteToken(siteId);
       if (!token) {
-        token = await exchangeTenantToken(tenantId);
+        token = await exchangeSiteToken(siteId);
       }
 
-      await apiClient.updatePageContent(token, tenantId, pageId, content);
+      await apiClient.updatePageContent(token, siteId, pageId, content);
 
       setLastSaved(new Date());
       toast.push({
@@ -113,15 +148,15 @@ export default function PageBuilderPage() {
 
   // Auto-save effect
   useEffect(() => {
-    if (!tenantId || !pageId) return;
+    if (!siteId || !pageId) return;
 
     const autoSaveTimer = setTimeout(async () => {
       try {
-        let token = getTenantToken(tenantId);
+        let token = getSiteToken(siteId);
         if (!token) {
-          token = await exchangeTenantToken(tenantId);
+          token = await exchangeSiteToken(siteId);
         }
-        await apiClient.updatePageContent(token, tenantId, pageId, content);
+        await apiClient.updatePageContent(token, siteId, pageId, content);
         setLastSaved(new Date());
       } catch (err) {
         // Silent fail for auto-save
@@ -130,7 +165,7 @@ export default function PageBuilderPage() {
     }, 30000); // Auto-save after 30 seconds of inactivity
 
     return () => clearTimeout(autoSaveTimer);
-  }, [content, tenantId, pageId, apiClient]);
+  }, [content, siteId, pageId, apiClient]);
 
   if (loading) {
     return (
@@ -164,31 +199,63 @@ export default function PageBuilderPage() {
   };
 
   const handlePublishConfirm = async () => {
-    if (!tenantId || !pageId) return;
+    if (!siteId || !pageId || !page) return;
+
+    // GUARDRAIL 1: Sprawdź czy strona ma treść
+    const hasContent = content && 
+      (typeof content === 'object' && Object.keys(content).length > 0);
+
+    if (!hasContent) {
+      toast.push({
+        tone: 'error',
+        message: 'Dodaj treść, aby opublikować.',
+      });
+      setShowPublishModal(false);
+      return;
+    }
+
+    // GUARDRAIL 2: Sprawdź czy strona ma tytuł
+    if (!page.title || page.title.trim().length === 0) {
+      toast.push({
+        tone: 'error',
+        message: 'Tytuł strony jest wymagany. Dodaj tytuł przed publikacją.',
+      });
+      setShowPublishModal(false);
+      return;
+    }
+
+    // GUARDRAIL 3: Sprawdź czy strona ma slug
+    if (!page.slug || page.slug.trim().length === 0) {
+      toast.push({
+        tone: 'error',
+        message: 'Slug strony jest wymagany. Dodaj slug przed publikacją.',
+      });
+      setShowPublishModal(false);
+      return;
+    }
 
     setShowPublishModal(false);
 
     try {
       setSaving(true);
 
-      // Save before publishing
-      let token = getTenantToken(tenantId);
+      // Zapisz przed publikacją
+      let token = getSiteToken(siteId);
       if (!token) {
-        token = await exchangeTenantToken(tenantId);
+        token = await exchangeSiteToken(siteId);
       }
 
-      await apiClient.updatePageContent(token, tenantId, pageId, content);
-      await apiClient.publishPage(token, tenantId, pageId);
+      await apiClient.updatePageContent(token, siteId, pageId, content);
+      await apiClient.publishPage(token, siteId, pageId);
 
       toast.push({
         tone: 'success',
-        message: 'Page published successfully',
+        message: 'Strona opublikowana pomyślnie',
       });
 
-      // Reload page to update environment
       await loadPage();
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to publish page';
+      const message = err instanceof Error ? err.message : 'Błąd podczas publikacji';
       toast.push({
         tone: 'error',
         message,
@@ -199,7 +266,7 @@ export default function PageBuilderPage() {
   };
 
   return (
-    <>
+    <PageBuilderProvider siteId={siteId!} siteSlug={slug}>
       <PageBuilderWithSave
         pageName={page.title}
         environment={environment?.type === 'production' ? 'production' : 'draft'}
@@ -233,7 +300,7 @@ export default function PageBuilderPage() {
           </div>
         </div>
       )}
-    </>
+    </PageBuilderProvider>
   );
 }
 
@@ -258,6 +325,93 @@ function PageBuilderWithSave({
   saving,
   lastSaved,
 }: PageBuilderWithSaveProps) {
+  const [initialContent] = useState(content);
+  const [activeDrag, setActiveDrag] = useState<DragData | null>(null);
+  const hasUnsavedChanges = JSON.stringify(content) !== JSON.stringify(initialContent);
+  
+  // Store actions
+  const storeContent = usePageBuilderStore((s) => s.content);
+  const addBlock = usePageBuilderStore((s) => s.addBlock);
+  const moveBlock = usePageBuilderStore((s) => s.moveBlock);
+  const commit = usePageBuilderStore((s) => s.commit);
+  const selectBlock = usePageBuilderStore((s) => s.selectBlock);
+  
+  // Register blocks on mount
+  useEffect(() => {
+    registerAllBlocks();
+  }, []);
+  
+  // DnD sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 8 },
+    }),
+    useSensor(KeyboardSensor)
+  );
+  
+  // Handle drag start
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    const data = event.active.data.current as DragData;
+    setActiveDrag(data);
+    selectBlock(null);
+  }, [selectBlock]);
+  
+  // Handle drag end
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    setActiveDrag(null);
+    
+    if (!over) return;
+    
+    const dragData = active.data.current as DragData;
+    const dropData = over.data.current as { parentId: string; index?: number } | undefined;
+    
+    if (!dropData?.parentId) return;
+    
+    const targetParentId = dropData.parentId;
+    const targetIndex = dropData.index ?? 0;
+    
+    // Get block type
+    const blockType = getDraggedType(dragData);
+    if (!blockType) return;
+    
+    // Get target parent for validation
+    const targetParent = storeContent.nodes[targetParentId];
+    if (!targetParent) return;
+    
+    const draggedNodeId = dragData.dragType === 'existing-node' ? dragData.nodeId : undefined;
+    const validation = validateDrop(blockType, targetParent.type, storeContent, draggedNodeId, targetParentId);
+    if (!validation.valid) return;
+    
+    // Perform action
+    if (isNewBlockDrag(dragData)) {
+      addBlock(targetParentId, blockType, targetIndex);
+    } else if (dragData.dragType === 'existing-node' && dragData.nodeId) {
+      moveBlock(dragData.nodeId, targetParentId, targetIndex);
+    }
+    
+    commit('dnd');
+  }, [storeContent, addBlock, moveBlock, commit]);
+
+  const handlePublishWithCheck = () => {
+    if (hasUnsavedChanges && onPublish) {
+      const confirmed = confirm(
+        'Masz niezapisane zmiany. Czy chcesz zapisać przed publikacją?'
+      );
+      if (confirmed) {
+        onSave();
+        setTimeout(() => {
+          onPublish();
+        }, 500);
+      } else {
+        onPublish();
+      }
+    } else if (onPublish) {
+      onPublish();
+    }
+  };
+
   return (
     <div className="h-screen flex flex-col">
       {/* Custom Topbar with Save Button */}
@@ -266,22 +420,15 @@ function PageBuilderWithSave({
           <div className="flex-1">
             <div className="flex items-center gap-3">
               <h1 className="text-xl font-semibold">{pageName}</h1>
-              <div className="flex items-center gap-2">
-                <Badge tone={environment === 'production' ? 'success' : 'warning'}>
-                  {environment === 'production' ? 'Production' : 'Draft'}
-                </Badge>
-                <span
-                  className="text-xs text-muted cursor-help"
-                  title={environment === 'production' 
-                    ? 'Production environment: This is the live version visible to visitors. Changes here are immediately public.'
-                    : 'Draft environment: Your changes are saved but not visible to visitors. Use this to work on pages before publishing.'}
-                >
-                  ℹ️
-                </span>
-              </div>
-              {lastSaved && (
+              <Badge tone={environment === 'production' ? 'success' : 'warning'}>
+                {environment === 'production' ? 'Production' : 'Draft'}
+              </Badge>
+              {hasUnsavedChanges && (
+                <Badge tone="error">Niezapisane zmiany</Badge>
+              )}
+              {lastSaved && !hasUnsavedChanges && (
                 <span className="text-xs text-muted">
-                  Saved {lastSaved.toLocaleTimeString()}
+                  Zapisano {lastSaved.toLocaleTimeString()}
                 </span>
               )}
             </div>
@@ -290,42 +437,63 @@ function PageBuilderWithSave({
             <Button
               variant="outline"
               onClick={onSave}
-              disabled={saving}
+              disabled={saving || !hasUnsavedChanges}
             >
-              {saving ? 'Saving...' : 'Save'}
+              {saving ? 'Zapisywanie...' : 'Zapisz'}
             </Button>
             {onPublish && environment === 'draft' && (
-              <Button
-                variant="primary"
-                onClick={onPublish}
-                disabled={saving}
-                title="Publishing moves your draft changes to production, making them visible to visitors. This action cannot be easily undone."
-              >
-                Publish
-              </Button>
+              <Tooltip content={hasUnsavedChanges ? "Zapisz zmiany przed publikacją" : undefined}>
+                <Button
+                  variant="primary"
+                  onClick={handlePublishWithCheck}
+                  disabled={saving}
+                >
+                  Publikuj
+                </Button>
+              </Tooltip>
             )}
           </div>
         </div>
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Left Sidebar - Block Browser */}
-        <div className="w-64 border-r border-gray-200 bg-white flex-shrink-0">
-          <BlockBrowser />
-        </div>
+      <DndContext
+        sensors={sensors}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
+        <div className="flex-1 flex overflow-hidden">
+          {/* Left Sidebar - Block Browser */}
+          <div className="w-64 border-r border-gray-200 bg-white flex-shrink-0">
+            <Suspense fallback={<div className="p-4"><LoadingSpinner /></div>}>
+              <BlockBrowser />
+            </Suspense>
+          </div>
 
-        {/* Canvas Area */}
-        <div className="flex-1 overflow-hidden">
-          <PageBuilderCanvas content={content} onContentChange={onContentChange} />
-        </div>
+          {/* Canvas Area */}
+          <div className="flex-1 overflow-hidden">
+            <Suspense fallback={<div className="flex items-center justify-center h-full"><LoadingSpinner text="Loading canvas..." /></div>}>
+              <PageBuilderCanvas content={content} onContentChange={onContentChange} />
+            </Suspense>
+          </div>
 
-        {/* Right Sidebar - Properties Panel */}
-        <div className="w-80 border-l border-gray-200 bg-white flex-shrink-0">
-          <PropertiesPanel selectedBlockId={undefined} />
+          {/* Right Sidebar - Properties Panel */}
+          <div className="w-80 border-l border-gray-200 bg-white flex-shrink-0">
+            <Suspense fallback={<div className="p-4"><LoadingSpinner /></div>}>
+              <PropertiesPanel />
+            </Suspense>
+          </div>
         </div>
-      </div>
+        
+        {/* Drag overlay */}
+        <DragOverlay>
+          {activeDrag && (
+            <div className="px-4 py-2 bg-white border border-blue-400 rounded shadow-lg text-sm font-medium text-blue-600">
+              {getDraggedType(activeDrag) || 'Block'}
+            </div>
+          )}
+        </DragOverlay>
+      </DndContext>
     </div>
   );
 }
-

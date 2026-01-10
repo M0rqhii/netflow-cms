@@ -19,4 +19,3 @@ export { Role, Permission, ROLE_PERMISSIONS, hasPermission, hasAnyPermission, ha
 // Module
 export { AuthModule } from './auth.module';
 
-

@@ -1,0 +1,19 @@
+/**
+ * DropZone Styles
+ */
+
+.dropZone {
+  min-height: 20px;
+  transition: all 0.2s ease;
+}
+
+.dropZone.hasActive {
+  min-height: 40px;
+}
+
+.dropZone.isOver {
+  background-color: rgba(59, 130, 246, 0.05);
+  outline: 2px dashed var(--primary-color, #3b82f6);
+  outline-offset: -2px;
+  border-radius: 4px;
+}

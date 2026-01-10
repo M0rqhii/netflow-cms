@@ -6,10 +6,10 @@ import { Card, CardHeader, CardTitle, CardContent, EmptyState } from '@repo/ui';
 import { Badge } from '@/components/ui/Badge';
 import { LoadingSpinner } from '@repo/ui';
 import { decodeAuthToken, getAuthToken, getDevSites } from '@/lib/api';
-import type { TenantInfo } from '@repo/sdk';
+import type { SiteInfo } from '@repo/sdk';
 import { DevPanelLayout } from '@/components/dev-panel/DevPanelLayout';
 
-const PRIVILEGED_ROLES = ['super_admin', 'tenant_admin'];
+const PRIVILEGED_ROLES = ['super_admin', 'site_admin'];
 const PRIVILEGED_PLATFORM_ROLES = ['platform_admin'];
 
 export default function DevSitesPage() {
@@ -23,7 +23,7 @@ export default function DevSitesPage() {
     PRIVILEGED_ROLES.includes(userRole) || 
     PRIVILEGED_PLATFORM_ROLES.includes(userPlatformRole);
 
-  const [sites, setSites] = useState<TenantInfo[]>([]);
+  const [sites, setSites] = useState<SiteInfo[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,13 +33,13 @@ export default function DevSitesPage() {
     setError(null);
     getDevSites()
       .then((data) => {
-        const normalized: TenantInfo[] = (data as any[]).map((s: any) => {
-          if (s?.tenant) return s as TenantInfo;
+        const normalized: SiteInfo[] = (data as any[]).map((s: any) => {
+          if (s?.site) return s as SiteInfo;
           return {
-            tenantId: s.id,
+            siteId: s.id,
             role: 'admin',
-            tenant: { id: s.id, name: s.name, slug: s.slug, plan: s.plan, createdAt: s.createdAt },
-          } as TenantInfo;
+            site: { id: s.id, name: s.name, slug: s.slug, plan: s.plan, createdAt: s.createdAt },
+          } as SiteInfo;
         });
         setSites(normalized);
       })
@@ -83,7 +83,7 @@ export default function DevSitesPage() {
   }
 
   return (
-    <DevPanelLayout title="Sites" description="List of all sites/tenants (non-prod)">
+    <DevPanelLayout title="Sites" description="List of all sites (non-prod)">
 
       <Card>
         <CardHeader>
@@ -112,14 +112,14 @@ export default function DevSitesPage() {
                 </thead>
                 <tbody>
                   {sites.map((site) => (
-                    <tr key={site.tenantId} className="border-b">
-                      <td className="py-2 font-mono text-xs">{site.tenantId}</td>
-                      <td className="py-2">{site.tenant.name}</td>
-                      <td className="py-2 font-mono text-xs">{site.tenant.slug}</td>
-                      <td className="py-2">{site.tenant.plan || 'free'}</td>
+                    <tr key={site.siteId} className="border-b">
+                      <td className="py-2 font-mono text-xs">{site.siteId}</td>
+                      <td className="py-2">{site.site.name}</td>
+                      <td className="py-2 font-mono text-xs">{site.site.slug}</td>
+                      <td className="py-2">{site.site.plan || 'free'}</td>
                       <td className="py-2">
-                        {(site as any)?.tenant?.createdAt
-                          ? new Date((site as any).tenant.createdAt).toLocaleString()
+                        {(site as any)?.site?.createdAt
+                          ? new Date((site as any).site.createdAt).toLocaleString()
                           : 'N/A'}
                       </td>
                     </tr>

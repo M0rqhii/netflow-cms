@@ -1,0 +1,22 @@
+/**
+ * TabItemBlock Styles
+ */
+
+.tabItem {
+  min-height: 60px;
+}
+
+.emptyContent {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60px;
+  border: 2px dashed var(--border-color, #e0e0e0);
+  border-radius: 4px;
+  color: var(--text-tertiary, #999);
+}
+
+.emptyContent p {
+  margin: 0;
+  font-size: 13px;
+}

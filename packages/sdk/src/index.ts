@@ -7,6 +7,22 @@ export type TenantInfo = {
   tenant: { id: string; name: string; slug: string; plan: string };
 };
 
+// Alias for better naming - site instead of tenant
+export type SiteInfo = {
+  siteId: string;
+  role: string;
+  site: { id: string; name: string; slug: string; plan: string };
+};
+
+// Helper function to convert TenantInfo to SiteInfo
+export function toSiteInfo(tenantInfo: TenantInfo): SiteInfo {
+  return {
+    siteId: tenantInfo.tenantId,
+    role: tenantInfo.role,
+    site: tenantInfo.tenant,
+  };
+}
+
 export type MediaItem = {
   id: string;
   tenantId: string;
@@ -124,7 +140,28 @@ export class ApiClient {
       }
       
       if (response.status === 204) return undefined as unknown as T;
-      return (await response.json()) as T;
+      
+      // Check content-length header to detect empty responses
+      const contentLength = response.headers.get('content-length');
+      if (contentLength === '0') {
+        return undefined as unknown as T;
+      }
+      
+      // Parse JSON with error handling for empty or invalid responses
+      try {
+        const text = await response.text();
+        if (!text || !text.trim()) {
+          return undefined as unknown as T;
+        }
+        return JSON.parse(text) as T;
+      } catch (parseError) {
+        // If JSON parsing fails, it might be an empty response or invalid JSON
+        if (parseError instanceof SyntaxError && parseError.message.includes('JSON')) {
+          // Likely an empty response that wasn't caught by content-length check
+          return undefined as unknown as T;
+        }
+        throw new Error(`Failed to parse JSON response: ${parseError instanceof Error ? parseError.message : String(parseError)}`);
+      }
     } catch (error) {
       // Enhanced error handling for network errors
       if (error instanceof TypeError && error.message.includes('fetch')) {
@@ -139,6 +176,11 @@ export class ApiClient {
       method: 'GET',
       headers: { Authorization: `Bearer ${token}` },
     });
+  }
+
+  // Alias for better naming - site instead of tenant
+  async getMySites(token: string): Promise<SiteInfo[]> {
+    return this.getMyTenants(token);
   }
 
   async issueTenantToken(token: string, tenantId: string): Promise<{ access_token: string }> {
@@ -674,5 +716,3 @@ export function createApiClient(): ApiClient {
 }
 
 export * as Media from './media';
-
-

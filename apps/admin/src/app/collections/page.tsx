@@ -6,7 +6,7 @@ import { useTranslations } from '@/hooks/useTranslations';
 
 /**
  * Redirect /collections to /sites
- * Collections are managed per-site in Site Panel (/tenant/[slug]/collections)
+ * Collections are managed per-site in Site Panel (/sites/[slug]/collections)
  * This global page is deprecated - use Platform Panel (/sites) instead
  */
 export default function CollectionsRedirectPage() {

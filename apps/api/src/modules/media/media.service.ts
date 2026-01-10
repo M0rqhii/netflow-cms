@@ -1,10 +1,11 @@
-import { Injectable, NotFoundException, BadRequestException, Inject, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, Inject, Logger } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { FileStorage } from '../../common/providers/interfaces/file-storage.interface';
 import { UploadMediaDto } from './dto/upload-media.dto';
 import { QueryMediaDto } from './dto/query-media.dto';
 import { Prisma } from '@prisma/client';
 import { SiteEventsService } from '../site-events/site-events.service';
+import { FileValidatorService } from '../../common/security/file-validator.service';
 
 /**
  * Media Service - handles media file operations
@@ -20,6 +21,7 @@ export class MediaService {
     private prisma: PrismaService,
     @Inject('FileStorage') private readonly fileStorage: FileStorage,
     private readonly siteEvents: SiteEventsService,
+    private readonly fileValidator: FileValidatorService,
   ) {}
 
   /**
@@ -27,18 +29,12 @@ export class MediaService {
    * Uses FileStorage provider to handle file upload
    */
   async upload(
-    tenantId: string,
+    siteId: string,
     uploadedById: string,
     file: Express.Multer.File,
     dto: UploadMediaDto,
   ) {
-    // Validate file size (max 50MB for MVP)
-    const maxSize = 50 * 1024 * 1024; // 50MB
-    if (file.size > maxSize) {
-      throw new BadRequestException(`File size exceeds maximum allowed size of ${maxSize / (1024 * 1024)}MB`);
-    }
-
-    // Validate MIME type
+    // Comprehensive file validation
     const allowedMimeTypes = [
       // Images
       'image/jpeg',
@@ -57,16 +53,15 @@ export class MediaService {
       'text/plain',
     ];
 
-    if (!allowedMimeTypes.includes(file.mimetype)) {
-      throw new BadRequestException(`MIME type ${file.mimetype} is not allowed`);
-    }
+    const maxSize = 50 * 1024 * 1024; // 50MB
+    this.fileValidator.validateFile(file, allowedMimeTypes, maxSize);
 
     // Use FileStorage provider to upload file
     const uploadResult = await this.fileStorage.uploadFile({
       file: file.buffer,
       filename: dto.filename || file.originalname,
       contentType: dto.mimeType || file.mimetype,
-      tenantId,
+      tenantId: siteId, // FileStorage still uses tenantId internally (backward compatibility)
       folder: 'media',
       metadata: {
         ...(dto.metadata || {}),
@@ -78,7 +73,7 @@ export class MediaService {
     // Create media file record in database
     const media = await this.prisma.mediaItem.create({
       data: {
-        siteId: tenantId,
+        siteId,
         fileName: dto.filename || file.originalname,
         path: uploadResult.key,
         url: uploadResult.url,
@@ -108,18 +103,12 @@ export class MediaService {
         uploadedById: true,
         createdAt: true,
         updatedAt: true,
-        tenant: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-          },
-        },
+        // NO tenant/site relation - Site has no access to org data
       },
     });
 
     await this.siteEvents.recordEvent(
-      tenantId,
+      siteId,
       uploadedById ?? null,
       'media_uploaded',
       `Media "${media.fileName}" uploaded`,
@@ -130,14 +119,14 @@ export class MediaService {
   }
 
   /**
-   * Get all media files for a tenant
+   * Get all media files for a site
    */
-  async findAll(tenantId: string, query: QueryMediaDto) {
+  async findAll(siteId: string, query: QueryMediaDto) {
     const { page, pageSize, mimeType, search, sortBy, sortOrder } = query;
     const skip = (page - 1) * pageSize;
 
     const where: any = {
-      siteId: tenantId,
+      siteId,
     };
 
     if (mimeType) {
@@ -173,13 +162,7 @@ export class MediaService {
           uploadedById: true,
           createdAt: true,
           updatedAt: true,
-          tenant: {
-            select: {
-              id: true,
-              name: true,
-              slug: true,
-            },
-          },
+          // NO tenant/site relation - Site has no access to org data
         },
       }),
       this.prisma.mediaItem.count({ where }),
@@ -198,18 +181,18 @@ export class MediaService {
 
   /**
    * Get media library statistics
-   * AI Note: Returns statistics about media files for a tenant
+   * AI Note: Returns statistics about media files for a site
    */
-  async getLibraryStats(tenantId: string) {
+  async getLibraryStats(siteId: string) {
     const [total, byMimeType, totalSize] = await Promise.all([
-      this.prisma.mediaItem.count({ where: { siteId: tenantId } }),
+      this.prisma.mediaItem.count({ where: { siteId } }),
       this.prisma.mediaItem.groupBy({
         by: ['mimeType'],
-        where: { siteId: tenantId },
+        where: { siteId },
         _count: true,
       }),
       this.prisma.mediaItem.aggregate({
-        where: { siteId: tenantId },
+        where: { siteId },
         _sum: { size: true },
       }),
     ]);
@@ -227,11 +210,11 @@ export class MediaService {
   /**
    * Get a single media file by ID
    */
-  async findOne(tenantId: string, id: string) {
+  async findOne(siteId: string, id: string) {
     const mediaFile = await this.prisma.mediaItem.findFirst({
       where: {
         id,
-        siteId: tenantId,
+        siteId,
       },
       select: {
         id: true,
@@ -247,13 +230,7 @@ export class MediaService {
         uploadedById: true,
         createdAt: true,
         updatedAt: true,
-        tenant: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-          },
-        },
+        // NO tenant/site relation - Site has no access to org data
       },
     });
 
@@ -267,8 +244,8 @@ export class MediaService {
   /**
    * Update a media file
    */
-  async update(tenantId: string, id: string, data: { filename?: string; alt?: string; metadata?: Record<string, any> }) {
-    const mediaFile = await this.findOne(tenantId, id);
+  async update(siteId: string, id: string, data: { filename?: string; alt?: string; metadata?: Record<string, any> }) {
+    const mediaFile = await this.findOne(siteId, id);
 
     const metadataValue = data.metadata !== undefined 
       ? (data.metadata === null ? Prisma.JsonNull : data.metadata)
@@ -295,13 +272,7 @@ export class MediaService {
         uploadedById: true,
         createdAt: true,
         updatedAt: true,
-        tenant: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-          },
-        },
+        // NO tenant/site relation - Site has no access to org data
       },
     });
   }
@@ -310,8 +281,8 @@ export class MediaService {
    * Delete a media file
    * Uses FileStorage provider to delete the file, then removes DB record
    */
-  async remove(tenantId: string, id: string, userId?: string) {
-    const mediaFile = await this.findOne(tenantId, id);
+  async remove(siteId: string, id: string, userId?: string) {
+    const mediaFile = await this.findOne(siteId, id);
 
     // Extract storage key from metadata if available
     const metadata = mediaFile.metadata as any;
@@ -322,7 +293,7 @@ export class MediaService {
       try {
         await this.fileStorage.deleteFile({
           key: storageKey,
-          tenantId,
+          tenantId: siteId, // FileStorage still uses tenantId internally (backward compatibility)
         });
       } catch (error) {
         // Log error but continue with DB deletion
@@ -339,7 +310,7 @@ export class MediaService {
     });
 
     await this.siteEvents.recordEvent(
-      tenantId,
+      siteId,
       userId ?? mediaFile.uploadedById ?? null,
       'media_deleted',
       `Media "${mediaFile.fileName}" deleted`,

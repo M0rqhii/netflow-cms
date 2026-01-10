@@ -1,65 +1,64 @@
-export function setLastTenantSlug(slug: string) {
+export function setLastSiteSlug(slug: string) {
   if (typeof window === 'undefined') return;
   try {
-    localStorage.setItem('nf-last-tenant', slug);
-    // Track recently used tenants
-    const recent = getRecentlyUsedTenants();
+    localStorage.setItem('nf-last-site', slug);
+    // Track recently used sites
+    const recent = getRecentlyUsedSites();
     const updated = [slug, ...recent.filter(s => s !== slug)].slice(0, 5);
-    localStorage.setItem('nf-recent-tenants', JSON.stringify(updated));
+    localStorage.setItem('nf-recent-sites', JSON.stringify(updated));
   } catch {}
 }
 
-export function getLastTenantSlug(): string | null {
+export function getLastSiteSlug(): string | null {
   if (typeof window === 'undefined') return null;
   try {
-    return localStorage.getItem('nf-last-tenant');
+    return localStorage.getItem('nf-last-site');
   } catch {
     return null;
   }
 }
 
-export function getRecentlyUsedTenants(): string[] {
+export function getRecentlyUsedSites(): string[] {
   if (typeof window === 'undefined') return [];
   try {
-    const stored = localStorage.getItem('nf-recent-tenants');
+    const stored = localStorage.getItem('nf-recent-sites');
     return stored ? JSON.parse(stored) : [];
   } catch {
     return [];
   }
 }
 
-export function clearRecentlyUsedTenants() {
+export function clearRecentlyUsedSites() {
   if (typeof window === 'undefined') return;
   try {
-    localStorage.removeItem('nf-recent-tenants');
+    localStorage.removeItem('nf-recent-sites');
   } catch {}
 }
 
-export function getPinnedTenants(): string[] {
+export function getPinnedSites(): string[] {
   if (typeof window === 'undefined') return [];
   try {
-    const stored = localStorage.getItem('nf-pinned-tenants');
+    const stored = localStorage.getItem('nf-pinned-sites');
     return stored ? JSON.parse(stored) : [];
   } catch {
     return [];
   }
 }
 
-export function togglePinTenant(slug: string): void {
+export function togglePinSite(slug: string): void {
   if (typeof window === 'undefined') return;
   try {
-    const pinned = getPinnedTenants();
+    const pinned = getPinnedSites();
     const index = pinned.indexOf(slug);
     if (index >= 0) {
       pinned.splice(index, 1);
     } else {
       pinned.push(slug);
     }
-    localStorage.setItem('nf-pinned-tenants', JSON.stringify(pinned));
+    localStorage.setItem('nf-pinned-sites', JSON.stringify(pinned));
   } catch {}
 }
 
-export function isTenantPinned(slug: string): boolean {
-  return getPinnedTenants().includes(slug);
+export function isSitePinned(slug: string): boolean {
+  return getPinnedSites().includes(slug);
 }
-

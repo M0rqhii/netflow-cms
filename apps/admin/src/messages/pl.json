@@ -21,7 +21,10 @@
     "submit": "Wyślij",
     "reset": "Resetuj",
     "all": "Wszystkie",
-    "noResults": "Brak wyników"
+    "noResults": "Brak wyników",
+    "menu": "Menu",
+    "closeMenu": "Zamknij menu",
+    "backToSite": "Powrót do strony"
   },
   "auth": {
     "login": "Logowanie",
@@ -33,13 +36,13 @@
     "loggingIn": "Logowanie...",
     "loginTitle": "Logowanie do platformy",
     "loginSubtitle": "Zaloguj się, aby uzyskać dostęp do platformy",
-    "loginNote": "Nie wymagane ID najemcy — to jest globalne logowanie",
+    "loginNote": "Nie wymagane ID strony — to jest globalne logowanie",
     "invalidCredentials": "Nieprawidłowe dane logowania",
     "loginFailed": "Logowanie nie powiodło się"
   },
   "navigation": {
     "dashboard": "Przegląd",
-    "tenants": "Najemcy",
+    "sites": "Strony",
     "sites": "Projekty",
     "media": "Media",
     "users": "Użytkownicy",
@@ -53,7 +56,8 @@
     "management": "Zarządzanie",
     "business": "Biznes",
     "development": "Rozwój",
-    "dev": "Panel deweloperski"
+    "dev": "Panel deweloperski",
+    "orgSettings": "Ustawienia organizacji"
   },
   "dashboard": {
     "title": "Przegląd",
@@ -76,7 +80,7 @@
     "collections": "Kolekcje",
     "media": "Pliki multimedialne",
     "totalSites": "Łączna liczba projektów",
-    "totalTenants": "Łączna liczba projektów",
+    "totalSites": "Łączna liczba projektów",
     "users": "Użytkownicy",
     "active": "Aktywni",
     "total": "Razem",
@@ -172,7 +176,7 @@
     "details": "Szczegóły",
     "name": "Nazwa",
     "slug": "Slug",
-    "tenantId": "ID najemcy",
+    "siteId": "ID strony",
     "created": "Utworzono",
     "updated": "Zaktualizowano",
     "yourRole": "Twoja rola",
@@ -197,7 +201,7 @@
     "nameMustBeAtLeast3Characters": "Nazwa musi mieć co najmniej 3 znaki",
     "slugMustBeAtLeast3Characters": "Slug musi mieć co najmniej 3 znaki i zawierać tylko małe litery, cyfry i myślniki"
   },
-  "tenantCms": {
+  "siteCms": {
     "manageSettingsPlanAndBranding": "Zarządzaj ustawieniami, planem i brandingiem"
   },
   "billing": {
@@ -239,6 +243,8 @@
     "overviewHint": "Migawka i zdrowie",
     "pages": "Strony",
     "pagesHint": "Szkic i publikacja",
+    "content": "Treści",
+    "contentHint": "Wpisy CMS",
     "deployments": "Wdrożenia",
     "deploymentsHint": "Historia publikacji",
     "collections": "Kolekcje",
@@ -258,21 +264,15 @@
     "settings": "Konfiguracja",
     "settingsHint": "Konfiguracja strony"
   },
-  "common": {
-    "menu": "Menu",
-    "closeMenu": "Zamknij menu",
-    "back": "Wstecz",
-    "backToSite": "Powrót do strony"
-  },
-  "tenants": {
-    "title": "Najemcy",
-    "create": "Utwórz najemcę",
+  "legacySites": {
+    "title": "Strony",
+    "create": "Utwórz stronę",
     "name": "Nazwa",
     "slug": "Slug",
     "plan": "Plan",
     "createdAt": "Utworzono",
     "actions": "Akcje",
-    "noTenants": "Nie znaleziono najemców"
+    "noSites": "Nie znaleziono stron"
   },
   "sites": {
     "title": "Projekty",
@@ -514,10 +514,9 @@
     "serverError": "Błąd serwera",
     "validationError": "Błąd walidacji",
     "error": "Błąd",
-    "failedToSwitchTenant": "Nie udało się przełączyć najemcy. Spróbuj ponownie.",
+    "failedToSwitchSite": "Nie udało się przełączyć strony. Spróbuj ponownie.",
     "failedToLoad": "Nie udało się załadować danych. Odśwież stronę.",
     "failedToSave": "Nie udało się zapisać zmian. Spróbuj ponownie.",
     "failedToDelete": "Nie udało się usunąć elementu. Spróbuj ponownie."
   }
 }
-

@@ -1,20 +1,28 @@
 /**
- * Page Builder Blocks
- * 
- * This directory will contain individual block components.
- * For now, this is a placeholder structure.
- * 
- * Future blocks will be organized here, e.g.:
- * - blocks/SectionBlock.tsx
- * - blocks/ContainerBlock.tsx
- * - blocks/TextBlock.tsx
- * - blocks/ImageBlock.tsx
- * - blocks/ButtonBlock.tsx
+ * Blocks Export
  */
 
-export {};
+// Base components
+export { BlockWrapper } from './BlockWrapper';
+export { BlockControls } from './BlockControls';
+export { BlockRenderer } from './BlockRenderer';
+export { DropZone } from './DropZone';
+export { UnknownBlock } from './UnknownBlock';
 
+// Layout blocks
+export * from './layout';
 
+// Typography blocks
+export * from './typography';
 
+// Media blocks
+export * from './media';
 
+// Component blocks
+export * from './components';
 
+// Advanced blocks
+export * from './advanced';
+
+// Registration
+export { registerAllBlocks } from './registerBlocks';

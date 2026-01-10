@@ -8,13 +8,12 @@ import {
   Put,
   Delete,
 } from '@nestjs/common';
-import { TenantGuard } from '../../../common/tenant/tenant.guard';
 import { AuthGuard } from '../../../common/auth/guards/auth.guard';
 import { RolesGuard } from '../../../common/auth/guards/roles.guard';
 import { PermissionsGuard } from '../../../common/auth/guards/permissions.guard';
 import { Roles } from '../../../common/auth/decorators/roles.decorator';
 import { Permissions } from '../../../common/auth/decorators/permissions.decorator';
-import { CurrentTenant } from '../../../common/decorators/current-tenant.decorator';
+import { CurrentSite } from '../../../common/decorators/current-site.decorator';
 import { Role, Permission } from '../../../common/auth/roles.enum';
 import { CollectionsService } from '../services/collections.service';
 import {
@@ -24,9 +23,9 @@ import {
 
 /**
  * CollectionsController - RESTful API dla Collections
- * AI Note: Wszystkie endpointy wymagają autentykacji i X-Tenant-ID header
+ * AI Note: Wszystkie endpointy wymagają autentykacji i X-Site-ID header
  */
-@UseGuards(AuthGuard, TenantGuard, RolesGuard, PermissionsGuard)
+@UseGuards(AuthGuard, RolesGuard, PermissionsGuard)
 @Controller('collections')
 export class CollectionsController {
   constructor(private readonly collectionsService: CollectionsService) {}
@@ -35,42 +34,42 @@ export class CollectionsController {
   @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN)
   @Permissions(Permission.COLLECTIONS_WRITE)
   create(
-    @CurrentTenant() tenantId: string,
+    @CurrentSite() siteId: string,
     @Body() body: unknown
   ) {
     const dto = CreateCollectionDtoSchema.parse(body);
-    return this.collectionsService.create(tenantId, dto);
+    return this.collectionsService.create(siteId, dto);
   }
 
   @Get()
   @Permissions(Permission.COLLECTIONS_READ)
-  list(@CurrentTenant() tenantId: string) {
-    return this.collectionsService.list(tenantId);
+  list(@CurrentSite() siteId: string) {
+    return this.collectionsService.list(siteId);
   }
 
   @Get(':slug')
   @Permissions(Permission.COLLECTIONS_READ)
-  get(@CurrentTenant() tenantId: string, @Param('slug') slug: string) {
-    return this.collectionsService.getBySlug(tenantId, slug);
+  get(@CurrentSite() siteId: string, @Param('slug') slug: string) {
+    return this.collectionsService.getBySlug(siteId, slug);
   }
 
   @Put(':slug')
   @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN)
   @Permissions(Permission.COLLECTIONS_WRITE)
   update(
-    @CurrentTenant() tenantId: string,
+    @CurrentSite() siteId: string,
     @Param('slug') slug: string,
     @Body() body: unknown
   ) {
     const dto = UpdateCollectionDtoSchema.parse(body);
-    return this.collectionsService.update(tenantId, slug, dto);
+    return this.collectionsService.update(siteId, slug, dto);
   }
 
   @Delete(':slug')
   @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN)
   @Permissions(Permission.COLLECTIONS_DELETE)
-  remove(@CurrentTenant() tenantId: string, @Param('slug') slug: string) {
-    return this.collectionsService.remove(tenantId, slug);
+  remove(@CurrentSite() siteId: string, @Param('slug') slug: string) {
+    return this.collectionsService.remove(siteId, slug);
   }
 }
 

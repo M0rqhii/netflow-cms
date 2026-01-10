@@ -1,0 +1,169 @@
+/**
+ * Editors Shared Styles
+ */
+
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.emptyEditor {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  text-align: center;
+  color: var(--text-tertiary, #999);
+}
+
+.emptyEditor p {
+  margin: 0;
+  font-size: 13px;
+}
+
+/* Section */
+.section {
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-color, #e0e0e0);
+}
+
+.section:last-child {
+  border-bottom: none;
+}
+
+.sectionTitle {
+  margin: 0 0 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary, #666);
+}
+
+/* Field */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field.hasOverride {
+  position: relative;
+  padding: 8px;
+  margin: -8px;
+  background-color: rgba(59, 130, 246, 0.03);
+  border-radius: 6px;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.fieldHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.fieldLabel {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary, #666);
+}
+
+.clearOverrideBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  background: rgba(59, 130, 246, 0.1);
+  border: none;
+  border-radius: 50%;
+  color: var(--primary-color, #3b82f6);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.clearOverrideBtn:hover {
+  background: var(--primary-color, #3b82f6);
+  color: white;
+}
+
+.clearOverrideBtn svg {
+  width: 12px;
+  height: 12px;
+}
+
+.overrideIndicator {
+  font-size: 10px;
+  color: var(--primary-color, #3b82f6);
+  font-style: italic;
+}
+
+/* Breakpoint indicator */
+.breakpointIndicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--bg-secondary, #f5f5f5);
+  border-radius: 6px;
+  margin-bottom: 8px;
+}
+
+.breakpointIcon {
+  display: flex;
+  align-items: center;
+  color: var(--primary-color, #3b82f6);
+}
+
+.breakpointIcon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.breakpointLabel {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary, #1a1a1a);
+}
+
+.inheritanceHint {
+  font-size: 10px;
+  color: var(--text-tertiary, #999);
+  margin-left: auto;
+}
+
+/* Info grid */
+.infoGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.infoItem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.infoLabel {
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  color: var(--text-tertiary, #999);
+}
+
+.infoValue {
+  font-size: 12px;
+  color: var(--text-primary, #1a1a1a);
+  word-break: break-all;
+}
+
+code.infoValue {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 10px;
+  background: var(--bg-secondary, #f0f0f0);
+  padding: 2px 4px;
+  border-radius: 3px;
+}

@@ -8,7 +8,7 @@ import { decodeAuthToken, getAuthToken, getDevPayments } from '@/lib/api';
 import { LoadingSpinner } from '@repo/ui';
 import { DevPanelLayout } from '@/components/dev-panel/DevPanelLayout';
 
-const PRIVILEGED_ROLES = ['super_admin', 'tenant_admin'];
+const PRIVILEGED_ROLES = ['super_admin', 'site_admin'];
 const PRIVILEGED_PLATFORM_ROLES = ['platform_admin'];
 
 export default function DevPaymentsPage() {
@@ -22,7 +22,7 @@ export default function DevPaymentsPage() {
     PRIVILEGED_ROLES.includes(userRole) || 
     PRIVILEGED_PLATFORM_ROLES.includes(userPlatformRole);
   const [payments, setPayments] = useState<
-    Array<{ id: string; tenantId: string; plan: string; status: string; currentPeriodStart?: string; currentPeriodEnd?: string; createdAt?: string }>
+    Array<{ id: string; siteId: string; plan: string; status: string; currentPeriodStart?: string; currentPeriodEnd?: string; createdAt?: string }>
   >([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -91,7 +91,7 @@ export default function DevPaymentsPage() {
                 <thead>
                   <tr className="text-left text-muted border-b">
                     <th className="py-2">Plan</th>
-                    <th className="py-2">Tenant ID</th>
+                    <th className="py-2">Site ID</th>
                     <th className="py-2">Status</th>
                     <th className="py-2">Period end</th>
                     <th className="py-2">Created</th>
@@ -101,7 +101,7 @@ export default function DevPaymentsPage() {
                   {payments.map((evt) => (
                     <tr key={evt.id} className="border-b">
                       <td className="py-2 font-mono text-xs">{evt.plan}</td>
-                      <td className="py-2 font-mono text-xs">{evt.tenantId}</td>
+                      <td className="py-2 font-mono text-xs">{evt.siteId}</td>
                       <td className="py-2">
                         <Badge tone={evt.status === 'active' ? 'success' : 'warning'}>{evt.status}</Badge>
                       </td>

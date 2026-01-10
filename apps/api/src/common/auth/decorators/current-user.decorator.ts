@@ -2,7 +2,7 @@ import { createParamDecorator, ExecutionContext } from '@nestjs/common';
 
 /**
  * CurrentUser decorator - extracts user from request
- * AI Note: Use in controllers: @CurrentUser() user: { id: string, role: string, tenantId: string }
+ * AI Note: Use in controllers: @CurrentUser() user: { id: string, role: string, orgId: string }
  */
 export interface CurrentUserPayload {
   id: string;
@@ -12,7 +12,8 @@ export interface CurrentUserPayload {
   platformRole?: string; // Platform role (user, editor-in-chief, admin, owner)
   systemRole?: string; // System role (super_admin, system_admin, system_dev, system_support)
   isSuperAdmin?: boolean; // Flaga dla super admin
-  tenantId: string;
+  orgId?: string; // Organization ID
+  tenantId?: string; // DEPRECATED: Backward compatibility - use orgId instead
 }
 
 export const CurrentUser = createParamDecorator(

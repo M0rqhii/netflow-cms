@@ -5,20 +5,21 @@ import { useParams } from 'next/navigation';
 import {
   createRbacAssignment,
   deleteRbacAssignment,
-  fetchMyTenants,
+  fetchMySites,
   fetchRbacAssignments,
   fetchRbacRoles,
-  fetchTenantUsers,
+  fetchOrgUsers,
   type RbacAssignment,
   type RbacRole,
   type UserSummary,
 } from '@/lib/api';
-import type { TenantInfo } from '@repo/sdk';
+import type { SiteInfo } from '@repo/sdk';
 import { Button, Card, CardContent, CardHeader, CardTitle, EmptyState, LoadingSpinner } from '@repo/ui';
 import Badge from '@/components/ui/Badge';
 import SearchAndFilters from '@/components/ui/SearchAndFilters';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import { useToast } from '@/components/ui/Toast';
+import { toFriendlyMessage } from '@/lib/errors';
 
 export default function OrgAssignmentsPage() {
   const params = useParams<{ orgId: string }>();
@@ -29,7 +30,7 @@ export default function OrgAssignmentsPage() {
   const [error, setError] = useState<string | null>(null);
   const [users, setUsers] = useState<UserSummary[]>([]);
   const [roles, setRoles] = useState<RbacRole[]>([]);
-  const [sites, setSites] = useState<TenantInfo[]>([]);
+  const [sites, setSites] = useState<SiteInfo[]>([]);
   const [assignments, setAssignments] = useState<RbacAssignment[]>([]);
   const [selectedUserId, setSelectedUserId] = useState('');
   const [orgRoleId, setOrgRoleId] = useState('');
@@ -45,7 +46,7 @@ export default function OrgAssignmentsPage() {
   const siteRoles = roles.filter((role) => role.scope === 'SITE');
 
   const siteMap = useMemo(() => {
-    return new Map(sites.map((site) => [site.tenantId, site.tenant.name]));
+    return new Map(sites.map((site) => [site.siteId, site.site.name]));
   }, [sites]);
 
   const loadBaseData = async () => {
@@ -53,15 +54,15 @@ export default function OrgAssignmentsPage() {
     setError(null);
     try {
       const [usersData, rolesData, sitesData] = await Promise.all([
-        fetchTenantUsers(orgId),
+        fetchOrgUsers(orgId),
         fetchRbacRoles(orgId),
-        fetchMyTenants(),
+        fetchMySites(),
       ]);
       setUsers(usersData);
       setRoles(rolesData);
       setSites(sitesData);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load assignments data.');
+      setError(toFriendlyMessage(err, 'Nie udało się wczytać danych przypisań.'));
     } finally {
       setLoading(false);
     }
@@ -77,7 +78,7 @@ export default function OrgAssignmentsPage() {
       const data = await fetchRbacAssignments(orgId, { userId });
       setAssignments(data);
     } catch (err) {
-      push({ tone: 'error', message: err instanceof Error ? err.message : 'Failed to load assignments.' });
+      push({ tone: 'error', message: toFriendlyMessage(err, 'Nie udało się wczytać przypisań.') });
     } finally {
       setLoadingAssignments(false);
     }
@@ -92,16 +93,18 @@ export default function OrgAssignmentsPage() {
     loadAssignments(selectedUserId);
   }, [selectedUserId]);
 
-  const filteredAssignments = assignments.filter((assignment) => {
-    const matchesScope = scopeFilter === 'all' || assignment.role.scope === scopeFilter;
-    const searchValue = `${assignment.role.name} ${assignment.role.scope} ${assignment.role.type}`.toLowerCase();
-    const matchesSearch = !searchQuery || searchValue.includes(searchQuery.toLowerCase());
-    return matchesScope && matchesSearch;
-  });
+  const filteredAssignments = useMemo(() => {
+    return assignments.filter((assignment) => {
+      const matchesScope = scopeFilter === 'all' || assignment.role.scope === scopeFilter;
+      const searchValue = `${assignment.role.name} ${assignment.role.scope} ${assignment.role.type}`.toLowerCase();
+      const matchesSearch = !searchQuery || searchValue.includes(searchQuery.toLowerCase());
+      return matchesScope && matchesSearch;
+    });
+  }, [assignments, scopeFilter, searchQuery]);
 
   const handleAssignOrgRole = async () => {
     if (!selectedUserId || !orgRoleId) {
-      push({ tone: 'error', message: 'Select user and org role.' });
+      push({ tone: 'error', message: 'Wybierz użytkownika i rolę organizacji.' });
       return;
     }
     try {
@@ -109,13 +112,13 @@ export default function OrgAssignmentsPage() {
       push({ tone: 'success', message: 'Org role assigned.' });
       await loadAssignments(selectedUserId);
     } catch (err) {
-      push({ tone: 'error', message: err instanceof Error ? err.message : 'Failed to assign role.' });
+      push({ tone: 'error', message: toFriendlyMessage(err, 'Nie udało się przypisać roli.') });
     }
   };
 
   const handleAssignSiteRole = async () => {
     if (!selectedUserId || !siteRoleId || !siteId) {
-      push({ tone: 'error', message: 'Select user, site, and site role.' });
+      push({ tone: 'error', message: 'Wybierz stronę, aby przypisać tę rolę.' });
       return;
     }
     try {
@@ -123,7 +126,7 @@ export default function OrgAssignmentsPage() {
       push({ tone: 'success', message: 'Site role assigned.' });
       await loadAssignments(selectedUserId);
     } catch (err) {
-      push({ tone: 'error', message: err instanceof Error ? err.message : 'Failed to assign role.' });
+      push({ tone: 'error', message: toFriendlyMessage(err, 'Nie udało się przypisać roli.') });
     }
   };
 
@@ -136,7 +139,7 @@ export default function OrgAssignmentsPage() {
       setRemoveAssignmentId(null);
       await loadAssignments(selectedUserId);
     } catch (err) {
-      push({ tone: 'error', message: err instanceof Error ? err.message : 'Failed to remove assignment.' });
+      push({ tone: 'error', message: toFriendlyMessage(err, 'Nie udało się usunąć przypisania.') });
     } finally {
       setRemoving(false);
     }
@@ -197,7 +200,12 @@ export default function OrgAssignmentsPage() {
                   </option>
                 ))}
               </select>
-              <Button variant="primary" onClick={handleAssignOrgRole} disabled={!selectedUserId}>
+              <Button
+                variant="primary"
+                onClick={handleAssignOrgRole}
+                disabled={!selectedUserId}
+                title={!selectedUserId ? 'Wybierz użytkownika, aby przypisać rolę.' : undefined}
+              >
                 Assign org role
               </Button>
             </div>
@@ -211,8 +219,8 @@ export default function OrgAssignmentsPage() {
               >
                 <option value="">Select site</option>
                 {sites.map((site) => (
-                  <option key={site.tenantId} value={site.tenantId}>
-                    {site.tenant.name}
+                  <option key={site.siteId} value={site.siteId}>
+                    {site.site.name}
                   </option>
                 ))}
               </select>
@@ -228,7 +236,12 @@ export default function OrgAssignmentsPage() {
                   </option>
                 ))}
               </select>
-              <Button variant="primary" onClick={handleAssignSiteRole} disabled={!selectedUserId}>
+              <Button
+                variant="primary"
+                onClick={handleAssignSiteRole}
+                disabled={!selectedUserId}
+                title={!selectedUserId ? 'Wybierz użytkownika, aby przypisać rolę.' : undefined}
+              >
                 Assign site role
               </Button>
             </div>

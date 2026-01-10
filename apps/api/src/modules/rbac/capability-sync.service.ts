@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { CAPABILITY_REGISTRY } from '@repo/schemas';
+import { CAPABILITY_REGISTRY, type CapabilityDefinition } from '@repo/schemas';
 
 /**
  * Capability Sync Service
@@ -60,7 +60,7 @@ export class CapabilitySyncService {
    * Remove capabilities from database that are not in registry
    */
   async removeOrphanedCapabilities(): Promise<number> {
-    const registryKeys = new Set(CAPABILITY_REGISTRY.map(c => c.key));
+    const registryKeys = new Set(CAPABILITY_REGISTRY.map((c: CapabilityDefinition) => c.key));
     const dbCapabilities = await this.prisma.capability.findMany({
       select: { key: true },
     });
@@ -89,4 +89,8 @@ export class CapabilitySyncService {
     return removed;
   }
 }
+
+
+
+
 

@@ -78,3 +78,7 @@ Pełna dokumentacja demo organizacji znajduje się w:
 ### Błąd: "Prisma Client not generated"
 **Rozwiązanie**: Uruchom `npm run db:generate` przed seed.
 
+
+
+
+

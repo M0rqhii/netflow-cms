@@ -12,3 +12,7 @@ export const CampaignQueryDtoSchema = z.object({
 
 export type CampaignQueryDto = z.infer<typeof CampaignQueryDtoSchema>;
 
+
+
+
+

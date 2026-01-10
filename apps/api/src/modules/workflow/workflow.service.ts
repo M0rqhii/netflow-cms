@@ -125,7 +125,7 @@ export class WorkflowService {
     let currentState: string;
     if (entityType === 'content') {
       const entry = await this.prisma.contentEntry.findFirst({
-        where: { id: entityId, tenantId },
+        where: { id: entityId, siteId: tenantId },
       });
       if (!entry) {
         throw new NotFoundException(`Content entry with ID ${entityId} not found`);
@@ -133,7 +133,7 @@ export class WorkflowService {
       currentState = (entry.data as any)?.workflowState || workflow.states.find((s: any) => s.initial)?.name;
     } else {
       const item = await this.prisma.collectionItem.findFirst({
-        where: { id: entityId, tenantId },
+        where: { id: entityId, siteId: tenantId },
       });
       if (!item) {
         throw new NotFoundException(`Collection item with ID ${entityId} not found`);

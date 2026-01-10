@@ -2,7 +2,9 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AuthGuard } from './auth.guard';
 import { PrismaService } from '../../prisma/prisma.service';
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 describe('AuthGuard', () => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let guard: AuthGuard;
 
   const mockPrismaService = {
@@ -50,7 +52,7 @@ describe('AuthGuard', () => {
         id: userId,
         email: 'test@example.com',
         role: 'viewer',
-        tenantId: 'tenant-123',
+        orgId: 'org-123',
       };
 
       const request: any = {

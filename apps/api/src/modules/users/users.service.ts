@@ -21,11 +21,11 @@ export class UsersService {
         id: true,
         email: true,
         role: true,
-        tenantId: true,
+        orgId: true,
         preferredLanguage: true,
         createdAt: true,
         updatedAt: true,
-        tenant: {
+        organization: {
           select: {
             id: true,
             name: true,
@@ -59,7 +59,7 @@ export class UsersService {
     }
 
     const users = await this.prisma.user.findMany({
-      where: { tenantId },
+      where: { orgId: tenantId },
       select: {
         id: true,
         email: true,
@@ -88,7 +88,7 @@ export class UsersService {
     const user = await this.prisma.user.findFirst({
       where: {
         id: userId,
-        tenantId, // Ensure user belongs to the same tenant
+        orgId: tenantId, // Ensure user belongs to the same organization
       },
       select: {
         id: true,
@@ -164,8 +164,8 @@ export class UsersService {
     // Check if user already exists
     const existingUser = await this.prisma.user.findUnique({
       where: {
-        tenantId_email: {
-          tenantId,
+        orgId_email: {
+          orgId: tenantId,
           email: dto.email,
         },
       },
@@ -175,13 +175,13 @@ export class UsersService {
       throw new ConflictException('User with this email already exists');
     }
 
-    // Check if tenant exists
-    const tenant = await this.prisma.tenant.findUnique({
+    // Check if organization exists
+    const organization = await this.prisma.organization.findUnique({
       where: { id: tenantId },
     });
 
-    if (!tenant) {
-      throw new NotFoundException('Tenant not found');
+    if (!organization) {
+      throw new NotFoundException('Organization not found');
     }
 
     // Hash password
@@ -192,7 +192,7 @@ export class UsersService {
       data: {
         email: dto.email,
         passwordHash,
-        tenantId,
+        orgId: tenantId,
         role: dto.role,
         preferredLanguage: dto.preferredLanguage || 'en',
       },
@@ -237,11 +237,11 @@ export class UsersService {
       throw new BadRequestException(`Invalid role. Must be one of: ${validRoles.join(', ')}`);
     }
 
-    // Check if user exists and belongs to tenant
+    // Check if user exists and belongs to organization
     const user = await this.prisma.user.findFirst({
       where: {
         id: userId,
-        tenantId,
+        orgId: tenantId,
       },
     });
 
@@ -251,10 +251,10 @@ export class UsersService {
 
     // Prevent self-demotion of last super_admin (optional safety check)
     if (user.role === Role.SUPER_ADMIN && newRole !== Role.SUPER_ADMIN) {
-      // Check if this is the last super_admin in the tenant
+      // Check if this is the last super_admin in the organization
       const superAdminCount = await this.prisma.user.count({
         where: {
-          tenantId,
+          orgId: tenantId,
           role: Role.SUPER_ADMIN,
         },
       });

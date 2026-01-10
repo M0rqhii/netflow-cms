@@ -538,3 +538,7 @@ export function isCapabilityBlocked(key: string): boolean {
   return capability?.blockedForCustomRoles === true;
 }
 
+
+
+
+

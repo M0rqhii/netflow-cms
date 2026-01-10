@@ -1,0 +1,320 @@
+/**
+ * Field Renderer Styles
+ */
+
+/* Text input */
+.textInput {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 4px;
+  font-size: 13px;
+  background: var(--bg-primary, #fff);
+  color: var(--text-primary, #1a1a1a);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.textInput:focus {
+  outline: none;
+  border-color: var(--primary-color, #3b82f6);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.textInput::placeholder {
+  color: var(--text-tertiary, #999);
+}
+
+/* Number input */
+.numberInput {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 4px;
+  font-size: 13px;
+  background: var(--bg-primary, #fff);
+  color: var(--text-primary, #1a1a1a);
+}
+
+.numberInput:focus {
+  outline: none;
+  border-color: var(--primary-color, #3b82f6);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Select */
+.select {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 4px;
+  font-size: 13px;
+  background: var(--bg-primary, #fff);
+  color: var(--text-primary, #1a1a1a);
+  cursor: pointer;
+}
+
+.select:focus {
+  outline: none;
+  border-color: var(--primary-color, #3b82f6);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Textarea */
+.textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 4px;
+  font-size: 13px;
+  font-family: inherit;
+  background: var(--bg-primary, #fff);
+  color: var(--text-primary, #1a1a1a);
+  resize: vertical;
+  min-height: 80px;
+}
+
+.textarea:focus {
+  outline: none;
+  border-color: var(--primary-color, #3b82f6);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Link input */
+.linkInput {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.linkIcon {
+  position: absolute;
+  left: 10px;
+  width: 14px;
+  height: 14px;
+  color: var(--text-tertiary, #999);
+  pointer-events: none;
+}
+
+.linkInput .textInput {
+  padding-left: 32px;
+}
+
+/* Checkbox */
+.checkbox {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.checkbox input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.checkboxIndicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 4px;
+  background: var(--bg-primary, #fff);
+  color: white;
+  transition: all 0.15s;
+}
+
+.checkbox input:checked + .checkboxIndicator {
+  background: var(--primary-color, #3b82f6);
+  border-color: var(--primary-color, #3b82f6);
+}
+
+.checkboxIndicator svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* Color input */
+.colorInput {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.colorPreview {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 4px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.colorText {
+  flex: 1;
+  padding: 8px 10px;
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 4px;
+  font-size: 13px;
+  font-family: monospace;
+  background: var(--bg-primary, #fff);
+  color: var(--text-primary, #1a1a1a);
+}
+
+.colorText:focus {
+  outline: none;
+  border-color: var(--primary-color, #3b82f6);
+}
+
+.colorPicker {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  background: none;
+}
+
+/* Image input */
+.imageInput {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.imagePreview {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  background: var(--bg-secondary, #f5f5f5);
+  border-radius: 6px;
+  overflow: hidden;
+  max-height: 150px;
+}
+
+.imageThumbnail {
+  max-width: 100%;
+  max-height: 150px;
+  object-fit: contain;
+}
+
+.imageClearButton {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  border-radius: 50%;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.imagePreview:hover .imageClearButton {
+  opacity: 1;
+}
+
+.imageClearButton:hover {
+  background: rgba(220, 38, 38, 0.9);
+}
+
+.imageInputRow {
+  display: flex;
+  gap: 6px;
+}
+
+.imageInputRow .textInput {
+  flex: 1;
+}
+
+.imageSelectButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  min-width: 36px;
+  height: 36px;
+  border: 1px solid var(--border-color, #e0e0e0);
+  background: var(--bg-primary, #fff);
+  color: var(--text-secondary, #666);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.imageSelectButton:hover {
+  border-color: var(--primary-color, #3b82f6);
+  color: var(--primary-color, #3b82f6);
+  background: rgba(59, 130, 246, 0.05);
+}
+
+.imageSelectButton svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Spacing input */
+.spacingInput {
+  padding: 4px;
+}
+
+.spacingGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: auto auto auto;
+  gap: 4px;
+  max-width: 150px;
+  margin: 0 auto;
+}
+
+.spacingField {
+  width: 100%;
+  padding: 4px 6px;
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 3px;
+  font-size: 11px;
+  text-align: center;
+  background: var(--bg-primary, #fff);
+}
+
+.spacingField:focus {
+  outline: none;
+  border-color: var(--primary-color, #3b82f6);
+}
+
+.spacingField.top {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.spacingField.left {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.spacingField.right {
+  grid-column: 3;
+  grid-row: 2;
+}
+
+.spacingField.bottom {
+  grid-column: 2;
+  grid-row: 3;
+}
+
+.spacingCenter {
+  grid-column: 2;
+  grid-row: 2;
+  background: var(--bg-secondary, #f5f5f5);
+  border-radius: 2px;
+  min-height: 24px;
+}

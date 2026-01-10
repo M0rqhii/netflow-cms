@@ -26,9 +26,9 @@ export class DevDomainProvider implements DomainProvider {
     try {
       const domainRecord = await this.prisma.devDomainRecord.upsert({
         where: {
-          domain_tenantId: {
+          domain_siteId: {
             domain: params.domain,
-            tenantId: params.tenantId,
+            siteId: params.tenantId,
           },
         },
         update: {
@@ -39,7 +39,7 @@ export class DevDomainProvider implements DomainProvider {
         },
         create: {
           domain: params.domain,
-          tenantId: params.tenantId,
+          siteId: params.tenantId,
           targetUrl: params.targetUrl || null,
           status: 'configured',
           sslStatus: 'active',
@@ -89,9 +89,9 @@ export class DevDomainProvider implements DomainProvider {
     try {
       const domainRecord = await this.prisma.devDomainRecord.findUnique({
         where: {
-          domain_tenantId: {
+          domain_siteId: {
             domain: params.domain,
-            tenantId: params.tenantId,
+            siteId: params.tenantId,
           },
         },
       });
@@ -99,9 +99,9 @@ export class DevDomainProvider implements DomainProvider {
       if (domainRecord) {
         await this.prisma.devDomainRecord.update({
           where: {
-            domain_tenantId: {
+            domain_siteId: {
               domain: params.domain,
-              tenantId: params.tenantId,
+              siteId: params.tenantId,
             },
           },
           data: {
@@ -125,9 +125,9 @@ export class DevDomainProvider implements DomainProvider {
     try {
       await this.prisma.devDomainRecord.delete({
         where: {
-          domain_tenantId: {
+          domain_siteId: {
             domain,
-            tenantId,
+            siteId: tenantId,
           },
         },
       });
@@ -146,9 +146,9 @@ export class DevDomainProvider implements DomainProvider {
     try {
       const domainRecord = await this.prisma.devDomainRecord.findUnique({
         where: {
-          domain_tenantId: {
+          domain_siteId: {
             domain,
-            tenantId,
+            siteId: tenantId,
           },
         },
       });
@@ -169,6 +169,10 @@ export class DevDomainProvider implements DomainProvider {
     }
   }
 }
+
+
+
+
 
 
 

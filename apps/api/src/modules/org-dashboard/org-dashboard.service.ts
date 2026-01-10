@@ -228,7 +228,7 @@ export class OrgDashboardService {
         },
       },
       include: {
-        tenant: {
+        site: {
           select: {
             slug: true,
             name: true,
@@ -246,10 +246,10 @@ export class OrgDashboardService {
         id: `deploy-${deployment.id}`,
         type: 'deployment_error',
         severity: 'high',
-        message: `Deploy strony ${deployment.tenant.name} nieudany: ${deployment.message || 'Unknown error'}`,
+        message: `Deploy strony ${deployment.site.name} nieudany: ${deployment.message || 'Unknown error'}`,
         siteId: deployment.siteId,
-        siteSlug: deployment.tenant.slug,
-        actionUrl: `/sites/${deployment.tenant.slug}/deployments`,
+        siteSlug: deployment.site.slug,
+        actionUrl: `/sites/${deployment.site.slug}/deployments`,
       });
     }
 
@@ -443,7 +443,7 @@ export class OrgDashboardService {
     // Check for LIVE (at least one published page in production)
     const productionEnv = await this.prisma.siteEnvironment.findFirst({
       where: {
-        tenantId: siteId,
+        siteId: siteId,
         type: EnvironmentType.PRODUCTION,
       },
     });
@@ -451,7 +451,7 @@ export class OrgDashboardService {
     if (productionEnv) {
       const publishedPages = await this.prisma.page.findMany({
         where: {
-          tenantId: siteId,
+          siteId: siteId,
           environmentId: productionEnv.id,
           status: PageStatus.PUBLISHED,
         },
@@ -622,7 +622,7 @@ export class OrgDashboardService {
       orderBy: { createdAt: 'desc' },
       take: 5,
       include: {
-        tenant: {
+        site: {
           select: {
             slug: true,
             name: true,
@@ -637,7 +637,7 @@ export class OrgDashboardService {
       message: event.message,
       time: event.createdAt.toISOString(),
       siteId: event.siteId,
-      siteSlug: event.tenant.slug,
+      siteSlug: event.site.slug,
     }));
   }
 }

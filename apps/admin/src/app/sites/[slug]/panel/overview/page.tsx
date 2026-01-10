@@ -2,29 +2,32 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { SitePanelLayout } from '@/components/site-panel/SitePanelLayout';
-import { SectionHeader } from '@/components/site-panel/SectionHeader';
 import { PlaceholderCard } from '@/components/site-panel/PlaceholderCard';
 import { Card, CardHeader, CardTitle, CardContent } from '@repo/ui';
 import { Button } from '@repo/ui';
 import { Badge } from '@/components/ui/Badge';
+import { Tooltip } from '@/components/ui/Tooltip';
 import { EmptyState } from '@repo/ui';
-import { useParams } from 'next/navigation';
-import { fetchMyTenants, exchangeTenantToken, getTenantToken } from '@/lib/api';
+import { useParams, useRouter } from 'next/navigation';
+import { fetchMySites, exchangeSiteToken, getSiteToken } from '@/lib/api';
 import { createApiClient } from '@repo/sdk';
-import type { TenantInfo, SiteDeployment } from '@repo/sdk';
+import type { SiteInfo, SiteDeployment } from '@repo/sdk';
 import { useToast } from '@/components/ui/Toast';
 
 export default function OverviewPage() {
   const params = useParams<{ slug: string }>();
+  const router = useRouter();
   const slug = params?.slug as string;
   const toast = useToast();
 
   const [loading, setLoading] = useState(true);
-  const [tenantId, setTenantId] = useState<string | null>(null);
+  const [siteId, setSiteId] = useState<string | null>(null);
   const [lastDeployment, setLastDeployment] = useState<SiteDeployment | null>(null);
   const [publishing, setPublishing] = useState(false);
   const [pagesCount, setPagesCount] = useState(0);
+  const [pages, setPages] = useState<{ id: string; title: string }[]>([]);
   const [mediaFilesCount, setMediaFilesCount] = useState(0);
+  const [showPageSelector, setShowPageSelector] = useState(false);
 
   const apiClient = createApiClient();
 
@@ -37,19 +40,19 @@ export default function OverviewPage() {
     try {
       setLoading(true);
 
-      const tenants = await fetchMyTenants();
-      const tenant = tenants.find((t: TenantInfo) => t.tenant.slug === slug);
+      const sites = await fetchMySites();
+      const site = sites.find((s: SiteInfo) => s.site.slug === slug);
 
-      if (!tenant) {
+      if (!site) {
         throw new Error(`Site with slug "${slug}" not found`);
       }
 
-      const id = tenant.tenantId;
-      setTenantId(id);
+      const id = site.siteId;
+      setSiteId(id);
 
-      let token = getTenantToken(id);
+      let token = getSiteToken(id);
       if (!token) {
-        token = await exchangeTenantToken(id);
+        token = await exchangeSiteToken(id);
       }
 
       const [deployment, pages, media] = await Promise.all([
@@ -60,6 +63,7 @@ export default function OverviewPage() {
 
       setLastDeployment(deployment);
       setPagesCount(pages.length);
+      setPages(pages.map((p: { id: string; title: string }) => ({ id: p.id, title: p.title })));
       setMediaFilesCount(media.length);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load data';
@@ -77,17 +81,26 @@ export default function OverviewPage() {
   }, [loadData]);
 
   const handlePublishAll = async () => {
-    if (!tenantId) return;
+    if (!siteId) return;
+
+    // GUARDRAIL: Nie pozwól publikować jeśli brak pages
+    if (pagesCount === 0) {
+      toast.push({
+        tone: 'error',
+        message: 'Dodaj przynajmniej jedną stronę, aby opublikować.',
+      });
+      return;
+    }
 
     try {
       setPublishing(true);
 
-      let token = getTenantToken(tenantId);
+      let token = getSiteToken(siteId);
       if (!token) {
-        token = await exchangeTenantToken(tenantId);
+        token = await exchangeSiteToken(siteId);
       }
 
-      await apiClient.publishSite(token, tenantId);
+      await apiClient.publishSite(token, siteId);
 
       toast.push({
         tone: 'success',
@@ -206,38 +219,67 @@ export default function OverviewPage() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              <Button variant="outline" className="w-full" disabled>
-                <span className="mr-2 inline-flex h-4 w-4 items-center justify-center">
-                  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" className="h-4 w-4">
-                    <path d="M5 5h10v10H5z" />
-                    <path d="M5 10h10M10 5v10" strokeLinecap="round" />
-                  </svg>
-                </span>
-                Open Builder
-              </Button>
-              <Button variant="outline" className="w-full" disabled>
-                <span className="mr-2 inline-flex h-4 w-4 items-center justify-center">
-                  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" className="h-4 w-4">
-                    <rect x="4" y="4" width="10" height="12" rx="1.5" />
-                    <path d="M7 8h5M7 11h4" strokeLinecap="round" />
-                  </svg>
-                </span>
-                Create Page
-              </Button>
-              <Button
-                variant="primary"
-                className="w-full"
-                onClick={handlePublishAll}
-                disabled={publishing || loading}
-              >
-                <span className="mr-2 inline-flex h-4 w-4 items-center justify-center">
-                  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" className="h-4 w-4">
-                    <path d="M5 4.5h10a1 1 0 011 1v9a1 1 0 01-1 1H5a1 1 0 01-1-1v-9a1 1 0 011-1z" />
-                    <path d="M6.5 7h7M6.5 10h7M6.5 13h4" strokeLinecap="round" />
-                  </svg>
-                </span>
-                {publishing ? 'Publishing...' : 'Publish All'}
-              </Button>
+              
+              {/* Open Builder - DISABLED jeśli brak pages, pokazuje selector jeśli wiele stron */}
+              <Tooltip content={pagesCount === 0 ? "Utwórz stronę, aby otworzyć builder" : undefined}>
+                <Button 
+                  variant="outline" 
+                  className="w-full" 
+                  disabled={pagesCount === 0}
+                  onClick={() => {
+                    if (pagesCount === 1 && pages[0]) {
+                      // Jedna strona - otwórz ją bezpośrednio
+                      router.push(`/sites/${slug}/panel/page-builder?pageId=${pages[0].id}`);
+                    } else if (pagesCount > 1) {
+                      // Więcej stron - pokaż selector
+                      setShowPageSelector(true);
+                    }
+                  }}
+                >
+                  <span className="mr-2 inline-flex h-4 w-4 items-center justify-center">
+                    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" className="h-4 w-4">
+                      <path d="M5 5h10v10H5z" />
+                      <path d="M5 10h10M10 5v10" strokeLinecap="round" />
+                    </svg>
+                  </span>
+                  Open Builder
+                </Button>
+              </Tooltip>
+
+              {/* Create Page - Przekieruj do /pages */}
+              <Tooltip content={pagesCount === 0 ? "Utwórz pierwszą stronę w sekcji Pages" : undefined}>
+                <Button 
+                  variant="outline" 
+                  className="w-full" 
+                  onClick={() => router.push(`/sites/${slug}/panel/pages`)}
+                >
+                  <span className="mr-2 inline-flex h-4 w-4 items-center justify-center">
+                    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" className="h-4 w-4">
+                      <rect x="4" y="4" width="10" height="12" rx="1.5" />
+                      <path d="M7 8h5M7 11h4" strokeLinecap="round" />
+                    </svg>
+                  </span>
+                  Create Page
+                </Button>
+              </Tooltip>
+
+              {/* Publish All - DISABLED jeśli brak pages */}
+              <Tooltip content={pagesCount === 0 ? "Dodaj stronę, aby móc publikować" : undefined}>
+                <Button
+                  variant="primary"
+                  className="w-full"
+                  onClick={handlePublishAll}
+                  disabled={publishing || loading || pagesCount === 0}
+                >
+                  <span className="mr-2 inline-flex h-4 w-4 items-center justify-center">
+                    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" className="h-4 w-4">
+                      <path d="M5 4.5h10a1 1 0 011 1v9a1 1 0 01-1 1H5a1 1 0 01-1-1v-9a1 1 0 011-1z" />
+                      <path d="M6.5 7h7M6.5 10h7M6.5 13h4" strokeLinecap="round" />
+                    </svg>
+                  </span>
+                  {publishing ? 'Publishing...' : 'Publish All'}
+                </Button>
+              </Tooltip>
             </div>
           </CardContent>
         </Card>
@@ -288,10 +330,16 @@ export default function OverviewPage() {
             <CardTitle>Recently Modified Pages</CardTitle>
           </CardHeader>
           <CardContent>
-            <EmptyState
-              title="No pages yet"
-              description="No pages yet. Create a page to start building your site."
-            />
+            <div className="py-12">
+              <EmptyState
+                title="Nie masz jeszcze żadnych stron"
+                description="Utwórz pierwszą stronę, aby rozpocząć budowanie"
+                action={{
+                  label: "Utwórz pierwszą stronę",
+                  onClick: () => router.push(`/sites/${slug}/panel/pages`),
+                }}
+              />
+            </div>
           </CardContent>
         </Card>
 
@@ -314,8 +362,38 @@ export default function OverviewPage() {
             </PlaceholderCard>
           </CardContent>
         </Card>
+
+        {/* Page Selector Modal */}
+        {showPageSelector && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 max-h-[80vh] overflow-y-auto">
+              <h2 className="text-xl font-semibold mb-4">Select a page to edit</h2>
+              <div className="space-y-2">
+                {pages.map((page) => (
+                  <button
+                    key={page.id}
+                    className="w-full text-left px-4 py-3 rounded-lg border border-gray-200 hover:border-primary hover:bg-primary/5 transition-colors"
+                    onClick={() => {
+                      setShowPageSelector(false);
+                      router.push(`/sites/${slug}/panel/page-builder?pageId=${page.id}`);
+                    }}
+                  >
+                    <div className="font-medium">{page.title || 'Untitled Page'}</div>
+                  </button>
+                ))}
+              </div>
+              <div className="flex gap-2 justify-end mt-4 pt-4 border-t">
+                <Button variant="outline" onClick={() => setShowPageSelector(false)}>
+                  Cancel
+                </Button>
+                <Button variant="primary" onClick={() => router.push(`/sites/${slug}/panel/pages`)}>
+                  Manage Pages
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </SitePanelLayout>
   );
 }
-

@@ -5,14 +5,13 @@ import {
   Body,
   Param,
   UseGuards,
-  ForbiddenException,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { AuthGuard } from '../../common/auth/guards/auth.guard';
-import { TenantGuard } from '../../common/tenant/tenant.guard';
 import { RolesGuard } from '../../common/auth/guards/roles.guard';
 import { PermissionsGuard } from '../../common/auth/guards/permissions.guard';
 import { Roles } from '../../common/auth/decorators/roles.decorator';
-import { CurrentTenant } from '../../common/decorators/current-tenant.decorator';
+import { CurrentSite } from '../../common/decorators/current-site.decorator';
 import { Role } from '../../common/auth/roles.enum';
 import { FeatureFlagsService } from './feature-flags.service';
 import { FeatureOverrideDtoSchema } from './dto';
@@ -22,28 +21,22 @@ import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
  * FeatureFlagsController - RESTful API for feature flags management
  * AI Note: Only accessible to platform admins (super_admin, tenant_admin)
  */
-@UseGuards(AuthGuard, TenantGuard, RolesGuard, PermissionsGuard)
+@UseGuards(AuthGuard, RolesGuard, PermissionsGuard)
 @Controller('sites/:siteId/features')
 export class FeatureFlagsController {
   constructor(private readonly featureFlagsService: FeatureFlagsService) {}
-
-  private assertTenantScope(siteId: string, tenantId: string) {
-    if (siteId !== tenantId) {
-      throw new ForbiddenException('Cross-tenant access is not allowed.');
-    }
-  }
 
   /**
    * GET /sites/:siteId/features
    * Get all features for a site (plan features, overrides, and effective features)
    */
   @Get()
+  @Throttle(300, 60) // 300 requests per minute (higher limit for feature flag checks)
   @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN)
   async getSiteFeatures(
     @Param('siteId') siteId: string,
-    @CurrentTenant() tenantId: string,
+    @CurrentSite() _: string, // Validated by middleware
   ) {
-    this.assertTenantScope(siteId, tenantId);
     return this.featureFlagsService.getSiteFeatures(siteId);
   }
 
@@ -52,16 +45,20 @@ export class FeatureFlagsController {
    * Create or update a feature override for a site
    */
   @Patch('override')
+  @Throttle(50, 60) // 50 requests per minute (lower limit for write operations)
   @Roles(Role.SUPER_ADMIN) // Only super_admin can override features
   async setFeatureOverride(
     @Param('siteId') siteId: string,
-    @CurrentTenant() tenantId: string,
+    @CurrentSite() _: string, // Validated by middleware
     @Body(new ZodValidationPipe(FeatureOverrideDtoSchema)) dto: unknown,
   ) {
-    this.assertTenantScope(siteId, tenantId);
+    // siteId is validated by middleware to match currentSiteId
     return this.featureFlagsService.setFeatureOverride(siteId, dto as any);
   }
 }
+
+
+
 
 
 

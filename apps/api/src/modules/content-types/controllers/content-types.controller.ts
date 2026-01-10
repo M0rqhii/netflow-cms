@@ -10,13 +10,12 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { TenantGuard } from '../../../common/tenant/tenant.guard';
 import { AuthGuard } from '../../../common/auth/guards/auth.guard';
 import { RolesGuard } from '../../../common/auth/guards/roles.guard';
 import { PermissionsGuard } from '../../../common/auth/guards/permissions.guard';
 import { Roles } from '../../../common/auth/decorators/roles.decorator';
 import { Permissions } from '../../../common/auth/decorators/permissions.decorator';
-import { CurrentTenant } from '../../../common/decorators/current-tenant.decorator';
+import { CurrentSite } from '../../../common/decorators/current-site.decorator';
 import { Role, Permission } from '../../../common/auth/roles.enum';
 import { ContentTypesService } from '../services/content-types.service';
 import {
@@ -26,9 +25,9 @@ import {
 
 /**
  * ContentTypesController - RESTful API dla Content Types
- * AI Note: Wszystkie endpointy wymagają autentykacji i X-Tenant-ID header
+ * AI Note: Wszystkie endpointy wymagają autentykacji i X-Site-ID header
  */
-@UseGuards(AuthGuard, TenantGuard, RolesGuard, PermissionsGuard)
+@UseGuards(AuthGuard, RolesGuard, PermissionsGuard)
 @Controller('content-types')
 export class ContentTypesController {
   constructor(private readonly contentTypesService: ContentTypesService) {}
@@ -37,43 +36,43 @@ export class ContentTypesController {
   @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN)
   @Permissions(Permission.CONTENT_TYPES_WRITE)
   create(
-    @CurrentTenant() tenantId: string,
+    @CurrentSite() siteId: string,
     @Body() body: unknown
   ) {
     const dto = CreateContentTypeDtoSchema.parse(body);
-    return this.contentTypesService.create(tenantId, dto);
+    return this.contentTypesService.create(siteId, dto);
   }
 
   @Get()
   @Permissions(Permission.CONTENT_TYPES_READ)
-  list(@CurrentTenant() tenantId: string) {
-    return this.contentTypesService.list(tenantId);
+  list(@CurrentSite() siteId: string) {
+    return this.contentTypesService.list(siteId);
   }
 
   @Get(':id')
   @Permissions(Permission.CONTENT_TYPES_READ)
-  get(@CurrentTenant() tenantId: string, @Param('id') id: string) {
-    return this.contentTypesService.getById(tenantId, id);
+  get(@CurrentSite() siteId: string, @Param('id') id: string) {
+    return this.contentTypesService.getById(siteId, id);
   }
 
   @Patch(':id')
   @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN)
   @Permissions(Permission.CONTENT_TYPES_WRITE)
   update(
-    @CurrentTenant() tenantId: string,
+    @CurrentSite() siteId: string,
     @Param('id') id: string,
     @Body() body: unknown
   ) {
     const dto = UpdateContentTypeDtoSchema.parse(body);
-    return this.contentTypesService.update(tenantId, id, dto);
+    return this.contentTypesService.update(siteId, id, dto);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
   @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN)
   @Permissions(Permission.CONTENT_TYPES_DELETE)
-  remove(@CurrentTenant() tenantId: string, @Param('id') id: string) {
-    return this.contentTypesService.remove(tenantId, id);
+  remove(@CurrentSite() siteId: string, @Param('id') id: string) {
+    return this.contentTypesService.remove(siteId, id);
   }
 }
 

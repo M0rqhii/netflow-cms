@@ -15,7 +15,7 @@ import { AuthGuard } from '../../common/auth/guards/auth.guard';
 import { TenantGuard } from '../../common/tenant/tenant.guard';
 import { CapabilityGuard } from '../../common/auth/guards/capability.guard';
 import { Capabilities } from '../../common/auth/decorators/capabilities.decorator';
-import { CurrentTenant } from '../../common/decorators/current-tenant.decorator';
+import { CurrentOrg } from '../../common/decorators/current-org.decorator';
 import { CurrentUser } from '../../common/auth/decorators/current-user.decorator';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 import { MarketingService } from './marketing.service';
@@ -68,7 +68,7 @@ export class MarketingController {
   @UseGuards(AuthGuard, TenantGuard, CapabilityGuard)
   @Capabilities('marketing.view')
   async listCampaigns(
-    @CurrentTenant() orgId: string,
+    @CurrentOrg() orgId: string,
     @Query(new ZodValidationPipe(CampaignQueryDtoSchema)) query: CampaignQueryDto,
   ) {
     return this.marketingService.listCampaigns(orgId, query);
@@ -82,7 +82,7 @@ export class MarketingController {
   @UseGuards(AuthGuard, TenantGuard, CapabilityGuard)
   @Capabilities('marketing.view')
   async getCampaign(
-    @CurrentTenant() orgId: string,
+    @CurrentOrg() orgId: string,
     @Param('id') campaignId: string,
   ) {
     return this.marketingService.getCampaign(orgId, campaignId);
@@ -96,7 +96,7 @@ export class MarketingController {
   @UseGuards(AuthGuard, TenantGuard, CapabilityGuard)
   @Capabilities('marketing.campaign.manage')
   async createCampaign(
-    @CurrentTenant() orgId: string,
+    @CurrentOrg() orgId: string,
     @Body(new ZodValidationPipe(CreateCampaignDtoSchema)) dto: CreateCampaignDto,
     @CurrentUser() user: { id: string },
   ) {
@@ -111,7 +111,7 @@ export class MarketingController {
   @UseGuards(AuthGuard, TenantGuard, CapabilityGuard)
   @Capabilities('marketing.campaign.manage')
   async updateCampaign(
-    @CurrentTenant() orgId: string,
+    @CurrentOrg() orgId: string,
     @Param('id') campaignId: string,
     @Body(new ZodValidationPipe(UpdateCampaignDtoSchema)) dto: UpdateCampaignDto,
   ) {
@@ -127,7 +127,7 @@ export class MarketingController {
   @Capabilities('marketing.campaign.manage')
   @HttpCode(HttpStatus.OK)
   async deleteCampaign(
-    @CurrentTenant() orgId: string,
+    @CurrentOrg() orgId: string,
     @Param('id') campaignId: string,
   ) {
     return this.marketingService.deleteCampaign(orgId, campaignId);
@@ -145,7 +145,7 @@ export class MarketingController {
   @UseGuards(AuthGuard, TenantGuard, CapabilityGuard)
   @Capabilities('marketing.view')
   async listDrafts(
-    @CurrentTenant() orgId: string,
+    @CurrentOrg() orgId: string,
     @Query(new ZodValidationPipe(DistributionDraftQueryDtoSchema)) query: DistributionDraftQueryDto,
   ) {
     return this.marketingService.listDrafts(orgId, query);
@@ -159,7 +159,7 @@ export class MarketingController {
   @UseGuards(AuthGuard, TenantGuard, CapabilityGuard)
   @Capabilities('marketing.view')
   async getDraft(
-    @CurrentTenant() orgId: string,
+    @CurrentOrg() orgId: string,
     @Param('id') draftId: string,
   ) {
     return this.marketingService.getDraft(orgId, draftId);
@@ -173,7 +173,7 @@ export class MarketingController {
   @UseGuards(AuthGuard, TenantGuard, CapabilityGuard)
   @Capabilities('marketing.content.edit')
   async createDraft(
-    @CurrentTenant() orgId: string,
+    @CurrentOrg() orgId: string,
     @Body(new ZodValidationPipe(CreateDistributionDraftDtoSchema)) dto: CreateDistributionDraftDto,
     @CurrentUser() user: { id: string },
   ) {
@@ -188,7 +188,7 @@ export class MarketingController {
   @UseGuards(AuthGuard, TenantGuard, CapabilityGuard)
   @Capabilities('marketing.content.edit')
   async updateDraft(
-    @CurrentTenant() orgId: string,
+    @CurrentOrg() orgId: string,
     @Param('id') draftId: string,
     @Body(new ZodValidationPipe(UpdateDistributionDraftDtoSchema)) dto: UpdateDistributionDraftDto,
   ) {
@@ -204,7 +204,7 @@ export class MarketingController {
   @Capabilities('marketing.content.edit')
   @HttpCode(HttpStatus.OK)
   async deleteDraft(
-    @CurrentTenant() orgId: string,
+    @CurrentOrg() orgId: string,
     @Param('id') draftId: string,
   ) {
     return this.marketingService.deleteDraft(orgId, draftId);
@@ -227,7 +227,7 @@ export class MarketingController {
   @UseGuards(AuthGuard, TenantGuard, CapabilityGuard)
   @Capabilities('marketing.publish')
   async publish(
-    @CurrentTenant() orgId: string,
+    @CurrentOrg() orgId: string,
     @Body(new ZodValidationPipe(PublishDtoSchema)) dto: PublishDto,
     @CurrentUser() user: { id: string },
   ) {
@@ -242,7 +242,7 @@ export class MarketingController {
   @UseGuards(AuthGuard, TenantGuard, CapabilityGuard)
   @Capabilities('marketing.view')
   async listPublishJobs(
-    @CurrentTenant() orgId: string,
+    @CurrentOrg() orgId: string,
     @Query(new ZodValidationPipe(PublishJobQueryDtoSchema)) query: PublishJobQueryDto,
   ) {
     return this.marketingService.listPublishJobs(orgId, query);
@@ -256,7 +256,7 @@ export class MarketingController {
   @UseGuards(AuthGuard, TenantGuard, CapabilityGuard)
   @Capabilities('marketing.view')
   async getPublishJob(
-    @CurrentTenant() orgId: string,
+    @CurrentOrg() orgId: string,
     @Param('id') jobId: string,
   ) {
     return this.marketingService.getPublishJob(orgId, jobId);
@@ -274,7 +274,7 @@ export class MarketingController {
   @UseGuards(AuthGuard, TenantGuard, CapabilityGuard)
   @Capabilities('marketing.view')
   async listChannelConnections(
-    @CurrentTenant() orgId: string,
+    @CurrentOrg() orgId: string,
     @Query(new ZodValidationPipe(ChannelConnectionQueryDtoSchema)) query: ChannelConnectionQueryDto,
   ) {
     return this.marketingService.listChannelConnections(orgId, query);
@@ -288,7 +288,7 @@ export class MarketingController {
   @UseGuards(AuthGuard, TenantGuard, CapabilityGuard)
   @Capabilities('marketing.view')
   async getChannelConnection(
-    @CurrentTenant() orgId: string,
+    @CurrentOrg() orgId: string,
     @Param('id') connectionId: string,
   ) {
     return this.marketingService.getChannelConnection(orgId, connectionId);
@@ -304,7 +304,7 @@ export class MarketingController {
   @UseGuards(AuthGuard, TenantGuard, CapabilityGuard)
   @Capabilities('marketing.social.connect')
   async createChannelConnection(
-    @CurrentTenant() orgId: string,
+    @CurrentOrg() orgId: string,
     @Body(new ZodValidationPipe(CreateChannelConnectionDtoSchema)) dto: CreateChannelConnectionDto,
     @CurrentUser() user: { id: string },
   ) {
@@ -319,7 +319,7 @@ export class MarketingController {
   @UseGuards(AuthGuard, TenantGuard, CapabilityGuard)
   @Capabilities('marketing.social.connect')
   async updateChannelConnection(
-    @CurrentTenant() orgId: string,
+    @CurrentOrg() orgId: string,
     @Param('id') connectionId: string,
     @Body(new ZodValidationPipe(UpdateChannelConnectionDtoSchema)) dto: UpdateChannelConnectionDto,
   ) {
@@ -335,7 +335,7 @@ export class MarketingController {
   @Capabilities('marketing.social.connect')
   @HttpCode(HttpStatus.OK)
   async deleteChannelConnection(
-    @CurrentTenant() orgId: string,
+    @CurrentOrg() orgId: string,
     @Param('id') connectionId: string,
   ) {
     return this.marketingService.deleteChannelConnection(orgId, connectionId);

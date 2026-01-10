@@ -7,8 +7,8 @@ import { Badge } from '@/components/ui/Badge';
 import { LoadingSpinner } from '@repo/ui';
 import { DevPanelLayout } from '@/components/dev-panel/DevPanelLayout';
 import {
-  fetchMyTenants,
-  fetchTenantUsers,
+  fetchMySites,
+  fetchSiteUsers,
   decodeAuthToken,
   getAuthToken,
   getDevSummary,
@@ -16,9 +16,9 @@ import {
   getDevPayments,
   getDevSites,
 } from '@/lib/api';
-import type { TenantInfo } from '@repo/sdk';
+import type { SiteInfo } from '@repo/sdk';
 
-const PRIVILEGED_ROLES = ['super_admin', 'tenant_admin'];
+const PRIVILEGED_ROLES = ['super_admin', 'site_admin'];
 const PRIVILEGED_PLATFORM_ROLES = ['platform_admin'];
 
 export default function DevPanelPage() {
@@ -47,7 +47,7 @@ export default function DevPanelPage() {
     console.log('[Dev Panel] Is privileged:', isPrivileged);
   }
 
-  const [sites, setSites] = useState<TenantInfo[]>([]);
+  const [sites, setSites] = useState<SiteInfo[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [usersCount, setUsersCount] = useState<number | null>(null);
@@ -55,7 +55,7 @@ export default function DevPanelPage() {
   const [devSummary, setDevSummary] = useState<{ sites: number; users: number; emails: number; subscriptions: number } | null>(null);
   const [emailLog, setEmailLog] = useState<Array<{ id: string; to: string; subject: string; status: string; sentAt?: string; createdAt?: string }>>([]);
   const [paymentEvents, setPaymentEvents] = useState<
-    Array<{ id: string; tenantId: string; plan: string; status: string; currentPeriodStart?: string; currentPeriodEnd?: string; createdAt?: string }>
+    Array<{ id: string; siteId: string; plan: string; status: string; currentPeriodStart?: string; currentPeriodEnd?: string; createdAt?: string }>
   >([]);
   
   // Check access via API if token doesn't have role (for old tokens)
@@ -112,7 +112,7 @@ export default function DevPanelPage() {
     Promise.all([
       getDevSites().catch(async () => {
         // Fallback: user-visible sites
-        const fallback = await fetchMyTenants();
+        const fallback = await fetchMySites();
         return fallback;
       }),
       getDevSummary().catch(() => null),
@@ -120,19 +120,19 @@ export default function DevPanelPage() {
       getDevPayments().catch(() => []),
     ])
       .then(([siteData, summary, emails, payments]) => {
-        const normalizedSites: TenantInfo[] = (siteData as any[]).map((s: any) => {
-          if (s?.tenant) return s as TenantInfo;
+        const normalizedSites: SiteInfo[] = (siteData as any[]).map((s: any) => {
+          if (s?.site) return s as SiteInfo;
           return {
-            tenantId: s.id,
+            siteId: s.id,
             role: 'admin',
-            tenant: {
+            site: {
               id: s.id,
               name: s.name,
               slug: s.slug,
               plan: s.plan,
               createdAt: s.createdAt,
             },
-          } as TenantInfo;
+          } as SiteInfo;
         });
         setSites(normalizedSites);
         setDevSummary(summary ? { sites: summary.sites, users: summary.users, emails: summary.emails, subscriptions: summary.subscriptions } : null);
@@ -148,7 +148,7 @@ export default function DevPanelPage() {
     if (!sites.length) return;
     setUsersError(null);
     Promise.all(
-      sites.map((site) => fetchTenantUsers(site.tenantId).then((list) => list.length).catch(() => null))
+      sites.map((site) => fetchSiteUsers(site.siteId).then((list) => list.length).catch(() => null))
     )
       .then((results) => {
         const total = results.reduce((acc, val) => (val === null ? acc : acc + val), 0);
@@ -192,7 +192,7 @@ export default function DevPanelPage() {
       <div className="container py-10">
         <EmptyState
           title="Access denied"
-          description="Only privileged users (super_admin, tenant_admin, or platform_admin) can access the Dev Panel."
+          description="Only privileged users (super_admin, site_admin, or platform_admin) can access the Dev Panel."
           action={{
             label: 'Back to dashboard',
             onClick: () => (window.location.href = '/dashboard'),
@@ -356,7 +356,7 @@ export default function DevPanelPage() {
                 <thead>
                   <tr className="text-left text-muted border-b">
                     <th className="py-3 px-4 font-semibold">Plan</th>
-                    <th className="py-3 px-4 font-semibold">Tenant ID</th>
+                    <th className="py-3 px-4 font-semibold">Site ID</th>
                     <th className="py-3 px-4 font-semibold">Status</th>
                     <th className="py-3 px-4 font-semibold">Period end</th>
                     <th className="py-3 px-4 font-semibold">Created</th>
@@ -366,7 +366,7 @@ export default function DevPanelPage() {
                   {paymentEvents.map((evt) => (
                     <tr key={evt.id} className="border-b border-gray-200 hover:bg-gray-50">
                       <td className="py-3 px-4 font-mono text-xs">{evt.plan}</td>
-                      <td className="py-3 px-4 font-mono text-xs">{evt.tenantId}</td>
+                      <td className="py-3 px-4 font-mono text-xs">{evt.siteId}</td>
                       <td className="py-3 px-4">
                         <Badge tone={evt.status === 'active' ? 'success' : 'warning'}>{evt.status}</Badge>
                       </td>
@@ -410,15 +410,15 @@ export default function DevPanelPage() {
                 </thead>
                 <tbody>
                   {sites.map((site) => (
-                    <tr key={site.tenantId} className="border-b border-gray-200 hover:bg-gray-50">
-                      <td className="py-3 px-4">{site.tenant.name}</td>
-                      <td className="py-3 px-4 font-mono text-xs">{site.tenant.slug}</td>
-                      <td className="py-3 px-4">{site.tenant.plan || 'free'}</td>
+                    <tr key={site.siteId} className="border-b border-gray-200 hover:bg-gray-50">
+                      <td className="py-3 px-4">{site.site.name}</td>
+                      <td className="py-3 px-4 font-mono text-xs">{site.site.slug}</td>
+                      <td className="py-3 px-4">{site.site.plan || 'free'}</td>
                       <td className="py-3 px-4">
                         <Badge>{site.role}</Badge>
                       </td>
                       <td className="py-3 px-4 text-right">
-                        <Link href={`/sites/${site.tenant.slug}`} className="text-primary hover:underline text-xs">
+                        <Link href={`/sites/${site.site.slug}`} className="text-primary hover:underline text-xs">
                           Open
                         </Link>
                       </td>

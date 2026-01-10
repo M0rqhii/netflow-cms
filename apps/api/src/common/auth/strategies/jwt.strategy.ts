@@ -8,7 +8,8 @@ import { CurrentUserPayload } from '../decorators/current-user.decorator';
 export interface JwtPayload {
   sub: string; // user id
   email: string;
-  tenantId?: string; // optional for global token (Hub)
+  orgId?: string; // Organization ID (optional for global token)
+  tenantId?: string; // DEPRECATED: Backward compatibility - use orgId instead
   role: string; // Backward compatibility: tenant role (super_admin, tenant_admin, editor, viewer)
   siteRole?: string; // Site role (viewer, editor, editor-in-chief, marketing, admin, owner)
   platformRole?: string; // Platform role (user, editor-in-chief, admin, owner)
@@ -47,7 +48,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         platformRole: true,
         systemRole: true,
         isSuperAdmin: true,
-        tenantId: true,
+        orgId: true,
       },
     });
 
@@ -56,6 +57,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     }
 
     // Use values from database (most up-to-date) or fall back to token payload
+    const orgId = payload.orgId ?? user.orgId;
     return {
       id: user.id,
       email: user.email,
@@ -64,7 +66,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       platformRole: user.platformRole || payload.platformRole || undefined,
       systemRole: user.systemRole || payload.systemRole || undefined,
       isSuperAdmin: user.isSuperAdmin || payload.isSuperAdmin || false,
-      tenantId: payload.tenantId ?? user.tenantId,
+      orgId: orgId || undefined,
+      tenantId: payload.tenantId || orgId, // Backward compatibility - map orgId to tenantId
     };
   }
 }

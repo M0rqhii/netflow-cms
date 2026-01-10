@@ -1,4 +1,4 @@
-import { Injectable, ExecutionContext } from '@nestjs/common';
+import { Injectable, ExecutionContext, Logger } from '@nestjs/common';
 import { ThrottlerGuard } from '@nestjs/throttler';
 import { Request } from 'express';
 import { Reflector } from '@nestjs/core';
@@ -10,12 +10,23 @@ import { Reflector } from '@nestjs/core';
  */
 @Injectable()
 export class RoleBasedThrottlerGuard extends ThrottlerGuard {
+  private readonly logger = new Logger(RoleBasedThrottlerGuard.name);
+
   constructor(
     options: any,
     storageService: any,
     reflector: Reflector,
   ) {
     super(options, storageService, reflector);
+  }
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    try {
+      const result = await super.canActivate(context);
+      return result;
+    } catch (error: any) {
+      throw error;
+    }
   }
 
   protected getTracker(req: Record<string, any>): string {
@@ -43,7 +54,7 @@ export class RoleBasedThrottlerGuard extends ThrottlerGuard {
       // In development, set to very high limit (effectively unlimited)
       const limit = isDevelopment ? 999999 : throttlerMetadata[0];
       if (isDevelopment && process.env.DEBUG_THROTTLER === 'true') {
-        console.log(`[Throttler] Using decorator limit: ${limit} (dev mode)`);
+        this.logger.debug(`Using decorator limit: ${limit} (dev mode)`);
       }
       return limit;
     }
@@ -56,26 +67,23 @@ export class RoleBasedThrottlerGuard extends ThrottlerGuard {
     // In development, set to very high limit (effectively unlimited)
     if (isDevelopment) {
       if (process.env.DEBUG_THROTTLER === 'true') {
-        console.log(`[Throttler] Development mode - unlimited requests allowed`);
+        this.logger.debug('Development mode - unlimited requests allowed');
       }
       return 999999; // Effectively unlimited in development
     }
     
+    let limit = 50; // Default limit for unauthenticated users
     if (user?.role === 'super_admin') {
-      return 1000; // 1000 requests per minute for super admin
-    }
-    if (user?.role === 'tenant_admin') {
-      return 500; // 500 requests per minute for tenant admin
-    }
-    if (user?.role === 'editor') {
-      return 200; // 200 requests per minute for editor
-    }
-    if (user?.role === 'viewer') {
-      return 100; // 100 requests per minute for viewer
+      limit = 1000; // 1000 requests per minute for super admin
+    } else if (user?.role === 'tenant_admin') {
+      limit = 500; // 500 requests per minute for tenant admin
+    } else if (user?.role === 'editor') {
+      limit = 200; // 200 requests per minute for editor
+    } else if (user?.role === 'viewer') {
+      limit = 100; // 100 requests per minute for viewer
     }
 
-    // Default limit for unauthenticated users
-    return 50; // 50 requests per minute
+    return limit;
   }
 }
 

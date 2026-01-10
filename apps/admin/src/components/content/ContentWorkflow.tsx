@@ -9,7 +9,7 @@ import { submitContentForReview, reviewContent, getContentReviewHistory, createC
 import type { ContentEntry } from '@/lib/api';
 
 interface ContentWorkflowProps {
-  tenantId: string;
+  siteId: string;
   contentTypeSlug: string;
   entry: ContentEntry;
   canEdit: boolean;
@@ -17,7 +17,7 @@ interface ContentWorkflowProps {
   onUpdate: () => void;
 }
 
-export function ContentWorkflow({ tenantId, contentTypeSlug, entry, canEdit, canReview, onUpdate }: ContentWorkflowProps) {
+export function ContentWorkflow({ siteId, contentTypeSlug, entry, canEdit, canReview, onUpdate }: ContentWorkflowProps) {
   const [showComments, setShowComments] = useState(false);
   const [comments, setComments] = useState<any[]>([]);
   const [newComment, setNewComment] = useState('');
@@ -30,7 +30,7 @@ export function ContentWorkflow({ tenantId, contentTypeSlug, entry, canEdit, can
 
   const loadComments = async () => {
     try {
-      const data = await getContentComments(tenantId, contentTypeSlug, entry.id, true);
+      const data = await getContentComments(siteId, contentTypeSlug, entry.id, true);
       setComments(data);
     } catch (err) {
       push({ tone: 'error', message: err instanceof Error ? err.message : 'Failed to load comments' });
@@ -39,7 +39,7 @@ export function ContentWorkflow({ tenantId, contentTypeSlug, entry, canEdit, can
 
   const loadReviewHistory = async () => {
     try {
-      const data = await getContentReviewHistory(tenantId, contentTypeSlug, entry.id);
+      const data = await getContentReviewHistory(siteId, contentTypeSlug, entry.id);
       setReviewHistory(data);
     } catch (err) {
       push({ tone: 'error', message: err instanceof Error ? err.message : 'Failed to load review history' });
@@ -50,7 +50,7 @@ export function ContentWorkflow({ tenantId, contentTypeSlug, entry, canEdit, can
     if (!confirm('Submit this entry for review?')) return;
     setSubmitting(true);
     try {
-      await submitContentForReview(tenantId, contentTypeSlug, entry.id);
+      await submitContentForReview(siteId, contentTypeSlug, entry.id);
       push({ tone: 'success', message: 'Entry submitted for review' });
       onUpdate();
     } catch (err) {
@@ -63,7 +63,7 @@ export function ContentWorkflow({ tenantId, contentTypeSlug, entry, canEdit, can
   const handleReview = async () => {
     setSubmitting(true);
     try {
-      await reviewContent(tenantId, contentTypeSlug, entry.id, reviewStatus, reviewComment || undefined);
+      await reviewContent(siteId, contentTypeSlug, entry.id, reviewStatus, reviewComment || undefined);
       push({ tone: 'success', message: `Entry ${reviewStatus}` });
       setShowReviewModal(false);
       setReviewComment('');
@@ -80,7 +80,7 @@ export function ContentWorkflow({ tenantId, contentTypeSlug, entry, canEdit, can
     if (!newComment.trim()) return;
     setSubmitting(true);
     try {
-      await createContentComment(tenantId, contentTypeSlug, entry.id, newComment);
+      await createContentComment(siteId, contentTypeSlug, entry.id, newComment);
       push({ tone: 'success', message: 'Comment added' });
       setNewComment('');
       loadComments();
@@ -93,7 +93,7 @@ export function ContentWorkflow({ tenantId, contentTypeSlug, entry, canEdit, can
 
   const handleResolveComment = async (commentId: string, resolved: boolean) => {
     try {
-      await updateContentComment(tenantId, contentTypeSlug, entry.id, commentId, { resolved });
+      await updateContentComment(siteId, contentTypeSlug, entry.id, commentId, { resolved });
       loadComments();
     } catch (err) {
       push({ tone: 'error', message: err instanceof Error ? err.message : 'Failed to update comment' });
@@ -103,7 +103,7 @@ export function ContentWorkflow({ tenantId, contentTypeSlug, entry, canEdit, can
   const handleDeleteComment = async (commentId: string) => {
     if (!confirm('Delete this comment?')) return;
     try {
-      await deleteContentComment(tenantId, contentTypeSlug, entry.id, commentId);
+      await deleteContentComment(siteId, contentTypeSlug, entry.id, commentId);
       push({ tone: 'success', message: 'Comment deleted' });
       loadComments();
     } catch (err) {

@@ -33,7 +33,7 @@ export class ContentWorkflowService {
     const entry = await this.prisma.contentEntry.findFirst({
       where: {
         id: entryId,
-        tenantId,
+        siteId: tenantId,
         contentTypeId: contentType.id,
       },
     });
@@ -83,7 +83,7 @@ export class ContentWorkflowService {
     const entry = await this.prisma.contentEntry.findFirst({
       where: {
         id: entryId,
-        tenantId,
+        siteId: tenantId,
         contentTypeId: contentType.id,
       },
     });
@@ -100,7 +100,7 @@ export class ContentWorkflowService {
     await this.prisma.contentReview.create({
       data: {
         contentEntryId: entryId,
-        tenantId,
+        siteId: tenantId,
         reviewerId,
         status: dto.status,
         comment: dto.comment,
@@ -157,7 +157,7 @@ export class ContentWorkflowService {
     const entry = await this.prisma.contentEntry.findFirst({
       where: {
         id: entryId,
-        tenantId,
+        siteId: tenantId,
         contentTypeId: contentType.id,
       },
     });
@@ -169,7 +169,7 @@ export class ContentWorkflowService {
     return this.prisma.contentReview.findMany({
       where: {
         contentEntryId: entryId,
-        tenantId,
+        siteId: tenantId,
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -190,7 +190,7 @@ export class ContentWorkflowService {
     const entry = await this.prisma.contentEntry.findFirst({
       where: {
         id: entryId,
-        tenantId,
+        siteId: tenantId,
         contentTypeId: contentType.id,
       },
     });
@@ -202,7 +202,7 @@ export class ContentWorkflowService {
     return this.prisma.contentComment.create({
       data: {
         contentEntryId: entryId,
-        tenantId,
+        siteId: tenantId,
         authorId,
         content: dto.content,
       },
@@ -223,7 +223,7 @@ export class ContentWorkflowService {
     const entry = await this.prisma.contentEntry.findFirst({
       where: {
         id: entryId,
-        tenantId,
+        siteId: tenantId,
         contentTypeId: contentType.id,
       },
     });
@@ -235,7 +235,7 @@ export class ContentWorkflowService {
     return this.prisma.contentComment.findMany({
       where: {
         contentEntryId: entryId,
-        tenantId,
+        siteId: tenantId,
         ...(includeResolved ? {} : { resolved: false }),
       },
       orderBy: { createdAt: 'asc' },
@@ -258,7 +258,7 @@ export class ContentWorkflowService {
     const entry = await this.prisma.contentEntry.findFirst({
       where: {
         id: entryId,
-        tenantId,
+        siteId: tenantId,
         contentTypeId: contentType.id,
       },
     });
@@ -271,7 +271,7 @@ export class ContentWorkflowService {
       where: {
         id: commentId,
         contentEntryId: entryId,
-        tenantId,
+        siteId: tenantId,
       },
     });
 
@@ -308,7 +308,7 @@ export class ContentWorkflowService {
     const entry = await this.prisma.contentEntry.findFirst({
       where: {
         id: entryId,
-        tenantId,
+        siteId: tenantId,
         contentTypeId: contentType.id,
       },
     });
@@ -321,7 +321,7 @@ export class ContentWorkflowService {
       where: {
         id: commentId,
         contentEntryId: entryId,
-        tenantId,
+        siteId: tenantId,
       },
     });
 

@@ -15,7 +15,7 @@ import {
 
 /**
  * ContentTypesService - business logic dla Content Types
- * AI Note: Zawsze filtruj po tenantId - multi-tenant isolation
+ * AI Note: Zawsze filtruj po siteId - site isolation
  */
 @Injectable()
 export class ContentTypesService {
@@ -122,7 +122,7 @@ export class ContentTypesService {
   }
 
   async create(
-    tenantId: string,
+    siteId: string,
     dto: CreateContentTypeDto
   ) {
     try {
@@ -138,14 +138,14 @@ export class ContentTypesService {
 
       const result = await this.prisma.contentType.create({
         data: {
-          tenantId,
+          siteId,
           name: dto.name,
           slug: dto.slug,
           schema,
         },
         select: {
           id: true,
-          tenantId: true,
+          siteId: true,
           name: true,
           slug: true,
           schema: true,
@@ -155,30 +155,30 @@ export class ContentTypesService {
       });
 
       // Invalidate list cache
-      await this.cache.del(`content-types:${tenantId}:list`);
+      await this.cache.del(`content-types:${siteId}:list`);
 
       return result;
     } catch (e: unknown) {
       if (e && typeof e === 'object' && 'code' in e && e.code === 'P2002') {
-        throw new ConflictException('Content type slug already exists for this tenant');
+        throw new ConflictException('Content type slug already exists for this site');
       }
       throw e;
     }
   }
 
-  async list(tenantId: string) {
-    const cacheKey = `content-types:${tenantId}:list`;
+  async list(siteId: string) {
+    const cacheKey = `content-types:${siteId}:list`;
     const cached = await this.cache.get(cacheKey);
     if (cached) {
       return cached;
     }
 
     const result = await this.prisma.contentType.findMany({
-      where: { tenantId },
+      where: { siteId },
       orderBy: { createdAt: 'desc' },
       select: {
         id: true,
-        tenantId: true,
+        siteId: true,
         name: true,
         slug: true,
         schema: true,
@@ -192,19 +192,19 @@ export class ContentTypesService {
     return result;
   }
 
-  async getById(tenantId: string, id: string): Promise<{
+  async getById(siteId: string, id: string): Promise<{
     id: string;
-    tenantId: string;
+    siteId: string;
     name: string;
     slug: string;
     schema: any;
     createdAt: Date;
     updatedAt: Date;
   }> {
-    const cacheKey = `content-types:${tenantId}:${id}`;
+    const cacheKey = `content-types:${siteId}:${id}`;
     const cached = await this.cache.get<{
       id: string;
-      tenantId: string;
+      siteId: string;
       name: string;
       slug: string;
       schema: any;
@@ -216,10 +216,10 @@ export class ContentTypesService {
     }
 
     const contentType = await this.prisma.contentType.findFirst({
-      where: { tenantId, id },
+      where: { siteId, id },
       select: {
         id: true,
-        tenantId: true,
+        siteId: true,
         name: true,
         slug: true,
         schema: true,
@@ -237,19 +237,19 @@ export class ContentTypesService {
     return contentType;
   }
 
-  async getBySlug(tenantId: string, slug: string): Promise<{
+  async getBySlug(siteId: string, slug: string): Promise<{
     id: string;
-    tenantId: string;
+    siteId: string;
     name: string;
     slug: string;
     schema: any;
     createdAt: Date;
     updatedAt: Date;
   }> {
-    const cacheKey = `content-types:${tenantId}:slug:${slug}`;
+    const cacheKey = `content-types:${siteId}:slug:${slug}`;
     const cached = await this.cache.get<{
       id: string;
-      tenantId: string;
+      siteId: string;
       name: string;
       slug: string;
       schema: any;
@@ -261,10 +261,10 @@ export class ContentTypesService {
     }
 
     const contentType = await this.prisma.contentType.findFirst({
-      where: { tenantId, slug },
+      where: { siteId, slug },
       select: {
         id: true,
-        tenantId: true,
+        siteId: true,
         name: true,
         slug: true,
         schema: true,
@@ -283,11 +283,11 @@ export class ContentTypesService {
   }
 
   async update(
-    tenantId: string,
+    siteId: string,
     id: string,
     dto: UpdateContentTypeDto
   ) {
-    const found = await this.getById(tenantId, id);
+    const found = await this.getById(siteId, id);
     if (!found) {
       throw new NotFoundException('Content type not found');
     }
@@ -314,7 +314,7 @@ export class ContentTypesService {
         data: updateData,
         select: {
           id: true,
-          tenantId: true,
+          siteId: true,
           name: true,
           slug: true,
           schema: true,
@@ -325,25 +325,25 @@ export class ContentTypesService {
 
       // Invalidate cache
       await Promise.all([
-        this.cache.del(`content-types:${tenantId}:list`),
-        this.cache.del(`content-types:${tenantId}:${id}`),
-        this.cache.del(`content-types:${tenantId}:slug:${found.slug}`),
+        this.cache.del(`content-types:${siteId}:list`),
+        this.cache.del(`content-types:${siteId}:${id}`),
+        this.cache.del(`content-types:${siteId}:slug:${found.slug}`),
         dto.slug && dto.slug !== found.slug
-          ? this.cache.del(`content-types:${tenantId}:slug:${dto.slug}`)
+          ? this.cache.del(`content-types:${siteId}:slug:${dto.slug}`)
           : Promise.resolve(),
       ]);
 
       return result;
     } catch (e: unknown) {
       if (e && typeof e === 'object' && 'code' in e && e.code === 'P2002') {
-        throw new ConflictException('Content type slug already exists for this tenant');
+        throw new ConflictException('Content type slug already exists for this site');
       }
       throw e;
     }
   }
 
-  async remove(tenantId: string, id: string) {
-    const found = await this.getById(tenantId, id);
+  async remove(siteId: string, id: string) {
+    const found = await this.getById(siteId, id);
     if (!found) {
       throw new NotFoundException('Content type not found');
     }
@@ -351,7 +351,7 @@ export class ContentTypesService {
     // Check if there are any content entries using this content type
     const entryCount = await this.prisma.contentEntry.count({
       where: {
-        tenantId,
+        siteId,
         contentTypeId: id,
       },
     });
@@ -368,9 +368,9 @@ export class ContentTypesService {
 
     // Invalidate cache
     await Promise.all([
-      this.cache.del(`content-types:${tenantId}:list`),
-      this.cache.del(`content-types:${tenantId}:${id}`),
-      this.cache.del(`content-types:${tenantId}:slug:${found.slug}`),
+      this.cache.del(`content-types:${siteId}:list`),
+      this.cache.del(`content-types:${siteId}:${id}`),
+      this.cache.del(`content-types:${siteId}:slug:${found.slug}`),
     ]);
     
     return { ok: true };

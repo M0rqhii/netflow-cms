@@ -21,6 +21,8 @@
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
+    "incremental": true,
+    "tsBuildInfoFile": ".tsbuildinfo",
     
     // Path mappings for monorepo
     "baseUrl": ".",

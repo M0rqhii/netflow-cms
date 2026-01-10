@@ -39,20 +39,20 @@ async function main() {
 
     console.log('✅ User updated successfully!');
     console.log(`User ID: ${user.id}`);
-    console.log(`Tenant ID: ${user.tenantId}`);
+    console.log(`Organization ID: ${user.orgId}`);
     console.log(`Role: ${user.role}`);
     return;
   }
 
-  // Find or create a tenant for super admin
-  // Super admins typically belong to a special tenant
-  let tenant = await prisma.tenant.findFirst({
+  // Find or create an organization for super admin
+  // Super admins typically belong to a special organization
+  let org = await prisma.organization.findFirst({
     where: { slug: 'platform-admin' },
   });
 
-  if (!tenant) {
-    console.log('📦 Creating platform admin tenant...');
-    tenant = await prisma.tenant.create({
+  if (!org) {
+    console.log('📦 Creating platform admin organization...');
+    org = await prisma.organization.create({
       data: {
         name: 'Platform Admin',
         slug: 'platform-admin',
@@ -60,9 +60,9 @@ async function main() {
         settings: {},
       },
     });
-    console.log(`✅ Created tenant: ${tenant.slug} (${tenant.id})`);
+    console.log(`✅ Created organization: ${org.slug} (${org.id})`);
   } else {
-    console.log(`✅ Using existing tenant: ${tenant.slug} (${tenant.id})`);
+    console.log(`✅ Using existing organization: ${org.slug} (${org.id})`);
   }
 
   // Hash password
@@ -73,7 +73,7 @@ async function main() {
     data: {
       email,
       passwordHash,
-      tenantId: tenant.id,
+      orgId: org.id,
       role: role as any,
       preferredLanguage: 'pl',
     },
@@ -83,8 +83,8 @@ async function main() {
   console.log(`User ID: ${user.id}`);
   console.log(`Email: ${user.email}`);
   console.log(`Role: ${user.role}`);
-  console.log(`Tenant ID: ${user.tenantId}`);
-  console.log(`Tenant: ${tenant.name} (${tenant.slug})`);
+  console.log(`Organization ID: ${user.orgId}`);
+  console.log(`Organization: ${org.name} (${org.slug})`);
 }
 
 main()
@@ -95,6 +95,10 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
+
+
+
+
 
 
 

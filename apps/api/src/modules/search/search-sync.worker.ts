@@ -56,7 +56,7 @@ export class SearchSyncWorker implements OnModuleInit {
         try {
           await this.elasticsearch.indexDocument('content_entries', entry.id, {
             id: entry.id,
-            tenantId: entry.tenantId,
+            tenantId: entry.siteId,
             contentTypeId: entry.contentTypeId,
             data: entry.data,
             status: entry.status,
@@ -105,7 +105,7 @@ export class SearchSyncWorker implements OnModuleInit {
         try {
           await this.elasticsearch.indexDocument('collection_items', item.id, {
             id: item.id,
-            tenantId: item.tenantId,
+            tenantId: item.siteId,
             collectionId: item.collectionId,
             data: item.data,
             status: item.status,
@@ -136,14 +136,14 @@ export class SearchSyncWorker implements OnModuleInit {
 
     // Reindex content entries
     const entries = await this.prisma.contentEntry.findMany({
-      where: tenantId ? { tenantId } : undefined,
+      where: tenantId ? { siteId: tenantId } : undefined,
     });
 
     const entryDocs = entries.map(entry => ({
       id: entry.id,
       document: {
         id: entry.id,
-        tenantId: entry.tenantId,
+        tenantId: entry.siteId,
         contentTypeId: entry.contentTypeId,
         data: entry.data,
         status: entry.status,
@@ -157,14 +157,14 @@ export class SearchSyncWorker implements OnModuleInit {
 
     // Reindex collection items
     const items = await this.prisma.collectionItem.findMany({
-      where: tenantId ? { tenantId } : undefined,
+      where: tenantId ? { siteId: tenantId } : undefined,
     });
 
     const itemDocs = items.map(item => ({
       id: item.id,
       document: {
         id: item.id,
-        tenantId: item.tenantId,
+        tenantId: item.siteId,
         collectionId: item.collectionId,
         data: item.data,
         status: item.status,

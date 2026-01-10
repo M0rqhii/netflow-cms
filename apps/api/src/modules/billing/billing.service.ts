@@ -28,16 +28,16 @@ export class BillingService {
   }
 
   /**
-   * Get subscription for tenant by id
+   * Get subscription for organization by id
    */
-  async getSubscription(tenantId: string, subscriptionId: string) {
+  async getSubscription(orgId: string, subscriptionId: string) {
     const subscription = await this.prisma.subscription.findFirst({
       where: {
         id: subscriptionId,
-        tenantId,
+        orgId,
       },
       include: {
-        tenant: {
+        organization: {
           select: {
             id: true,
             name: true,
@@ -60,14 +60,14 @@ export class BillingService {
   }
 
   /**
-   * List subscriptions for tenant
+   * List subscriptions for organization
    */
-  async listSubscriptions(tenantId: string, query: SubscriptionQueryDto) {
+  async listSubscriptions(orgId: string, query: SubscriptionQueryDto) {
     const { status, plan, page, pageSize } = query;
     const skip = (page - 1) * pageSize;
 
     const where: any = {
-      tenantId,
+      orgId,
     };
 
     if (status) {
@@ -102,13 +102,13 @@ export class BillingService {
    * Create subscription
    * Uses PaymentProvider to create subscription (provider handles DB persistence)
    */
-  async createSubscription(tenantId: string, dto: CreateSubscriptionDto) {
+  async createSubscription(orgId: string, dto: CreateSubscriptionDto) {
     if (!dto.plan) {
       throw new BadRequestException('Plan is required');
     }
 
     const result = await this.paymentProvider.createSubscription({
-      tenantId,
+      tenantId: orgId, // PaymentProvider still uses tenantId internally (backward compatibility)
       plan: dto.plan,
       customerId: dto.stripeCustomerId,
       trialDays: dto.trialDays,
@@ -118,7 +118,7 @@ export class BillingService {
     const subscription = await this.prisma.subscription.findUnique({
       where: { id: result.id },
       include: {
-        tenant: {
+        organization: {
           select: {
             id: true,
             name: true,
@@ -140,12 +140,12 @@ export class BillingService {
    * Update subscription
    * Uses PaymentProvider to update subscription
    */
-  async updateSubscription(tenantId: string, subscriptionId: string, dto: UpdateSubscriptionDto) {
-    // Verify subscription belongs to tenant
+  async updateSubscription(orgId: string, subscriptionId: string, dto: UpdateSubscriptionDto) {
+    // Verify subscription belongs to organization
     const subscription = await this.prisma.subscription.findFirst({
       where: {
         id: subscriptionId,
-        tenantId,
+        orgId,
       },
     });
 
@@ -170,12 +170,12 @@ export class BillingService {
    * Cancel subscription
    * Uses PaymentProvider to cancel subscription
    */
-  async cancelSubscription(tenantId: string, subscriptionId: string) {
-    // Verify subscription belongs to tenant
+  async cancelSubscription(orgId: string, subscriptionId: string) {
+    // Verify subscription belongs to organization
     const subscription = await this.prisma.subscription.findFirst({
       where: {
         id: subscriptionId,
-        tenantId,
+        orgId,
       },
     });
 
@@ -196,13 +196,13 @@ export class BillingService {
   }
 
   /**
-   * List invoices for tenant
+   * List invoices for organization
    */
-  async listInvoices(tenantId: string, query: InvoiceQueryDto) {
+  async listInvoices(orgId: string, query: InvoiceQueryDto) {
     const { page, pageSize, status } = query;
     const skip = (page - 1) * pageSize;
 
-    const where: any = { tenantId };
+    const where: any = { orgId };
     if (status) {
       where.status = status;
     }
@@ -230,14 +230,14 @@ export class BillingService {
   /**
    * Get invoice by ID
    */
-  async getInvoice(tenantId: string, invoiceId: string) {
+  async getInvoice(orgId: string, invoiceId: string) {
     const invoice = await this.prisma.invoice.findFirst({
       where: {
         id: invoiceId,
-        tenantId,
+        orgId,
       },
       include: {
-        tenant: { select: { id: true, name: true, slug: true } },
+        organization: { select: { id: true, name: true, slug: true } },
         subscription: { select: { id: true, plan: true, status: true } },
       },
     });
@@ -250,13 +250,13 @@ export class BillingService {
   }
 
   /**
-   * List payments for tenant
+   * List payments for organization
    */
-  async listPayments(tenantId: string, query: PaymentQueryDto) {
+  async listPayments(orgId: string, query: PaymentQueryDto) {
     const { page, pageSize, status } = query;
     const skip = (page - 1) * pageSize;
 
-    const where: any = { tenantId };
+    const where: any = { orgId };
     if (status) {
       where.status = status;
     }
@@ -282,28 +282,33 @@ export class BillingService {
   }
 
   /**
-   * Get latest subscription for tenant (used by tenants controller)
+   * Get latest subscription for organization (used by organizations controller)
    */
-  async getTenantSubscription(tenantId: string) {
+  async getOrgSubscription(orgId: string) {
     return this.prisma.subscription.findFirst({
-      where: { tenantId },
+      where: { orgId },
       orderBy: { createdAt: 'desc' },
     });
   }
 
+  // Backward compatibility alias
+  async getTenantSubscription(tenantId: string) {
+    return this.getOrgSubscription(tenantId);
+  }
+
   /**
-   * Get invoices for tenant with pagination (used by tenants controller)
+   * Get invoices for organization with pagination (used by organizations controller)
    */
-  async getTenantInvoices(tenantId: string, page = 1, pageSize = 20) {
+  async getOrgInvoices(orgId: string, page = 1, pageSize = 20) {
     const skip = (page - 1) * pageSize;
     const [invoices, total] = await Promise.all([
       this.prisma.invoice.findMany({
-        where: { tenantId },
+        where: { orgId },
         skip,
         take: pageSize,
         orderBy: { createdAt: 'desc' },
       }),
-      this.prisma.invoice.count({ where: { tenantId } }),
+      this.prisma.invoice.count({ where: { orgId } }),
     ]);
 
     return {
@@ -316,12 +321,17 @@ export class BillingService {
     };
   }
 
+  // Backward compatibility alias
+  async getTenantInvoices(tenantId: string, page = 1, pageSize = 20) {
+    return this.getOrgInvoices(tenantId, page, pageSize);
+  }
+
   /**
    * Get subscription status summary (used by admin panel)
    */
-  async getSubscriptionStatus(tenantId: string) {
+  async getSubscriptionStatus(orgId: string) {
     const subscription = await this.prisma.subscription.findFirst({
-      where: { tenantId },
+      where: { orgId },
       orderBy: { createdAt: 'desc' },
     });
 
@@ -340,21 +350,38 @@ export class BillingService {
   }
 
   /**
-   * Get subscription for site (siteId = tenantId)
+   * Get subscription info for site (read-only, minimal data)
+   * Note: Sites don't have subscriptions directly - they belong to organizations
+   * Site can only READ basic subscription info (plan, status) - NO access to org data
+   * Full billing management is at Organization level only
    * GET /billing/site/:id
    */
   async getSiteSubscription(siteId: string) {
+    // Get site to find its organization (only orgId, no org data)
+    const site = await this.prisma.site.findUnique({
+      where: { id: siteId },
+      select: { orgId: true },
+    });
+
+    if (!site) {
+      throw new NotFoundException('Site not found');
+    }
+
+    // Get subscription for the organization (read-only for site)
     const subscription = await this.prisma.subscription.findFirst({
-      where: { tenantId: siteId },
+      where: { orgId: site.orgId },
       orderBy: { createdAt: 'desc' },
-      include: {
-        tenant: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-          },
-        },
+      select: {
+        id: true,
+        orgId: true,
+        plan: true,
+        status: true,
+        currentPeriodStart: true,
+        currentPeriodEnd: true,
+        cancelAtPeriodEnd: true,
+        createdAt: true,
+        updatedAt: true,
+        // NO organization data - site has no access to org
       },
     });
 
@@ -367,8 +394,9 @@ export class BillingService {
       };
     }
 
+    // Return only minimal subscription info - NO org data
     return {
-      siteId: subscription.tenantId,
+      siteId,
       plan: subscription.plan,
       status: subscription.status,
       renewalDate: subscription.currentPeriodEnd,
@@ -381,12 +409,27 @@ export class BillingService {
 
   /**
    * Update subscription for site
+   * WARNING: This should be called from Organization level, not Site level
+   * Sites should NOT be able to modify subscriptions - only Organization can
+   * This method is kept for backward compatibility but should be restricted
    * POST /billing/site/:id/update
+   * 
+   * TODO: Consider removing this endpoint or restricting it to org-level only
    */
   async updateSiteSubscription(siteId: string, dto: UpdateSiteSubscriptionDto) {
-    // Find existing subscription or create new one
+    // Get site to find its organization (only orgId, no org data)
+    const site = await this.prisma.site.findUnique({
+      where: { id: siteId },
+      select: { orgId: true },
+    });
+
+    if (!site) {
+      throw new NotFoundException('Site not found');
+    }
+
+    // Find existing subscription or create new one for the organization
     let subscription = await this.prisma.subscription.findFirst({
-      where: { tenantId: siteId },
+      where: { orgId: site.orgId },
       orderBy: { createdAt: 'desc' },
     });
 
@@ -404,19 +447,27 @@ export class BillingService {
       updateData.currentPeriodEnd = new Date(dto.renewalDate);
     }
 
+    let updatedSubscription;
     if (subscription) {
       // Update existing subscription
-      subscription = await this.prisma.subscription.update({
+      updatedSubscription = await this.prisma.subscription.update({
         where: { id: subscription.id },
         data: updateData,
-        include: {
-          tenant: {
-            select: {
-              id: true,
-              name: true,
-              slug: true,
-            },
-          },
+        select: {
+          id: true,
+          orgId: true,
+          plan: true,
+          status: true,
+          currentPeriodStart: true,
+          currentPeriodEnd: true,
+          cancelAtPeriodEnd: true,
+          createdAt: true,
+          updatedAt: true,
+          cancelledAt: true,
+          trialStart: true,
+          trialEnd: true,
+          stripeSubscriptionId: true,
+          stripeCustomerId: true,
         },
       });
     } else {
@@ -424,103 +475,163 @@ export class BillingService {
       const now = new Date();
       const renewalDate = dto.renewalDate ? new Date(dto.renewalDate) : this.calculatePeriodEnd();
 
-      subscription = await this.prisma.subscription.create({
+      updatedSubscription = await this.prisma.subscription.create({
         data: {
-          tenantId: siteId,
+          orgId: site.orgId,
           plan: dto.plan || 'BASIC',
           status: dto.status || 'active',
           currentPeriodStart: now,
           currentPeriodEnd: renewalDate,
+          cancelAtPeriodEnd: false,
+          cancelledAt: null,
+          trialStart: null,
+          trialEnd: null,
+          stripeSubscriptionId: null,
+          stripeCustomerId: null,
         },
-        include: {
-          tenant: {
-            select: {
-              id: true,
-              name: true,
-              slug: true,
-            },
-          },
+        select: {
+          id: true,
+          orgId: true,
+          plan: true,
+          status: true,
+          currentPeriodStart: true,
+          currentPeriodEnd: true,
+          cancelAtPeriodEnd: true,
+          createdAt: true,
+          updatedAt: true,
+          cancelledAt: true,
+          trialStart: true,
+          trialEnd: true,
+          stripeSubscriptionId: true,
+          stripeCustomerId: true,
         },
       });
     }
 
+    // Return only minimal subscription info - NO org data
     return {
-      siteId: subscription.tenantId,
-      plan: subscription.plan,
-      status: subscription.status,
-      renewalDate: subscription.currentPeriodEnd,
-      currentPeriodStart: subscription.currentPeriodStart,
-      cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
-      createdAt: subscription.createdAt,
-      updatedAt: subscription.updatedAt,
+      siteId,
+      plan: updatedSubscription.plan,
+      status: updatedSubscription.status,
+      renewalDate: updatedSubscription.currentPeriodEnd,
+      currentPeriodStart: updatedSubscription.currentPeriodStart,
+      cancelAtPeriodEnd: updatedSubscription.cancelAtPeriodEnd,
+      createdAt: updatedSubscription.createdAt,
+      updatedAt: updatedSubscription.updatedAt,
     };
   }
 
   /**
-   * Get billing info for current user (all their sites/tenants)
+   * Get billing info for current user (all their organizations)
    * GET /billing/me
-   * Returns: subscriptions list, invoices list, and sites summary
+   * Returns: subscriptions list, invoices list, and organizations summary
    */
   async getMyBillingInfo(userId: string) {
-    // Try UserTenant model first (multi-tenant support)
-    let userTenants: Array<{ tenantId: string; role: string; tenant: any }> = [];
+    // Try UserOrg model first (multi-org support)
+    let userOrgs: Array<{ orgId: string; role: string; organization: any }> = [];
 
     try {
-      const memberships = await this.prisma.userTenant.findMany({
+      const memberships = await this.prisma.userOrg.findMany({
         where: { userId },
         include: {
-          tenant: {
+          organization: {
             include: {
               subscriptions: {
                 orderBy: { createdAt: 'desc' },
-                take: 1, // Latest subscription per tenant
+                take: 1, // Latest subscription per organization
               },
             },
           },
         },
       });
 
-      userTenants = memberships.map((m) => ({
-        tenantId: m.tenantId,
+      userOrgs = memberships.map((m) => ({
+        orgId: m.orgId,
         role: m.role,
-        tenant: m.tenant,
+        organization: m.organization,
       }));
     } catch (error) {
-      // Fallback to legacy single-tenant relation (backward compatibility)
-      const legacy = await this.prisma.user.findUnique({
-        where: { id: userId },
-        include: {
-          tenant: {
-            include: {
-              subscriptions: {
-                orderBy: { createdAt: 'desc' },
-                take: 1,
+      // Fallback to legacy UserTenant
+      try {
+        const legacyMemberships = await this.prisma.userTenant.findMany({
+          where: { userId },
+        });
+        
+        // Fetch tenant and subscription data separately
+        const tenantIds = legacyMemberships.map(m => m.tenantId);
+        const tenants = await this.prisma.tenant.findMany({
+          where: { id: { in: tenantIds } },
+        });
+        
+        const subscriptions = await this.prisma.subscription.findMany({
+          where: { orgId: { in: tenantIds } },
+          orderBy: { createdAt: 'desc' },
+        });
+        
+        // Group subscriptions by orgId
+        const subscriptionsByOrg = new Map<string, any[]>();
+        for (const sub of subscriptions) {
+          if (!subscriptionsByOrg.has(sub.orgId)) {
+            subscriptionsByOrg.set(sub.orgId, []);
+          }
+          subscriptionsByOrg.get(sub.orgId)!.push(sub);
+        }
+        
+        // Attach tenant and subscription data to memberships
+        const membershipsWithData = legacyMemberships.map(m => {
+          const tenant = tenants.find(t => t.id === m.tenantId);
+          const orgSubs = subscriptionsByOrg.get(m.tenantId) || [];
+          return {
+            ...m,
+            tenant: tenant ? {
+              ...tenant,
+              subscriptions: orgSubs.slice(0, 1),
+            } : null,
+          };
+        });
+
+        userOrgs = membershipsWithData.map((m) => ({
+          orgId: m.tenantId,
+          role: m.role,
+          organization: m.tenant,
+        }));
+      } catch (legacyError) {
+        // Fallback to legacy single-org relation (backward compatibility)
+        const legacy = await this.prisma.user.findUnique({
+          where: { id: userId },
+          include: {
+            organization: {
+              include: {
+                subscriptions: {
+                  orderBy: { createdAt: 'desc' },
+                  take: 1,
+                },
               },
             },
           },
-        },
-      });
+        });
 
-      if (legacy?.tenantId) {
-        userTenants = [
-          {
-            tenantId: legacy.tenantId,
-            role: legacy.role,
-            tenant: legacy.tenant,
-          },
-        ];
+        if (legacy?.orgId) {
+          userOrgs = [
+            {
+              orgId: legacy.orgId,
+              role: legacy.role,
+              organization: legacy.organization,
+            },
+          ];
+        }
       }
     }
 
-    const tenantIds = userTenants.map((ut) => ut.tenantId);
+    const orgIds = userOrgs.map((uo) => uo.orgId);
 
-    // Fetch all subscriptions for user's tenants
+    // Fetch all subscriptions for user's organizations
     const subscriptions = await this.prisma.subscription.findMany({
       where: {
-        tenantId: { in: tenantIds },
+        orgId: { in: orgIds },
       },
       include: {
-        tenant: {
+        organization: {
           select: {
             id: true,
             name: true,
@@ -531,13 +642,13 @@ export class BillingService {
       orderBy: { createdAt: 'desc' },
     });
 
-    // Fetch all invoices for user's tenants
+    // Fetch all invoices for user's organizations
     const invoices = await this.prisma.invoice.findMany({
       where: {
-        tenantId: { in: tenantIds },
+        orgId: { in: orgIds },
       },
       include: {
-        tenant: {
+        organization: {
           select: {
             id: true,
             name: true,
@@ -555,35 +666,35 @@ export class BillingService {
       orderBy: { createdAt: 'desc' },
     });
 
-    const sites = userTenants.map((ut) => {
-      const latestSubscription = ut.tenant?.subscriptions?.[0];
+    const organizations = userOrgs.map((uo) => {
+      const latestSubscription = uo.organization?.subscriptions?.[0];
       return {
-        siteId: ut.tenantId,
-        siteName: ut.tenant?.name || '',
-        siteSlug: ut.tenant?.slug || '',
+        orgId: uo.orgId,
+        orgName: uo.organization?.name || '',
+        orgSlug: uo.organization?.slug || '',
         plan: latestSubscription?.plan || 'BASIC',
         status: latestSubscription?.status || 'none',
         renewalDate: latestSubscription?.currentPeriodEnd || null,
-        role: ut.role,
+        role: uo.role,
       };
     });
 
     return {
       userId,
-      sites,
-      totalSites: sites.length,
+      organizations,
+      totalOrgs: organizations.length,
       subscriptions: subscriptions.map((sub) => ({
         id: sub.id,
-        tenantId: sub.tenantId,
+        orgId: sub.orgId,
         plan: sub.plan,
         status: sub.status,
         currentPeriodStart: sub.currentPeriodStart?.toISOString() || null,
         currentPeriodEnd: sub.currentPeriodEnd?.toISOString() || null,
-        tenant: sub.tenant,
+        organization: sub.organization,
       })),
       invoices: invoices.map((inv) => ({
         id: inv.id,
-        tenantId: inv.tenantId,
+        orgId: inv.orgId,
         subscriptionId: inv.subscriptionId,
         invoiceNumber: inv.invoiceNumber,
         amount: inv.amount,
@@ -591,7 +702,7 @@ export class BillingService {
         status: inv.status,
         createdAt: inv.createdAt.toISOString(),
         paidAt: inv.paidAt?.toISOString() || null,
-        tenant: inv.tenant,
+        organization: inv.organization,
         subscription: inv.subscription,
       })),
     };

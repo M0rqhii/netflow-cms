@@ -11,9 +11,9 @@ import { EmptyState, Button } from '@repo/ui';
 import { Badge } from '@/components/ui/Badge';
 import { useToast } from '@/components/ui/Toast';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
-import { fetchMyTenants, exchangeTenantToken, getTenantToken } from '@/lib/api';
+import { fetchMySites, exchangeSiteToken, getSiteToken } from '@/lib/api';
 import { createApiClient } from '@repo/sdk';
-import type { TenantInfo, SiteDeployment } from '@repo/sdk';
+import type { SiteInfo, SiteDeployment } from '@repo/sdk';
 
 export default function DeploymentsPage() {
   const params = useParams<{ slug: string }>();
@@ -22,7 +22,7 @@ export default function DeploymentsPage() {
 
   const [loading, setLoading] = useState(true);
   const [deployments, setDeployments] = useState<SiteDeployment[]>([]);
-  const [tenantId, setTenantId] = useState<string | null>(null);
+  const [siteId, setSiteId] = useState<string | null>(null);
 
   const apiClient = createApiClient();
 
@@ -35,19 +35,19 @@ export default function DeploymentsPage() {
     try {
       setLoading(true);
 
-      const tenants = await fetchMyTenants();
-      const tenant = tenants.find((t: TenantInfo) => t.tenant.slug === slug);
+      const sites = await fetchMySites();
+      const site = sites.find((s: SiteInfo) => s.site.slug === slug);
 
-      if (!tenant) {
+      if (!site) {
         throw new Error(`Site with slug "${slug}" not found`);
       }
 
-      const id = tenant.tenantId;
-      setTenantId(id);
+      const id = site.siteId;
+      setSiteId(id);
 
-      let token = getTenantToken(id);
+      let token = getSiteToken(id);
       if (!token) {
-        token = await exchangeTenantToken(id);
+        token = await exchangeSiteToken(id);
       }
 
       const deploymentsData = await apiClient.listDeployments(token, id, { limit: 100 });

@@ -138,3 +138,7 @@ This should be run:
 - After adding new capabilities to registry
 - Via migration/seeding script
 
+
+
+
+

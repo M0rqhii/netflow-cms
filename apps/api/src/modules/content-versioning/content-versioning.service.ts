@@ -14,7 +14,7 @@ export class ContentVersioningService {
    * Create a version snapshot when item is updated
    */
   async createVersion(
-    tenantId: string,
+    siteId: string,
     itemId: string,
     data: any,
     status: string,
@@ -25,7 +25,7 @@ export class ContentVersioningService {
     const item = await this.prisma.collectionItem.findFirst({
       where: {
         id: itemId,
-        tenantId,
+        siteId,
       },
     });
 
@@ -36,7 +36,7 @@ export class ContentVersioningService {
     // Create version snapshot
     return this.prisma.collectionItemVersion.create({
       data: {
-        tenantId,
+        siteId,
         itemId,
         version: item.version,
         data,
@@ -50,12 +50,12 @@ export class ContentVersioningService {
   /**
    * Get version history for an item
    */
-  async getVersionHistory(tenantId: string, itemId: string) {
+  async getVersionHistory(siteId: string, itemId: string) {
     // Verify item exists
     const item = await this.prisma.collectionItem.findFirst({
       where: {
         id: itemId,
-        tenantId,
+        siteId,
       },
     });
 
@@ -66,7 +66,7 @@ export class ContentVersioningService {
     // Get all versions ordered by version number (descending)
     const versions = await this.prisma.collectionItemVersion.findMany({
       where: {
-        tenantId,
+        siteId,
         itemId,
       },
       orderBy: {
@@ -83,10 +83,10 @@ export class ContentVersioningService {
   /**
    * Get a specific version
    */
-  async getVersion(tenantId: string, itemId: string, version: number) {
+  async getVersion(siteId: string, itemId: string, version: number) {
     const versionRecord = await this.prisma.collectionItemVersion.findFirst({
       where: {
-        tenantId,
+        siteId,
         itemId,
         version,
       },
@@ -103,14 +103,14 @@ export class ContentVersioningService {
    * Get diff between two versions
    */
   async getVersionDiff(
-    tenantId: string,
+    siteId: string,
     itemId: string,
     version1: number,
     version2: number,
   ) {
     const [v1, v2] = await Promise.all([
-      this.getVersion(tenantId, itemId, version1),
-      this.getVersion(tenantId, itemId, version2),
+      this.getVersion(siteId, itemId, version1),
+      this.getVersion(siteId, itemId, version2),
     ]);
 
     // Convert JSON to string for diff
@@ -147,19 +147,19 @@ export class ContentVersioningService {
    * Restore a version (creates new version with restored data)
    */
   async restoreVersion(
-    tenantId: string,
+    siteId: string,
     itemId: string,
     version: number,
     userId?: string,
     changeNote?: string,
   ) {
-    const versionRecord = await this.getVersion(tenantId, itemId, version);
+    const versionRecord = await this.getVersion(siteId, itemId, version);
 
     // Get current item
     const item = await this.prisma.collectionItem.findFirst({
       where: {
         id: itemId,
-        tenantId,
+        siteId,
       },
     });
 
@@ -180,7 +180,7 @@ export class ContentVersioningService {
 
     // Create new version snapshot for the restoration
     await this.createVersion(
-      tenantId,
+      siteId,
       itemId,
       versionRecord.data,
       versionRecord.status,

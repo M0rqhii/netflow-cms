@@ -13,12 +13,11 @@ import {
   Logger,
 } from '@nestjs/common';
 import { AuthGuard } from '../../common/auth/guards/auth.guard';
-import { TenantGuard } from '../../common/tenant/tenant.guard';
 import { RolesGuard } from '../../common/auth/guards/roles.guard';
 import { PermissionsGuard } from '../../common/auth/guards/permissions.guard';
 import { Permissions } from '../../common/auth/decorators/permissions.decorator';
 import { Permission } from '../../common/auth/roles.enum';
-import { CurrentTenant } from '../../common/decorators/current-tenant.decorator';
+import { CurrentOrg } from '../../common/decorators/current-org.decorator';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 import { BillingService } from './billing.service';
 import { StripeService } from './stripe.service';
@@ -84,24 +83,24 @@ export class BillingController {
    * GET /billing/subscription/status
    */
   @Get('subscription/status')
-  @UseGuards(AuthGuard, TenantGuard, RolesGuard, PermissionsGuard)
+  @UseGuards(AuthGuard, RolesGuard, PermissionsGuard)
   @Permissions(Permission.BILLING_READ)
-  async getSubscriptionStatus(@CurrentTenant() tenantId: string) {
-    return this.billingService.getSubscriptionStatus(tenantId);
+  async getSubscriptionStatus(@CurrentOrg() orgId: string) {
+    return this.billingService.getSubscriptionStatus(orgId);
   }
 
   /**
-   * List subscriptions for current tenant
+   * List subscriptions for current organization
    * GET /billing/subscriptions
    */
   @Get('subscriptions')
-  @UseGuards(AuthGuard, TenantGuard, RolesGuard, PermissionsGuard)
+  @UseGuards(AuthGuard, RolesGuard, PermissionsGuard)
   @Permissions(Permission.BILLING_READ)
   async listSubscriptions(
-    @CurrentTenant() tenantId: string,
+    @CurrentOrg() orgId: string,
     @Query(new ZodValidationPipe(SubscriptionQueryDtoSchema)) query: SubscriptionQueryDto,
   ) {
-    return this.billingService.listSubscriptions(tenantId, query);
+    return this.billingService.listSubscriptions(orgId, query);
   }
 
   /**
@@ -109,27 +108,27 @@ export class BillingController {
    * GET /billing/subscriptions/:id
    */
   @Get('subscriptions/:id')
-  @UseGuards(AuthGuard, TenantGuard, RolesGuard, PermissionsGuard)
+  @UseGuards(AuthGuard, RolesGuard, PermissionsGuard)
   @Permissions(Permission.BILLING_READ)
   async getSubscription(
-    @CurrentTenant() tenantId: string,
+    @CurrentOrg() orgId: string,
     @Param('id') subscriptionId: string,
   ) {
-    return this.billingService.getSubscription(tenantId, subscriptionId);
+    return this.billingService.getSubscription(orgId, subscriptionId);
   }
 
   /**
-   * Create subscription for current tenant
+   * Create subscription for current organization
    * POST /billing/subscriptions
    */
   @Post('subscriptions')
-  @UseGuards(AuthGuard, TenantGuard, RolesGuard, PermissionsGuard)
+  @UseGuards(AuthGuard, RolesGuard, PermissionsGuard)
   @Permissions(Permission.BILLING_WRITE)
   async createSubscription(
-    @CurrentTenant() tenantId: string,
+    @CurrentOrg() orgId: string,
     @Body(new ZodValidationPipe(CreateSubscriptionDtoSchema)) dto: CreateSubscriptionDto,
   ) {
-    return this.billingService.createSubscription(tenantId, dto);
+    return this.billingService.createSubscription(orgId, dto);
   }
 
   /**
@@ -137,14 +136,14 @@ export class BillingController {
    * PATCH /billing/subscriptions/:id
    */
   @Patch('subscriptions/:id')
-  @UseGuards(AuthGuard, TenantGuard, RolesGuard, PermissionsGuard)
+  @UseGuards(AuthGuard, RolesGuard, PermissionsGuard)
   @Permissions(Permission.BILLING_WRITE)
   async updateSubscription(
-    @CurrentTenant() tenantId: string,
+    @CurrentOrg() orgId: string,
     @Param('id') subscriptionId: string,
     @Body(new ZodValidationPipe(UpdateSubscriptionDtoSchema)) dto: UpdateSubscriptionDto,
   ) {
-    return this.billingService.updateSubscription(tenantId, subscriptionId, dto);
+    return this.billingService.updateSubscription(orgId, subscriptionId, dto);
   }
 
   /**
@@ -152,28 +151,28 @@ export class BillingController {
    * DELETE /billing/subscriptions/:id
    */
   @Delete('subscriptions/:id')
-  @UseGuards(AuthGuard, TenantGuard, RolesGuard, PermissionsGuard)
+  @UseGuards(AuthGuard, RolesGuard, PermissionsGuard)
   @Permissions(Permission.BILLING_WRITE)
   @HttpCode(HttpStatus.OK)
   async cancelSubscription(
-    @CurrentTenant() tenantId: string,
+    @CurrentOrg() orgId: string,
     @Param('id') subscriptionId: string,
   ) {
-    return this.billingService.cancelSubscription(tenantId, subscriptionId);
+    return this.billingService.cancelSubscription(orgId, subscriptionId);
   }
 
   /**
-   * List invoices for current tenant
+   * List invoices for current organization
    * GET /billing/invoices
    */
   @Get('invoices')
-  @UseGuards(AuthGuard, TenantGuard, RolesGuard, PermissionsGuard)
+  @UseGuards(AuthGuard, RolesGuard, PermissionsGuard)
   @Permissions(Permission.BILLING_READ)
   async listInvoices(
-    @CurrentTenant() tenantId: string,
+    @CurrentOrg() orgId: string,
     @Query(new ZodValidationPipe(InvoiceQueryDtoSchema)) query: InvoiceQueryDto,
   ) {
-    return this.billingService.listInvoices(tenantId, query);
+    return this.billingService.listInvoices(orgId, query);
   }
 
   /**
@@ -181,27 +180,27 @@ export class BillingController {
    * GET /billing/invoices/:id
    */
   @Get('invoices/:id')
-  @UseGuards(AuthGuard, TenantGuard, RolesGuard, PermissionsGuard)
+  @UseGuards(AuthGuard, RolesGuard, PermissionsGuard)
   @Permissions(Permission.BILLING_READ)
   async getInvoice(
-    @CurrentTenant() tenantId: string,
+    @CurrentOrg() orgId: string,
     @Param('id') invoiceId: string,
   ) {
-    return this.billingService.getInvoice(tenantId, invoiceId);
+    return this.billingService.getInvoice(orgId, invoiceId);
   }
 
   /**
-   * List payments for current tenant
+   * List payments for current organization
    * GET /billing/payments
    */
   @Get('payments')
-  @UseGuards(AuthGuard, TenantGuard, RolesGuard, PermissionsGuard)
+  @UseGuards(AuthGuard, RolesGuard, PermissionsGuard)
   @Permissions(Permission.BILLING_READ)
   async listPayments(
-    @CurrentTenant() tenantId: string,
+    @CurrentOrg() orgId: string,
     @Query(new ZodValidationPipe(PaymentQueryDtoSchema)) query: PaymentQueryDto,
   ) {
-    return this.billingService.listPayments(tenantId, query);
+    return this.billingService.listPayments(orgId, query);
   }
 
   /**

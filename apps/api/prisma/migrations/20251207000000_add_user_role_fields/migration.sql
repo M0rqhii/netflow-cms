@@ -29,3 +29,7 @@ UPDATE "users" SET "platformRole" = 'user' WHERE "platformRole" IS NULL;
 
 
 
+
+
+
+

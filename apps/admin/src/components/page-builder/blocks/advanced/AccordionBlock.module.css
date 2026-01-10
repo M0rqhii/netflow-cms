@@ -1,0 +1,111 @@
+/**
+ * AccordionBlock Styles
+ */
+
+.accordion {
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.item {
+  border-bottom: 1px solid var(--border-color, #e0e0e0);
+}
+
+.item:last-child {
+  border-bottom: none;
+}
+
+.itemHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 12px 16px;
+  background: var(--bg-secondary, #f5f5f5);
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.itemHeader:hover {
+  background: var(--bg-hover, #e8e8e8);
+}
+
+.item.open .itemHeader {
+  background: white;
+  border-bottom: 1px solid var(--border-color, #e0e0e0);
+}
+
+.itemTitle {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary, #1a1a1a);
+}
+
+.itemIcon {
+  width: 18px;
+  height: 18px;
+  color: var(--text-tertiary, #999);
+  transition: transform 0.2s;
+}
+
+.item.open .itemIcon {
+  transform: rotate(180deg);
+}
+
+.itemContent {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.2s ease;
+}
+
+.item.open .itemContent {
+  grid-template-rows: 1fr;
+}
+
+.itemInner {
+  overflow: hidden;
+}
+
+.item.open .itemInner {
+  padding: 16px;
+}
+
+.addItemBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 12px;
+  background: none;
+  border: none;
+  border-top: 1px dashed var(--border-color, #e0e0e0);
+  color: var(--text-tertiary, #999);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.addItemBtn:hover {
+  color: var(--primary-color, #3b82f6);
+  background: rgba(59, 130, 246, 0.05);
+}
+
+.addItemBtn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.emptyState {
+  padding: 32px;
+  text-align: center;
+  color: var(--text-tertiary, #999);
+}
+
+.emptyState p {
+  margin: 0;
+  font-size: 14px;
+}

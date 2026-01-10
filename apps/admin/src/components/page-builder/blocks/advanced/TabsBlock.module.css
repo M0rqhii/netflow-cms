@@ -1,0 +1,88 @@
+/**
+ * TabsBlock Styles
+ */
+
+.tabs {
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.tabHeaders {
+  display: flex;
+  background: var(--bg-secondary, #f5f5f5);
+  border-bottom: 1px solid var(--border-color, #e0e0e0);
+}
+
+.tabHeader {
+  padding: 10px 16px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary, #666);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.tabHeader:hover {
+  color: var(--text-primary, #1a1a1a);
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.tabHeader.active {
+  color: var(--primary-color, #3b82f6);
+  border-bottom-color: var(--primary-color, #3b82f6);
+  background: white;
+}
+
+.addTabBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  margin: 2px 4px;
+  background: none;
+  border: 1px dashed var(--border-color, #e0e0e0);
+  border-radius: 4px;
+  color: var(--text-tertiary, #999);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.addTabBtn:hover {
+  border-color: var(--primary-color, #3b82f6);
+  color: var(--primary-color, #3b82f6);
+  background: rgba(59, 130, 246, 0.05);
+}
+
+.addTabBtn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.tabContent {
+  min-height: 100px;
+}
+
+.tabPanel {
+  display: none;
+  padding: 16px;
+}
+
+.tabPanel.visible {
+  display: block;
+}
+
+.emptyState {
+  padding: 32px;
+  text-align: center;
+  color: var(--text-tertiary, #999);
+}
+
+.emptyState p {
+  margin: 0;
+  font-size: 14px;
+}

@@ -10,7 +10,7 @@ type DynamicFormProps = {
   data: Record<string, unknown>;
   onChange: (data: Record<string, unknown>) => void;
   errors?: Record<string, string>;
-  tenantId?: string;
+  siteId?: string;
   availableContentTypes?: Array<{ id: string; name: string; slug: string }>;
 };
 
@@ -19,7 +19,7 @@ export default function DynamicForm({
   data,
   onChange,
   errors = {},
-  tenantId,
+  siteId,
   availableContentTypes = [],
 }: DynamicFormProps) {
   const handleFieldChange = (fieldName: string, value: unknown) => {
@@ -27,9 +27,9 @@ export default function DynamicForm({
   };
 
   const loadRelations = async (contentTypeSlug: string) => {
-    if (!tenantId) return [];
+    if (!siteId) return [];
     try {
-      const entries = await fetchContentEntries(tenantId, contentTypeSlug);
+      const entries = await fetchContentEntries(siteId, contentTypeSlug);
       return entries.map(entry => ({
         id: entry.id,
         ...entry.data,

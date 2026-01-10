@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import { createApiClient } from '@repo/sdk';
 import { setAuthToken, getAuthToken } from '@/lib/api';
 import { useRouter } from 'next/navigation';
@@ -34,7 +35,7 @@ export default function LoginPage() {
     }
   }, [router]);
 
-  const onSubmit = async (e: React.FormEvent) => {
+  const onSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
@@ -47,9 +48,6 @@ export default function LoginPage() {
     }
     
     try {
-      // Debug: log values before API call
-      console.log('[Login] Attempting login with:', { email: email.trim(), passwordLength: password.length });
-      
       // Ensure values are not empty
       const emailValue = email.trim();
       const passwordValue = password;
@@ -60,7 +58,7 @@ export default function LoginPage() {
         return;
       }
       
-      // Global login (no tenantId required)
+      // Global login (no siteId required)
       const res = await api.login(undefined, emailValue, passwordValue);
       setAuthToken(res.access_token);
       
@@ -83,18 +81,25 @@ export default function LoginPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [email, password, api, language, router, t]);
 
-  const handleLanguageSelect = (lang: 'pl' | 'en') => {
+  const handleLanguageSelect = useCallback((lang: 'pl' | 'en') => {
     changeLanguage(lang);
     setShowLanguageModal(false);
-  };
+  }, [changeLanguage]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-base-100 py-12 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-base-100 py-8 sm:py-12 px-4 sm:px-6">
       <div className="max-w-md w-full">
         <div className="text-center mb-8">
-          <img src="/assets/Net-Flow-Logo-Horizontal.png" alt="Net-Flow" className="h-8 inline-block" style={{ width: 'auto', height: 'auto' }} />
+          <Image 
+            src="/assets/Net-Flow-Logo-Horizontal.png" 
+            alt="Net-Flow" 
+            width={200}
+            height={32}
+            className="h-8 w-auto inline-block"
+            priority
+          />
         </div>
         
         {/* Language Selection Modal */}
@@ -106,17 +111,17 @@ export default function LoginPage() {
             aria-labelledby="language-modal-title"
             aria-describedby="language-modal-description"
           >
-            <div className="bg-base-100 rounded-lg p-6 max-w-sm w-full mx-4">
-              <h2 id="language-modal-title" className="text-xl font-semibold mb-4">
+            <div className="bg-base-100 rounded-lg p-4 sm:p-6 max-w-sm w-full mx-4">
+              <h2 id="language-modal-title" className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">
                 {t('language.selectLanguage')}
               </h2>
-              <p id="language-modal-description" className="text-sm text-muted mb-6">
+              <p id="language-modal-description" className="text-xs sm:text-sm text-muted mb-4 sm:mb-6">
                 {t('language.choosePreferredLanguage')}
               </p>
-              <div className="flex gap-4">
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
                 <button
                   onClick={() => handleLanguageSelect('pl')}
-                  className="flex-1 btn btn-outline flex items-center justify-center gap-2 py-3"
+                  className="flex-1 btn btn-outline flex items-center justify-center gap-2 py-2 sm:py-3 text-xs sm:text-sm"
                   aria-label={t('language.selectPolish')}
                 >
                   <span aria-hidden="true">🇵🇱</span>
@@ -124,7 +129,7 @@ export default function LoginPage() {
                 </button>
                 <button
                   onClick={() => handleLanguageSelect('en')}
-                  className="flex-1 btn btn-outline flex items-center justify-center gap-2 py-3"
+                  className="flex-1 btn btn-outline flex items-center justify-center gap-2 py-2 sm:py-3 text-xs sm:text-sm"
                   aria-label={t('language.selectEnglish')}
                 >
                   <span aria-hidden="true">🇬🇧</span>
@@ -136,25 +141,25 @@ export default function LoginPage() {
         )}
 
         <div className="card shadow-lg">
-          <div className="card-body">
-            <div className="flex justify-between items-center mb-4">
-              <div>
-                <h1 className="text-2xl font-semibold mb-2">{t('auth.loginTitle')}</h1>
-                <p className="text-sm text-muted mb-6">{t('auth.loginSubtitle')}</p>
+          <div className="card-body p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 sm:gap-4 mb-4 sm:mb-6">
+              <div className="flex-1">
+                <h1 className="text-xl sm:text-2xl font-semibold mb-1 sm:mb-2">{t('auth.loginTitle')}</h1>
+                <p className="text-xs sm:text-sm text-muted">{t('auth.loginSubtitle')}</p>
               </div>
               <LanguageToggle />
             </div>
             <div className="accent-bar mb-6" />
-            <form onSubmit={onSubmit} className="space-y-4" noValidate>
+            <form onSubmit={onSubmit} className="space-y-3 sm:space-y-4" noValidate>
               <div>
-                <label htmlFor="login-email" className="block text-sm font-medium mb-1">
+                <label htmlFor="login-email" className="block text-xs sm:text-sm font-medium mb-1">
                   {t('auth.email')}
                   <span className="text-red-500 ml-1" aria-label="required">*</span>
                 </label>
                 <input
                   id="login-email"
                   type="email"
-                  className="border rounded w-full p-2"
+                  className="border rounded w-full px-3 py-2 text-sm h-10 bg-card text-foreground"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -165,7 +170,7 @@ export default function LoginPage() {
                 />
               </div>
               <div>
-                <label htmlFor="login-password" className="block text-sm font-medium mb-1">
+                <label htmlFor="login-password" className="block text-xs sm:text-sm font-medium mb-1">
                   {t('auth.password')}
                   <span className="text-red-500 ml-1" aria-label="required">*</span>
                 </label>
@@ -173,7 +178,7 @@ export default function LoginPage() {
                   <input
                     id="login-password"
                     type={showPassword ? 'text' : 'password'}
-                    className="border rounded w-full p-2 pr-10"
+                    className="border rounded w-full px-3 py-2 pr-10 text-sm h-10 bg-card text-foreground"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
@@ -203,14 +208,14 @@ export default function LoginPage() {
                 </div>
               </div>
               {error && (
-                <div id="login-error" className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded" role="alert" aria-live="polite">
+                <div id="login-error" className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 text-xs sm:text-sm px-3 sm:px-4 py-2 sm:py-3 rounded" role="alert" aria-live="polite">
                   {error}
                 </div>
               )}
-              <button type="submit" className="btn btn-primary w-full" disabled={loading} aria-busy={loading}>
+              <button type="submit" className="btn btn-primary w-full text-xs sm:text-sm" disabled={loading} aria-busy={loading}>
                 {loading ? t('auth.loggingIn') : t('auth.login')}
               </button>
-              <p className="text-xs text-muted text-center mt-4">
+              <p className="text-[10px] sm:text-xs text-muted text-center mt-3 sm:mt-4">
                 {t('auth.loginNote')}
               </p>
             </form>

@@ -7,7 +7,7 @@ import { MediaSidebar } from './sidebar/MediaSidebar';
 import { MediaPreviewPanel } from './preview/MediaPreviewPanel';
 import { MediaToolbar } from './toolbar/MediaToolbar';
 import { MediaFilter, MediaItem, MediaType } from './types';
-import { fetchMyTenants } from '@/lib/api';
+import { fetchMySites } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 import { Media } from '@repo/sdk';
 
@@ -66,7 +66,7 @@ export function MediaManager({ siteSlug }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { push } = useToast();
 
-  const [tenantId, setTenantId] = useState<string | null>(null);
+  const [siteId, setSiteId] = useState<string | null>(null);
   const [items, setItems] = useState<MediaItem[]>([]);
   const [activeFilter, setActiveFilter] = useState<MediaFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -80,9 +80,9 @@ export function MediaManager({ siteSlug }: Props) {
     let mounted = true;
     (async () => {
       try {
-        const tenants = await fetchMyTenants();
-        const match = tenants.find((t) => t.tenant.slug === siteSlug || t.tenantId === siteSlug);
-        if (match && mounted) setTenantId(match.tenantId);
+        const sites = await fetchMySites();
+        const match = sites.find((s) => s.site.slug === siteSlug || s.siteId === siteSlug);
+        if (match && mounted) setSiteId(match.siteId);
       } catch (error) {
         push({ tone: 'error', message: error instanceof Error ? error.message : 'Failed to load site' });
       }
@@ -90,7 +90,6 @@ export function MediaManager({ siteSlug }: Props) {
     return () => {
       mounted = false;
     };
-  }, [push, slug]);
   }, [push, siteSlug]);
 
   const loadMedia = async (siteId: string) => {
@@ -110,8 +109,8 @@ export function MediaManager({ siteSlug }: Props) {
   };
 
   useEffect(() => {
-    if (tenantId) loadMedia(tenantId);
-  }, [tenantId]);
+    if (siteId) loadMedia(siteId);
+  }, [siteId]);
 
   const filteredItems = useMemo(() => {
     const term = searchQuery.trim().toLowerCase();
@@ -139,12 +138,12 @@ export function MediaManager({ siteSlug }: Props) {
   const handleUploadClick = () => fileInputRef.current?.click();
 
   const handleFileChange: React.ChangeEventHandler<HTMLInputElement> = async (event) => {
-    if (!tenantId) return;
+    if (!siteId) return;
     const file = event.target.files?.[0];
     if (!file) return;
     setUploading(true);
     try {
-      const uploaded = await Media.uploadMedia(tenantId, file);
+      const uploaded = await Media.uploadMedia(siteId, file);
       const mapped = mapMediaItem(uploaded);
       setItems((prev) => [mapped, ...prev]);
       setSelectedId(mapped.id);
@@ -158,12 +157,12 @@ export function MediaManager({ siteSlug }: Props) {
   };
 
   const handleDelete = async () => {
-    if (!tenantId || !selectedItem) return;
+    if (!siteId || !selectedItem) return;
     const confirmed = window.confirm(`Delete ${selectedItem.fileName}? This cannot be undone.`);
     if (!confirmed) return;
     setDeleting(true);
     try {
-      await Media.deleteMedia(tenantId, selectedItem.id);
+      await Media.deleteMedia(siteId, selectedItem.id);
       setItems((prev) => prev.filter((item) => item.id !== selectedItem.id));
       setSelectedId(undefined);
       push({ tone: 'success', message: 'File deleted' });
@@ -174,7 +173,7 @@ export function MediaManager({ siteSlug }: Props) {
     }
   };
 
-  if (!tenantId) {
+  if (!siteId) {
     return (
       <Card className="p-6">
         <EmptyState title="Loading site" description="Resolving site access…" />

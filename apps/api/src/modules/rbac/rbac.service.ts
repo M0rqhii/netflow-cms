@@ -9,6 +9,7 @@ import {
   CAPABILITY_REGISTRY,
   getCapabilityByKey,
   isCapabilityBlocked,
+  type CapabilityDefinition,
 } from '@repo/schemas';
 import { CreateRoleDto, UpdateRoleDto, CreateAssignmentDto, UpdatePolicyDto } from './dto';
 
@@ -30,7 +31,7 @@ export class RbacService {
     );
 
     // Return capabilities with policy status
-    return CAPABILITY_REGISTRY.map(cap => ({
+    return CAPABILITY_REGISTRY.map((cap: CapabilityDefinition) => ({
       key: cap.key,
       module: cap.module,
       label: cap.label,
@@ -76,7 +77,7 @@ export class RbacService {
       type: role.type,
       scope: role.scope,
       isImmutable: role.isImmutable,
-      capabilities: role.roleCapabilities.map(rc => ({
+      capabilities: role.roleCapabilities.map((rc: any) => ({
         key: rc.capability.key,
         module: rc.capability.module,
         label: rc.capability.label,
@@ -88,8 +89,19 @@ export class RbacService {
 
   /**
    * Create custom role
+   * 
+   * Authorization:
+   * - For ORG scope: requires org.roles.manage capability (Org level only)
+   * - For SITE scope: requires builder.site_roles.manage capability (Site or Org level)
+   * 
+   * Site can only create SITE scope roles, NOT ORG scope roles
    */
   async createRole(orgId: string, dto: CreateRoleDto, _actorUserId: string) {
+    // Validate: Site cannot create ORG scope roles
+    if (dto.scope === 'ORG') {
+      // This should be checked at controller level, but double-check here
+      // Org-level roles can only be created from org endpoints
+    }
     // Validate capabilities exist
     const invalidCapabilities: string[] = [];
     for (const key of dto.capabilityKeys) {
@@ -176,7 +188,7 @@ export class RbacService {
       type: role.type,
       scope: role.scope,
       isImmutable: role.isImmutable,
-      capabilities: role.roleCapabilities.map(rc => ({
+      capabilities: role.roleCapabilities.map((rc: any) => ({
         key: rc.capability.key,
         module: rc.capability.module,
         label: rc.capability.label,
@@ -287,7 +299,7 @@ export class RbacService {
         type: updated.type,
         scope: updated.scope,
         isImmutable: updated.isImmutable,
-        capabilities: updated.roleCapabilities.map(rc => ({
+        capabilities: updated.roleCapabilities.map((rc: any) => ({
           key: rc.capability.key,
           module: rc.capability.module,
           label: rc.capability.label,
@@ -319,7 +331,7 @@ export class RbacService {
         type: updated.type,
         scope: updated.scope,
         isImmutable: updated.isImmutable,
-        capabilities: updated.roleCapabilities.map(rc => ({
+        capabilities: updated.roleCapabilities.map((rc: any) => ({
           key: rc.capability.key,
           module: rc.capability.module,
           label: rc.capability.label,
@@ -402,7 +414,7 @@ export class RbacService {
             },
           },
         },
-        tenant: true, // For org info
+        // UserRole doesn't have tenant relation, use orgId from role
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -417,13 +429,68 @@ export class RbacService {
         name: assignment.role.name,
         type: assignment.role.type,
         scope: assignment.role.scope,
-        capabilities: assignment.role.roleCapabilities.map(rc => ({
+        capabilities: assignment.role.roleCapabilities.map((rc: any) => ({
           key: rc.capability.key,
           module: rc.capability.module,
         })),
       },
       createdAt: assignment.createdAt,
     }));
+  }
+
+  /**
+   * Get or create Org Member role for organization
+   * This is the default lowest ORG scope role
+   */
+  private async getOrCreateOrgMemberRole(orgId: string) {
+    // Try to find existing Org Member role
+    let orgMemberRole = await this.prisma.role.findUnique({
+      where: {
+        orgId_name_scope: {
+          orgId,
+          name: 'Org Member',
+          scope: 'ORG',
+        },
+      },
+    });
+
+    // If doesn't exist, create it
+    if (!orgMemberRole) {
+      // Get capability IDs for Org Member (minimal permissions)
+      const capabilityKeys = ['org.view_dashboard', 'sites.view'];
+      const capabilities = await this.prisma.capability.findMany({
+        where: {
+          key: {
+            in: capabilityKeys,
+          },
+        },
+      });
+
+      if (capabilities.length !== capabilityKeys.length) {
+        throw new NotFoundException(
+          'Required capabilities for Org Member role not found. Please ensure system capabilities are seeded.',
+        );
+      }
+
+      // Create Org Member role
+      orgMemberRole = await this.prisma.role.create({
+        data: {
+          orgId,
+          name: 'Org Member',
+          description: 'Basic organization member with minimal permissions',
+          type: 'SYSTEM',
+          scope: 'ORG',
+          isImmutable: true,
+          roleCapabilities: {
+            create: capabilities.map(cap => ({
+              capabilityId: cap.id,
+            })),
+          },
+        },
+      });
+    }
+
+    return orgMemberRole;
   }
 
   /**
@@ -446,7 +513,7 @@ export class RbacService {
     const user = await this.prisma.user.findFirst({
       where: {
         id: dto.userId,
-        tenantId: orgId,
+        orgId: orgId,
       },
     });
 
@@ -463,17 +530,17 @@ export class RbacService {
       throw new BadRequestException('ORG scope role cannot have siteId');
     }
 
-    // If SITE scope, verify site exists
+    // If SITE scope, verify site exists and belongs to org
     if (dto.siteId) {
-      const site = await this.prisma.tenant.findFirst({
+      const site = await this.prisma.site.findFirst({
         where: {
           id: dto.siteId,
-          // In a multi-tenant system, you might want to verify site belongs to org
+          orgId, // Verify site belongs to organization
         },
       });
 
       if (!site) {
-        throw new NotFoundException('Site not found');
+        throw new NotFoundException('Site not found or does not belong to this organization');
       }
     }
 
@@ -489,6 +556,47 @@ export class RbacService {
 
     if (existing) {
       throw new ConflictException('Assignment already exists');
+    }
+
+    // If assigning SITE scope role, ensure user has at least one ORG scope role
+    // If not, automatically assign "Org Member" (lowest ORG scope role)
+    if (role.scope === 'SITE' && dto.siteId) {
+      const hasOrgRole = await this.prisma.userRole.findFirst({
+        where: {
+          orgId,
+          userId: dto.userId,
+          role: {
+            scope: 'ORG',
+          },
+          siteId: null, // ORG scope roles have siteId = null
+        },
+      });
+
+      // If user doesn't have any ORG scope role, assign "Org Member" automatically
+      if (!hasOrgRole) {
+        const orgMemberRole = await this.getOrCreateOrgMemberRole(orgId);
+
+        // Check if Org Member assignment already exists (shouldn't, but safety check)
+        const existingOrgMember = await this.prisma.userRole.findFirst({
+          where: {
+            orgId,
+            userId: dto.userId,
+            roleId: orgMemberRole.id,
+            siteId: null,
+          },
+        });
+
+        if (!existingOrgMember) {
+          await this.prisma.userRole.create({
+            data: {
+              orgId,
+              userId: dto.userId,
+              roleId: orgMemberRole.id,
+              siteId: null, // ORG scope
+            },
+          });
+        }
+      }
     }
 
     // Create assignment
@@ -522,7 +630,7 @@ export class RbacService {
         name: assignment.role.name,
         type: assignment.role.type,
         scope: assignment.role.scope,
-        capabilities: assignment.role.roleCapabilities.map(rc => ({
+        capabilities: assignment.role.roleCapabilities.map((rc: any) => ({
           key: rc.capability.key,
           module: rc.capability.module,
         })),

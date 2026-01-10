@@ -1,0 +1,35 @@
+/**
+ * Text Block Styles
+ */
+
+.text {
+  line-height: 1.6;
+}
+
+.text p {
+  margin: 0 0 1em;
+}
+
+.text p:last-child {
+  margin-bottom: 0;
+}
+
+.text a {
+  color: var(--primary-color, #3b82f6);
+  text-decoration: underline;
+}
+
+.text ul,
+.text ol {
+  margin: 0 0 1em;
+  padding-left: 1.5em;
+}
+
+.text li {
+  margin-bottom: 0.25em;
+}
+
+.text:empty::before {
+  content: 'Enter text here...';
+  opacity: 0.4;
+}

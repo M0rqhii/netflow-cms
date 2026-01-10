@@ -10,17 +10,20 @@
     "target": "ES2022",
     "sourceMap": true,
     "outDir": "./dist",
+    "rootDir": "../../",
     "baseUrl": "./",
     "incremental": true,
+    "tsBuildInfoFile": ".tsbuildinfo",
     "skipLibCheck": true,
-    "composite": false,
+    "skipDefaultLibCheck": true,
+    "noEmitOnError": false,
     "strictNullChecks": true,
     "noImplicitAny": true,
     "strictBindCallApply": true,
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,
     "paths": {
-      "@repo/schemas": ["../../packages/schemas/src"]
+      "@repo/schemas": ["../../packages/schemas/dist", "../../packages/schemas/src"]
     }
   },
   "ts-node": {

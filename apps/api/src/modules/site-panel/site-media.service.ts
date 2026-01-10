@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, Logger, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { FileStorage } from '../../common/providers/interfaces/file-storage.interface';
 import { SiteEventsService } from '../site-events/site-events.service';
@@ -20,13 +20,38 @@ export class SiteMediaService {
   ) {}
 
   private async ensureMembership(siteId: string, userId: string) {
+    // Check UserTenant membership (new multi-tenant model)
     const membership = await this.prisma.userTenant.findUnique({
       where: { userId_tenantId: { userId, tenantId: siteId } },
     });
 
-    if (!membership) {
-      throw new ForbiddenException('You do not have access to this site');
+    if (membership) {
+      return; // User has membership via UserTenant
     }
+
+    // Fallback to legacy User.tenantId check for backward compatibility
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { orgId: true },
+      });
+
+      // Check if user's organization has access to this site
+      const site = await this.prisma.site.findFirst({
+        where: { id: siteId, orgId: user?.orgId },
+      });
+
+      if (site) {
+        return; // User has access via organization
+      }
+    } catch (error) {
+      // If query fails, log and continue to throw ForbiddenException
+      this.logger.warn(
+        `Failed to check legacy tenantId for user ${userId}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+
+    throw new ForbiddenException('You do not have access to this site');
   }
 
   private validateFile(file: Express.Multer.File) {

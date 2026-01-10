@@ -8,6 +8,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { AuthGuard } from '../../common/auth/guards/auth.guard';
 import { TenantGuard } from '../../common/tenant/tenant.guard';
 import { RolesGuard } from '../../common/auth/guards/roles.guard';
@@ -49,6 +50,7 @@ export class SiteDeploymentsController {
   }
 
   @Get()
+  @Throttle(1000, 60) // 1000 requests per minute - high limit for deployment list operations
   @Permissions(Permission.PAGES_READ)
   list(
     @Param('siteId') siteId: string,
@@ -60,6 +62,7 @@ export class SiteDeploymentsController {
   }
 
   @Get('latest')
+  @Throttle(1000, 60) // 1000 requests per minute - high limit for latest deployment operations
   @Permissions(Permission.PAGES_READ)
   getLatest(
     @Param('siteId') siteId: string,

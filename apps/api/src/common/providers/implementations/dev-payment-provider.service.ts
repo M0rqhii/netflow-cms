@@ -31,13 +31,15 @@ export class DevPaymentProvider implements PaymentProvider {
     // Create subscription in database
     const subscription = await this.prisma.subscription.create({
       data: {
-        tenantId: params.tenantId,
+        orgId: params.tenantId,
         plan: params.plan,
         status: 'active',
         currentPeriodStart: now,
         currentPeriodEnd: periodEnd,
         trialStart: trialDays > 0 ? now : null,
         trialEnd: trialDays > 0 ? periodEnd : null,
+        cancelAtPeriodEnd: false,
+        cancelledAt: null,
         stripeCustomerId: params.customerId || `dev_customer_${params.tenantId}`,
         stripeSubscriptionId: `dev_sub_${Date.now()}_${params.tenantId}`,
       },
@@ -148,6 +150,10 @@ export class DevPaymentProvider implements PaymentProvider {
     return subscription.status === 'active' || subscription.status === 'trialing';
   }
 }
+
+
+
+
 
 
 

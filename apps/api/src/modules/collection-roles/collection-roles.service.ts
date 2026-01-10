@@ -18,7 +18,7 @@ export class CollectionRolesService {
    * Assign role to user for a collection
    */
   async assignRole(
-    tenantId: string,
+    siteId: string,
     collectionId: string,
     dto: CreateCollectionRoleDto,
   ) {
@@ -26,18 +26,20 @@ export class CollectionRolesService {
     const collection = await this.prisma.collection.findFirst({
       where: {
         id: collectionId,
-        tenantId,
+        siteId,
       },
     });
     if (!collection) {
       throw new NotFoundException('Collection not found');
     }
 
-    // Verify user exists and belongs to tenant
-    const user = await this.prisma.user.findFirst({
+    // Verify user exists (user belongs to org, not directly to site)
+    const user = await this.prisma.user.findUnique({
       where: {
         id: dto.userId,
-        tenantId,
+      },
+      select: {
+        id: true,
       },
     });
     if (!user) {
@@ -75,7 +77,7 @@ export class CollectionRolesService {
     // Note: Prisma Client must be generated with: pnpm --filter api db:generate
     return (this.prisma as any).collectionRole.create({
       data: {
-        tenantId,
+        siteId,
         collectionId,
         userId: dto.userId,
         role: role || 'viewer',
@@ -91,7 +93,7 @@ export class CollectionRolesService {
    * Update collection role
    */
   async updateRole(
-    tenantId: string,
+    siteId: string,
     collectionId: string,
     userId: string,
     dto: UpdateCollectionRoleDto,
@@ -106,7 +108,7 @@ export class CollectionRolesService {
       },
     });
 
-    if (!role || role.tenantId !== tenantId) {
+    if (!role || role.siteId !== siteId) {
       throw new NotFoundException('Collection role not found');
     }
 
@@ -142,7 +144,7 @@ export class CollectionRolesService {
   /**
    * Remove collection role
    */
-  async removeRole(tenantId: string, collectionId: string, userId: string) {
+  async removeRole(siteId: string, collectionId: string, userId: string) {
     // Note: Prisma Client must be generated with: pnpm --filter api db:generate
     const role = await (this.prisma as any).collectionRole.findUnique({
       where: {
@@ -153,7 +155,7 @@ export class CollectionRolesService {
       },
     });
 
-    if (!role || role.tenantId !== tenantId) {
+    if (!role || role.siteId !== siteId) {
       throw new NotFoundException('Collection role not found');
     }
 
@@ -170,12 +172,12 @@ export class CollectionRolesService {
   /**
    * Get roles for a collection
    */
-  async getCollectionRoles(tenantId: string, collectionId: string) {
+  async getCollectionRoles(siteId: string, collectionId: string) {
     // Verify collection exists
     const collection = await this.prisma.collection.findFirst({
       where: {
         id: collectionId,
-        tenantId,
+        siteId,
       },
     });
     if (!collection) {
@@ -185,7 +187,7 @@ export class CollectionRolesService {
     return this.prismaOptimization.findManyOptimized(
       'collectionRole',
       {
-        tenantId,
+        siteId,
         collectionId,
       },
       {
@@ -204,11 +206,11 @@ export class CollectionRolesService {
   /**
    * Get collections for a user
    */
-  async getUserCollections(tenantId: string, userId: string) {
+  async getUserCollections(siteId: string, userId: string) {
     return this.prismaOptimization.findManyOptimized(
       'collectionRole',
       {
-        tenantId,
+        siteId,
         userId,
       },
       {
@@ -228,12 +230,12 @@ export class CollectionRolesService {
    * Check if user has permission for collection (backward compatibility)
    */
   async hasCollectionPermission(
-    tenantId: string,
+    siteId: string,
     collectionId: string,
     userId: string,
     requiredRole: 'viewer' | 'editor' | 'admin',
   ): Promise<boolean> {
-    const role = await this.getCollectionRole(tenantId, collectionId, userId);
+    const role = await this.getCollectionRole(siteId, collectionId, userId);
     if (!role) {
       return false;
     }
@@ -247,7 +249,7 @@ export class CollectionRolesService {
    * Get collection role with granular permissions
    */
   async getCollectionRole(
-    tenantId: string,
+    siteId: string,
     collectionId: string,
     userId: string,
   ) {
@@ -261,7 +263,7 @@ export class CollectionRolesService {
       },
     });
 
-    if (!role || role.tenantId !== tenantId) {
+    if (!role || role.siteId !== siteId) {
       return null;
     }
 
@@ -272,12 +274,12 @@ export class CollectionRolesService {
    * Check granular permission for collection
    */
   async hasGranularPermission(
-    tenantId: string,
+    siteId: string,
     collectionId: string,
     userId: string,
     permission: 'read' | 'write' | 'publish' | 'delete',
   ): Promise<boolean> {
-    const role = await this.getCollectionRole(tenantId, collectionId, userId);
+    const role = await this.getCollectionRole(siteId, collectionId, userId);
     if (!role) {
       return false;
     }

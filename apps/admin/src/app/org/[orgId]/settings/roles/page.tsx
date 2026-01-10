@@ -20,6 +20,7 @@ import SearchAndFilters from '@/components/ui/SearchAndFilters';
 import Modal from '@/components/ui/Modal';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import { useToast } from '@/components/ui/Toast';
+import { toFriendlyMessage } from '@/lib/errors';
 
 type RoleEditorState = {
   name: string;
@@ -106,7 +107,7 @@ export default function OrgRolesPage() {
       setRoles(rolesData);
       setCapabilities(capabilitiesData);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load roles.');
+      setError(toFriendlyMessage(err, 'Nie udało się wczytać ról.'));
     } finally {
       setLoading(false);
     }
@@ -183,7 +184,7 @@ export default function OrgRolesPage() {
       return;
     }
     if (editorState.capabilityKeys.length === 0) {
-      push({ tone: 'error', message: 'Select at least one capability.' });
+      push({ tone: 'error', message: 'Wybierz co najmniej jedno uprawnienie.' });
       return;
     }
 
@@ -209,7 +210,7 @@ export default function OrgRolesPage() {
       setEditorState({ name: '', description: '', scope: 'SITE', capabilityKeys: [] });
       await loadData();
     } catch (err) {
-      push({ tone: 'error', message: err instanceof Error ? err.message : 'Failed to save role.' });
+      push({ tone: 'error', message: toFriendlyMessage(err, 'Nie udało się zapisać roli.') });
     } finally {
       setSaving(false);
     }
@@ -224,7 +225,7 @@ export default function OrgRolesPage() {
       setDeleteRoleId(null);
       await loadData();
     } catch (err) {
-      push({ tone: 'error', message: err instanceof Error ? err.message : 'Failed to delete role.' });
+      push({ tone: 'error', message: toFriendlyMessage(err, 'Nie udało się usunąć roli.') });
     } finally {
       setDeleting(false);
     }
@@ -292,20 +293,20 @@ export default function OrgRolesPage() {
                       <Button variant="outline" size="sm" onClick={() =>
                         setExpandedRoles((prev) => ({ ...prev, [role.id]: !expanded }))
                       }>
-                        {expanded ? 'Hide capabilities' : 'View capabilities'}
+                        {expanded ? 'Ukryj uprawnienia' : 'Pokaż uprawnienia'}
                       </Button>
                     </div>
                   </CardHeader>
                   {expanded && (
                     <CardContent>
                       {visibleRoleCaps.length === 0 ? (
-                        <p className="text-sm text-muted">No capabilities to display.</p>
+                        <p className="text-sm text-muted">Brak uprawnień do pokazania.</p>
                       ) : (
                         <div className="overflow-x-auto">
                           <Table>
                             <TableHeader>
                               <TableRow>
-                                <TableHead>Capability</TableHead>
+                                <TableHead>Uprawnienie</TableHead>
                                 <TableHead>Key</TableHead>
                                 <TableHead>Module</TableHead>
                               </TableRow>
@@ -351,12 +352,12 @@ export default function OrgRolesPage() {
           />
 
           {filteredCustomRoles.length === 0 ? (
-            <EmptyState
-              title="No custom roles"
-              description="Create a custom role by selecting capabilities per module."
-              action={{ label: 'Create role', onClick: () => openEditor('create') }}
-            />
-          ) : (
+              <EmptyState
+                title="No custom roles"
+                description="Stwórz rolę, wybierając uprawnienia w modułach."
+                action={{ label: 'Create role', onClick: () => openEditor('create') }}
+              />
+            ) : (
             filteredCustomRoles.map((role) => (
               <Card key={role.id}>
                 <CardHeader className="flex flex-row items-center justify-between">
@@ -367,7 +368,7 @@ export default function OrgRolesPage() {
                   <div className="flex items-center gap-2">
                     <Badge tone="default" className="uppercase">{role.scope}</Badge>
                     <Badge tone="warning">Custom</Badge>
-                    <span className="text-xs text-muted">{role.capabilities.length} caps</span>
+                    <span className="text-xs text-muted">{role.capabilities.length} uprawnień</span>
                   </div>
                 </CardHeader>
                 <CardContent className="flex flex-wrap items-center justify-between gap-3">
@@ -447,7 +448,7 @@ export default function OrgRolesPage() {
           <div className="border rounded-lg p-4 bg-gray-50">
             <div className="flex flex-wrap items-center gap-3 mb-4">
               <div className="flex-1 min-w-[200px]">
-                <label className="block text-xs font-semibold text-muted mb-1">Search capabilities</label>
+                <label className="block text-xs font-semibold text-muted mb-1">Szukaj uprawnień</label>
                 <Input
                   value={capabilitySearch}
                   onChange={(event) => setCapabilitySearch(event.target.value)}
@@ -472,7 +473,7 @@ export default function OrgRolesPage() {
             </div>
 
             {groupedCapabilities.length === 0 ? (
-              <p className="text-sm text-muted">No capabilities match the current filters.</p>
+              <p className="text-sm text-muted">Brak wyników dla wybranych filtrów.</p>
             ) : (
               <div className="space-y-6">
                 {groupedCapabilities.map((group) => (
@@ -489,9 +490,9 @@ export default function OrgRolesPage() {
                         const checked = editorState.capabilityKeys.includes(capability.key);
                         const checkboxId = `cap-${capability.key}`;
                         const tooltip = policyDisabled
-                          ? 'This capability is controlled by organization policies. Even if granted in a role, it can be disabled by policies. Check Policies tab to manage.'
+                          ? 'Ta opcja jest obecnie wyłączona w ustawieniach organizacji.'
                           : blocked
-                          ? 'Blocked for custom roles. This capability is reserved for system roles only.'
+                          ? 'Ta opcja jest zarezerwowana dla ról systemowych.'
                           : undefined;
 
                         return (
@@ -519,11 +520,11 @@ export default function OrgRolesPage() {
                                   <Badge tone="warning">Dangerous</Badge>
                                 ) : null}
                                 {capability.canBePolicyControlled ? (
-                                  <span 
+                                  <span
                                     className="text-xs text-amber-600 font-semibold cursor-help"
-                                    title="This capability can be controlled by organization policies. Check Policies tab to enable/disable."
+                                    title="Ta opcja może być włączona lub wyłączona w ustawieniach organizacji."
                                   >
-                                    ⚠️ Policy
+                                    ⚠️ Ograniczenie
                                   </span>
                                 ) : null}
                               </div>
@@ -533,7 +534,7 @@ export default function OrgRolesPage() {
                               ) : null}
                               {blocked && (
                                 <div className="text-xs text-amber-700 mt-1">
-                                  Reserved for system roles.
+                                  Zarezerwowane dla ról systemowych.
                                 </div>
                               )}
                             </div>
@@ -549,7 +550,7 @@ export default function OrgRolesPage() {
 
           <div className="flex items-center justify-between">
             <div className="text-xs text-muted">
-              System roles are immutable. Custom roles are built by selecting capabilities per module.
+              Role systemowe są stałe. Role niestandardowe tworzysz, wybierając uprawnienia w modułach.
             </div>
             <div className="flex items-center gap-2">
               <Button variant="outline" onClick={() => setEditorOpen(false)} disabled={saving}>

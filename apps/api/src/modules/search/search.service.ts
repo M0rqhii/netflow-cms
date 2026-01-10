@@ -89,7 +89,7 @@ export class SearchService {
 
     if (contentTypeSlug) {
       const contentType = await this.prisma.contentType.findFirst({
-        where: { tenantId, slug: contentTypeSlug },
+        where: { siteId: tenantId, slug: contentTypeSlug },
       });
       if (contentType) {
         where.contentTypeId = contentType.id;
@@ -330,7 +330,7 @@ export class SearchService {
 
     if (collectionSlug) {
       const collection = await this.prisma.collection.findFirst({
-        where: { tenantId, slug: collectionSlug },
+        where: { siteId: tenantId, slug: collectionSlug },
       });
       if (collection) {
         where.collectionId = collection.id;

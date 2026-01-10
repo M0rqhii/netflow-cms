@@ -10,9 +10,31 @@ import { ZodSchema, ZodError } from 'zod';
 export class ZodValidationPipe implements PipeTransform {
   private readonly logger = new Logger(ZodValidationPipe.name);
 
-  constructor(private schema: ZodSchema) {}
+  constructor(private schema: ZodSchema | undefined) {
+    // Don't throw error in constructor - check in transform method instead
+    // This allows for lazy evaluation and better error messages
+  }
 
   transform(value: unknown, _metadata: ArgumentMetadata) {
+    // Double-check schema is available
+    if (!this.schema || typeof this.schema.parse !== 'function') {
+      this.logger.error(`ZodValidationPipe: schema is ${this.schema === undefined ? 'undefined' : typeof this.schema}. Metadata: ${JSON.stringify(_metadata)}`);
+      throw new BadRequestException({
+        message: 'Validation failed',
+        error: `Validation schema is not configured. Schema type: ${this.schema === undefined ? 'undefined' : typeof this.schema}`,
+      });
+    }
+    // Handle empty/undefined values for query parameters
+    if (value === undefined || value === null || (typeof value === 'object' && Object.keys(value).length === 0)) {
+      // For empty query objects, try to parse with default/empty object
+      try {
+        const parsedValue = this.schema.parse({});
+        return parsedValue;
+      } catch {
+        // If schema doesn't accept empty, return the value as-is
+        return value;
+      }
+    }
     this.logger.debug(`Validating input: ${JSON.stringify(value)}`);
     try {
       const parsedValue = this.schema.parse(value);

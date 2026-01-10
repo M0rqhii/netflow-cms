@@ -20,7 +20,7 @@ import { HooksService } from '../../hooks/hooks.service';
 
 /**
  * CollectionItemsService - business logic dla Collection Items
- * AI Note: Zawsze filtruj po tenantId - multi-tenant isolation
+ * AI Note: Zawsze filtruj po siteId - site isolation
  */
 @Injectable()
 export class CollectionItemsService {
@@ -39,11 +39,11 @@ export class CollectionItemsService {
     private readonly hooksService: HooksService,
   ) {}
 
-  private async getCollection(tenantId: string, slug: string) {
-    const cacheKey = `col:${tenantId}:${slug}`;
+  private async getCollection(siteId: string, slug: string) {
+    const cacheKey = `col:${siteId}:${slug}`;
     const cached = await this.cache.get<{
       id: string;
-      tenantId: string;
+      siteId: string;
       slug: string;
       name: string;
       schemaJson: Record<string, unknown>;
@@ -53,10 +53,10 @@ export class CollectionItemsService {
     }
 
     const collection = await this.prisma.collection.findFirst({
-      where: { tenantId, slug },
+      where: { siteId, slug },
       select: {
         id: true,
-        tenantId: true,
+        siteId: true,
         slug: true,
         name: true,
         schemaJson: true,
@@ -74,16 +74,16 @@ export class CollectionItemsService {
     return collection;
   }
 
-  async list(tenantId: string, slug: string, query: ItemQueryDto) {
-    const collection = await this.getCollection(tenantId, slug);
+  async list(siteId: string, slug: string, query: ItemQueryDto) {
+    const collection = await this.getCollection(siteId, slug);
     const skip = (query.page - 1) * query.pageSize;
 
     const where: {
-      tenantId: string;
+      siteId: string;
       collectionId: string;
       status?: 'DRAFT' | 'PUBLISHED';
     } = {
-      tenantId,
+      siteId,
       collectionId: collection.id,
     };
 
@@ -118,7 +118,7 @@ export class CollectionItemsService {
         where,
         {
           id: true,
-          tenantId: true,
+          siteId: true,
           collectionId: true,
           data: true,
           status: true,
@@ -163,17 +163,17 @@ export class CollectionItemsService {
   }
 
   async create(
-    tenantId: string,
+    siteId: string,
     slug: string,
     dto: UpsertItemDto,
     userId?: string
   ) {
-    const collection = await this.getCollection(tenantId, slug);
+    const collection = await this.getCollection(siteId, slug);
     const schemaJson = collection.schemaJson as Record<string, unknown>;
     await this.validateDataAgainstSchema(schemaJson, dto.data);
 
     // Validate initial status
-    const workflowConfig = await this.workflowConfig.getWorkflowConfig(tenantId, collection.id);
+    const workflowConfig = await this.workflowConfig.getWorkflowConfig(siteId, collection.id);
     const initialStatus = dto.status || 'DRAFT';
     const validation = this.workflowConfig.validateStatusTransition(
       workflowConfig,
@@ -187,7 +187,7 @@ export class CollectionItemsService {
 
     const item = await this.prisma.collectionItem.create({
       data: {
-        tenantId,
+        siteId,
         collectionId: collection.id,
         data: dto.data,
         status: initialStatus,
@@ -196,7 +196,7 @@ export class CollectionItemsService {
       },
       select: {
         id: true,
-        tenantId: true,
+        siteId: true,
         collectionId: true,
         data: true,
         status: true,
@@ -213,7 +213,7 @@ export class CollectionItemsService {
     // Create automatic tasks if status is not draft
     if (initialStatus !== 'DRAFT' && userId) {
       await this.workflowConfig.createAutoTasks(
-        tenantId,
+        siteId,
         collection.id,
         item.id,
         'DRAFT',
@@ -224,7 +224,7 @@ export class CollectionItemsService {
 
     // Create initial version snapshot
     await this.versioningService.createVersion(
-      tenantId,
+      siteId,
       item.id,
       dto.data,
       initialStatus,
@@ -235,7 +235,7 @@ export class CollectionItemsService {
     // Execute hooks (before)
     try {
       await this.hooksService.executeHooks(
-        tenantId,
+        siteId,
         'item.create',
         { item, collection },
         collection.id,
@@ -247,7 +247,7 @@ export class CollectionItemsService {
 
     // Trigger webhook
     await this.webhooksService.trigger(
-      tenantId,
+      siteId,
       WebhookEvent.COLLECTION_ITEM_CREATED,
       { item, collection },
       collection.id,
@@ -256,17 +256,17 @@ export class CollectionItemsService {
     return item;
   }
 
-  async get(tenantId: string, slug: string, id: string) {
-    const collection = await this.getCollection(tenantId, slug);
+  async get(siteId: string, slug: string, id: string) {
+    const collection = await this.getCollection(siteId, slug);
     const item = await this.prisma.collectionItem.findFirst({
       where: {
-        tenantId,
+        siteId,
         collectionId: collection.id,
         id,
       },
       select: {
         id: true,
-        tenantId: true,
+        siteId: true,
         collectionId: true,
         data: true,
         status: true,
@@ -288,22 +288,22 @@ export class CollectionItemsService {
   }
 
   async update(
-    tenantId: string,
+    siteId: string,
     slug: string,
     id: string,
     dto: UpsertItemDto,
     userId?: string
   ) {
-    const collection = await this.getCollection(tenantId, slug);
+    const collection = await this.getCollection(siteId, slug);
     const current = await this.prisma.collectionItem.findFirst({
       where: {
-        tenantId,
+        siteId,
         collectionId: collection.id,
         id,
       },
       select: {
         id: true,
-        tenantId: true,
+        siteId: true,
         collectionId: true,
         data: true,
         status: true,
@@ -328,7 +328,7 @@ export class CollectionItemsService {
 
     // Validate status transition if status is changing
     if (dto.status && dto.status !== current.status) {
-      const workflowConfig = await this.workflowConfig.getWorkflowConfig(tenantId, collection.id);
+      const workflowConfig = await this.workflowConfig.getWorkflowConfig(siteId, collection.id);
       const validation = this.workflowConfig.validateStatusTransition(
         workflowConfig,
         current.status,
@@ -351,7 +351,7 @@ export class CollectionItemsService {
     let transformedData = dto.data;
     try {
       const hookResult = await this.hooksService.executeHooks(
-        tenantId,
+        siteId,
         'item.update',
         { item: current, data: dto.data, oldStatus, newStatus, collection },
         collection.id,
@@ -366,7 +366,7 @@ export class CollectionItemsService {
 
     // Create version snapshot before update
     await this.versioningService.createVersion(
-      tenantId,
+      siteId,
       current.id,
       current.data,
       current.status,
@@ -386,7 +386,7 @@ export class CollectionItemsService {
       },
       select: {
         id: true,
-        tenantId: true,
+        siteId: true,
         collectionId: true,
         data: true,
         status: true,
@@ -403,7 +403,7 @@ export class CollectionItemsService {
     // Create automatic tasks if status changed
     if (oldStatus !== newStatus && userId) {
       await this.workflowConfig.createAutoTasks(
-        tenantId,
+        siteId,
         collection.id,
         id,
         oldStatus,
@@ -414,7 +414,7 @@ export class CollectionItemsService {
 
     // Trigger webhook
     await this.webhooksService.trigger(
-      tenantId,
+      siteId,
       WebhookEvent.COLLECTION_ITEM_UPDATED,
       { item: updated, oldItem: current, collection },
       collection.id,
@@ -423,7 +423,7 @@ export class CollectionItemsService {
     // Execute hooks (after update)
     try {
       await this.hooksService.executeHooks(
-        tenantId,
+        siteId,
         'item.updated',
         { item: updated, oldItem: current, collection },
         collection.id,
@@ -436,17 +436,17 @@ export class CollectionItemsService {
     return updated;
   }
 
-  async remove(tenantId: string, slug: string, id: string) {
-    const collection = await this.getCollection(tenantId, slug);
+  async remove(siteId: string, slug: string, id: string) {
+    const collection = await this.getCollection(siteId, slug);
     const item = await this.prisma.collectionItem.findFirst({
       where: {
-        tenantId,
+        siteId,
         collectionId: collection.id,
         id,
       },
       select: {
         id: true,
-        tenantId: true,
+        siteId: true,
         collectionId: true,
         data: true,
         status: true,
@@ -467,7 +467,7 @@ export class CollectionItemsService {
     // Execute hooks (before delete)
     try {
       await this.hooksService.executeHooks(
-        tenantId,
+        siteId,
         'item.delete',
         { item, collection },
         collection.id,
@@ -483,7 +483,7 @@ export class CollectionItemsService {
 
     // Trigger webhook
     await this.webhooksService.trigger(
-      tenantId,
+      siteId,
       WebhookEvent.COLLECTION_ITEM_DELETED,
       { item, collection },
       collection.id,

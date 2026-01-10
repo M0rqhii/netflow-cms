@@ -1,0 +1,25 @@
+/**
+ * Button Block Styles
+ */
+
+.wrapper {
+  display: block;
+}
+
+.button {
+  display: inline-block;
+  text-decoration: none;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.button:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.button:active {
+  transform: translateY(0);
+}

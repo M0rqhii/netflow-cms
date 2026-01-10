@@ -6,7 +6,7 @@ import { useTranslations } from '@/hooks/useTranslations';
 
 /**
  * Redirect /media to /sites
- * Media is managed per-site in Site Panel (/tenant/[slug]/media)
+ * Media is managed per-site in Site Panel (/sites/[slug]/media)
  * This global page is deprecated - use Platform Panel (/sites) instead
  */
 export default function MediaRedirectPage() {

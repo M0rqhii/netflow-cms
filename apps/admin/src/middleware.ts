@@ -7,8 +7,6 @@ const PROTECTED_PREFIXES = [
   '/sites',
   '/billing',
   '/account',
-  '/tenant',
-  '/tenants',
   '/collections',
   '/media',
   '/types',

@@ -20,9 +20,9 @@ async function main() {
   console.log('🌱 Seeding demo organization "TechFlow Solutions"...\n');
 
   // ============================================
-  // 1. Create Organization (Tenant)
+  // 1. Create Organization
   // ============================================
-  const demoOrg = await prisma.tenant.upsert({
+  const demoOrg = await prisma.organization.upsert({
     where: { slug: 'techflow-solutions' },
     update: {},
     create: {
@@ -40,7 +40,20 @@ async function main() {
     },
   });
 
+  // Create site for organization
+  const demoSite = await prisma.site.upsert({
+    where: { orgId_slug: { orgId: demoOrg.id, slug: 'techflow-solutions-site' } },
+    update: {},
+    create: {
+      orgId: demoOrg.id,
+      name: 'TechFlow Solutions Site',
+      slug: 'techflow-solutions-site',
+      settings: {},
+    },
+  });
+
   console.log('✅ Created organization:', demoOrg.name, `(${demoOrg.slug})`);
+  console.log('✅ Created site:', demoSite.name, `(${demoSite.slug})`);
 
   // ============================================
   // 2. Create Users
@@ -49,14 +62,14 @@ async function main() {
 
   const ownerUser = await prisma.user.upsert({
     where: {
-      tenantId_email: {
-        tenantId: demoOrg.id,
+      orgId_email: {
+        orgId: demoOrg.id,
         email: 'anna.nowak@techflow-solutions.com',
       },
     },
     update: {},
     create: {
-      tenantId: demoOrg.id,
+      orgId: demoOrg.id,
       email: 'anna.nowak@techflow-solutions.com',
       passwordHash,
       role: 'tenant_admin',
@@ -66,14 +79,14 @@ async function main() {
 
   const editorUser = await prisma.user.upsert({
     where: {
-      tenantId_email: {
-        tenantId: demoOrg.id,
+      orgId_email: {
+        orgId: demoOrg.id,
         email: 'tomasz.wisniewski@techflow-solutions.com',
       },
     },
     update: {},
     create: {
-      tenantId: demoOrg.id,
+      orgId: demoOrg.id,
       email: 'tomasz.wisniewski@techflow-solutions.com',
       passwordHash,
       role: 'editor',
@@ -83,14 +96,14 @@ async function main() {
 
   const marketingUser = await prisma.user.upsert({
     where: {
-      tenantId_email: {
-        tenantId: demoOrg.id,
+      orgId_email: {
+        orgId: demoOrg.id,
         email: 'maria.kowalska@techflow-solutions.com',
       },
     },
     update: {},
     create: {
-      tenantId: demoOrg.id,
+      orgId: demoOrg.id,
       email: 'maria.kowalska@techflow-solutions.com',
       passwordHash,
       role: 'tenant_admin',
@@ -455,28 +468,28 @@ async function main() {
 
   const draftEnv = await prisma.siteEnvironment.upsert({
     where: {
-      tenantId_type: {
-        tenantId: demoOrg.id,
+      siteId_type: {
+        siteId: demoSite.id,
         type: EnvironmentType.DRAFT,
       },
     },
     update: {},
     create: {
-      tenantId: demoOrg.id,
-      type: EnvironmentType.DRAFT,
+        siteId: demoSite.id,
+        type: EnvironmentType.DRAFT,
     },
   });
 
   const productionEnv = await prisma.siteEnvironment.upsert({
     where: {
-      tenantId_type: {
-        tenantId: demoOrg.id,
+      siteId_type: {
+        siteId: demoSite.id,
         type: EnvironmentType.PRODUCTION,
       },
     },
     update: {},
     create: {
-      tenantId: demoOrg.id,
+      siteId: demoSite.id,
       type: EnvironmentType.PRODUCTION,
     },
   });
@@ -552,8 +565,8 @@ async function main() {
 
   const demoPage = await prisma.page.upsert({
     where: {
-      tenant_env_slug: {
-        tenantId: demoOrg.id,
+      site_env_slug: {
+        siteId: demoSite.id,
         environmentId: draftEnv.id,
         slug: 'home',
       },
@@ -564,7 +577,7 @@ async function main() {
       status: PageStatus.DRAFT,
     },
     create: {
-      tenantId: demoOrg.id,
+      siteId: demoSite.id,
       environmentId: draftEnv.id,
       slug: 'home',
       title: 'TechFlow Solutions - Transformacja Cyfrowa',

@@ -1,19 +1,21 @@
-﻿'use client';
+'use client';
 
-import { ApiClient, createApiClient, TenantInfo } from '@repo/sdk';
-import type { CapabilityKey, CapabilityModule, CreateTenant, RbacCapability } from '@repo/schemas';
+import { ApiClient, createApiClient, SiteInfo } from '@repo/sdk';
+import type { CapabilityKey, CapabilityModule, CreateSite, RbacCapability } from '@repo/schemas';
 
 const client: ApiClient = createApiClient();
 
 type JwtPayload = {
   exp?: number;
   email?: string;
-  role?: string; // tenant role (super_admin, tenant_admin, editor, viewer)
+  role?: string; // site role (super_admin, site_admin, editor, viewer)
   platformRole?: string; // platform role (platform_admin, org_owner, user)
   systemRole?: string; // system role (super_admin, system_admin, system_dev, system_support)
   isSuperAdmin?: boolean; // flag for super admin
   sub?: string; // user id
-  tenantId?: string;
+  siteId?: string;
+  orgId?: string; // organization id
+  tenantId?: string; // backward compatibility - same as orgId
   [key: string]: unknown;
 };
 
@@ -77,18 +79,20 @@ export function setAuthToken(token: string) {
   setAuthCookie(token);
 }
 
-export function setTenantToken(tenantId: string, token: string) {
+export function setSiteToken(siteId: string, token: string) {
   if (typeof window === 'undefined') return;
-  localStorage.setItem(`tenantToken:${tenantId}`, token);
+  localStorage.setItem(`siteToken:${siteId}`, token);
 }
 
-export function getTenantToken(tenantId: string): string | null {
+export function getSiteToken(siteId: string): string | null {
   if (typeof window === 'undefined') return null;
-  return localStorage.getItem(`tenantToken:${tenantId}`);
+  return localStorage.getItem(`siteToken:${siteId}`);
 }
+
+// Legacy aliases moved to end of file for consistency
 
 /**
- * Clear all authentication tokens (global and tenant-scoped)
+ * Clear all authentication tokens (global and site-scoped)
  * Used when user logs out or when 401 Unauthorized is received
  */
 export function clearAuthTokens(): void {
@@ -100,7 +104,7 @@ export function clearAuthTokens(): void {
       if (k) keys.push(k);
     }
     keys.forEach((k) => {
-      if (k === 'authToken' || k.startsWith('tenantToken:')) {
+      if (k === 'authToken' || k.startsWith('siteToken:')) {
         localStorage.removeItem(k);
       }
     });
@@ -138,12 +142,12 @@ function handleApiError(response: Response, errorText?: string): never {
   throw new Error(`API Error: ${response.status} ${message}`);
 }
 
-export async function fetchMyTenants(): Promise<TenantInfo[]> {
+export async function fetchMySites(): Promise<SiteInfo[]> {
   const token = getAuthToken();
   if (!token) throw new Error('Missing auth token. Please login.');
   
   try {
-    return await client.getMyTenants(token);
+    return await client.getMySites(token);
   } catch (error) {
     // Enhanced error handling
     if (error instanceof Error && error.message.includes('NetworkError')) {
@@ -154,29 +158,34 @@ export async function fetchMyTenants(): Promise<TenantInfo[]> {
   }
 }
 
-export async function exchangeTenantToken(tenantId: string): Promise<string> {
+export async function exchangeSiteToken(siteId: string): Promise<string> {
   const token = getAuthToken();
   if (!token) throw new Error('Missing auth token. Please login.');
-  const res = await client.issueTenantToken(token, tenantId);
-  setTenantToken(tenantId, res.access_token);
+  const res = await client.issueSiteToken(token, siteId);
+  setSiteToken(siteId, res.access_token);
   return res.access_token;
 }
 
-async function ensureTenantToken(tenantId: string): Promise<string> {
-  const cached = getTenantToken(tenantId);
+async function ensureSiteToken(siteId: string): Promise<string> {
+  const cached = getSiteToken(siteId);
   if (cached) return cached;
-  return exchangeTenantToken(tenantId);
+  return exchangeSiteToken(siteId);
 }
+
 
 // Activity & Stats
 export type ActivityItem = { id: string; type?: string; message: string; description?: string; createdAt: string };
-export type QuickStats = { tenants: number; collections: number; media: number; users: number; active?: number; total?: number };
+export type QuickStats = { sites: number; collections: number; media: number; users: number; active?: number; total?: number };
 
-export async function fetchActivity(limit?: number): Promise<ActivityItem[]> {
+export async function fetchActivity(limit?: number, orgId?: string, siteId?: string): Promise<ActivityItem[]> {
   const token = getAuthToken();
   if (!token) throw new Error('Missing auth token. Please login.');
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
-  const query = typeof limit === 'number' ? `?limit=${limit}` : '';
+  const params = new URLSearchParams();
+  if (typeof limit === 'number') params.append('limit', String(limit));
+  if (orgId) params.append('orgId', orgId);
+  if (siteId) params.append('siteId', siteId);
+  const query = params.toString() ? `?${params.toString()}` : '';
   const res = await fetch(`${baseUrl}/activity${query}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -208,36 +217,36 @@ export async function fetchQuickStats(): Promise<QuickStats> {
   }
   const raw: any = await res.json().catch(() => ({}));
   const stats: QuickStats = {
-    tenants: raw?.tenants ?? raw?.sites ?? 0,
+    sites: raw?.sites ?? 0,
     collections: raw?.collections ?? 0,
     media: raw?.media ?? 0,
     users: raw?.users ?? 0,
-    active: raw?.active ?? raw?.tenants ?? raw?.sites,
-    total: raw?.total ?? raw?.tenants ?? raw?.sites,
+    active: raw?.active ?? raw?.sites,
+    total: raw?.total ?? raw?.sites,
   };
   return stats;
 }
 
-export async function fetchTenantStats(tenantId: string): Promise<{ collections: number; media: number }> {
-  const token = await ensureTenantToken(tenantId).catch(() => getAuthToken());
+export async function fetchSiteStats(siteId: string): Promise<{ collections: number; media: number }> {
+  const token = await ensureSiteToken(siteId).catch(() => getAuthToken());
   if (!token) throw new Error('Missing auth token. Please login.');
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
-  const res = await fetch(`${baseUrl}/stats/tenant`, {
-    headers: { Authorization: `Bearer ${token}`, 'X-Tenant-ID': tenantId },
+  const res = await fetch(`${baseUrl}/stats/site`, {
+    headers: { Authorization: `Bearer ${token}`, 'X-Site-ID': siteId },
   });
   if (!res.ok) {
     const text = await res.text().catch(() => '');
-    throw new Error(`Failed to fetch tenant stats: ${res.status} ${res.statusText}${text ? ` - ${text}` : ''}`);
+    throw new Error(`Failed to fetch site stats: ${res.status} ${res.statusText}${text ? ` - ${text}` : ''}`);
   }
   return res.json();
 }
 
-// Tenants
-export async function createTenant(payload: Pick<CreateTenant, 'name' | 'slug'> & Partial<CreateTenant>): Promise<any> {
+// Sites
+export async function createSite(payload: Pick<CreateSite, 'name' | 'slug'> & Partial<CreateSite>): Promise<any> {
   const token = getAuthToken();
   if (!token) throw new Error('Missing auth token. Please login.');
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
-  const res = await fetch(`${baseUrl}/tenants`, {
+  const res = await fetch(`${baseUrl}/sites`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     body: JSON.stringify(payload),
@@ -251,12 +260,12 @@ export async function createTenant(payload: Pick<CreateTenant, 'name' | 'slug'> 
 
 // Collections
 export type CollectionSummary = { id: string; slug: string; name: string; createdAt: string; updatedAt: string };
-export async function fetchTenantCollections(tenantId: string): Promise<CollectionSummary[]> {
-  const token = await ensureTenantToken(tenantId).catch(() => getAuthToken());
+export async function fetchSiteCollections(siteId: string): Promise<CollectionSummary[]> {
+  const token = await ensureSiteToken(siteId).catch(() => getAuthToken());
   if (!token) throw new Error('Missing auth token. Please login.');
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
   const res = await fetch(`${baseUrl}/collections`, {
-    headers: { Authorization: `Bearer ${token}`, 'X-Tenant-ID': tenantId },
+    headers: { Authorization: `Bearer ${token}`, 'X-Site-ID': siteId },
   });
   if (!res.ok) {
     const text = await res.text().catch(() => '');
@@ -265,12 +274,12 @@ export async function fetchTenantCollections(tenantId: string): Promise<Collecti
   return res.json();
 }
 
-export async function getCollection(tenantId: string, slug: string): Promise<any> {
-  const token = await ensureTenantToken(tenantId).catch(() => getAuthToken());
+export async function getCollection(siteId: string, slug: string): Promise<any> {
+  const token = await ensureSiteToken(siteId).catch(() => getAuthToken());
   if (!token) throw new Error('Missing auth token. Please login.');
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
   const res = await fetch(`${baseUrl}/collections/${encodeURIComponent(slug)}`, {
-    headers: { Authorization: `Bearer ${token}`, 'X-Tenant-ID': tenantId },
+    headers: { Authorization: `Bearer ${token}`, 'X-Site-ID': siteId },
   });
   if (!res.ok) {
     const text = await res.text().catch(() => '');
@@ -279,13 +288,13 @@ export async function getCollection(tenantId: string, slug: string): Promise<any
   return res.json();
 }
 
-export async function createCollection(tenantId: string, payload: { name: string; slug: string; schemaJson?: Record<string, unknown> }): Promise<CollectionSummary> {
-  const token = await ensureTenantToken(tenantId).catch(() => getAuthToken());
+export async function createCollection(siteId: string, payload: { name: string; slug: string; schemaJson?: Record<string, unknown> }): Promise<CollectionSummary> {
+  const token = await ensureSiteToken(siteId).catch(() => getAuthToken());
   if (!token) throw new Error('Missing auth token. Please login.');
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
   const res = await fetch(`${baseUrl}/collections`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'X-Tenant-ID': tenantId },
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'X-Site-ID': siteId },
     body: JSON.stringify(payload),
   });
   if (!res.ok) {
@@ -295,13 +304,13 @@ export async function createCollection(tenantId: string, payload: { name: string
   return res.json();
 }
 
-export async function updateCollection(tenantId: string, slug: string, payload: { name?: string; schemaJson?: Record<string, unknown> }): Promise<CollectionSummary> {
-  const token = await ensureTenantToken(tenantId).catch(() => getAuthToken());
+export async function updateCollection(siteId: string, slug: string, payload: { name?: string; schemaJson?: Record<string, unknown> }): Promise<CollectionSummary> {
+  const token = await ensureSiteToken(siteId).catch(() => getAuthToken());
   if (!token) throw new Error('Missing auth token. Please login.');
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
   const res = await fetch(`${baseUrl}/collections/${encodeURIComponent(slug)}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'X-Tenant-ID': tenantId },
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'X-Site-ID': siteId },
     body: JSON.stringify(payload),
   });
   if (!res.ok) {
@@ -311,13 +320,13 @@ export async function updateCollection(tenantId: string, slug: string, payload: 
   return res.json();
 }
 
-export async function deleteCollection(tenantId: string, slug: string): Promise<void> {
-  const token = await ensureTenantToken(tenantId).catch(() => getAuthToken());
+export async function deleteCollection(siteId: string, slug: string): Promise<void> {
+  const token = await ensureSiteToken(siteId).catch(() => getAuthToken());
   if (!token) throw new Error('Missing auth token. Please login.');
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
   const res = await fetch(`${baseUrl}/collections/${encodeURIComponent(slug)}`, {
     method: 'DELETE',
-    headers: { Authorization: `Bearer ${token}`, 'X-Tenant-ID': tenantId },
+    headers: { Authorization: `Bearer ${token}`, 'X-Site-ID': siteId },
   });
   if (!res.ok) {
     const text = await res.text().catch(() => '');
@@ -327,8 +336,8 @@ export async function deleteCollection(tenantId: string, slug: string): Promise<
 
 // Collection Items
 export type CollectionItem = { id: string; collectionId: string; data: Record<string, unknown>; status: 'DRAFT' | 'PUBLISHED'; version: number; createdAt: string; updatedAt: string };
-export async function fetchCollectionItems(tenantId: string, collectionSlug: string, query?: { page?: number; pageSize?: number; status?: string }): Promise<{ items: CollectionItem[]; total: number; page: number; pageSize: number }> {
-  const token = await ensureTenantToken(tenantId).catch(() => getAuthToken());
+export async function fetchCollectionItems(siteId: string, collectionSlug: string, query?: { page?: number; pageSize?: number; status?: string }): Promise<{ items: CollectionItem[]; total: number; page: number; pageSize: number }> {
+  const token = await ensureSiteToken(siteId).catch(() => getAuthToken());
   if (!token) throw new Error('Missing auth token. Please login.');
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
   const params = new URLSearchParams();
@@ -336,7 +345,7 @@ export async function fetchCollectionItems(tenantId: string, collectionSlug: str
   if (query?.pageSize) params.append('pageSize', String(query.pageSize));
   if (query?.status) params.append('status', query.status);
   const res = await fetch(`${baseUrl}/collections/${encodeURIComponent(collectionSlug)}/items?${params}`, {
-    headers: { Authorization: `Bearer ${token}`, 'X-Tenant-ID': tenantId },
+    headers: { Authorization: `Bearer ${token}`, 'X-Site-ID': siteId },
   });
   if (!res.ok) {
     const text = await res.text().catch(() => '');
@@ -345,12 +354,12 @@ export async function fetchCollectionItems(tenantId: string, collectionSlug: str
   return res.json();
 }
 
-export async function getCollectionItem(tenantId: string, collectionSlug: string, itemId: string): Promise<CollectionItem> {
-  const token = await ensureTenantToken(tenantId).catch(() => getAuthToken());
+export async function getCollectionItem(siteId: string, collectionSlug: string, itemId: string): Promise<CollectionItem> {
+  const token = await ensureSiteToken(siteId).catch(() => getAuthToken());
   if (!token) throw new Error('Missing auth token. Please login.');
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
   const res = await fetch(`${baseUrl}/collections/${encodeURIComponent(collectionSlug)}/items/${encodeURIComponent(itemId)}`, {
-    headers: { Authorization: `Bearer ${token}`, 'X-Tenant-ID': tenantId },
+    headers: { Authorization: `Bearer ${token}`, 'X-Site-ID': siteId },
   });
   if (!res.ok) {
     const text = await res.text().catch(() => '');
@@ -359,13 +368,13 @@ export async function getCollectionItem(tenantId: string, collectionSlug: string
   return res.json();
 }
 
-export async function createCollectionItem(tenantId: string, collectionSlug: string, payload: { data: Record<string, unknown>; status?: 'DRAFT' | 'PUBLISHED' }): Promise<CollectionItem> {
-  const token = await ensureTenantToken(tenantId).catch(() => getAuthToken());
+export async function createCollectionItem(siteId: string, collectionSlug: string, payload: { data: Record<string, unknown>; status?: 'DRAFT' | 'PUBLISHED' }): Promise<CollectionItem> {
+  const token = await ensureSiteToken(siteId).catch(() => getAuthToken());
   if (!token) throw new Error('Missing auth token. Please login.');
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
   const res = await fetch(`${baseUrl}/collections/${encodeURIComponent(collectionSlug)}/items`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'X-Tenant-ID': tenantId },
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'X-Site-ID': siteId },
     body: JSON.stringify(payload),
   });
   if (!res.ok) {
@@ -375,13 +384,13 @@ export async function createCollectionItem(tenantId: string, collectionSlug: str
   return res.json();
 }
 
-export async function updateCollectionItem(tenantId: string, collectionSlug: string, itemId: string, payload: { data?: Record<string, unknown>; status?: 'DRAFT' | 'PUBLISHED' }): Promise<CollectionItem> {
-  const token = await ensureTenantToken(tenantId).catch(() => getAuthToken());
+export async function updateCollectionItem(siteId: string, collectionSlug: string, itemId: string, payload: { data?: Record<string, unknown>; status?: 'DRAFT' | 'PUBLISHED' }): Promise<CollectionItem> {
+  const token = await ensureSiteToken(siteId).catch(() => getAuthToken());
   if (!token) throw new Error('Missing auth token. Please login.');
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
   const res = await fetch(`${baseUrl}/collections/${encodeURIComponent(collectionSlug)}/items/${encodeURIComponent(itemId)}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'X-Tenant-ID': tenantId },
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'X-Site-ID': siteId },
     body: JSON.stringify(payload),
   });
   if (!res.ok) {
@@ -391,13 +400,13 @@ export async function updateCollectionItem(tenantId: string, collectionSlug: str
   return res.json();
 }
 
-export async function deleteCollectionItem(tenantId: string, collectionSlug: string, itemId: string): Promise<void> {
-  const token = await ensureTenantToken(tenantId).catch(() => getAuthToken());
+export async function deleteCollectionItem(siteId: string, collectionSlug: string, itemId: string): Promise<void> {
+  const token = await ensureSiteToken(siteId).catch(() => getAuthToken());
   if (!token) throw new Error('Missing auth token. Please login.');
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
   const res = await fetch(`${baseUrl}/collections/${encodeURIComponent(collectionSlug)}/items/${encodeURIComponent(itemId)}`, {
     method: 'DELETE',
-    headers: { Authorization: `Bearer ${token}`, 'X-Tenant-ID': tenantId },
+    headers: { Authorization: `Bearer ${token}`, 'X-Site-ID': siteId },
   });
   if (!res.ok) {
     const text = await res.text().catch(() => '');
@@ -407,8 +416,8 @@ export async function deleteCollectionItem(tenantId: string, collectionSlug: str
 
 // Content Types
 export type TypeSummary = { id: string; name: string; slug: string; createdAt: string; updatedAt: string };
-export async function fetchTenantTypes(tenantId: string): Promise<TypeSummary[]> {
-  const token = await ensureTenantToken(tenantId).catch(() => getAuthToken());
+export async function fetchSiteTypes(siteId: string): Promise<TypeSummary[]> {
+  const token = await ensureSiteToken(siteId).catch(() => getAuthToken());
   if (!token) {
     clearAuthTokens();
     if (typeof window !== 'undefined') {
@@ -418,7 +427,7 @@ export async function fetchTenantTypes(tenantId: string): Promise<TypeSummary[]>
   }
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
   const res = await fetch(`${baseUrl}/content-types`, {
-    headers: { Authorization: `Bearer ${token}`, 'X-Tenant-ID': tenantId },
+    headers: { Authorization: `Bearer ${token}`, 'X-Site-ID': siteId },
   });
   if (!res.ok) {
     const text = await res.text().catch(() => '');
@@ -430,12 +439,12 @@ export async function fetchTenantTypes(tenantId: string): Promise<TypeSummary[]>
   return res.json();
 }
 
-export async function getContentType(tenantId: string, id: string): Promise<any> {
-  const token = await ensureTenantToken(tenantId).catch(() => getAuthToken());
+export async function getContentType(siteId: string, id: string): Promise<any> {
+  const token = await ensureSiteToken(siteId).catch(() => getAuthToken());
   if (!token) throw new Error('Missing auth token. Please login.');
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
   const res = await fetch(`${baseUrl}/content-types/${encodeURIComponent(id)}`, {
-    headers: { Authorization: `Bearer ${token}`, 'X-Tenant-ID': tenantId },
+    headers: { Authorization: `Bearer ${token}`, 'X-Site-ID': siteId },
   });
   if (!res.ok) {
     const text = await res.text().catch(() => '');
@@ -444,13 +453,13 @@ export async function getContentType(tenantId: string, id: string): Promise<any>
   return res.json();
 }
 
-export async function createType(tenantId: string, payload: { name: string; slug: string; fields?: unknown[]; schema?: Record<string, unknown> }): Promise<TypeSummary> {
-  const token = await ensureTenantToken(tenantId).catch(() => getAuthToken());
+export async function createType(siteId: string, payload: { name: string; slug: string; fields?: unknown[]; schema?: Record<string, unknown> }): Promise<TypeSummary> {
+  const token = await ensureSiteToken(siteId).catch(() => getAuthToken());
   if (!token) throw new Error('Missing auth token. Please login.');
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
   const res = await fetch(`${baseUrl}/content-types`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'X-Tenant-ID': tenantId },
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'X-Site-ID': siteId },
     body: JSON.stringify(payload),
   });
   if (!res.ok) {
@@ -460,13 +469,13 @@ export async function createType(tenantId: string, payload: { name: string; slug
   return res.json();
 }
 
-export async function deleteType(tenantId: string, id: string): Promise<void> {
-  const token = await ensureTenantToken(tenantId).catch(() => getAuthToken());
+export async function deleteType(siteId: string, id: string): Promise<void> {
+  const token = await ensureSiteToken(siteId).catch(() => getAuthToken());
   if (!token) throw new Error('Missing auth token. Please login.');
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
   const res = await fetch(`${baseUrl}/content-types/${encodeURIComponent(id)}`, {
     method: 'DELETE',
-    headers: { Authorization: `Bearer ${token}`, 'X-Tenant-ID': tenantId },
+    headers: { Authorization: `Bearer ${token}`, 'X-Site-ID': siteId },
   });
   if (!res.ok) {
     const text = await res.text().catch(() => '');
@@ -474,13 +483,13 @@ export async function deleteType(tenantId: string, id: string): Promise<void> {
   }
 }
 
-export async function updateType(tenantId: string, id: string, payload: { name?: string; slug?: string; fields?: unknown[]; schema?: Record<string, unknown> }): Promise<TypeSummary> {
-  const token = await ensureTenantToken(tenantId).catch(() => getAuthToken());
+export async function updateType(siteId: string, id: string, payload: { name?: string; slug?: string; fields?: unknown[]; schema?: Record<string, unknown> }): Promise<TypeSummary> {
+  const token = await ensureSiteToken(siteId).catch(() => getAuthToken());
   if (!token) throw new Error('Missing auth token. Please login.');
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
   const res = await fetch(`${baseUrl}/content-types/${encodeURIComponent(id)}`, {
     method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'X-Tenant-ID': tenantId },
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'X-Site-ID': siteId },
     body: JSON.stringify(payload),
   });
   if (!res.ok) {
@@ -491,9 +500,9 @@ export async function updateType(tenantId: string, id: string, payload: { name?:
 }
 
 // Content Entries
-export type ContentEntry = { id: string; tenantId: string; contentTypeId: string; data: Record<string, unknown>; status: string; createdAt: string; updatedAt: string };
-export async function fetchContentEntries(tenantId: string, contentTypeSlug: string, query?: { page?: number; pageSize?: number; status?: string; search?: string }): Promise<{ entries: ContentEntry[]; total: number; page: number; pageSize: number }> {
-  const token = await ensureTenantToken(tenantId).catch(() => getAuthToken());
+export type ContentEntry = { id: string; siteId: string; contentTypeId: string; data: Record<string, unknown>; status: string; createdAt: string; updatedAt: string };
+export async function fetchContentEntries(siteId: string, contentTypeSlug: string, query?: { page?: number; pageSize?: number; status?: string; search?: string }): Promise<{ entries: ContentEntry[]; total: number; page: number; pageSize: number }> {
+  const token = await ensureSiteToken(siteId).catch(() => getAuthToken());
   if (!token) throw new Error('Missing auth token. Please login.');
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
   const params = new URLSearchParams();
@@ -502,7 +511,7 @@ export async function fetchContentEntries(tenantId: string, contentTypeSlug: str
   if (query?.status) params.append('status', query.status);
   if (query?.search) params.append('search', query.search);
   const res = await fetch(`${baseUrl}/content/${encodeURIComponent(contentTypeSlug)}?${params}`, {
-    headers: { Authorization: `Bearer ${token}`, 'X-Tenant-ID': tenantId },
+    headers: { Authorization: `Bearer ${token}`, 'X-Site-ID': siteId },
   });
   if (!res.ok) {
     const text = await res.text().catch(() => '');
@@ -513,12 +522,12 @@ export async function fetchContentEntries(tenantId: string, contentTypeSlug: str
   return Array.isArray(data) ? { entries: data, total: data.length, page: 1, pageSize: data.length } : data;
 }
 
-export async function getContentEntry(tenantId: string, contentTypeSlug: string, entryId: string): Promise<ContentEntry> {
-  const token = await ensureTenantToken(tenantId).catch(() => getAuthToken());
+export async function getContentEntry(siteId: string, contentTypeSlug: string, entryId: string): Promise<ContentEntry> {
+  const token = await ensureSiteToken(siteId).catch(() => getAuthToken());
   if (!token) throw new Error('Missing auth token. Please login.');
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
   const res = await fetch(`${baseUrl}/content/${encodeURIComponent(contentTypeSlug)}/${encodeURIComponent(entryId)}`, {
-    headers: { Authorization: `Bearer ${token}`, 'X-Tenant-ID': tenantId },
+    headers: { Authorization: `Bearer ${token}`, 'X-Site-ID': siteId },
   });
   if (!res.ok) {
     const text = await res.text().catch(() => '');
@@ -527,13 +536,13 @@ export async function getContentEntry(tenantId: string, contentTypeSlug: string,
   return res.json();
 }
 
-export async function createContentEntry(tenantId: string, contentTypeSlug: string, payload: { data: Record<string, unknown>; status?: string }): Promise<ContentEntry> {
-  const token = await ensureTenantToken(tenantId).catch(() => getAuthToken());
+export async function createContentEntry(siteId: string, contentTypeSlug: string, payload: { data: Record<string, unknown>; status?: string }): Promise<ContentEntry> {
+  const token = await ensureSiteToken(siteId).catch(() => getAuthToken());
   if (!token) throw new Error('Missing auth token. Please login.');
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
   const res = await fetch(`${baseUrl}/content/${encodeURIComponent(contentTypeSlug)}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'X-Tenant-ID': tenantId },
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'X-Site-ID': siteId },
     body: JSON.stringify(payload),
   });
   if (!res.ok) {
@@ -543,13 +552,13 @@ export async function createContentEntry(tenantId: string, contentTypeSlug: stri
   return res.json();
 }
 
-export async function updateContentEntry(tenantId: string, contentTypeSlug: string, entryId: string, payload: { data?: Record<string, unknown>; status?: string }): Promise<ContentEntry> {
-  const token = await ensureTenantToken(tenantId).catch(() => getAuthToken());
+export async function updateContentEntry(siteId: string, contentTypeSlug: string, entryId: string, payload: { data?: Record<string, unknown>; status?: string }): Promise<ContentEntry> {
+  const token = await ensureSiteToken(siteId).catch(() => getAuthToken());
   if (!token) throw new Error('Missing auth token. Please login.');
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
   const res = await fetch(`${baseUrl}/content/${encodeURIComponent(contentTypeSlug)}/${encodeURIComponent(entryId)}`, {
     method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'X-Tenant-ID': tenantId },
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'X-Site-ID': siteId },
     body: JSON.stringify(payload),
   });
   if (!res.ok) {
@@ -559,13 +568,13 @@ export async function updateContentEntry(tenantId: string, contentTypeSlug: stri
   return res.json();
 }
 
-export async function deleteContentEntry(tenantId: string, contentTypeSlug: string, entryId: string): Promise<void> {
-  const token = await ensureTenantToken(tenantId).catch(() => getAuthToken());
+export async function deleteContentEntry(siteId: string, contentTypeSlug: string, entryId: string): Promise<void> {
+  const token = await ensureSiteToken(siteId).catch(() => getAuthToken());
   if (!token) throw new Error('Missing auth token. Please login.');
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
   const res = await fetch(`${baseUrl}/content/${encodeURIComponent(contentTypeSlug)}/${encodeURIComponent(entryId)}`, {
     method: 'DELETE',
-    headers: { Authorization: `Bearer ${token}`, 'X-Tenant-ID': tenantId },
+    headers: { Authorization: `Bearer ${token}`, 'X-Site-ID': siteId },
   });
   if (!res.ok) {
     const text = await res.text().catch(() => '');
@@ -574,13 +583,13 @@ export async function deleteContentEntry(tenantId: string, contentTypeSlug: stri
 }
 
 // Content Workflow (Review & Comments)
-export async function submitContentForReview(tenantId: string, contentTypeSlug: string, entryId: string): Promise<any> {
-  const token = await ensureTenantToken(tenantId).catch(() => getAuthToken());
+export async function submitContentForReview(siteId: string, contentTypeSlug: string, entryId: string): Promise<any> {
+  const token = await ensureSiteToken(siteId).catch(() => getAuthToken());
   if (!token) throw new Error('Missing auth token. Please login.');
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
   const res = await fetch(`${baseUrl}/content/${encodeURIComponent(contentTypeSlug)}/${encodeURIComponent(entryId)}/submit`, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${token}`, 'X-Tenant-ID': tenantId },
+    headers: { Authorization: `Bearer ${token}`, 'X-Site-ID': siteId },
   });
   if (!res.ok) {
     const text = await res.text().catch(() => '');
@@ -589,13 +598,13 @@ export async function submitContentForReview(tenantId: string, contentTypeSlug: 
   return res.json();
 }
 
-export async function reviewContent(tenantId: string, contentTypeSlug: string, entryId: string, status: 'approved' | 'rejected' | 'changes_requested', comment?: string): Promise<any> {
-  const token = await ensureTenantToken(tenantId).catch(() => getAuthToken());
+export async function reviewContent(siteId: string, contentTypeSlug: string, entryId: string, status: 'approved' | 'rejected' | 'changes_requested', comment?: string): Promise<any> {
+  const token = await ensureSiteToken(siteId).catch(() => getAuthToken());
   if (!token) throw new Error('Missing auth token. Please login.');
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
   const res = await fetch(`${baseUrl}/content/${encodeURIComponent(contentTypeSlug)}/${encodeURIComponent(entryId)}/review`, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${token}`, 'X-Tenant-ID': tenantId, 'Content-Type': 'application/json' },
+    headers: { Authorization: `Bearer ${token}`, 'X-Site-ID': siteId, 'Content-Type': 'application/json' },
     body: JSON.stringify({ status, comment }),
   });
   if (!res.ok) {
@@ -605,12 +614,12 @@ export async function reviewContent(tenantId: string, contentTypeSlug: string, e
   return res.json();
 }
 
-export async function getContentReviewHistory(tenantId: string, contentTypeSlug: string, entryId: string): Promise<any[]> {
-  const token = await ensureTenantToken(tenantId).catch(() => getAuthToken());
+export async function getContentReviewHistory(siteId: string, contentTypeSlug: string, entryId: string): Promise<any[]> {
+  const token = await ensureSiteToken(siteId).catch(() => getAuthToken());
   if (!token) throw new Error('Missing auth token. Please login.');
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
   const res = await fetch(`${baseUrl}/content/${encodeURIComponent(contentTypeSlug)}/${encodeURIComponent(entryId)}/reviews`, {
-    headers: { Authorization: `Bearer ${token}`, 'X-Tenant-ID': tenantId },
+    headers: { Authorization: `Bearer ${token}`, 'X-Site-ID': siteId },
   });
   if (!res.ok) {
     const text = await res.text().catch(() => '');
@@ -619,13 +628,13 @@ export async function getContentReviewHistory(tenantId: string, contentTypeSlug:
   return res.json();
 }
 
-export async function createContentComment(tenantId: string, contentTypeSlug: string, entryId: string, content: string): Promise<any> {
-  const token = await ensureTenantToken(tenantId).catch(() => getAuthToken());
+export async function createContentComment(siteId: string, contentTypeSlug: string, entryId: string, content: string): Promise<any> {
+  const token = await ensureSiteToken(siteId).catch(() => getAuthToken());
   if (!token) throw new Error('Missing auth token. Please login.');
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
   const res = await fetch(`${baseUrl}/content/${encodeURIComponent(contentTypeSlug)}/${encodeURIComponent(entryId)}/comments`, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${token}`, 'X-Tenant-ID': tenantId, 'Content-Type': 'application/json' },
+    headers: { Authorization: `Bearer ${token}`, 'X-Site-ID': siteId, 'Content-Type': 'application/json' },
     body: JSON.stringify({ content }),
   });
   if (!res.ok) {
@@ -635,12 +644,12 @@ export async function createContentComment(tenantId: string, contentTypeSlug: st
   return res.json();
 }
 
-export async function getContentComments(tenantId: string, contentTypeSlug: string, entryId: string, includeResolved: boolean = false): Promise<any[]> {
-  const token = await ensureTenantToken(tenantId).catch(() => getAuthToken());
+export async function getContentComments(siteId: string, contentTypeSlug: string, entryId: string, includeResolved: boolean = false): Promise<any[]> {
+  const token = await ensureSiteToken(siteId).catch(() => getAuthToken());
   if (!token) throw new Error('Missing auth token. Please login.');
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
   const res = await fetch(`${baseUrl}/content/${encodeURIComponent(contentTypeSlug)}/${encodeURIComponent(entryId)}/comments?includeResolved=${includeResolved}`, {
-    headers: { Authorization: `Bearer ${token}`, 'X-Tenant-ID': tenantId },
+    headers: { Authorization: `Bearer ${token}`, 'X-Site-ID': siteId },
   });
   if (!res.ok) {
     const text = await res.text().catch(() => '');
@@ -649,13 +658,13 @@ export async function getContentComments(tenantId: string, contentTypeSlug: stri
   return res.json();
 }
 
-export async function updateContentComment(tenantId: string, contentTypeSlug: string, entryId: string, commentId: string, updates: { content?: string; resolved?: boolean }): Promise<any> {
-  const token = await ensureTenantToken(tenantId).catch(() => getAuthToken());
+export async function updateContentComment(siteId: string, contentTypeSlug: string, entryId: string, commentId: string, updates: { content?: string; resolved?: boolean }): Promise<any> {
+  const token = await ensureSiteToken(siteId).catch(() => getAuthToken());
   if (!token) throw new Error('Missing auth token. Please login.');
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
   const res = await fetch(`${baseUrl}/content/${encodeURIComponent(contentTypeSlug)}/${encodeURIComponent(entryId)}/comments/${encodeURIComponent(commentId)}`, {
     method: 'PATCH',
-    headers: { Authorization: `Bearer ${token}`, 'X-Tenant-ID': tenantId, 'Content-Type': 'application/json' },
+    headers: { Authorization: `Bearer ${token}`, 'X-Site-ID': siteId, 'Content-Type': 'application/json' },
     body: JSON.stringify(updates),
   });
   if (!res.ok) {
@@ -665,13 +674,13 @@ export async function updateContentComment(tenantId: string, contentTypeSlug: st
   return res.json();
 }
 
-export async function deleteContentComment(tenantId: string, contentTypeSlug: string, entryId: string, commentId: string): Promise<void> {
-  const token = await ensureTenantToken(tenantId).catch(() => getAuthToken());
+export async function deleteContentComment(siteId: string, contentTypeSlug: string, entryId: string, commentId: string): Promise<void> {
+  const token = await ensureSiteToken(siteId).catch(() => getAuthToken());
   if (!token) throw new Error('Missing auth token. Please login.');
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
   const res = await fetch(`${baseUrl}/content/${encodeURIComponent(contentTypeSlug)}/${encodeURIComponent(entryId)}/comments/${encodeURIComponent(commentId)}`, {
     method: 'DELETE',
-    headers: { Authorization: `Bearer ${token}`, 'X-Tenant-ID': tenantId },
+    headers: { Authorization: `Bearer ${token}`, 'X-Site-ID': siteId },
   });
   if (!res.ok) {
     const text = await res.text().catch(() => '');
@@ -681,12 +690,12 @@ export async function deleteContentComment(tenantId: string, contentTypeSlug: st
 
 // Media
 export type MediaItem = { id: string; fileName: string; path?: string; url: string; mime: string; size: number; uploadedAt: string; width?: number; height?: number; thumbnailUrl?: string; alt?: string; metadata?: Record<string, unknown> };
-export async function fetchTenantMedia(tenantId: string): Promise<MediaItem[]> {
-  const token = await ensureTenantToken(tenantId).catch(() => getAuthToken());
+export async function fetchSiteMedia(siteId: string): Promise<MediaItem[]> {
+  const token = await ensureSiteToken(siteId).catch(() => getAuthToken());
   if (!token) throw new Error('Missing auth token. Please login.');
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
   const res = await fetch(`${baseUrl}/media`, {
-    headers: { Authorization: `Bearer ${token}`, 'X-Tenant-ID': tenantId },
+    headers: { Authorization: `Bearer ${token}`, 'X-Site-ID': siteId },
   });
   if (!res.ok) {
     const text = await res.text().catch(() => '');
@@ -705,15 +714,15 @@ export async function fetchTenantMedia(tenantId: string): Promise<MediaItem[]> {
   }));
 }
 
-export async function uploadTenantMedia(tenantId: string, file: File): Promise<MediaItem> {
-  const token = await ensureTenantToken(tenantId).catch(() => getAuthToken());
+export async function uploadSiteMedia(siteId: string, file: File): Promise<MediaItem> {
+  const token = await ensureSiteToken(siteId).catch(() => getAuthToken());
   if (!token) throw new Error('Missing auth token. Please login.');
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
   const form = new FormData();
   form.append('file', file);
   const res = await fetch(`${baseUrl}/media`, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${token}`, 'X-Tenant-ID': tenantId },
+    headers: { Authorization: `Bearer ${token}`, 'X-Site-ID': siteId },
     body: form,
   });
   if (!res.ok) {
@@ -730,13 +739,13 @@ export async function uploadTenantMedia(tenantId: string, file: File): Promise<M
   };
 }
 
-export async function updateMediaItem(tenantId: string, id: string, payload: { alt?: string; metadata?: Record<string, unknown> }): Promise<MediaItem> {
-  const token = await ensureTenantToken(tenantId).catch(() => getAuthToken());
+export async function updateMediaItem(siteId: string, id: string, payload: { alt?: string; metadata?: Record<string, unknown> }): Promise<MediaItem> {
+  const token = await ensureSiteToken(siteId).catch(() => getAuthToken());
   if (!token) throw new Error('Missing auth token. Please login.');
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
   const res = await fetch(`${baseUrl}/media/${encodeURIComponent(id)}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'X-Tenant-ID': tenantId },
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'X-Site-ID': siteId },
     body: JSON.stringify(payload),
   });
   if (!res.ok) {
@@ -753,13 +762,13 @@ export async function updateMediaItem(tenantId: string, id: string, payload: { a
   };
 }
 
-export async function deleteMediaItem(tenantId: string, id: string): Promise<void> {
-  const token = await ensureTenantToken(tenantId).catch(() => getAuthToken());
+export async function deleteMediaItem(siteId: string, id: string): Promise<void> {
+  const token = await ensureSiteToken(siteId).catch(() => getAuthToken());
   if (!token) throw new Error('Missing auth token. Please login.');
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
   const res = await fetch(`${baseUrl}/media/${encodeURIComponent(id)}`, {
     method: 'DELETE',
-    headers: { Authorization: `Bearer ${token}`, 'X-Tenant-ID': tenantId },
+    headers: { Authorization: `Bearer ${token}`, 'X-Site-ID': siteId },
   });
   if (!res.ok) {
     const text = await res.text().catch(() => '');
@@ -769,12 +778,12 @@ export async function deleteMediaItem(tenantId: string, id: string): Promise<voi
 
 // Users
 export type UserSummary = { id: string; email: string; role: string; createdAt: string };
-export async function fetchTenantUsers(tenantId: string): Promise<UserSummary[]> {
+export async function fetchSiteUsers(siteId: string): Promise<UserSummary[]> {
   let token: string | null = null;
   try {
-    token = await ensureTenantToken(tenantId);
+    token = await ensureSiteToken(siteId);
   } catch (error) {
-    // If tenant token exchange fails, try global token
+    // If site token exchange fails, try global token
     token = getAuthToken();
   }
   
@@ -788,7 +797,7 @@ export async function fetchTenantUsers(tenantId: string): Promise<UserSummary[]>
   
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
   const res = await fetch(`${baseUrl}/users`, {
-    headers: { Authorization: `Bearer ${token}`, 'X-Tenant-ID': tenantId },
+    headers: { Authorization: `Bearer ${token}`, 'X-Site-ID': siteId },
   });
   
   if (!res.ok) {
@@ -804,12 +813,12 @@ export async function fetchTenantUsers(tenantId: string): Promise<UserSummary[]>
 }
 
 export type InviteSummary = { id: string; email: string; role: string; createdAt: string; expiresAt: string };
-export async function fetchTenantInvites(tenantId: string): Promise<InviteSummary[]> {
-  const token = await ensureTenantToken(tenantId).catch(() => getAuthToken());
+export async function fetchSiteInvites(siteId: string): Promise<InviteSummary[]> {
+  const token = await ensureSiteToken(siteId).catch(() => getAuthToken());
   if (!token) throw new Error('Missing auth token. Please login.');
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
   const res = await fetch(`${baseUrl}/users/invites`, {
-    headers: { Authorization: `Bearer ${token}`, 'X-Tenant-ID': tenantId },
+    headers: { Authorization: `Bearer ${token}`, 'X-Site-ID': siteId },
   });
   if (!res.ok) {
     const text = await res.text().catch(() => '');
@@ -818,13 +827,13 @@ export async function fetchTenantInvites(tenantId: string): Promise<InviteSummar
   return res.json();
 }
 
-export async function inviteUser(tenantId: string, payload: { email: string; role: string }): Promise<InviteSummary> {
-  const token = await ensureTenantToken(tenantId).catch(() => getAuthToken());
+export async function inviteUser(siteId: string, payload: { email: string; role: string }): Promise<InviteSummary> {
+  const token = await ensureSiteToken(siteId).catch(() => getAuthToken());
   if (!token) throw new Error('Missing auth token. Please login.');
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
   const res = await fetch(`${baseUrl}/users/invites`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'X-Tenant-ID': tenantId },
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'X-Site-ID': siteId },
     body: JSON.stringify(payload),
   });
   if (!res.ok) {
@@ -834,21 +843,21 @@ export async function inviteUser(tenantId: string, payload: { email: string; rol
   return res.json();
 }
 
-export async function inviteUserToTenant(email: string, role: string, tenantId: string): Promise<InviteSummary> {
-  return inviteUser(tenantId, { email, role });
+export async function inviteUserToSite(email: string, role: string, siteId: string): Promise<InviteSummary> {
+  return inviteUser(siteId, { email, role });
 }
 
 /**
  * Create a new user directly (admin only)
  * Security: Only super_admin can create super_admin users
  */
-export async function createUser(tenantId: string, payload: { email: string; password: string; role: string; preferredLanguage?: 'pl' | 'en' }): Promise<UserSummary> {
-  const token = await ensureTenantToken(tenantId).catch(() => getAuthToken());
+export async function createUser(siteId: string, payload: { email: string; password: string; role: string; preferredLanguage?: 'pl' | 'en' }): Promise<UserSummary> {
+  const token = await ensureSiteToken(siteId).catch(() => getAuthToken());
   if (!token) throw new Error('Missing auth token. Please login.');
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
   const res = await fetch(`${baseUrl}/users`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'X-Tenant-ID': tenantId },
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'X-Site-ID': siteId },
     body: JSON.stringify(payload),
   });
   if (!res.ok) {
@@ -862,13 +871,13 @@ export async function createUser(tenantId: string, payload: { email: string; pas
  * Update user role (admin only)
  * Security: Only super_admin can assign super_admin role
  */
-export async function updateUserRole(tenantId: string, userId: string, role: string): Promise<UserSummary> {
-  const token = await ensureTenantToken(tenantId).catch(() => getAuthToken());
+export async function updateUserRole(siteId: string, userId: string, role: string): Promise<UserSummary> {
+  const token = await ensureSiteToken(siteId).catch(() => getAuthToken());
   if (!token) throw new Error('Missing auth token. Please login.');
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
   const res = await fetch(`${baseUrl}/users/${encodeURIComponent(userId)}/role`, {
     method: 'PATCH',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'X-Tenant-ID': tenantId },
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'X-Site-ID': siteId },
     body: JSON.stringify({ role }),
   });
   if (!res.ok) {
@@ -878,7 +887,7 @@ export async function updateUserRole(tenantId: string, userId: string, role: str
   return res.json();
 }
 
-// Platform-level user management (no tenant context)
+// Platform-level user management (no site context)
 export type PlatformUser = {
   id: string;
   email: string;
@@ -887,10 +896,10 @@ export type PlatformUser = {
   platformRole?: string; // Platform role (user, editor-in-chief, admin, owner)
   systemRole?: string; // System role (super_admin, system_admin, system_dev, system_support)
   isSuperAdmin?: boolean; // Flaga dla super admin
-  tenantId: string;
+  siteId: string;
   createdAt: string;
   updatedAt: string;
-  tenant?: {
+  site?: {
     id: string;
     name: string;
     slug: string;
@@ -982,7 +991,7 @@ export async function deletePlatformUser(userId: string): Promise<void> {
 // Tasks
 export type Task = {
   id: string;
-  tenantId: string;
+  siteId: string;
   contentEntryId?: string;
   collectionItemId?: string;
   title: string;
@@ -998,8 +1007,8 @@ export type Task = {
   updatedAt: string;
 };
 
-export async function fetchTenantTasks(
-  tenantId: string,
+export async function fetchSiteTasks(
+  siteId: string,
   filters?: {
     status?: string;
     priority?: string;
@@ -1012,7 +1021,7 @@ export async function fetchTenantTasks(
 ): Promise<Task[]> {
   let token: string | null = null;
   try {
-    token = await ensureTenantToken(tenantId);
+    token = await ensureSiteToken(siteId);
   } catch (error) {
     token = getAuthToken();
   }
@@ -1036,7 +1045,7 @@ export async function fetchTenantTasks(
   if (filters?.collectionItemId) params.append('collectionItemId', filters.collectionItemId);
   
   const res = await fetch(`${baseUrl}/tasks?${params.toString()}`, {
-    headers: { Authorization: `Bearer ${token}`, 'X-Tenant-ID': tenantId },
+    headers: { Authorization: `Bearer ${token}`, 'X-Site-ID': siteId },
   });
   
   if (!res.ok) {
@@ -1050,7 +1059,7 @@ export async function fetchTenantTasks(
   return res.json();
 }
 
-export async function createTask(tenantId: string, payload: {
+export async function createTask(siteId: string, payload: {
   title: string;
   description?: string;
   status?: string;
@@ -1062,7 +1071,7 @@ export async function createTask(tenantId: string, payload: {
 }): Promise<Task> {
   let token: string | null = null;
   try {
-    token = await ensureTenantToken(tenantId);
+    token = await ensureSiteToken(siteId);
   } catch (error) {
     token = getAuthToken();
   }
@@ -1078,7 +1087,7 @@ export async function createTask(tenantId: string, payload: {
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
   const res = await fetch(`${baseUrl}/tasks`, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${token}`, 'X-Tenant-ID': tenantId, 'Content-Type': 'application/json' },
+    headers: { Authorization: `Bearer ${token}`, 'X-Site-ID': siteId, 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   });
   
@@ -1093,7 +1102,7 @@ export async function createTask(tenantId: string, payload: {
   return res.json();
 }
 
-export async function updateTask(tenantId: string, id: string, payload: Partial<{
+export async function updateTask(siteId: string, id: string, payload: Partial<{
   title: string;
   description: string;
   status: string;
@@ -1103,7 +1112,7 @@ export async function updateTask(tenantId: string, id: string, payload: Partial<
 }>): Promise<Task> {
   let token: string | null = null;
   try {
-    token = await ensureTenantToken(tenantId);
+    token = await ensureSiteToken(siteId);
   } catch (error) {
     token = getAuthToken();
   }
@@ -1120,7 +1129,7 @@ export async function updateTask(tenantId: string, id: string, payload: Partial<
   // Backend uses PUT, not PATCH
   const res = await fetch(`${baseUrl}/tasks/${encodeURIComponent(id)}`, {
     method: 'PUT',
-    headers: { Authorization: `Bearer ${token}`, 'X-Tenant-ID': tenantId, 'Content-Type': 'application/json' },
+    headers: { Authorization: `Bearer ${token}`, 'X-Site-ID': siteId, 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   });
   
@@ -1135,10 +1144,10 @@ export async function updateTask(tenantId: string, id: string, payload: Partial<
   return res.json();
 }
 
-export async function deleteTask(tenantId: string, id: string): Promise<void> {
+export async function deleteTask(siteId: string, id: string): Promise<void> {
   let token: string | null = null;
   try {
-    token = await ensureTenantToken(tenantId);
+    token = await ensureSiteToken(siteId);
   } catch (error) {
     token = getAuthToken();
   }
@@ -1154,7 +1163,7 @@ export async function deleteTask(tenantId: string, id: string): Promise<void> {
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
   const res = await fetch(`${baseUrl}/tasks/${encodeURIComponent(id)}`, {
     method: 'DELETE',
-    headers: { Authorization: `Bearer ${token}`, 'X-Tenant-ID': tenantId },
+    headers: { Authorization: `Bearer ${token}`, 'X-Site-ID': siteId },
   });
   
   if (!res.ok) {
@@ -1169,7 +1178,7 @@ export async function deleteTask(tenantId: string, id: string): Promise<void> {
 // Collection Roles
 export type CollectionRole = {
   id: string;
-  tenantId: string;
+  siteId: string;
   collectionId: string;
   userId: string;
   userName?: string;
@@ -1179,10 +1188,10 @@ export type CollectionRole = {
   updatedAt: string;
 };
 
-export async function fetchCollectionRoles(tenantId: string, collectionId: string): Promise<CollectionRole[]> {
+export async function fetchCollectionRoles(siteId: string, collectionId: string): Promise<CollectionRole[]> {
   let token: string | null = null;
   try {
-    token = await ensureTenantToken(tenantId);
+    token = await ensureSiteToken(siteId);
   } catch (error) {
     token = getAuthToken();
   }
@@ -1197,7 +1206,7 @@ export async function fetchCollectionRoles(tenantId: string, collectionId: strin
   
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
   const res = await fetch(`${baseUrl}/collections/${encodeURIComponent(collectionId)}/roles`, {
-    headers: { Authorization: `Bearer ${token}`, 'X-Tenant-ID': tenantId },
+    headers: { Authorization: `Bearer ${token}`, 'X-Site-ID': siteId },
   });
   
   if (!res.ok) {
@@ -1211,13 +1220,13 @@ export async function fetchCollectionRoles(tenantId: string, collectionId: strin
   return res.json();
 }
 
-export async function assignCollectionRole(tenantId: string, collectionId: string, payload: {
+export async function assignCollectionRole(siteId: string, collectionId: string, payload: {
   userId: string;
   role: string;
 }): Promise<CollectionRole> {
   let token: string | null = null;
   try {
-    token = await ensureTenantToken(tenantId);
+    token = await ensureSiteToken(siteId);
   } catch (error) {
     token = getAuthToken();
   }
@@ -1233,7 +1242,7 @@ export async function assignCollectionRole(tenantId: string, collectionId: strin
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
   const res = await fetch(`${baseUrl}/collections/${encodeURIComponent(collectionId)}/roles`, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${token}`, 'X-Tenant-ID': tenantId, 'Content-Type': 'application/json' },
+    headers: { Authorization: `Bearer ${token}`, 'X-Site-ID': siteId, 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   });
   
@@ -1248,12 +1257,12 @@ export async function assignCollectionRole(tenantId: string, collectionId: strin
   return res.json();
 }
 
-export async function updateCollectionRole(tenantId: string, collectionId: string, userId: string, payload: {
+export async function updateCollectionRole(siteId: string, collectionId: string, userId: string, payload: {
   role: string;
 }): Promise<CollectionRole> {
   let token: string | null = null;
   try {
-    token = await ensureTenantToken(tenantId);
+    token = await ensureSiteToken(siteId);
   } catch (error) {
     token = getAuthToken();
   }
@@ -1269,7 +1278,7 @@ export async function updateCollectionRole(tenantId: string, collectionId: strin
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
   const res = await fetch(`${baseUrl}/collections/${encodeURIComponent(collectionId)}/roles/${encodeURIComponent(userId)}`, {
     method: 'PUT',
-    headers: { Authorization: `Bearer ${token}`, 'X-Tenant-ID': tenantId, 'Content-Type': 'application/json' },
+    headers: { Authorization: `Bearer ${token}`, 'X-Site-ID': siteId, 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   });
   
@@ -1284,10 +1293,10 @@ export async function updateCollectionRole(tenantId: string, collectionId: strin
   return res.json();
 }
 
-export async function removeCollectionRole(tenantId: string, collectionId: string, userId: string): Promise<void> {
+export async function removeCollectionRole(siteId: string, collectionId: string, userId: string): Promise<void> {
   let token: string | null = null;
   try {
-    token = await ensureTenantToken(tenantId);
+    token = await ensureSiteToken(siteId);
   } catch (error) {
     token = getAuthToken();
   }
@@ -1303,7 +1312,7 @@ export async function removeCollectionRole(tenantId: string, collectionId: strin
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
   const res = await fetch(`${baseUrl}/collections/${encodeURIComponent(collectionId)}/roles/${encodeURIComponent(userId)}`, {
     method: 'DELETE',
-    headers: { Authorization: `Bearer ${token}`, 'X-Tenant-ID': tenantId },
+    headers: { Authorization: `Bearer ${token}`, 'X-Site-ID': siteId },
   });
   
   if (!res.ok) {
@@ -1315,13 +1324,13 @@ export async function removeCollectionRole(tenantId: string, collectionId: strin
   }
 }
 
-export async function revokeInvite(tenantId: string, inviteId: string): Promise<void> {
-  const token = await ensureTenantToken(tenantId).catch(() => getAuthToken());
+export async function revokeInvite(siteId: string, inviteId: string): Promise<void> {
+  const token = await ensureSiteToken(siteId).catch(() => getAuthToken());
   if (!token) throw new Error('Missing auth token. Please login.');
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
   const res = await fetch(`${baseUrl}/users/invites/${encodeURIComponent(inviteId)}`, {
     method: 'DELETE',
-    headers: { Authorization: `Bearer ${token}`, 'X-Tenant-ID': tenantId },
+    headers: { Authorization: `Bearer ${token}`, 'X-Site-ID': siteId },
   });
   if (!res.ok) {
     const text = await res.text().catch(() => '');
@@ -1332,17 +1341,17 @@ export async function revokeInvite(tenantId: string, inviteId: string): Promise<
 // Billing
 export type Subscription = {
   id: string;
-  tenantId: string;
+  siteId: string;
   plan: string;
   status: string;
   currentPeriodStart: string | null;
   currentPeriodEnd: string | null;
-  tenant?: { id: string; name: string; slug: string; plan?: string };
+  site?: { id: string; name: string; slug: string; plan?: string };
 };
 
 export type Invoice = {
   id: string;
-  tenantId: string;
+  siteId: string;
   subscriptionId: string;
   invoiceNumber: string;
   amount: number;
@@ -1350,7 +1359,7 @@ export type Invoice = {
   status: string;
   createdAt: string;
   paidAt?: string;
-  tenant?: { id: string; name: string; slug: string };
+  site?: { id: string; name: string; slug: string };
   subscription?: { id: string; plan: string; status: string };
 };
 
@@ -1366,11 +1375,11 @@ export async function getInvoices(page?: number, pageSize?: number): Promise<{ i
   return client.getInvoices(token, page, pageSize);
 }
 
-export async function getTenantSubscription(tenantId: string): Promise<Subscription | null> {
+export async function getSiteSubscription(siteId: string): Promise<Subscription | null> {
   const token = getAuthToken();
   if (!token) throw new Error('Missing auth token. Please login.');
   try {
-    return await client.getTenantSubscription(token, tenantId);
+    return await client.getSiteSubscription(token, siteId);
   } catch (error) {
     if (error instanceof Error && error.message.includes('not found')) {
       return null;
@@ -1379,10 +1388,10 @@ export async function getTenantSubscription(tenantId: string): Promise<Subscript
   }
 }
 
-export async function getTenantInvoices(tenantId: string, page?: number, pageSize?: number): Promise<{ invoices: Invoice[]; pagination: any }> {
+export async function getSiteInvoices(siteId: string, page?: number, pageSize?: number): Promise<{ invoices: Invoice[]; pagination: any }> {
   const token = getAuthToken();
   if (!token) throw new Error('Missing auth token. Please login.');
-  return client.getTenantInvoices(token, tenantId, page, pageSize);
+  return client.getSiteInvoices(token, siteId, page, pageSize);
 }
 
 export type SiteBillingData = {
@@ -1392,24 +1401,77 @@ export type SiteBillingData = {
   invoices: Invoice[];
 };
 
+// SEO Settings
+export type SeoSettings = {
+  id: string;
+  siteId: string;
+  title: string | null;
+  description: string | null;
+  ogTitle: string | null;
+  ogDescription: string | null;
+  ogImage: string | null;
+  twitterCard: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type UpdateSeoSettingsDto = {
+  title?: string | null;
+  description?: string | null;
+  ogTitle?: string | null;
+  ogDescription?: string | null;
+  ogImage?: string | null;
+  twitterCard?: string | null;
+};
+
+export async function getSeoSettings(siteId: string): Promise<SeoSettings> {
+  const token = await ensureSiteToken(siteId).catch(() => getAuthToken());
+  if (!token) throw new Error('Missing auth token. Please login.');
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+  const res = await fetch(`${baseUrl}/site-panel/${siteId}/seo`, {
+    headers: { Authorization: `Bearer ${token}`, 'X-Site-ID': siteId },
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`Failed to fetch SEO settings: ${res.status} ${res.statusText}${text ? ` - ${text}` : ''}`);
+  }
+  return res.json();
+}
+
+export async function updateSeoSettings(siteId: string, payload: UpdateSeoSettingsDto): Promise<SeoSettings> {
+  const token = await ensureSiteToken(siteId).catch(() => getAuthToken());
+  if (!token) throw new Error('Missing auth token. Please login.');
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+  const res = await fetch(`${baseUrl}/site-panel/${siteId}/seo`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'X-Site-ID': siteId },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`Failed to update SEO settings: ${res.status} ${res.statusText}${text ? ` - ${text}` : ''}`);
+  }
+  return res.json();
+}
+
 export async function getSiteBilling(siteSlug: string): Promise<SiteBillingData> {
   const token = getAuthToken();
   if (!token) throw new Error('Missing auth token. Please login.');
   
-  // Resolve slug to tenantId
-  const tenants = await fetchMyTenants();
-  const tenant = tenants.find((t) => t.tenant.slug === siteSlug);
+  // Resolve slug to siteId
+  const sites = await fetchMySites();
+  const site = sites.find((s) => s.site.slug === siteSlug);
   
-  if (!tenant) {
+  if (!site) {
     throw new Error('Site not found');
   }
   
-  const tenantId = tenant.tenantId;
+  const siteId = site.siteId;
   
   // Fetch subscription and invoices in parallel
   const [subscriptionData, invoicesData] = await Promise.all([
-    client.getSiteBilling(token, tenantId).catch(() => null),
-    client.getTenantInvoices(token, tenantId).catch(() => ({ invoices: [], pagination: { total: 0, page: 1, pageSize: 20 } })),
+    client.getSiteBilling(token, siteId).catch(() => null),
+    client.getSiteInvoices(token, siteId).catch(() => ({ invoices: [], pagination: { total: 0, page: 1, pageSize: 20 } })),
   ]);
   
   // Handle no subscription scenario
@@ -1435,6 +1497,8 @@ export type AccountInfo = {
   id: string;
   email: string;
   role: string;
+  orgId?: string; // organization id
+  tenantId?: string; // backward compatibility - same as orgId
   preferredLanguage: string;
   createdAt: string;
   updatedAt: string;
@@ -1449,6 +1513,20 @@ export async function getAccount(): Promise<AccountInfo> {
   const token = getAuthToken();
   if (!token) throw new Error('Missing auth token. Please login.');
   return client.getAccount(token);
+}
+
+export async function getProfile(): Promise<{ id: string; email: string; role: string; orgId: string; tenantId: string; preferredLanguage: string }> {
+  const token = getAuthToken();
+  if (!token) throw new Error('Missing auth token. Please login.');
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+  const res = await fetch(`${baseUrl}/auth/me`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`Failed to fetch profile: ${res.status} ${res.statusText}${text ? ` - ${text}` : ''}`);
+  }
+  return res.json();
 }
 
 export async function updateAccount(data: { name?: string; preferredLanguage?: 'pl' | 'en' }): Promise<any> {
@@ -1501,7 +1579,7 @@ export async function getDevEmails(): Promise<Array<{ id: string; to: string; su
 }
 
 export async function getDevPayments(): Promise<
-  Array<{ id: string; tenantId: string; plan: string; status: string; currentPeriodStart?: string; currentPeriodEnd?: string; createdAt?: string }>
+  Array<{ id: string; siteId: string; plan: string; status: string; currentPeriodStart?: string; currentPeriodEnd?: string; createdAt?: string }>
 > {
   const token = getAuthToken();
   if (!token) throw new Error('Missing auth token. Please login.');
@@ -1593,7 +1671,7 @@ export type EffectivePermission = {
 async function getOrgAuthToken(orgId: string): Promise<string> {
   let token: string | null = null;
   try {
-    token = await ensureTenantToken(orgId);
+    token = await ensureSiteToken(orgId);
   } catch (error) {
     token = getAuthToken();
   }
@@ -1610,7 +1688,8 @@ async function getOrgAuthToken(orgId: string): Promise<string> {
 function buildOrgHeaders(token: string, orgId: string): HeadersInit {
   return {
     Authorization: `Bearer ${token}`,
-    'X-Tenant-ID': orgId,
+    'X-Org-ID': orgId,
+    'X-Tenant-ID': orgId, // Backward compatibility
   };
 }
 
@@ -1713,6 +1792,20 @@ export async function fetchRbacCapabilities(orgId: string): Promise<RbacCapabili
     const text = await res.text().catch(() => '');
     if (res.status === 401) handleApiError(res, text);
     throw new Error(`Failed to fetch capabilities: ${res.status} ${res.statusText}${text ? ` - ${text}` : ''}`);
+  }
+  return res.json();
+}
+
+export async function fetchOrgUsers(orgId: string): Promise<UserSummary[]> {
+  const token = await getOrgAuthToken(orgId);
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+  const res = await fetch(`${baseUrl}/orgs/${encodeURIComponent(orgId)}/rbac/users`, {
+    headers: buildOrgHeaders(token, orgId),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    if (res.status === 401) handleApiError(res, text);
+    throw new Error(`Failed to fetch org users: ${res.status} ${res.statusText}${text ? ` - ${text}` : ''}`);
   }
   return res.json();
 }
@@ -2306,3 +2399,5 @@ export async function createChannelConnection(
   }
   return res.json();
 }
+
+

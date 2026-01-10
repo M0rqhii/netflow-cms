@@ -96,10 +96,10 @@ export class SnapshotsService {
 
   async createSnapshot(siteId: string, userId: string | null, label?: string) {
     const [pages, seoSettings, featureOverrides, environments] = await Promise.all([
-      this.prisma.page.findMany({ where: { tenantId: siteId } }),
-      this.prisma.seoSettings.findUnique({ where: { tenantId: siteId } }),
+      this.prisma.page.findMany({ where: { siteId } }),
+      this.prisma.seoSettings.findUnique({ where: { siteId } }),
       this.prisma.siteFeatureOverride.findMany({ where: { siteId } }),
-      this.prisma.siteEnvironment.findMany({ where: { tenantId: siteId } }),
+      this.prisma.siteEnvironment.findMany({ where: { siteId } }),
     ]);
 
     const payload: SnapshotPayload = {
@@ -153,12 +153,12 @@ export class SnapshotsService {
     try {
       await this.prisma.$transaction(async (tx) => {
         const envsFromSnapshot = Array.isArray(payload.environments) ? payload.environments : [];
-        const existingEnvs = await tx.siteEnvironment.findMany({ where: { tenantId: siteId } });
+        const existingEnvs = await tx.siteEnvironment.findMany({ where: { siteId } });
         const envMap = new Map<string, string>();
 
         if (!existingEnvs.length && !envsFromSnapshot.length) {
-          const draft = await tx.siteEnvironment.create({ data: { tenantId: siteId, type: EnvironmentType.DRAFT } });
-          const prod = await tx.siteEnvironment.create({ data: { tenantId: siteId, type: EnvironmentType.PRODUCTION } });
+          const draft = await tx.siteEnvironment.create({ data: { siteId, type: EnvironmentType.DRAFT } });
+          const prod = await tx.siteEnvironment.create({ data: { siteId, type: EnvironmentType.PRODUCTION } });
           existingEnvs.push(draft, prod);
         }
 
@@ -166,7 +166,7 @@ export class SnapshotsService {
           const type = env.type === 'PRODUCTION' || env.type === 'production' ? EnvironmentType.PRODUCTION : EnvironmentType.DRAFT;
           let target = existingEnvs.find((e) => e.id === env.id) || existingEnvs.find((e) => e.type === type);
           if (!target) {
-            target = await tx.siteEnvironment.create({ data: { tenantId: siteId, type } });
+            target = await tx.siteEnvironment.create({ data: { siteId, type } });
             existingEnvs.push(target);
           }
           envMap.set(env.id, target.id);
@@ -174,18 +174,18 @@ export class SnapshotsService {
 
         let defaultEnvId = existingEnvs.find((e) => e.type === EnvironmentType.DRAFT)?.id || existingEnvs[0]?.id;
         if (!defaultEnvId) {
-          const created = await tx.siteEnvironment.create({ data: { tenantId: siteId, type: EnvironmentType.DRAFT } });
+          const created = await tx.siteEnvironment.create({ data: { siteId, type: EnvironmentType.DRAFT } });
           existingEnvs.push(created);
           defaultEnvId = created.id;
         }
 
-        await tx.page.deleteMany({ where: { tenantId: siteId } });
+        await tx.page.deleteMany({ where: { siteId } });
         const pages = Array.isArray(payload.pages) ? payload.pages : [];
         if (pages.length) {
           await tx.page.createMany({
             data: pages.map((page) => ({
               id: page.id || undefined,
-              tenantId: siteId,
+              siteId,
               environmentId:
                 envMap.get(page.environmentId) ||
                 existingEnvs.find((e) => e.id === page.environmentId)?.id ||
@@ -201,13 +201,13 @@ export class SnapshotsService {
           });
         }
 
-        await tx.seoSettings.deleteMany({ where: { tenantId: siteId } });
+        await tx.seoSettings.deleteMany({ where: { siteId } });
         if (payload.seoSettings) {
           const seo = payload.seoSettings;
           await tx.seoSettings.create({
             data: {
               id: (seo as any).id || undefined,
-              tenantId: siteId,
+              siteId,
               title: seo.title ?? null,
               description: seo.description ?? null,
               ogTitle: seo.ogTitle ?? null,

@@ -3,7 +3,6 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import {
   getPlanFeatures,
   getPlanConfig,
-  isValidPlan,
 } from '@repo/schemas';
 import { FeatureOverrideDto } from './dto';
 
@@ -16,23 +15,40 @@ export class FeatureFlagsService {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
+   * Validate plan name (fallback if isValidPlan is not available)
+   */
+  private isValidPlan(plan: string | null | undefined): boolean {
+    if (!plan) return false;
+    const validPlans = ['free', 'basic', 'professional', 'pro', 'enterprise', 'BASIC', 'PRO'];
+    return validPlans.includes(plan);
+  }
+
+  /**
    * Get features for a plan
    */
-  getPlanFeatures(plan: string): string[] {
-    if (!isValidPlan(plan)) {
+  getPlanFeatures(plan: string | null | undefined): string[] {
+    if (!this.isValidPlan(plan)) {
       return [];
     }
-    return getPlanFeatures(plan);
+    try {
+      return getPlanFeatures(plan || 'free');
+    } catch (error) {
+      return [];
+    }
   }
 
   /**
    * Get plan configuration
    */
-  getPlanConfig(plan: string) {
-    if (!isValidPlan(plan)) {
+  getPlanConfig(plan: string | null | undefined) {
+    if (!this.isValidPlan(plan)) {
       return null;
     }
-    return getPlanConfig(plan);
+    try {
+      return getPlanConfig(plan || 'free');
+    } catch (error) {
+      return null;
+    }
   }
 
   /**
@@ -195,6 +211,9 @@ export class FeatureFlagsService {
     };
   }
 }
+
+
+
 
 
 

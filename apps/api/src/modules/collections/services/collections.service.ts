@@ -14,7 +14,7 @@ import {
 
 /**
  * CollectionsService - business logic dla Collections
- * AI Note: Zawsze filtruj po tenantId - multi-tenant isolation
+ * AI Note: Zawsze filtruj po siteId - site isolation
  */
 @Injectable()
 export class CollectionsService {
@@ -24,20 +24,20 @@ export class CollectionsService {
   ) {}
 
   async create(
-    tenantId: string,
+    siteId: string,
     dto: CreateCollectionDto
   ) {
     try {
       const result = await this.prisma.collection.create({
         data: {
-          tenantId,
+          siteId,
           slug: dto.slug,
           name: dto.name,
           schemaJson: (dto.schemaJson || {}) as any, // Prisma Json type
         },
         select: {
           id: true,
-          tenantId: true,
+          siteId: true,
           slug: true,
           name: true,
           schemaJson: true,
@@ -47,30 +47,30 @@ export class CollectionsService {
       });
 
       // Invalidate list cache
-      await this.cache.del(`collections:${tenantId}:list`);
+      await this.cache.del(`collections:${siteId}:list`);
 
       return result;
     } catch (e: unknown) {
       if (e && typeof e === 'object' && 'code' in e && e.code === 'P2002') {
-        throw new ConflictException('Collection slug already exists for this tenant');
+        throw new ConflictException('Collection slug already exists for this site');
       }
       throw e;
     }
   }
 
-  async list(tenantId: string) {
-    const cacheKey = `collections:${tenantId}:list`;
+  async list(siteId: string) {
+    const cacheKey = `collections:${siteId}:list`;
     const cached = await this.cache.get(cacheKey);
     if (cached) {
       return cached;
     }
 
     const result = await this.prisma.collection.findMany({
-      where: { tenantId },
+      where: { siteId },
       orderBy: { createdAt: 'desc' },
       select: {
         id: true,
-        tenantId: true,
+        siteId: true,
         slug: true,
         name: true,
         schemaJson: true,
@@ -84,19 +84,19 @@ export class CollectionsService {
     return result;
   }
 
-  async getBySlug(tenantId: string, slug: string): Promise<{
+  async getBySlug(siteId: string, slug: string): Promise<{
     id: string;
-    tenantId: string;
+    siteId: string;
     slug: string;
     name: string;
     schemaJson: any;
     createdAt: Date;
     updatedAt: Date;
   }> {
-    const cacheKey = `col:${tenantId}:${slug}`;
+    const cacheKey = `col:${siteId}:${slug}`;
     const cached = await this.cache.get<{
       id: string;
-      tenantId: string;
+      siteId: string;
       slug: string;
       name: string;
       schemaJson: any;
@@ -108,10 +108,10 @@ export class CollectionsService {
     }
 
     const collection = await this.prisma.collection.findFirst({
-      where: { tenantId, slug },
+      where: { siteId, slug },
       select: {
         id: true,
-        tenantId: true,
+        siteId: true,
         slug: true,
         name: true,
         schemaJson: true,
@@ -130,11 +130,11 @@ export class CollectionsService {
   }
 
   async update(
-    tenantId: string,
+    siteId: string,
     slug: string,
     dto: UpdateCollectionDto
   ) {
-    const found = await this.getBySlug(tenantId, slug);
+    const found = await this.getBySlug(siteId, slug);
     if (!found) {
       throw new NotFoundException('Collection not found');
     }
@@ -148,7 +148,7 @@ export class CollectionsService {
       data: updateData,
       select: {
         id: true,
-        tenantId: true,
+        siteId: true,
         slug: true,
         name: true,
         schemaJson: true,
@@ -159,26 +159,26 @@ export class CollectionsService {
 
     // Invalidate cache
     await Promise.all([
-      this.cache.del(`collections:${tenantId}:list`),
-      this.cache.del(`col:${tenantId}:${slug}`),
+      this.cache.del(`collections:${siteId}:list`),
+      this.cache.del(`col:${siteId}:${slug}`),
       dto.slug && dto.slug !== slug
-        ? this.cache.del(`col:${tenantId}:${dto.slug}`)
+        ? this.cache.del(`col:${siteId}:${dto.slug}`)
         : Promise.resolve(),
     ]);
 
     return result;
   }
 
-  async remove(tenantId: string, slug: string) {
-    const found = await this.getBySlug(tenantId, slug);
+  async remove(siteId: string, slug: string) {
+    const found = await this.getBySlug(siteId, slug);
     await this.prisma.collection.delete({
       where: { id: found.id },
     });
 
     // Invalidate cache
     await Promise.all([
-      this.cache.del(`collections:${tenantId}:list`),
-      this.cache.del(`col:${tenantId}:${slug}`),
+      this.cache.del(`collections:${siteId}:list`),
+      this.cache.del(`col:${siteId}:${slug}`),
     ]);
 
     return { ok: true };

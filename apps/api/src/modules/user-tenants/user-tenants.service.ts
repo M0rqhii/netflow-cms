@@ -47,67 +47,61 @@ export class UserTenantsService {
     }
 
     // Create membership
-    return this.prisma.userTenant.create({
+    const membership = await this.prisma.userTenant.create({
       data: {
         userId: dto.userId,
         tenantId: dto.tenantId,
         role: dto.role || Role.VIEWER,
       },
-      include: {
-        user: {
-          select: {
-            id: true,
-            email: true,
-          },
-        },
-        tenant: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-          },
-        },
-      },
     });
+    
+    // Fetch related data separately since UserTenant doesn't have relations
+    const [userData, tenantData] = await Promise.all([
+      this.prisma.user.findUnique({ where: { id: dto.userId }, select: { id: true, email: true } }),
+      this.prisma.tenant.findUnique({ where: { id: dto.tenantId }, select: { id: true, name: true, slug: true } }),
+    ]);
+    
+    return { ...membership, user: userData, tenant: tenantData };
   }
 
   /**
    * Get all memberships for a user
    */
   async getUserMemberships(userId: string) {
-    return this.prisma.userTenant.findMany({
+    const memberships = await this.prisma.userTenant.findMany({
       where: { userId },
-      include: {
-        tenant: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-            plan: true,
-          },
-        },
-      },
       orderBy: { createdAt: 'desc' },
     });
+    
+    // Fetch tenant data separately
+    const tenantIds = memberships.map(m => m.tenantId);
+    const tenants = await this.prisma.tenant.findMany({
+      where: { id: { in: tenantIds } },
+      select: { id: true, name: true, slug: true, plan: true },
+    });
+    const tenantMap = new Map(tenants.map(t => [t.id, t]));
+    
+    return memberships.map(m => ({ ...m, tenant: tenantMap.get(m.tenantId) || null }));
   }
 
   /**
    * Get all memberships for a tenant
    */
   async getTenantMemberships(tenantId: string) {
-    return this.prisma.userTenant.findMany({
+    const memberships = await this.prisma.userTenant.findMany({
       where: { tenantId },
-      include: {
-        user: {
-          select: {
-            id: true,
-            email: true,
-            createdAt: true,
-          },
-        },
-      },
       orderBy: { createdAt: 'desc' },
     });
+    
+    // Fetch user data separately
+    const userIds = memberships.map(m => m.userId);
+    const users = await this.prisma.user.findMany({
+      where: { id: { in: userIds } },
+      select: { id: true, email: true, createdAt: true },
+    });
+    const userMap = new Map(users.map(u => [u.id, u]));
+    
+    return memberships.map(m => ({ ...m, user: userMap.get(m.userId) || null }));
   }
 
   /**
@@ -116,28 +110,19 @@ export class UserTenantsService {
   async getMembership(userId: string, tenantId: string) {
     const membership = await this.prisma.userTenant.findUnique({
       where: { userId_tenantId: { userId, tenantId } },
-      include: {
-        user: {
-          select: {
-            id: true,
-            email: true,
-          },
-        },
-        tenant: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-          },
-        },
-      },
     });
 
     if (!membership) {
       throw new NotFoundException('Membership not found');
     }
-
-    return membership;
+    
+    // Fetch related data separately
+    const [userData, tenantData] = await Promise.all([
+      this.prisma.user.findUnique({ where: { id: userId }, select: { id: true, email: true } }),
+      this.prisma.tenant.findUnique({ where: { id: tenantId }, select: { id: true, name: true, slug: true } }),
+    ]);
+    
+    return { ...membership, user: userData, tenant: tenantData };
   }
 
   /**
@@ -146,27 +131,20 @@ export class UserTenantsService {
   async updateMembership(userId: string, tenantId: string, dto: UpdateMembershipDto) {
     const membership = await this.getMembership(userId, tenantId);
 
-    return this.prisma.userTenant.update({
+    const updated = await this.prisma.userTenant.update({
       where: { userId_tenantId: { userId, tenantId } },
       data: {
         role: dto.role || membership.role,
       },
-      include: {
-        user: {
-          select: {
-            id: true,
-            email: true,
-          },
-        },
-        tenant: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-          },
-        },
-      },
     });
+    
+    // Fetch related data separately
+    const [userData, tenantData] = await Promise.all([
+      this.prisma.user.findUnique({ where: { id: userId }, select: { id: true, email: true } }),
+      this.prisma.tenant.findUnique({ where: { id: tenantId }, select: { id: true, name: true, slug: true } }),
+    ]);
+    
+    return { ...updated, user: userData, tenant: tenantData };
   }
 
   /**

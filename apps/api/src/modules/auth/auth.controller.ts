@@ -1,5 +1,6 @@
 import { Controller, Post, Body, HttpCode, HttpStatus, UseGuards, Get, Param, Req } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
+import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { LoginDto, RegisterDto, loginSchema, registerSchema } from './dto';
 import { Public } from '../../common/auth/decorators/public.decorator';
@@ -10,6 +11,7 @@ import { AuditService, AuditEvent } from '../../common/audit/audit.service';
 import { z } from 'zod';
 import { Request } from 'express';
 
+@ApiTags('auth')
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -21,6 +23,11 @@ export class AuthController {
   @Throttle(5, 60) // 5 requests per minute
   @Post('login')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'User login', description: 'Authenticate user and return JWT token' })
+  @ApiResponse({ status: 200, description: 'Login successful' })
+  @ApiResponse({ status: 401, description: 'Invalid credentials' })
+  @ApiResponse({ status: 429, description: 'Too many requests' })
+  @ApiBody({ description: 'Login credentials', schema: { type: 'object', properties: { email: { type: 'string' }, password: { type: 'string' }, tenantId: { type: 'string' } } } })
   async login(@Body(new ZodValidationPipe(loginSchema)) loginDto: LoginDto) {
     return this.authService.login(loginDto);
   }

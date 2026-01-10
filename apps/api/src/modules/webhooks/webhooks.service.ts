@@ -60,13 +60,13 @@ export class WebhooksService {
    * Create a webhook
    * AI Note: Uses Prisma Webhook model with support for per-collection webhooks
    */
-  async create(tenantId: string, dto: CreateWebhookDto) {
+  async create(siteId: string, dto: CreateWebhookDto) {
     // Validate collection exists if collectionId provided
     if (dto.collectionId) {
       const collection = await this.prisma.collection.findFirst({
         where: {
           id: dto.collectionId,
-          tenantId,
+          siteId,
         },
       });
       if (!collection) {
@@ -80,7 +80,7 @@ export class WebhooksService {
     // Use Prisma Webhook model
     return this.prisma.webhook.create({
       data: {
-        tenantId,
+        siteId,
         collectionId: dto.collectionId || null,
         url: dto.url,
         events: dto.events,
@@ -94,12 +94,12 @@ export class WebhooksService {
   }
 
   /**
-   * Get all webhooks for a tenant (optionally filtered by collection)
+   * Get all webhooks for a site (optionally filtered by collection)
    */
-  async findAll(tenantId: string, collectionId?: string) {
+  async findAll(siteId: string, collectionId?: string) {
     return this.prisma.webhook.findMany({
       where: {
-        tenantId,
+        siteId,
         ...(collectionId ? { collectionId } : {}),
       },
       orderBy: { createdAt: 'desc' },
@@ -109,11 +109,11 @@ export class WebhooksService {
   /**
    * Get a single webhook by ID
    */
-  async findOne(tenantId: string, id: string) {
+  async findOne(siteId: string, id: string) {
     const webhook = await this.prisma.webhook.findFirst({
       where: {
         id,
-        tenantId,
+        siteId,
       },
     });
 
@@ -127,16 +127,16 @@ export class WebhooksService {
   /**
    * Update a webhook
    */
-  async update(tenantId: string, id: string, dto: UpdateWebhookDto) {
+  async update(siteId: string, id: string, dto: UpdateWebhookDto) {
     // Verify webhook exists
-    await this.findOne(tenantId, id);
+    await this.findOne(siteId, id);
 
     // Validate collection if collectionId is being updated
     if (dto.collectionId !== undefined && dto.collectionId !== null) {
       const collection = await this.prisma.collection.findFirst({
         where: {
           id: dto.collectionId,
-          tenantId,
+          siteId,
         },
       });
       if (!collection) {
@@ -161,8 +161,8 @@ export class WebhooksService {
   /**
    * Delete a webhook
    */
-  async remove(tenantId: string, id: string) {
-    await this.findOne(tenantId, id);
+  async remove(siteId: string, id: string) {
+    await this.findOne(siteId, id);
     await this.prisma.webhook.delete({
       where: { id },
     });
@@ -174,10 +174,10 @@ export class WebhooksService {
    * AI Note: Delivers webhook events to registered URLs
    * Supports per-collection webhooks via collectionId parameter
    */
-  async trigger(tenantId: string, event: WebhookEvent, payload: any, collectionId?: string) {
+  async trigger(siteId: string, event: WebhookEvent, payload: any, collectionId?: string) {
     // Find webhooks: global (collectionId is null) or specific to collection
     const where: any = {
-      tenantId,
+      siteId,
       active: true,
     };
 
@@ -317,10 +317,10 @@ export class WebhooksService {
     attempt: number = 1,
     error?: string,
   ) {
-    // Get webhook to get tenantId
+    // Get webhook to get siteId
     const webhook = await this.prisma.webhook.findUnique({
       where: { id: webhookId },
-      select: { tenantId: true },
+      select: { siteId: true },
     });
 
     if (!webhook) {
@@ -332,7 +332,7 @@ export class WebhooksService {
     await this.prisma.webhookDelivery.create({
       data: {
         webhookId,
-        tenantId: webhook.tenantId,
+        siteId: webhook.siteId,
         event,
         status,
         statusCode: statusCode || undefined,

@@ -1,0 +1,230 @@
+/**
+ * Block Browser Styles
+ */
+
+.browser {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* Search */
+.searchContainer {
+  position: relative;
+  padding: 12px;
+  border-bottom: 1px solid var(--border-color, #e0e0e0);
+}
+
+.searchIcon {
+  position: absolute;
+  left: 22px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  color: var(--text-tertiary, #999);
+  pointer-events: none;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 8px 12px 8px 36px;
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 6px;
+  font-size: 13px;
+  background: var(--bg-primary, #fff);
+  color: var(--text-primary, #1a1a1a);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: var(--primary-color, #3b82f6);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.searchInput::placeholder {
+  color: var(--text-tertiary, #999);
+}
+
+/* Block list */
+.blockList {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+
+/* Category */
+.category {
+  border-bottom: 1px solid var(--border-color, #e0e0e0);
+}
+
+.category:last-child {
+  border-bottom: none;
+}
+
+.categoryHeader {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 10px 12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.15s;
+}
+
+.categoryHeader:hover {
+  background-color: var(--bg-hover, #f5f5f5);
+}
+
+.categoryIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  margin-right: 8px;
+  color: var(--text-secondary, #666);
+}
+
+.categoryIcon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.categoryLabel {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary, #1a1a1a);
+}
+
+.categoryCount {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-tertiary, #999);
+  background: var(--bg-secondary, #f0f0f0);
+  padding: 2px 6px;
+  border-radius: 10px;
+  margin-right: 8px;
+}
+
+.categoryChevron {
+  display: flex;
+  align-items: center;
+  color: var(--text-tertiary, #999);
+}
+
+.categoryChevron svg {
+  width: 14px;
+  height: 14px;
+}
+
+.categoryContent {
+  padding: 4px 8px 8px;
+}
+
+/* Block item */
+.blockItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  margin-bottom: 4px;
+  background: var(--bg-primary, #fff);
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 6px;
+  cursor: grab;
+  transition: all 0.15s ease;
+}
+
+.blockItem:last-child {
+  margin-bottom: 0;
+}
+
+.blockItem:hover {
+  border-color: var(--primary-color, #3b82f6);
+  background-color: rgba(59, 130, 246, 0.03);
+}
+
+.blockItem.isDragging {
+  opacity: 0.5;
+  cursor: grabbing;
+}
+
+.blockIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: var(--bg-secondary, #f5f5f5);
+  border-radius: 6px;
+  color: var(--text-secondary, #666);
+  flex-shrink: 0;
+}
+
+.blockIcon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.blockInfo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.blockTitle {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary, #1a1a1a);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.blockDescription {
+  font-size: 11px;
+  color: var(--text-tertiary, #999);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Empty state */
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+  text-align: center;
+}
+
+.emptyState p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-secondary, #666);
+}
+
+.clearSearch {
+  margin-top: 8px;
+  padding: 6px 12px;
+  background: none;
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 4px;
+  font-size: 12px;
+  color: var(--primary-color, #3b82f6);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.clearSearch:hover {
+  background-color: rgba(59, 130, 246, 0.05);
+  border-color: var(--primary-color, #3b82f6);
+}

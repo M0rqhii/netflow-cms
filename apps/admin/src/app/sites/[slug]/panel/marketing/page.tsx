@@ -8,9 +8,9 @@ import { Card, CardHeader, CardTitle, CardContent, Button, Badge } from '@repo/u
 import { EmptyState } from '@repo/ui';
 import { useToast } from '@/components/ui/Toast';
 import {
-  fetchMyTenants,
-  exchangeTenantToken,
-  getTenantToken,
+  fetchMySites,
+  getSiteToken,
+  exchangeSiteToken,
   fetchMarketingCampaigns,
   fetchDistributionDrafts,
   fetchPublishJobs,
@@ -21,7 +21,7 @@ import {
   type MarketingCampaign,
   type DistributionDraft,
   type PublishJob,
-  type TenantInfo,
+  type SiteInfo,
 } from '@/lib/api';
 
 type Tab = 'campaigns' | 'drafts' | 'jobs';
@@ -34,7 +34,7 @@ export default function MarketingPage() {
 
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<Tab>('campaigns');
-  const [tenantId, setTenantId] = useState<string | null>(null);
+  const [siteId, setSiteId] = useState<string | null>(null);
   const [campaigns, setCampaigns] = useState<MarketingCampaign[]>([]);
   const [drafts, setDrafts] = useState<DistributionDraft[]>([]);
   const [jobs, setJobs] = useState<PublishJob[]>([]);
@@ -61,19 +61,19 @@ export default function MarketingPage() {
     try {
       setLoading(true);
 
-      const tenants = await fetchMyTenants();
-      const tenant = tenants.find((t: TenantInfo) => t.tenant.slug === slug);
+      const sites = await fetchMySites();
+      const site = sites.find((s: SiteInfo) => s.site.slug === slug);
 
-      if (!tenant) {
+      if (!site) {
         throw new Error(`Site with slug "${slug}" not found`);
       }
 
-      const id = tenant.tenantId;
-      setTenantId(id);
+      const id = site.siteId;
+      setSiteId(id);
 
-      let token = getTenantToken(id);
+      let token = getSiteToken(id);
       if (!token) {
-        token = await exchangeTenantToken(id);
+        token = await exchangeSiteToken(id);
       }
 
       const [campaignsData, draftsData, jobsData] = await Promise.all([
@@ -102,11 +102,11 @@ export default function MarketingPage() {
 
   const handleCreateCampaign = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!tenantId || !campaignName.trim()) return;
+    if (!siteId || !campaignName.trim()) return;
 
     try {
-      await createMarketingCampaign(tenantId, {
-        siteId: tenantId,
+      await createMarketingCampaign(siteId, {
+        siteId: siteId,
         name: campaignName,
         description: campaignDescription || undefined,
       });
@@ -131,11 +131,29 @@ export default function MarketingPage() {
 
   const handleCreateDraft = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!tenantId || !draftTitle.trim() || selectedChannels.length === 0) return;
+    if (!siteId) return;
+
+    // GUARDRAIL 1: Walidacja tytułu
+    if (!draftTitle || draftTitle.trim().length === 0) {
+      toast.push({
+        tone: 'error',
+        message: 'Tytuł draftu jest wymagany',
+      });
+      return;
+    }
+
+    // GUARDRAIL 2: Walidacja kanałów
+    if (!selectedChannels || selectedChannels.length === 0) {
+      toast.push({
+        tone: 'error',
+        message: 'Wybierz przynajmniej jeden kanał',
+      });
+      return;
+    }
 
     try {
-      await createDistributionDraft(tenantId, {
-        siteId: tenantId,
+      await createDistributionDraft(siteId, {
+        siteId: siteId,
         title: draftTitle,
         content: draftContent,
         channels: selectedChannels,
@@ -143,7 +161,7 @@ export default function MarketingPage() {
 
       toast.push({
         tone: 'success',
-        message: 'Draft created successfully',
+        message: 'Draft utworzony pomyślnie',
       });
 
       setShowCreateDraft(false);
@@ -152,7 +170,7 @@ export default function MarketingPage() {
       setSelectedChannels(['site']);
       await loadData();
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to create draft';
+      const message = err instanceof Error ? err.message : 'Błąd podczas tworzenia draftu';
       toast.push({
         tone: 'error',
         message,
@@ -162,11 +180,32 @@ export default function MarketingPage() {
 
   const handlePublish = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!tenantId || selectedChannels.length === 0) return;
+    if (!siteId) return;
+
+    // GUARDRAIL 1: Sprawdź czy wybrano kanały
+    if (!selectedChannels || selectedChannels.length === 0) {
+      toast.push({
+        tone: 'error',
+        message: 'Wybierz przynajmniej jeden kanał do publikacji',
+      });
+      return;
+    }
+
+    // GUARDRAIL 2: Sprawdź czy jest treść (jeśli nie wybrano draftu)
+    if (!selectedDraftId) {
+      const hasContent = draftTitle && draftTitle.trim().length > 0;
+      if (!hasContent) {
+        toast.push({
+          tone: 'error',
+          message: 'Dodaj treść marketingową, aby opublikować.',
+        });
+        return;
+      }
+    }
 
     try {
-      await publishMarketingContent(tenantId, {
-        siteId: tenantId,
+      await publishMarketingContent(siteId, {
+        siteId: siteId,
         draftId: selectedDraftId || undefined,
         channels: selectedChannels,
         content: selectedDraftId ? undefined : draftContent,
@@ -175,7 +214,7 @@ export default function MarketingPage() {
 
       toast.push({
         tone: 'success',
-        message: 'Publish job created successfully',
+        message: 'Zadanie publikacji utworzone pomyślnie',
       });
 
       setShowPublish(false);
@@ -183,7 +222,7 @@ export default function MarketingPage() {
       setSelectedChannels(['site']);
       await loadData();
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to publish';
+      const message = err instanceof Error ? err.message : 'Błąd podczas publikacji';
       toast.push({
         tone: 'error',
         message,
@@ -224,12 +263,23 @@ export default function MarketingPage() {
       <div className="space-y-6">
         <SectionHeader
           title="Marketing & Distribution"
-          description="Publish content everywhere: website, social media, and ads"
+          description="Publikuj treść wszędzie: strona, media społecznościowe, reklamy"
           action={{
-            label: 'Publish',
+            label: 'Publikuj',
             onClick: () => setShowPublish(true),
+            disabled: drafts.length === 0,
+            helperText: drafts.length === 0 ? 'Brak szkiców do publikacji.' : undefined,
           }}
         />
+
+        {/* Informacja gdy brak draftów */}
+        {drafts.length === 0 && (
+          <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-sm text-blue-900">
+              <strong>Utwórz szkic</strong>, aby przygotować treść do publikacji.
+            </p>
+          </div>
+        )}
 
         {/* Tabs */}
         <div className="border-b border-gray-200">
@@ -315,16 +365,22 @@ export default function MarketingPage() {
             {drafts.length === 0 ? (
               <Card>
                 <CardContent>
-                  <EmptyState
-                    title="No drafts yet"
-                    description="Create a draft to prepare content for omnichannel publishing"
-                    icon={
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-8 w-8">
-                        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
-                        <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" />
-                      </svg>
-                    }
-                  />
+                  <div className="py-12">
+                    <EmptyState
+                      title="Brak szkiców do publikacji"
+                      description="Utwórz szkic, aby przygotować treść do publikacji"
+                      icon={
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-10 w-10">
+                          <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+                          <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" />
+                        </svg>
+                      }
+                      action={{
+                        label: "Utwórz szkic",
+                        onClick: () => setShowCreateDraft(true),
+                      }}
+                    />
+                  </div>
                 </CardContent>
               </Card>
             ) : (
@@ -384,9 +440,9 @@ export default function MarketingPage() {
                     key={job.id}
                     className="cursor-pointer hover:shadow-md transition-shadow"
                     onClick={async () => {
-                      if (!tenantId) return;
+                      if (!siteId) return;
                       try {
-                        const jobDetails = await getPublishJob(tenantId, job.id);
+                        const jobDetails = await getPublishJob(siteId, job.id);
                         setSelectedJob(jobDetails);
                         setSelectedJobId(job.id);
                       } catch (err) {
@@ -554,18 +610,18 @@ export default function MarketingPage() {
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <Card className="w-full max-w-md">
               <CardHeader>
-                <CardTitle>Publish Content</CardTitle>
+                <CardTitle>Publikuj Treść</CardTitle>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handlePublish} className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium mb-1">Draft (optional)</label>
+                    <label className="block text-sm font-medium mb-1">Draft (opcjonalny)</label>
                     <select
                       value={selectedDraftId || ''}
                       onChange={(e) => setSelectedDraftId(e.target.value || null)}
                       className="w-full px-3 py-2 border rounded-md"
                     >
-                      <option value="">Create new</option>
+                      <option value="">Utwórz nowy</option>
                       {drafts.map((draft) => (
                         <option key={draft.id} value={draft.id}>
                           {draft.title}
@@ -576,7 +632,7 @@ export default function MarketingPage() {
                   {!selectedDraftId && (
                     <>
                       <div>
-                        <label className="block text-sm font-medium mb-1">Title</label>
+                        <label className="block text-sm font-medium mb-1">Tytuł</label>
                         <input
                           type="text"
                           value={draftTitle}
@@ -587,31 +643,57 @@ export default function MarketingPage() {
                     </>
                   )}
                   <div>
-                    <label className="block text-sm font-medium mb-1">Channels</label>
+                    <label className="block text-sm font-medium mb-1">Kanały</label>
                     <div className="space-y-2">
-                      {['site', 'facebook', 'twitter', 'linkedin', 'instagram', 'ads'].map((channel) => (
-                        <label key={channel} className="flex items-center gap-2">
+                      {[
+                        { id: 'site', label: 'Strona', available: true },
+                        { id: 'facebook', label: 'Facebook', available: false },
+                        { id: 'twitter', label: 'Twitter', available: false },
+                        { id: 'linkedin', label: 'LinkedIn', available: false },
+                        { id: 'instagram', label: 'Instagram', available: false },
+                        { id: 'ads', label: 'Reklamy', available: true },
+                      ].map((channel) => (
+                        <label 
+                          key={channel.id} 
+                          className={`flex items-center gap-2 ${!channel.available ? 'opacity-50' : ''}`}
+                        >
                           <input
                             type="checkbox"
-                            checked={selectedChannels.includes(channel)}
+                            checked={selectedChannels.includes(channel.id)}
+                            disabled={!channel.available}
                             onChange={(e) => {
+                              if (!channel.available) {
+                                toast.push({
+                                  tone: 'warning',
+                                  message: `Kanał ${channel.label} nie jest połączony. Połącz konto w ustawieniach.`,
+                                });
+                                return;
+                              }
                               if (e.target.checked) {
-                                setSelectedChannels([...selectedChannels, channel]);
+                                setSelectedChannels([...selectedChannels, channel.id]);
                               } else {
-                                setSelectedChannels(selectedChannels.filter((c) => c !== channel));
+                                setSelectedChannels(selectedChannels.filter((c) => c !== channel.id));
                               }
                             }}
                           />
-                          <span className="text-sm capitalize">{channel}</span>
+                          <span className="text-sm">{channel.label}</span>
+                          {!channel.available && (
+                            <span className="text-xs text-red-600">(Nie połączono)</span>
+                          )}
                         </label>
                       ))}
                     </div>
+                    {selectedChannels.length === 0 && (
+                      <p className="text-xs text-red-600 mt-2">
+                        Wybierz przynajmniej jeden kanał
+                      </p>
+                    )}
                   </div>
                   <div className="flex gap-2 justify-end">
                     <Button type="button" variant="outline" onClick={() => setShowPublish(false)}>
-                      Cancel
+                      Anuluj
                     </Button>
-                    <Button type="submit">Publish</Button>
+                    <Button type="submit">Publikuj</Button>
                   </div>
                 </form>
               </CardContent>

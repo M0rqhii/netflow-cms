@@ -66,12 +66,7 @@ export class TenantsService {
           settings: true,
           createdAt: true,
           updatedAt: true,
-          _count: {
-            select: {
-              users: true,
-              collections: true,
-            },
-          },
+          // Tenant doesn't have _count relations
         },
         orderBy: { createdAt: 'desc' },
       }),
@@ -103,14 +98,7 @@ export class TenantsService {
         settings: true,
         createdAt: true,
         updatedAt: true,
-        _count: {
-          select: {
-            users: true,
-            collections: true,
-            contentTypes: true,
-            contentEntries: true,
-          },
-        },
+        // Tenant doesn't have _count relations
       },
     });
 

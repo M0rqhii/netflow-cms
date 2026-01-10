@@ -180,3 +180,7 @@ CREATE POLICY tenant_isolation_marketing_publish_results ON "marketing_publish_r
     FOR ALL
     USING ("orgId" = current_setting('app.current_tenant_id', true)::TEXT);
 
+
+
+
+

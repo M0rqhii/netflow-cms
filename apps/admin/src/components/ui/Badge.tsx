@@ -47,7 +47,7 @@ export function getRoleBadgeClasses(role: string): string {
     'system_support': '!text-cyan-700 !bg-cyan-100 !border-cyan-400 dark:!text-cyan-300 dark:!bg-cyan-900/50 dark:!border-cyan-600',
     
     // Backward compatibility
-    'tenant_admin': '!text-indigo-700 !bg-indigo-100 !border-indigo-400 dark:!text-indigo-300 dark:!bg-indigo-900/50 dark:!border-indigo-600',
+    'site_admin': '!text-indigo-700 !bg-indigo-100 !border-indigo-400 dark:!text-indigo-300 dark:!bg-indigo-900/50 dark:!border-indigo-600',
   };
 
   return roleColors[role.toLowerCase()] || '!text-gray-700 !bg-gray-100 !border-gray-400 dark:!text-gray-300 dark:!bg-gray-800 dark:!border-gray-600';

@@ -6,7 +6,12 @@ import Script from 'next/script';
 
 export const metadata = {
   title: 'Netflow CMS - Admin Panel',
-  description: 'Multi-Tenant Headless CMS Admin Panel',
+  description: 'Multi-Site Headless CMS Admin Panel',
+  icons: {
+    icon: '/assets/Net-Flow-Logo-Symbol.png',
+    shortcut: '/assets/Net-Flow-Logo-Symbol.png',
+    apple: '/assets/Net-Flow-Logo-Symbol.png',
+  },
 };
 
 export default function RootLayout({

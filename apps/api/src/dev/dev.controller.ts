@@ -154,7 +154,7 @@ export class DevController {
       return await this.prisma.subscription.findMany({
         select: {
           id: true,
-          tenantId: true,
+          orgId: true,
           plan: true,
           status: true,
           currentPeriodStart: true,

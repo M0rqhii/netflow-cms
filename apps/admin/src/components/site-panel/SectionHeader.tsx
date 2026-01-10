@@ -12,6 +12,7 @@ interface SectionHeaderProps {
     onClick?: () => void;
     disabled?: boolean;
     variant?: 'primary' | 'outline';
+    helperText?: string;
   };
 }
 
@@ -32,6 +33,7 @@ export function SectionHeader({ title, description, action, as = 'h2' }: Section
           disabled={action.disabled}
           variant={action.variant || 'outline'}
           size="sm"
+          title={action.helperText}
         >
           {action.label}
         </Button>
@@ -39,4 +41,3 @@ export function SectionHeader({ title, description, action, as = 'h2' }: Section
     </div>
   );
 }
-

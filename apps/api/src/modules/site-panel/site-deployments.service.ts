@@ -1,10 +1,11 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { Prisma, EnvironmentType, PageStatus } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { SiteEnvironmentsService } from './site-environments.service';
 import { SitePagesService } from './site-pages.service';
 import { SiteEventsService } from '../site-events/site-events.service';
 import { PublishDeploymentDto, DeploymentQueryDto } from './dto';
+import { GuardrailReasonCode, GuardrailMessages } from '../../common/constants';
 
 @Injectable()
 export class SiteDeploymentsService {
@@ -65,14 +66,14 @@ export class SiteDeploymentsService {
         // Upsert production page
         const productionPage = await this.prisma.page.upsert({
           where: {
-            tenant_env_slug: {
-              tenantId,
+            site_env_slug: {
+              siteId: tenantId,
               environmentId: productionEnv.id,
               slug: draftPage.slug,
             },
           },
           create: {
-            tenantId,
+            siteId: tenantId,
             environmentId: productionEnv.id,
             slug: draftPage.slug,
             title: draftPage.title,
@@ -126,35 +127,18 @@ export class SiteDeploymentsService {
         // Publish all draft pages
         const draftPages = await this.prisma.page.findMany({
           where: {
-            tenantId,
+            siteId: tenantId,
             environmentId: draftEnv.id,
           },
         });
 
+        // Guardrail: Validate that there are draft pages to publish
         if (draftPages.length === 0) {
-          const deployment = await this.createDeployment(
-            tenantId,
-            'production',
-            'publish',
-            'success',
-            'No draft pages to publish',
-          );
-
-          await this.logEvent(
-            tenantId,
-            userId,
-            'deployment_created',
-            'Publish attempted but no draft pages found',
-            {
-              deploymentId: deployment.id,
-            },
-          );
-
-          return {
-            deployment,
-            pagesPublished: 0,
-            pages: [],
-          };
+          throw new BadRequestException({
+            message: GuardrailMessages[GuardrailReasonCode.NO_DRAFT_PAGES],
+            reason: GuardrailReasonCode.NO_DRAFT_PAGES,
+            details: 'Create or edit pages in draft environment first',
+          });
         }
 
         const publishedAt = new Date();
@@ -165,14 +149,14 @@ export class SiteDeploymentsService {
 
           const productionPage = await this.prisma.page.upsert({
             where: {
-              tenant_env_slug: {
-                tenantId,
+              site_env_slug: {
+                siteId: tenantId,
                 environmentId: productionEnv.id,
                 slug: draftPage.slug,
               },
             },
             create: {
-              tenantId,
+              siteId: tenantId,
               environmentId: productionEnv.id,
               slug: draftPage.slug,
               title: draftPage.title,

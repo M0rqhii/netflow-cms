@@ -36,6 +36,9 @@ export const TENANT_PLANS = {
   ENTERPRISE: 'enterprise',
 } as const;
 
+// Export guardrail reason codes
+export { GuardrailReasonCode, GuardrailMessages } from './guardrail-reason-codes';
+
 
 
 

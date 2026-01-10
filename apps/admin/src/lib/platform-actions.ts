@@ -1,12 +1,11 @@
 ﻿'use client';
 
-import { createApiClient, type TenantInfo } from '@repo/sdk';
-import type { CreateTenant } from '@repo/schemas';
+import { createApiClient, type SiteInfo } from '@repo/sdk';
 import {
-  fetchMyTenants,
-  createTenant as createTenantRequest,
-  fetchTenantUsers,
-  fetchTenantInvites,
+  fetchMySites,
+  createSite as createSiteRequest,
+  fetchSiteUsers,
+  fetchSiteInvites,
   inviteUser as inviteUserRequest,
   revokeInvite as revokeInviteRequest,
   getBillingInfo as getBillingInfoRequest,
@@ -22,31 +21,31 @@ import {
   getAuthToken,
 } from '@/lib/api';
 
-export type { TenantInfo } from '@repo/sdk';
+export type { SiteInfo } from '@repo/sdk';
 export type { InviteSummary, UserSummary, ActivityItem, QuickStats } from '@/lib/api';
 
 export type BillingInfo = Awaited<ReturnType<typeof getBillingInfoRequest>>;
 export type AccountDetails = Awaited<ReturnType<typeof getAccountRequest>>;
 
-type TenantIdentifier = string | TenantInfo;
+type SiteIdentifier = string | SiteInfo;
 
 const apiClient = createApiClient();
 
-async function resolveTenant(identifier: TenantIdentifier, sitesCache?: TenantInfo[]): Promise<TenantInfo> {
+async function resolveSite(identifier: SiteIdentifier, sitesCache?: SiteInfo[]): Promise<SiteInfo> {
   if (typeof identifier !== 'string') return identifier;
 
-  const sites = sitesCache ?? (await fetchMyTenants());
-  const byId = sites.find((site) => site.tenantId === identifier);
+  const sites = sitesCache ?? (await fetchMySites());
+  const byId = sites.find((site) => site.siteId === identifier);
   if (byId) return byId;
 
-  const bySlug = sites.find((site) => site.tenant.slug === identifier);
+  const bySlug = sites.find((site) => site.site.slug === identifier);
   if (bySlug) return bySlug;
 
   const token = getAuthToken();
   if (token) {
     try {
-      const resolved = await apiClient.resolveTenant(token, identifier);
-      return { tenantId: resolved.id, role: 'viewer', tenant: resolved };
+      const resolved = await apiClient.resolveSite(token, identifier);
+      return { siteId: resolved.id, role: 'viewer', site: resolved };
     } catch {
       // fallback handled below
     }
@@ -55,12 +54,12 @@ async function resolveTenant(identifier: TenantIdentifier, sitesCache?: TenantIn
   throw new Error('Site not found or unavailable for current user.');
 }
 
-export async function getSites(): Promise<TenantInfo[]> {
-  return fetchMyTenants();
+export async function getSites(): Promise<SiteInfo[]> {
+  return fetchMySites();
 }
 
-export async function createSite(data: Pick<CreateTenant, 'name' | 'slug'> & Partial<CreateTenant>) {
-  return createTenantRequest({
+export async function createSite(data: { name: string; slug: string; plan?: string; settings?: Record<string, unknown> }) {
+  return createSiteRequest({
     name: data.name,
     slug: data.slug,
     ...(data.plan ? { plan: data.plan } : {}),
@@ -68,28 +67,28 @@ export async function createSite(data: Pick<CreateTenant, 'name' | 'slug'> & Par
   });
 }
 
-export async function getSiteUsers(identifier: TenantIdentifier, sitesCache?: TenantInfo[]): Promise<UserSummary[]> {
-  const tenant = await resolveTenant(identifier, sitesCache);
-  return fetchTenantUsers(tenant.tenantId);
+export async function getSiteUsers(identifier: SiteIdentifier, sitesCache?: SiteInfo[]): Promise<UserSummary[]> {
+  const site = await resolveSite(identifier, sitesCache);
+  return fetchSiteUsers(site.siteId);
 }
 
-export async function getSiteInvites(identifier: TenantIdentifier, sitesCache?: TenantInfo[]): Promise<InviteSummary[]> {
-  const tenant = await resolveTenant(identifier, sitesCache);
-  return fetchTenantInvites(tenant.tenantId);
+export async function getSiteInvites(identifier: SiteIdentifier, sitesCache?: SiteInfo[]): Promise<InviteSummary[]> {
+  const site = await resolveSite(identifier, sitesCache);
+  return fetchSiteInvites(site.siteId);
 }
 
 export async function inviteUserToSite(
-  identifier: TenantIdentifier,
+  identifier: SiteIdentifier,
   payload: { email: string; role: string },
-  sitesCache?: TenantInfo[]
+  sitesCache?: SiteInfo[]
 ): Promise<InviteSummary> {
-  const tenant = await resolveTenant(identifier, sitesCache);
-  return inviteUserRequest(tenant.tenantId, payload);
+  const site = await resolveSite(identifier, sitesCache);
+  return inviteUserRequest(site.siteId, payload);
 }
 
-export async function removeSiteInvite(identifier: TenantIdentifier, inviteId: string, sitesCache?: TenantInfo[]): Promise<void> {
-  const tenant = await resolveTenant(identifier, sitesCache);
-  return revokeInviteRequest(tenant.tenantId, inviteId);
+export async function removeSiteInvite(identifier: SiteIdentifier, inviteId: string, sitesCache?: SiteInfo[]): Promise<void> {
+  const site = await resolveSite(identifier, sitesCache);
+  return revokeInviteRequest(site.siteId, inviteId);
 }
 
 export async function getAccountDetails(): Promise<AccountDetails> {

@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle, EmptyState, LoadingSpinner } 
 import Badge from '@/components/ui/Badge';
 import SearchAndFilters from '@/components/ui/SearchAndFilters';
 import { useToast } from '@/components/ui/Toast';
+import { toFriendlyMessage } from '@/lib/errors';
 
 const MODULE_LABELS: Record<CapabilityModule, string> = {
   org: 'Organization',
@@ -90,7 +91,7 @@ export default function OrgPoliciesPage() {
       const data = await fetchRbacCapabilities(orgId);
       setCapabilities(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load policies.');
+      setError(toFriendlyMessage(err, 'Nie udało się wczytać ustawień.'));
     } finally {
       setLoading(false);
     }
@@ -131,9 +132,9 @@ export default function OrgPoliciesPage() {
           item.key === capability.key ? { ...item, policyEnabled: nextValue } : item,
         ),
       );
-      push({ tone: 'success', message: 'Policy updated.' });
+      push({ tone: 'success', message: 'Ustawienie zapisane.' });
     } catch (err) {
-      push({ tone: 'error', message: err instanceof Error ? err.message : 'Failed to update policy.' });
+      push({ tone: 'error', message: toFriendlyMessage(err, 'Nie udało się zapisać ustawień.') });
     } finally {
       setUpdatingKey(null);
     }
@@ -160,12 +161,11 @@ export default function OrgPoliciesPage() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Organization policies</CardTitle>
+          <CardTitle>Ustawienia organizacji</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted">
-            ⚠️ Policy-controlled capabilities can be enabled or disabled for the entire organization. Disabled
-            capabilities cannot be assigned in custom roles.
+            ⚠️ Wybrane opcje można włączyć lub wyłączyć dla całej organizacji. Gdy są wyłączone, nie pojawią się w rolach niestandardowych.
           </p>
         </CardContent>
       </Card>
@@ -173,7 +173,7 @@ export default function OrgPoliciesPage() {
       <SearchAndFilters
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
-        placeholder="Search capabilities"
+        placeholder="Szukaj opcji"
         filters={[
           {
             key: 'module',
@@ -192,7 +192,7 @@ export default function OrgPoliciesPage() {
       />
 
       {groupedCapabilities.length === 0 ? (
-        <EmptyState title="No capabilities" description="No capabilities match the current filters." />
+        <EmptyState title="Brak opcji" description="Nic nie pasuje do wybranych filtrów." />
       ) : (
         groupedCapabilities.map((group) => (
           <Card key={group.module}>
@@ -205,9 +205,9 @@ export default function OrgPoliciesPage() {
                   <caption className="sr-only">Policies for {MODULE_LABELS[group.module]}</caption>
                   <thead>
                     <tr className="text-left text-muted border-b">
-                      <th className="py-3 px-4 font-semibold">Capability</th>
+                      <th className="py-3 px-4 font-semibold">Opcja</th>
                       <th className="py-3 px-4 font-semibold">Key</th>
-                      <th className="py-3 px-4 font-semibold">Policy</th>
+                      <th className="py-3 px-4 font-semibold">Ustawienie</th>
                       <th className="py-3 px-4 font-semibold">Risk</th>
                     </tr>
                   </thead>
@@ -237,7 +237,7 @@ export default function OrgPoliciesPage() {
                                 onChange={() => handleToggle(capability)}
                               />
                               <span className="text-xs text-muted">
-                                {!capability.canBePolicyControlled ? 'Fixed' : policyEnabled ? 'Enabled' : 'Disabled'}
+                                {!capability.canBePolicyControlled ? 'Stałe' : policyEnabled ? 'Włączone' : 'Wyłączone'}
                               </span>
                             </div>
                           </td>

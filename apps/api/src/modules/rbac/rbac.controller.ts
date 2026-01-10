@@ -14,9 +14,8 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { AuthGuard } from '../../common/auth/guards/auth.guard';
-import { TenantGuard } from '../../common/tenant/tenant.guard';
 import { CurrentUser } from '../../common/auth/decorators/current-user.decorator';
-import { CurrentTenant } from '../../common/decorators/current-tenant.decorator';
+import { CurrentOrg } from '../../common/decorators/current-org.decorator';
 import { CurrentUserPayload } from '../../common/auth/decorators/current-user.decorator';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 import { PrismaService } from '../../common/prisma/prisma.service';
@@ -39,7 +38,7 @@ import {
  * - Org Admin: can do RBAC in SITE/technical scope, but not billing
  * - Others: based on specific capabilities
  */
-@UseGuards(AuthGuard, TenantGuard)
+@UseGuards(AuthGuard)
 @Controller('orgs/:orgId/rbac')
 export class RbacController {
   constructor(
@@ -49,11 +48,44 @@ export class RbacController {
   ) {}
 
   /**
+   * GET /orgs/:orgId/rbac/users
+   * Get all users who are members of this organization
+   */
+  @Get('users')
+  async getOrgUsers(@CurrentOrg() orgId: string) {
+    // Get users via UserOrg membership
+    const memberships = await this.prisma.userOrg.findMany({
+      where: { orgId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            role: true,
+            siteRole: true,
+            platformRole: true,
+            createdAt: true,
+          },
+        },
+      },
+    });
+
+    return memberships.map((m) => ({
+      id: m.user.id,
+      email: m.user.email,
+      role: m.role,
+      siteRole: m.user.siteRole,
+      platformRole: m.user.platformRole,
+      createdAt: m.user.createdAt.toISOString(),
+    }));
+  }
+
+  /**
    * GET /orgs/:orgId/rbac/capabilities
    * Get all capabilities with policy status
    */
   @Get('capabilities')
-  async getCapabilities(@CurrentTenant() orgId: string) {
+  async getCapabilities(@CurrentOrg() orgId: string) {
     // Anyone in org can view capabilities
     return this.rbacService.getCapabilities(orgId);
   }
@@ -64,7 +96,7 @@ export class RbacController {
    */
   @Get('roles')
   async getRoles(
-    @CurrentTenant() orgId: string,
+    @CurrentOrg() orgId: string,
     @Query('scope') scope?: 'ORG' | 'SITE',
   ) {
     // Anyone in org can view roles
@@ -77,7 +109,7 @@ export class RbacController {
    */
   @Post('roles')
   async createRole(
-    @CurrentTenant() orgId: string,
+    @CurrentOrg() orgId: string,
     @CurrentUser() user: CurrentUserPayload,
     @Body(new ZodValidationPipe(createRoleSchema)) dto: unknown,
   ) {
@@ -93,7 +125,7 @@ export class RbacController {
    */
   @Patch('roles/:roleId')
   async updateRole(
-    @CurrentTenant() orgId: string,
+    @CurrentOrg() orgId: string,
     @Param('roleId') roleId: string,
     @CurrentUser() user: CurrentUserPayload,
     @Body(new ZodValidationPipe(updateRoleSchema)) dto: unknown,
@@ -111,7 +143,7 @@ export class RbacController {
   @Delete('roles/:roleId')
   @HttpCode(HttpStatus.OK)
   async deleteRole(
-    @CurrentTenant() orgId: string,
+    @CurrentOrg() orgId: string,
     @Param('roleId') roleId: string,
     @Query('force') force?: string,
     @CurrentUser() user?: CurrentUserPayload,
@@ -131,7 +163,7 @@ export class RbacController {
    */
   @Get('assignments')
   async getAssignments(
-    @CurrentTenant() orgId: string,
+    @CurrentOrg() orgId: string,
     @Query('userId') userId?: string,
     @Query('siteId') siteId?: string,
   ) {
@@ -146,7 +178,7 @@ export class RbacController {
    */
   @Post('assignments')
   async createAssignment(
-    @CurrentTenant() orgId: string,
+    @CurrentOrg() orgId: string,
     @CurrentUser() user: CurrentUserPayload,
     @Body(new ZodValidationPipe(createAssignmentSchema)) dto: unknown,
   ) {
@@ -177,7 +209,7 @@ export class RbacController {
   @Delete('assignments/:assignmentId')
   @HttpCode(HttpStatus.OK)
   async deleteAssignment(
-    @CurrentTenant() orgId: string,
+    @CurrentOrg() orgId: string,
     @Param('assignmentId') assignmentId: string,
     @CurrentUser() user: CurrentUserPayload,
   ) {
@@ -204,7 +236,7 @@ export class RbacController {
    * Get policies
    */
   @Get('policies')
-  async getPolicies(@CurrentTenant() orgId: string) {
+  async getPolicies(@CurrentOrg() orgId: string) {
     // Anyone in org can view policies
     return this.rbacService.getPolicies(orgId);
   }
@@ -215,7 +247,7 @@ export class RbacController {
    */
   @Get('effective')
   async getEffectiveCapabilities(
-    @CurrentTenant() orgId: string,
+    @CurrentOrg() orgId: string,
     @CurrentUser() user: CurrentUserPayload,
     @Query('siteId') siteId?: string,
   ) {
@@ -233,7 +265,7 @@ export class RbacController {
    */
   @Put('policies/:capabilityKey')
   async updatePolicy(
-    @CurrentTenant() orgId: string,
+    @CurrentOrg() orgId: string,
     @Param('capabilityKey') capabilityKey: string,
     @CurrentUser() user: CurrentUserPayload,
     @Body(new ZodValidationPipe(updatePolicySchema)) dto: unknown,
@@ -324,7 +356,7 @@ export class RbacController {
     const user = await this.prisma.user.findFirst({
       where: {
         id: userId,
-        tenantId: orgId,
+        orgId: orgId,
       },
       select: {
         isSuperAdmin: true,

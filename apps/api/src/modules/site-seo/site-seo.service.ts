@@ -7,9 +7,9 @@ import { UpdateSeoSettingsDto } from './dto';
 export class SiteSeoService {
   constructor(private readonly prisma: PrismaService, private readonly siteEvents: SiteEventsService) {}
 
-  private defaultSettings(tenantId: string) {
+  private defaultSettings(siteId: string) {
     return {
-      tenantId,
+      siteId,
       title: 'Site title (coming soon)',
       description: 'Default meta description placeholder',
       ogTitle: null,
@@ -19,19 +19,19 @@ export class SiteSeoService {
     };
   }
 
-  async getSettings(tenantId: string) {
+  async getSettings(siteId: string) {
     const existing = await this.prisma.seoSettings.findUnique({
-      where: { tenantId },
+      where: { siteId },
     });
 
     if (existing) return existing;
 
     return this.prisma.seoSettings.create({
-      data: this.defaultSettings(tenantId),
+      data: this.defaultSettings(siteId),
     });
   }
 
-  async updateSettings(tenantId: string, dto: UpdateSeoSettingsDto, userId?: string) {
+  async updateSettings(siteId: string, dto: UpdateSeoSettingsDto, userId?: string) {
     const data = {
       ...(dto.title !== undefined ? { title: dto.title } : {}),
       ...(dto.description !== undefined ? { description: dto.description } : {}),
@@ -42,17 +42,17 @@ export class SiteSeoService {
     };
 
     const settings = await this.prisma.seoSettings.upsert({
-      where: { tenantId },
+      where: { siteId },
       update: data,
-      create: { ...this.defaultSettings(tenantId), ...data },
+      create: { ...this.defaultSettings(siteId), ...data },
     });
 
     await this.siteEvents.recordEvent(
-      tenantId,
+      siteId,
       userId ?? null,
       'seo_updated',
       'SEO settings updated',
-      { tenantId },
+      { siteId },
     );
 
     return settings;

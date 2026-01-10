@@ -6,26 +6,31 @@
   "pipeline": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": [".next/**", "!.next/cache/**", "dist/**"]
+      "outputs": [".next/**", "!.next/cache/**", "dist/**", ".tsbuildinfo"],
+      "cache": true
     },
     "dev": {
       "cache": false,
       "persistent": true
     },
     "test": {
-      "dependsOn": ["build"],
-      "outputs": ["coverage/**"]
+      "dependsOn": ["^build"],
+      "outputs": ["coverage/**"],
+      "cache": true
     },
     "test:coverage": {
-      "dependsOn": ["build"],
-      "outputs": ["coverage/**"]
+      "dependsOn": ["^build"],
+      "outputs": ["coverage/**"],
+      "cache": true
     },
     "lint": {
-      "outputs": []
+      "outputs": [],
+      "cache": true
     },
     "type-check": {
       "dependsOn": ["^build"],
-      "outputs": []
+      "outputs": [".tsbuildinfo"],
+      "cache": true
     },
     "clean": {
       "cache": false

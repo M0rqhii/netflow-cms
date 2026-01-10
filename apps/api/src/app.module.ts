@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { validate } from './common/config/env.validation';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { RoleBasedThrottlerGuard } from './common/throttler/role-based-throttler.guard';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
@@ -48,22 +49,22 @@ import { HealthController } from './health.controller';
 import { PrismaService } from './common/prisma/prisma.service';
 import { ProvidersModule } from './common/providers/providers.module';
 import { DevModule } from './dev/dev.module';
+import { HealthModule } from './common/health/health.module';
+import { TerminusModule } from '@nestjs/terminus';
 // Import feature modules here
 // import { ContentModule } from './modules/content/content.module';
 
 const isProductionProfile = (process.env.APP_PROFILE || process.env.NODE_ENV || 'development') === 'production';
 
-// Log environment for debugging
-if (!isProductionProfile) {
-  console.log('[AppModule] DevModule will be loaded - APP_PROFILE:', process.env.APP_PROFILE, 'NODE_ENV:', process.env.NODE_ENV);
-} else {
-  console.log('[AppModule] DevModule will NOT be loaded - running in production mode');
-}
-
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      validate,
+      validationOptions: {
+        allowUnknown: true,
+        abortEarly: false,
+      },
     }),
     CacheModule, // Global cache module
     ThrottlerModule.forRoot({
@@ -79,6 +80,8 @@ if (!isProductionProfile) {
     FeaturesModule,
     SaasModule,
     ProvidersModule,
+    TerminusModule,
+    HealthModule,
     AuthModule,
     CollectionsModule,
     UsersModule,

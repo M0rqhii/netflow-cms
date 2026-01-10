@@ -1,0 +1,198 @@
+/**
+ * Toolbar Styles
+ */
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 56px;
+  padding: 0 16px;
+  background: var(--bg-primary, #fff);
+  border-bottom: 1px solid var(--border-color, #e0e0e0);
+  flex-shrink: 0;
+}
+
+.section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary, #1a1a1a);
+}
+
+.divider {
+  width: 1px;
+  height: 24px;
+  background: var(--border-color, #e0e0e0);
+  margin: 0 4px;
+}
+
+/* Device switcher */
+.deviceSwitcher {
+  display: flex;
+  align-items: center;
+  background: var(--bg-secondary, #f5f5f5);
+  border-radius: 6px;
+  padding: 2px;
+}
+
+.deviceBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: none;
+  border: none;
+  border-radius: 4px;
+  color: var(--text-secondary, #666);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.deviceBtn:hover {
+  color: var(--text-primary, #1a1a1a);
+}
+
+.deviceBtn.active {
+  background: var(--bg-primary, #fff);
+  color: var(--primary-color, #3b82f6);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.deviceBtn svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* History controls */
+.historyControls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.toolBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: none;
+  border: none;
+  border-radius: 4px;
+  color: var(--text-secondary, #666);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.toolBtn:hover:not(:disabled) {
+  background: var(--bg-hover, #f5f5f5);
+  color: var(--text-primary, #1a1a1a);
+}
+
+.toolBtn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.toolBtn svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Mode toggle */
+.modeToggle {
+  display: flex;
+  align-items: center;
+  background: var(--bg-secondary, #f5f5f5);
+  border-radius: 6px;
+  padding: 2px;
+}
+
+.modeBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: none;
+  border: none;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary, #666);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.modeBtn:hover {
+  color: var(--text-primary, #1a1a1a);
+}
+
+.modeBtn.active {
+  background: var(--bg-primary, #fff);
+  color: var(--primary-color, #3b82f6);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.modeBtn svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* Save button */
+.saveBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: var(--primary-color, #3b82f6);
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: white;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.saveBtn:hover:not(:disabled) {
+  background: var(--primary-hover, #2563eb);
+}
+
+.saveBtn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.saveBtn.saved {
+  background: var(--success-color, #22c55e);
+}
+
+.saveBtn.error {
+  background: var(--error-color, #ef4444);
+}
+
+.saveBtn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.spinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

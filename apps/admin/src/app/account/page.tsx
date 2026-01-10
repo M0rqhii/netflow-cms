@@ -140,17 +140,26 @@ export default function AccountPage() {
   }
 
   return (
-    <div className="container py-4 sm:py-8">
-      <h1 className="text-xl sm:text-2xl font-bold mb-6">{t('account.title')}</h1>
+    <div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 sm:py-3">
+        {/* Header */}
+        <div className="mb-2 sm:mb-3">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground mb-0.5 sm:mb-1">
+            {t('account.title')}
+          </h1>
+          <p className="text-[10px] sm:text-xs text-muted">
+            Zarządzaj ustawieniami konta i preferencjami
+          </p>
+        </div>
 
-      <div className="space-y-6">
-        {/* User Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('account.accountSettings')}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleUpdateAccount} className="space-y-4 w-full max-w-lg">
+        <div className="space-y-2 sm:space-y-3">
+          {/* User Information */}
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="pb-1.5 sm:pb-2 px-3 sm:px-4 pt-2 sm:pt-3">
+              <CardTitle className="text-sm sm:text-base font-semibold">{t('account.accountSettings')}</CardTitle>
+            </CardHeader>
+            <CardContent className="px-3 sm:px-4 pb-2 sm:pb-3">
+              <form onSubmit={handleUpdateAccount} className="space-y-2 w-full max-w-lg">
               <Input
                 label={t('account.emailAddress')}
                 value={email}
@@ -163,7 +172,7 @@ export default function AccountPage() {
                 <label htmlFor="preferred-language" className="block text-sm font-medium mb-1">{t('account.preferredLanguage')}</label>
                 <select
                   id="preferred-language"
-                  className="border rounded-md w-full px-3 py-2 h-10"
+                  className="border rounded-md w-full px-2 sm:px-3 py-1.5 sm:py-2 h-8 sm:h-9 bg-card text-foreground text-[10px] sm:text-xs"
                   value={preferredLanguage}
                   onChange={(e) => setPreferredLanguage(e.target.value as 'pl' | 'en')}
                   disabled={saving}
@@ -175,7 +184,7 @@ export default function AccountPage() {
                 <p id="preferred-language-hint" className="text-xs text-muted mt-1">{t('account.selectPreferredLanguage')}</p>
               </div>
               <div className="flex justify-end">
-                <Button type="submit" variant="primary" disabled={saving} className="w-full sm:w-auto">
+                <Button type="submit" variant="primary" disabled={saving} className="w-full sm:w-auto text-[10px] sm:text-xs h-7 sm:h-8 px-2 sm:px-3">
                   {saving ? t('account.saving') : t('account.saveChanges')}
                 </Button>
               </div>
@@ -183,13 +192,13 @@ export default function AccountPage() {
           </CardContent>
         </Card>
 
-        {/* Change Password */}
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('account.changePassword')}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleChangePassword} className="space-y-4 w-full max-w-lg">
+          {/* Change Password */}
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="pb-1.5 sm:pb-2 px-3 sm:px-4 pt-2 sm:pt-3">
+              <CardTitle className="text-sm sm:text-base font-semibold">{t('account.changePassword')}</CardTitle>
+            </CardHeader>
+            <CardContent className="px-3 sm:px-4 pb-2 sm:pb-3">
+              <form onSubmit={handleChangePassword} className="space-y-2 w-full max-w-lg">
               <Input
                 label={t('account.currentPassword')}
                 type="password"
@@ -220,7 +229,7 @@ export default function AccountPage() {
                 disabled={saving}
               />
               <div className="flex justify-end">
-                <Button type="submit" variant="primary" disabled={saving} className="w-full sm:w-auto">
+                <Button type="submit" variant="primary" disabled={saving} className="w-full sm:w-auto text-[10px] sm:text-xs h-7 sm:h-8 px-2 sm:px-3">
                   {saving ? t('account.changing') : t('account.changePasswordButton')}
                 </Button>
               </div>
@@ -228,13 +237,13 @@ export default function AccountPage() {
           </CardContent>
         </Card>
 
-        {/* Billing Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('account.billingInfo')}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleUpdateBillingInfo} className="space-y-4 w-full max-w-lg">
+          {/* Billing Information */}
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="pb-1.5 sm:pb-2 px-3 sm:px-4 pt-2 sm:pt-3">
+              <CardTitle className="text-sm sm:text-base font-semibold">{t('account.billingInfo')}</CardTitle>
+            </CardHeader>
+            <CardContent className="px-3 sm:px-4 pb-2 sm:pb-3">
+              <form onSubmit={handleUpdateBillingInfo} className="space-y-2 w-full max-w-lg">
               <Input
                 label={t('account.companyName')}
                 value={companyName}
@@ -253,7 +262,7 @@ export default function AccountPage() {
               <div>
                 <label className="block text-sm font-medium mb-1">{t('account.address')}</label>
                 <textarea
-                  className="border rounded-md w-full px-3 py-2 min-h-[100px]"
+                  className="border rounded-md w-full px-2 sm:px-3 py-1.5 sm:py-2 min-h-[80px] sm:min-h-[100px] bg-card text-foreground text-[10px] sm:text-xs"
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
                   placeholder={t('account.enterBillingAddress')}
@@ -263,13 +272,14 @@ export default function AccountPage() {
                 <p className="text-xs text-muted mt-1">{t('account.enterCompanyBillingAddress')}</p>
               </div>
               <div className="flex justify-end">
-                <Button type="submit" variant="primary" disabled={saving} className="w-full sm:w-auto">
+                <Button type="submit" variant="primary" disabled={saving} className="w-full sm:w-auto text-[10px] sm:text-xs h-7 sm:h-8 px-2 sm:px-3">
                   {saving ? t('account.savingBilling') : t('account.saveBillingInfo')}
                 </Button>
               </div>
-            </form>
-          </CardContent>
-        </Card>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );

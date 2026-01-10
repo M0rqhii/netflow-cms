@@ -1,0 +1,8 @@
+/**
+ * Column Block Styles
+ */
+
+.column {
+  flex-shrink: 0;
+  min-height: 50px;
+}

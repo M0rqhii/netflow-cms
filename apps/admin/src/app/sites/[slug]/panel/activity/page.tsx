@@ -7,8 +7,8 @@ import { SectionHeader } from '@/components/site-panel/SectionHeader';
 import { Card, CardContent, Button, Input } from '@repo/ui';
 import { Badge } from '@/components/ui/Badge';
 import { SiteEventsTable } from '@/components/site-panel/activity/SiteEventsTable';
-import { fetchMyTenants, exchangeTenantToken, getTenantToken } from '@/lib/api';
-import { createApiClient, type TenantInfo, type SiteEvent } from '@repo/sdk';
+import { fetchMySites, exchangeSiteToken, getSiteToken } from '@/lib/api';
+import { createApiClient, type SiteInfo, type SiteEvent } from '@repo/sdk';
 import { useToast } from '@/components/ui/Toast';
 
 export default function ActivityPage() {
@@ -17,7 +17,7 @@ export default function ActivityPage() {
   const apiClient = createApiClient();
   const toast = useToast();
 
-  const [tenantId, setTenantId] = useState<string | null>(null);
+  const [siteId, setSiteId] = useState<string | null>(null);
   const [events, setEvents] = useState<SiteEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterType, setFilterType] = useState<string>('all');
@@ -27,17 +27,17 @@ export default function ActivityPage() {
     if (!slug) return;
     setLoading(true);
     try {
-      const tenants = await fetchMyTenants();
-      const tenant = tenants.find((t: TenantInfo) => t.tenant.slug === slug);
-      if (!tenant) {
+      const sites = await fetchMySites();
+      const site = sites.find((s: SiteInfo) => s.site.slug === slug);
+      if (!site) {
         throw new Error(`Site with slug "${slug}" not found`);
       }
-      setTenantId(tenant.tenantId);
-      let token = getTenantToken(tenant.tenantId);
+      setSiteId(site.siteId);
+      let token = getSiteToken(site.siteId);
       if (!token) {
-        token = await exchangeTenantToken(tenant.tenantId);
+        token = await exchangeSiteToken(site.siteId);
       }
-      const data = await apiClient.listSiteEvents(token, tenant.tenantId, 50);
+      const data = await apiClient.listSiteEvents(token, site.siteId, 50);
       setEvents(data);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to load activity';
@@ -83,7 +83,7 @@ export default function ActivityPage() {
         <SectionHeader
           title="Activity"
           description="Recent events for this site: pages, SEO updates, media uploads, and snapshots."
-          action={{ label: 'Refresh', onClick: loadEvents, disabled: loading || !tenantId }}
+          action={{ label: 'Refresh', onClick: loadEvents, disabled: loading || !siteId }}
         />
 
         {/* Filters */}

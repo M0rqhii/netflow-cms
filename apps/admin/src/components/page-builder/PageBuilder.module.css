@@ -1,0 +1,104 @@
+/**
+ * Page Builder Layout Styles
+ */
+
+.pageBuilder {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: var(--bg-secondary, #f5f5f5);
+  
+  /* CSS Variables */
+  --primary-color: #3b82f6;
+  --primary-hover: #2563eb;
+  --success-color: #22c55e;
+  --error-color: #ef4444;
+  --warning-color: #f59e0b;
+  
+  --bg-primary: #ffffff;
+  --bg-secondary: #f5f5f5;
+  --bg-hover: #f0f0f0;
+  
+  --text-primary: #1a1a1a;
+  --text-secondary: #666666;
+  --text-tertiary: #999999;
+  
+  --border-color: #e0e0e0;
+  --canvas-bg: #e8e8e8;
+  
+  --sidebar-width: 280px;
+  --toolbar-height: 56px;
+}
+
+.main {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Sidebars */
+.leftSidebar,
+.rightSidebar {
+  width: var(--sidebar-width);
+  background: var(--bg-primary);
+  border-right: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.rightSidebar {
+  border-right: none;
+  border-left: 1px solid var(--border-color);
+}
+
+.sidebarHeader {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.sidebarTitle {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.sidebarContent {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Canvas area */
+.canvasArea {
+  flex: 1;
+  min-width: 0;
+  background: var(--canvas-bg);
+  overflow: hidden;
+  display: flex;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .pageBuilder {
+    --sidebar-width: 240px;
+  }
+}
+
+@media (max-width: 900px) {
+  .leftSidebar {
+    display: none;
+  }
+  
+  .rightSidebar {
+    position: absolute;
+    right: 0;
+    top: var(--toolbar-height);
+    bottom: 0;
+    z-index: 100;
+    box-shadow: -4px 0 20px rgba(0, 0, 0, 0.1);
+  }
+}

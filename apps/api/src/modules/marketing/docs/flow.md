@@ -237,3 +237,7 @@ Na razie integracje są stub/mock. W produkcji należy zaimplementować:
 - Credentials są przechowywane w JSON (stub) - w produkcji użyj vault (HashiCorp Vault, AWS Secrets Manager, etc.)
 - Policy toggle (⚠️) - niektóre capabilities mogą być wyłączone globalnie w organizacji
 
+
+
+
+

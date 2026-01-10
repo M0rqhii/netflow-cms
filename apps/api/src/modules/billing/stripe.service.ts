@@ -67,8 +67,8 @@ export class StripeService {
     const status = data.status;
     const plan = this.mapStripePlanToPlan(data.items?.data?.[0]?.price?.id);
 
-    // Find tenant by Stripe customer ID
-    const tenant = await this.prisma.tenant.findFirst({
+    // Find organization by Stripe customer ID
+    const organization = await this.prisma.organization.findFirst({
       where: {
         subscriptions: {
           some: {
@@ -78,8 +78,8 @@ export class StripeService {
       },
     });
 
-    if (!tenant) {
-      this.logger.warn(`Tenant not found for Stripe customer: ${customerId}`);
+    if (!organization) {
+      this.logger.warn(`Organization not found for Stripe customer: ${customerId}`);
       return;
     }
 
@@ -96,25 +96,28 @@ export class StripeService {
         cancelAtPeriodEnd: data.cancel_at_period_end || false,
       },
       create: {
-        tenantId: tenant.id,
+        orgId: organization.id,
         plan,
         status: this.mapStripeStatusToStatus(status),
         currentPeriodStart: new Date(data.current_period_start * 1000),
         currentPeriodEnd: new Date(data.current_period_end * 1000),
         cancelAtPeriodEnd: data.cancel_at_period_end || false,
+        trialStart: null,
+        trialEnd: null,
+        cancelledAt: null,
         stripeSubscriptionId: subscriptionId,
         stripeCustomerId: customerId,
       },
     });
 
-    // Update tenant plan
-    await this.prisma.tenant.update({
-      where: { id: tenant.id },
+    // Update organization plan
+    await this.prisma.organization.update({
+      where: { id: organization.id },
       data: { plan },
     });
 
     this.auditLogger.logTenantOperation(AuditEventType.TENANT_PLAN_CHANGED, {
-      tenantId: tenant.id,
+      tenantId: organization.id,
       changes: { plan },
     });
   }
@@ -142,14 +145,14 @@ export class StripeService {
       },
     });
 
-    // Downgrade tenant to free plan
-    await this.prisma.tenant.update({
-      where: { id: subscription.tenantId },
+    // Downgrade organization to free plan
+    await this.prisma.organization.update({
+      where: { id: subscription.orgId },
       data: { plan: 'free' },
     });
 
     this.auditLogger.logTenantOperation(AuditEventType.TENANT_PLAN_CHANGED, {
-      tenantId: subscription.tenantId,
+      tenantId: subscription.orgId,
       changes: { plan: 'free', reason: 'subscription_cancelled' },
     });
   }
@@ -174,7 +177,7 @@ export class StripeService {
     // Create invoice record
     await this.prisma.invoice.create({
       data: {
-        tenantId: subscription.tenantId,
+        orgId: subscription.orgId,
         subscriptionId: subscription.id,
         amount: amount,
         currency,
@@ -255,7 +258,7 @@ export class StripeService {
   async isSubscriptionActive(tenantId: string): Promise<boolean> {
     const subscription = await this.prisma.subscription.findFirst({
       where: {
-        tenantId,
+        orgId: tenantId,
         status: { in: ['active', 'trialing'] },
       },
     });

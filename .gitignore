@@ -58,6 +58,11 @@ prisma/migrations/*.sql
 *.tmp
 *.temp
 
+# Documentation reports (optional - uncomment if you don't want to commit reports)
+# docs/reports/
+# docs/fixes/
+# docs/archive/
+
 # AI Note:
 # - Nie commituj node_modules, build outputs, .env files
 # - Prisma migrations są commitowane (bez .sql files)

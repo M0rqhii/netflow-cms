@@ -21,7 +21,7 @@ const mapOldRoleToSiteRole = (role: string | undefined): string => {
   if (!role) return 'viewer';
   const mapping: Record<string, string> = {
     'super_admin': 'owner', // Super admin maps to owner in site context
-    'tenant_admin': 'admin',
+    'site_admin': 'admin',
     'editor': 'editor',
     'viewer': 'viewer',
   };
@@ -174,7 +174,7 @@ export default function PlatformUsersPage() {
         if (mappedSiteRole) {
           updatePayload.siteRole = mappedSiteRole;
           // Only send role if it's not an old name that was mapped
-          const oldRoleNames = ['tenant_admin', 'super_admin'];
+          const oldRoleNames = ['site_admin', 'super_admin'];
           if (!oldRoleNames.includes(editRole)) {
             updatePayload.role = editRole;
           }
@@ -398,7 +398,7 @@ export default function PlatformUsersPage() {
                         )}
                       </td>
                       <td className="py-3 px-4 text-muted">
-                        {u.tenant?.name || u.tenant?.slug || '-'}
+                        {u.site?.name || u.site?.slug || '-'}
                       </td>
                       <td className="py-3 px-4 text-muted">
                         {new Date(u.createdAt).toLocaleDateString()}
@@ -503,7 +503,7 @@ export default function PlatformUsersPage() {
                         )}
                       </td>
                       <td className="py-3 px-4 text-muted">
-                        {u.tenant?.name || u.tenant?.slug || '-'}
+                        {u.site?.name || u.site?.slug || '-'}
                       </td>
                       <td className="py-3 px-4 text-muted">
                         {new Date(u.createdAt).toLocaleDateString()}

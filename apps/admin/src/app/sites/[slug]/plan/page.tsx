@@ -5,21 +5,22 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
 import { Card, CardContent, EmptyState, Skeleton, Button as UiButton } from '@repo/ui';
-import type { TenantInfo } from '@repo/sdk';
+import type { SiteInfo } from '@repo/sdk';
 import { createApiClient } from '@repo/sdk';
-import { getFeatureByKey, getPlanConfig, getPlanLimits } from '@repo/schemas';
+import { getFeatureByKey, getPlanConfig } from '@repo/schemas';
+import * as schemas from '@repo/schemas';
 import { Badge } from '@/components/ui/Badge';
 import { useToast } from '@/components/ui/Toast';
 import { FeatureMatrix } from '@/components/site-plan/FeatureMatrix';
 import { LimitsCard } from '@/components/site-plan/LimitsCard';
 import type { FeatureMatrixRow, SiteFeaturesResponse, UsageStats } from '@/components/site-plan/types';
-import { fetchMyTenants, exchangeTenantToken, getTenantToken, fetchTenantStats } from '@/lib/api';
+import { fetchMySites, exchangeSiteToken, getSiteToken, fetchSiteStats } from '@/lib/api';
 
 export default function SitePlanPage() {
   const params = useParams<{ slug: string }>();
   const slug = params?.slug as string;
 
-  const [tenant, setTenant] = useState<TenantInfo | null>(null);
+  const [site, setSite] = useState<SiteInfo | null>(null);
   const [features, setFeatures] = useState<SiteFeaturesResponse | null>(null);
   const [usage, setUsage] = useState<UsageStats>({ pages: 0, media: 0 });
   const [loading, setLoading] = useState(true);
@@ -36,30 +37,34 @@ export default function SitePlanPage() {
     setError(null);
 
     try {
-      const sites = await fetchMyTenants();
-      const current = sites.find((item) => item.tenant.slug === slug) || null;
+      const sites = await fetchMySites();
+      const current = sites.find((item) => item.site.slug === slug) || null;
 
       if (!current) {
-        setTenant(null);
+        setSite(null);
         setFeatures(null);
         setError('Site not found');
         return;
       }
 
-      setTenant(current);
+      setSite(current);
 
-      let token = getTenantToken(current.tenantId);
+      let token = getSiteToken(current.siteId);
       if (!token) {
-        token = await exchangeTenantToken(current.tenantId);
+        token = await exchangeSiteToken(current.siteId);
       }
 
       const [featuresResponse, stats, pages] = await Promise.all([
-        apiClient.getSiteFeatures(token, current.tenantId) as Promise<SiteFeaturesResponse>,
-        fetchTenantStats(current.tenantId).catch(() => null),
-        apiClient.listPages(token, current.tenantId).catch(() => []),
+        apiClient.getSiteFeatures(token, current.siteId) as Promise<SiteFeaturesResponse>,
+        fetchSiteStats(current.siteId).catch(() => null),
+        apiClient.listPages(token, current.siteId).catch(() => []),
       ]);
 
-      const limits = featuresResponse.limits ?? getPlanLimits(featuresResponse.plan);
+      // Fallback: use getPlanLimits if available, otherwise get limits from getPlanConfig
+      const limits = featuresResponse.limits ?? 
+        (schemas.getPlanLimits && typeof schemas.getPlanLimits === 'function' 
+          ? schemas.getPlanLimits(featuresResponse.plan)
+          : getPlanConfig(featuresResponse.plan)?.limits);
       setFeatures({ ...featuresResponse, limits });
       setUsage({
         pages: Array.isArray(pages) ? pages.length : 0,
@@ -110,12 +115,12 @@ export default function SitePlanPage() {
   }, [features]);
 
   const handleToggle = async (featureKey: string, nextEnabled: boolean) => {
-    if (!tenant || !features) return;
+    if (!site || !features) return;
 
-    let token = getTenantToken(tenant.tenantId);
+    let token = getSiteToken(site.siteId);
     if (!token) {
       try {
-        token = await exchangeTenantToken(tenant.tenantId);
+        token = await exchangeSiteToken(site.siteId);
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Unable to authenticate';
         toast.push({ tone: 'error', message });
@@ -125,7 +130,7 @@ export default function SitePlanPage() {
 
     setPendingKey(featureKey);
     try {
-      await apiClient.setFeatureOverride(token, tenant.tenantId, featureKey, nextEnabled);
+      await apiClient.setFeatureOverride(token, site.siteId, featureKey, nextEnabled);
       toast.push({ tone: 'success', message: 'Override updated' });
       await load();
     } catch (err) {
@@ -150,7 +155,7 @@ export default function SitePlanPage() {
         <p className="text-sm text-muted mt-1">Review plan features, limits, and overrides for this site.</p>
         <div className="flex flex-wrap items-center gap-2 mt-3">
           {planLabel ? <Badge>Plan: {planLabel}</Badge> : null}
-          {tenant ? <Badge tone="default">Slug: {tenant.tenant.slug}</Badge> : null}
+          {site ? <Badge tone="default">Slug: {site.site.slug}</Badge> : null}
           {features ? <Badge tone="default">Effective features: {features.effective.length}</Badge> : null}
         </div>
       </div>
@@ -184,7 +189,7 @@ export default function SitePlanPage() {
     );
   }
 
-  if (error || !tenant || !features) {
+  if (error || !site || !features) {
     return (
       <div className="container py-8">
         {renderHeader()}

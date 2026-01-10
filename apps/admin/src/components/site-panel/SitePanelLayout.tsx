@@ -1,10 +1,11 @@
 "use client";
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { Badge } from '@/components/ui/Badge';
 import { SitePanelNav } from './SitePanelNav';
+import { trackOnboardingSuccess } from '@/lib/onboarding';
 
 interface SitePanelLayoutProps {
   children: React.ReactNode;
@@ -13,6 +14,10 @@ interface SitePanelLayoutProps {
 export function SitePanelLayout({ children }: SitePanelLayoutProps) {
   const params = useParams<{ slug: string }>();
   const slug = params?.slug as string;
+
+  useEffect(() => {
+    trackOnboardingSuccess('site_panel');
+  }, []);
 
   return (
     <div className="container py-8 space-y-6">
@@ -29,7 +34,7 @@ export function SitePanelLayout({ children }: SitePanelLayoutProps) {
         <div>
           <h1 className="text-2xl font-bold">Site Workspace</h1>
           <p className="text-sm text-muted">
-            All site-level operations in one place: overview, pages, collections, media, SEO, design, and settings.
+            All site-level operations in one place: overview, pages, content, media, marketing, deployments, and settings.
           </p>
         </div>
       </div>
@@ -42,6 +47,10 @@ export function SitePanelLayout({ children }: SitePanelLayoutProps) {
     </div>
   );
 }
+
+
+
+
 
 
 

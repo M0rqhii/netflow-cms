@@ -1,0 +1,76 @@
+/**
+ * Empty Canvas Placeholder Styles
+ */
+
+.placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  padding: 48px;
+  text-align: center;
+  border: 2px dashed var(--border-color, #e0e0e0);
+  border-radius: 8px;
+  margin: 16px;
+  transition: all 0.2s ease;
+}
+
+.placeholder.isOver {
+  border-color: var(--primary-color, #3b82f6);
+  background-color: rgba(59, 130, 246, 0.05);
+}
+
+.icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  margin-bottom: 16px;
+  background: var(--bg-secondary, #f5f5f5);
+  border-radius: 16px;
+  color: var(--text-secondary, #666);
+}
+
+.icon svg {
+  width: 32px;
+  height: 32px;
+}
+
+.title {
+  margin: 0 0 8px;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary, #1a1a1a);
+}
+
+.description {
+  margin: 0 0 24px;
+  font-size: 14px;
+  color: var(--text-secondary, #666);
+  max-width: 300px;
+}
+
+.dropHint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: var(--bg-secondary, #f5f5f5);
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary, #666);
+  transition: all 0.2s ease;
+}
+
+.placeholder.isOver .dropHint {
+  background: var(--primary-color, #3b82f6);
+  color: white;
+}
+
+.dropHint svg {
+  width: 16px;
+  height: 16px;
+}
