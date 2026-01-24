@@ -372,14 +372,14 @@ Demo organizacja prezentująca pełny flow: **Build → Publish → Marketing** 
 
 ### Modele danych używane w demo
 
-1. **Tenant** (organizacja)
+1. **Site** (organizacja)
    - `id`: UUID
    - `name`: "TechFlow Solutions"
    - `slug`: "techflow-solutions"
    - `plan`: "professional"
 
 2. **User** (użytkownicy)
-   - 3 użytkowników z odpowiednimi `tenantId`
+   - 3 użytkowników z odpowiednimi `orgId`
 
 3. **Role** (role systemowe)
    - `Org Owner` (ORG scope)

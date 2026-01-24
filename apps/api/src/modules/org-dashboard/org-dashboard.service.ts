@@ -150,7 +150,7 @@ export class OrgDashboardService {
    */
   async getDashboard(orgId: string, userId: string): Promise<DashboardResponse> {
     // Verify organization exists
-    const org = await this.prisma.tenant.findUnique({
+    const org = await this.prisma.organization.findUnique({
       where: { id: orgId },
       select: { id: true, name: true, slug: true, plan: true },
     });
@@ -163,9 +163,9 @@ export class OrgDashboardService {
     const role = await this.getUserRole(orgId, userId);
 
     // For now, we'll get all sites in the org (in real scenario, filter by user access)
-    const sites = await this.prisma.tenant.findMany({
+    const sites = await this.prisma.site.findMany({
       where: {
-        id: orgId, // For now, just the org itself as a site
+        orgId,
       },
     });
 
@@ -221,7 +221,7 @@ export class OrgDashboardService {
 
     const failedDeployments = await this.prisma.siteDeployment.findMany({
       where: {
-        siteId: orgId,
+        site: { orgId },
         status: 'failed',
         createdAt: {
           gte: yesterday,
@@ -258,7 +258,7 @@ export class OrgDashboardService {
 
     // Get limit exceeded alerts (only for Owner)
     if (role === 'owner') {
-      const org = await this.prisma.tenant.findUnique({
+      const org = await this.prisma.organization.findUnique({
         where: { id: orgId },
         select: { plan: true },
       });
@@ -311,7 +311,7 @@ export class OrgDashboardService {
     // Get billing issues (only for Owner)
     if (role === 'owner') {
       try {
-        const subscription = await this.billingService.getTenantSubscription(orgId);
+        const subscription = await this.billingService.getOrgSubscription(orgId);
         if (subscription && subscription.status !== 'active') {
           alerts.push({
             id: 'billing-issue',
@@ -339,13 +339,12 @@ export class OrgDashboardService {
    * Get site card with status and quick actions
    */
   private async getSiteCard(orgId: string, siteId: string, userId: string): Promise<SiteCard> {
-    const site = await this.prisma.tenant.findUnique({
+    const site = await this.prisma.site.findUnique({
       where: { id: siteId },
       select: {
         id: true,
         name: true,
         slug: true,
-        plan: true,
         settings: true,
       },
     });
@@ -353,6 +352,10 @@ export class OrgDashboardService {
     if (!site) {
       throw new NotFoundException('Site not found');
     }
+    const organization = await this.prisma.organization.findUnique({
+      where: { id: orgId },
+      select: { plan: true },
+    });
 
     // Get site status
     const status = await this.getSiteStatus(siteId);
@@ -405,7 +408,7 @@ export class OrgDashboardService {
       name: site.name,
       status,
       domain,
-      plan: site.plan || undefined,
+      plan: organization?.plan || undefined,
       lastDeploy: lastDeploy
         ? {
             time: lastDeploy.createdAt.toISOString(),
@@ -479,7 +482,7 @@ export class OrgDashboardService {
     const canMarketing = await this.rbacService.canUserPerform(orgId, userId, 'marketing.view', siteId);
     const canSettings = await this.rbacService.canUserPerform(orgId, userId, 'sites.settings.view', siteId);
 
-    const site = await this.prisma.tenant.findUnique({
+    const site = await this.prisma.site.findUnique({
       where: { id: siteId },
       select: { slug: true },
     });
@@ -527,7 +530,7 @@ export class OrgDashboardService {
    * Get business info (Owner only)
    */
   private async getBusinessInfo(orgId: string): Promise<BusinessInfo> {
-    const org = await this.prisma.tenant.findUnique({
+    const org = await this.prisma.organization.findUnique({
       where: { id: orgId },
       select: { plan: true },
     });
@@ -543,7 +546,7 @@ export class OrgDashboardService {
     let billingStatus = 'active';
     let nextPayment: string | undefined;
     try {
-      const subscription = await this.billingService.getTenantSubscription(orgId);
+      const subscription = await this.billingService.getOrgSubscription(orgId);
       if (subscription) {
         billingStatus = subscription.status;
         if (subscription.currentPeriodEnd) {
@@ -576,7 +579,7 @@ export class OrgDashboardService {
    */
   private async getUsageInfo(orgId: string): Promise<UsageInfo> {
     // Get plan limits
-    const org = await this.prisma.tenant.findUnique({
+    const org = await this.prisma.organization.findUnique({
       where: { id: orgId },
       select: { plan: true },
     });
@@ -584,10 +587,22 @@ export class OrgDashboardService {
     const planConfig = getPlanConfig(org?.plan || 'free');
     const limits = planConfig?.limits || {};
 
-    // Get actual usage (simplified - in real scenario, aggregate from UsageTracking)
-    const storageUsed = 0; // TODO: aggregate from UsageTracking
-    const apiRequestsUsed = 0; // TODO: aggregate from UsageTracking
-    const bandwidthUsed = 0; // TODO: aggregate from UsageTracking
+    // Get actual usage from UsageTracking for current period (YYYY-MM)
+    const now = new Date();
+    const period = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const usageRows = await this.prisma.usageTracking.findMany({
+      where: {
+        orgId,
+        period,
+        resourceType: { in: ['storageMB', 'apiRequests', 'bandwidthMB', 'bandwidth'] },
+      },
+      select: { resourceType: true, count: true },
+    });
+
+    const usageMap = new Map(usageRows.map((row) => [row.resourceType, row.count]));
+    const storageUsed = usageMap.get('storageMB') || 0;
+    const apiRequestsUsed = usageMap.get('apiRequests') || 0;
+    const bandwidthUsed = usageMap.get('bandwidthMB') || usageMap.get('bandwidth') || 0;
 
     const storageLimit = limits.maxStorageMB || -1;
     const apiRequestsLimit = limits.maxApiRequestsPerMonth || -1;
@@ -618,7 +633,7 @@ export class OrgDashboardService {
   private async getActivity(orgId: string): Promise<ActivityItem[]> {
     // Get recent site events
     const events = await this.prisma.siteEvent.findMany({
-      where: { siteId: orgId },
+      where: { site: { orgId } },
       orderBy: { createdAt: 'desc' },
       take: 5,
       include: {

@@ -44,10 +44,10 @@ Przekształcenie admin panelu w profesjonalny **Platform Panel** - centralny pan
 - ⏳ Site Settings - domena, SEO, ustawienia strony
 
 **Routes (przyszłe):**
-- `/tenant/[slug]` - Site dashboard
-- `/tenant/[slug]/pages` - Page builder
-- `/tenant/[slug]/collections` - Content collections
-- `/tenant/[slug]/media` - Media library
+- `/site/[slug]` - Site dashboard
+- `/site/[slug]/pages` - Page builder
+- `/site/[slug]/collections` - Content collections
+- `/site/[slug]/media` - Media library
 
 **Status:** ⏳ **PLANOWANY** - Do implementacji po zakończeniu Platform Panel
 
@@ -61,15 +61,15 @@ Przekształcenie admin panelu w profesjonalny **Platform Panel** - centralny pan
 
 **Plik:** `packages/sdk/src/index.ts`
 
-**Problem:** Błędna składnia typu `TenantInfo` (linie 4-7)
+**Problem:** Błędna składnia typu `SiteInfo` (linie 4-7)
 
 **Zmiany:**
-- ✅ Naprawiono definicję typu `TenantInfo`:
+- ✅ Naprawiono definicję typu `SiteInfo`:
 ```typescript
-export type TenantInfo = {
-  tenantId: string;
+export type SiteInfo = {
+  siteId: string;
   role: string;
-  tenant: { id: string; name: string; slug: string; plan: string };
+  site: { id: string; name: string; slug: string; plan: string };
 };
 ```
 
@@ -77,16 +77,16 @@ export type TenantInfo = {
 
 ---
 
-### 1.2 Naprawa wywołania createTenant ✅
+### 1.2 Naprawa wywołania createSite ✅
 
-**Plik:** `apps/admin/src/app/tenant/new/page.tsx`
+**Plik:** `apps/admin/src/app/site/new/page.tsx`
 
-**Problem:** Wywołanie `createTenant(name, slug)` zamiast `createTenant({ name, slug })`
+**Problem:** Wywołanie `createSite(name, slug)` zamiast `createSite({ name, slug })`
 
 **Zmiany:**
-- ✅ Zmieniono `createTenant(name, slug)` na `createTenant({ name, slug })`
+- ✅ Zmieniono `createSite(name, slug)` na `createSite({ name, slug })`
 
-**Test:** ✅ Formularz tworzenia tenanta działa poprawnie
+**Test:** ✅ Formularz tworzenia sitea działa poprawnie
 
 ---
 
@@ -109,7 +109,7 @@ export type TenantInfo = {
 
 **Zmiany:**
 - ✅ W metodzie `request()` dodano obsługę 401:
-  - Wyczyścić localStorage (authToken i wszystkie tenantToken:*)
+  - Wyczyścić localStorage (authToken i wszystkie siteToken:*)
   - Redirect na `/login` (jeśli w przeglądarce)
 
 **Status:** ✅ Zaimplementowane w SDK
@@ -135,9 +135,9 @@ export type TenantInfo = {
 **Plik:** `apps/admin/src/app/sites/page.tsx` (NOWY)
 
 **Zmiany:**
-- ✅ Skopiowano logikę z `apps/admin/src/app/tenants/page.tsx`
-- ✅ Zmieniono wszystkie teksty z "Tenant" na "Site"
-- ✅ Zaktualizowano linki: `/tenant/new` → `/sites/new`, `/tenant/[slug]` → `/sites/[slug]`
+- ✅ Skopiowano logikę z `apps/admin/src/app/sites/page.tsx`
+- ✅ Zmieniono wszystkie teksty z "Site" na "Site"
+- ✅ Zaktualizowano linki: `/site/new` → `/sites/new`, `/site/[slug]` → `/sites/[slug]`
 - ✅ Dodano kolumny: Plan, Status
 - ✅ Dodano akcje: "Otwórz stronę", "Użytkownicy", "Billing"
 
@@ -150,11 +150,11 @@ export type TenantInfo = {
 **Plik:** `apps/admin/src/app/sites/new/page.tsx` (NOWY)
 
 **Zmiany:**
-- ✅ Skopiowano z `apps/admin/src/app/tenant/new/page.tsx`
-- ✅ Naprawiono wywołanie `createTenant({ name, slug })`
+- ✅ Skopiowano z `apps/admin/src/app/site/new/page.tsx`
+- ✅ Naprawiono wywołanie `createSite({ name, slug })`
 - ✅ Dodano walidację slug (tylko małe litery, cyfry, `-`)
 - ✅ Po sukcesie: redirect do `/sites/[slug]`
-- ✅ Zmieniono teksty na "Site" zamiast "Tenant"
+- ✅ Zmieniono teksty na "Site" zamiast "Site"
 
 **Test:** ✅ Formularz tworzy site i przekierowuje
 
@@ -170,7 +170,7 @@ export type TenantInfo = {
 - ✅ Dodano linki:
   - `/sites/[slug]/users` - zarządzanie użytkownikami
   - `/sites/[slug]/billing` - billing
-  - `/tenant/[slug]` - "Otwórz panel strony" (CMS)
+  - `/site/[slug]` - "Otwórz panel strony" (CMS)
 - ✅ Zmieniono wszystkie teksty na "Site"
 
 **Test:** ✅ Strona wyświetla szczegóły site
@@ -182,8 +182,8 @@ export type TenantInfo = {
 **Plik:** `apps/admin/src/app/sites/[slug]/users/page.tsx` (NOWY)
 
 **Zmiany:**
-- ✅ Skopiowano logikę z `apps/admin/src/app/tenant/[slug]/users/page.tsx`
-- ✅ Zmieniono teksty na "Site" zamiast "Tenant"
+- ✅ Skopiowano logikę z `apps/admin/src/app/site/[slug]/users/page.tsx`
+- ✅ Zmieniono teksty na "Site" zamiast "Site"
 - ✅ Zaktualizowano linki wewnętrzne
 
 **Test:** ✅ Strona wyświetla użytkowników site
@@ -209,8 +209,8 @@ export type TenantInfo = {
 **Plik:** `apps/admin/src/components/layout/Sidebar.tsx`
 
 **Zmiany:**
-- ✅ Zmieniono `/tenants` na `/sites` w menu
-- ✅ Zmieniono label z "navigation.tenants" na "navigation.sites"
+- ✅ Zmieniono `/sites` na `/sites` w menu
+- ✅ Zmieniono label z "navigation.sites" na "navigation.sites"
 - ✅ Ukryto z menu: `/media`, `/users` (globalne)
 - ✅ Dodano do menu: `/billing`
 - ✅ Zostawiono: `/dashboard`, `/sites`, `/account`
@@ -269,7 +269,7 @@ export type TenantInfo = {
   - `name` - required, min 3 znaki
   - `slug` - required, tylko małe litery/cyfry/`-`, min 3 znaki
 - ✅ Po submit:
-  - Wywołuje `createTenant({ name, slug })`
+  - Wywołuje `createSite({ name, slug })`
   - Pokazuje toast success/error
   - Redirect do `/sites/[slug]`
 
@@ -290,7 +290,7 @@ export type TenantInfo = {
 - ✅ Dodano linki/przyciski:
   - `/sites/[slug]/users` - "Zarządzaj użytkownikami"
   - `/sites/[slug]/billing` - "Billing"
-  - `/tenant/[slug]` - "Otwórz panel strony" (CMS)
+  - `/site/[slug]` - "Otwórz panel strony" (CMS)
 
 **Test:** ✅ Strona wyświetla wszystkie informacje i linki
 
@@ -303,7 +303,7 @@ export type TenantInfo = {
 **Plik:** `apps/admin/src/app/sites/[slug]/users/page.tsx`
 
 **Zmiany:**
-- ✅ Skopiowano logikę z `/tenant/[slug]/users`
+- ✅ Skopiowano logikę z `/site/[slug]/users`
 - ✅ Wyświetlono:
   - Lista użytkowników: email, rola, status
   - Lista zaproszeń (pending)
@@ -326,8 +326,8 @@ export type TenantInfo = {
 - ✅ Dodano endpointy:
   - `GET /api/v1/billing/subscriptions` - lista subskrypcji użytkownika
   - `GET /api/v1/billing/invoices` - historia faktur
-  - `GET /api/v1/tenants/:id/subscription` - subskrypcja tenanta (w tenants.controller.ts)
-  - `GET /api/v1/tenants/:id/invoices` - faktury tenanta (w tenants.controller.ts)
+  - `GET /api/v1/sites/:id/subscription` - subskrypcja sitea (w sites.controller.ts)
+  - `GET /api/v1/sites/:id/invoices` - faktury sitea (w sites.controller.ts)
 
 **Plik:** `apps/api/src/modules/billing/billing.service.ts` (rozszerzono)
 
@@ -347,14 +347,14 @@ export type TenantInfo = {
 - ✅ Dodano metody do ApiClient:
   - `getSubscriptions(token: string)`
   - `getInvoices(token: string, page?, pageSize?)`
-  - `getTenantSubscription(token: string, tenantId: string)`
-  - `getTenantInvoices(token: string, tenantId: string, page?, pageSize?)`
+  - `getSiteSubscription(token: string, siteId: string)`
+  - `getSiteInvoices(token: string, siteId: string, page?, pageSize?)`
 
 **Plik:** `apps/admin/src/lib/api.ts`
 
 **Zmiany:**
 - ✅ Dodano typy: `Subscription`, `Invoice`
-- ✅ Dodano helpery: `getSubscriptions()`, `getInvoices()`, `getTenantSubscription()`, `getTenantInvoices()`
+- ✅ Dodano helpery: `getSubscriptions()`, `getInvoices()`, `getSiteSubscription()`, `getSiteInvoices()`
 
 **Test:** ✅ SDK eksportuje nowe metody
 
@@ -462,7 +462,7 @@ export type TenantInfo = {
   - Billing
   - Account
 
-**Uwaga:** ✅ Te moduły nadal są dostępne pod `/tenant/[slug]/*` (CMS level)
+**Uwaga:** ✅ Te moduły nadal są dostępne pod `/site/[slug]/*` (CMS level)
 
 ---
 
@@ -505,8 +505,8 @@ Plan został podzielony na niezależne moduły, które mogą być wykonywane ró
 **Zakres:** Naprawa błędów build, AuthGuard, middleware, SDK fixes
 
 **Pliki do modyfikacji:**
-- ✅ `packages/sdk/src/index.ts` - naprawa składni TenantInfo, dodanie obsługi 401
-- ✅ `apps/admin/src/app/tenant/new/page.tsx` - naprawa wywołania createTenant
+- ✅ `packages/sdk/src/index.ts` - naprawa składni SiteInfo, dodanie obsługi 401
+- ✅ `apps/admin/src/app/site/new/page.tsx` - naprawa wywołania createSite
 - ✅ `apps/admin/src/components/auth/AuthGuard.tsx` - implementacja/poprawa
 - ✅ `apps/admin/src/middleware.ts` - poprawa middleware
 - ✅ `apps/admin/src/lib/api.ts` - dodanie centralnej obsługi 401
@@ -549,14 +549,14 @@ Plan został podzielony na niezależne moduły, które mogą być wykonywane ró
 **Pliki do modyfikacji:**
 - ✅ `apps/api/src/modules/billing/billing.controller.ts` - rozszerzenie o nowe endpointy
 - ✅ `apps/api/src/modules/billing/billing.service.ts` - rozszerzenie
-- ✅ `apps/api/src/modules/tenants/tenants.controller.ts` - dodano endpointy tenant-specific
-- ✅ `apps/api/src/modules/tenants/tenants.module.ts` - dodano BillingModule
+- ✅ `apps/api/src/modules/sites/sites.controller.ts` - dodano endpointy site-specific
+- ✅ `apps/api/src/modules/sites/sites.module.ts` - dodano BillingModule
 
 **Nowe endpointy:**
 - ✅ `GET /api/v1/billing/subscriptions` - lista subskrypcji użytkownika
 - ✅ `GET /api/v1/billing/invoices` - historia faktur
-- ✅ `GET /api/v1/tenants/:id/subscription` - subskrypcja tenanta
-- ✅ `GET /api/v1/tenants/:id/invoices` - faktury tenanta
+- ✅ `GET /api/v1/sites/:id/subscription` - subskrypcja sitea
+- ✅ `GET /api/v1/sites/:id/invoices` - faktury sitea
 
 **Zależności:** Brak - może być wykonane niezależnie
 
@@ -602,8 +602,8 @@ Plan został podzielony na niezależne moduły, które mogą być wykonywane ró
 **Nowe metody SDK:**
 - ✅ `getSubscriptions(token: string)`
 - ✅ `getInvoices(token: string, page?, pageSize?)`
-- ✅ `getTenantSubscription(token: string, tenantId: string)`
-- ✅ `getTenantInvoices(token: string, tenantId: string, page?, pageSize?)`
+- ✅ `getSiteSubscription(token: string, siteId: string)`
+- ✅ `getSiteInvoices(token: string, siteId: string, page?, pageSize?)`
 - ✅ `getAccount(token: string)`
 - ✅ `updateAccount(token: string, data)`
 - ✅ `changePassword(token: string, data)`
@@ -668,7 +668,7 @@ Plan został podzielony na niezależne moduły, które mogą być wykonywane ró
 
 **Zależności:** 
 - Czeka na AGENT 2 (podstawowa struktura routingu)
-- Może używać istniejących API (fetchMyTenants, createTenant, etc.)
+- Może używać istniejących API (fetchMySites, createSite, etc.)
 
 **Testy:** ✅ Wszystkie strony sites działają z pełną funkcjonalnością
 

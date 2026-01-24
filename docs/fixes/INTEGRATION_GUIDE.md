@@ -203,18 +203,18 @@ const response = await fetch(`${baseUrl}/auth/login`, {
 ### Flow Logowania
 
 1. **Global Login** (`/login`)
-   - Użytkownik loguje się bez `tenantId`
+   - Użytkownik loguje się bez `siteId`
    - Backend zwraca `access_token` (global token)
    - Token zapisywany w `localStorage` jako `authToken`
 
 2. **Hub Access** (`/dashboard`)
-   - Używa global token do pobrania listy tenantów
-   - Endpoint: `GET /api/v1/auth/me/tenants`
+   - Używa global token do pobrania listy siteów
+   - Endpoint: `GET /api/v1/auth/me/sites`
 
-3. **Tenant Switch** (`/tenant/[slug]`)
-   - Wymiana global token na tenant-scoped token
-   - Endpoint: `POST /api/v1/auth/tenant-token`
-   - Token zapisywany jako `tenantToken:{tenantId}`
+3. **Site Switch** (`/site/[slug]`)
+   - Wymiana global token na site-scoped token
+   - Endpoint: `POST /api/v1/auth/site-token`
+   - Token zapisywany jako `siteToken:{siteId}`
 
 ### Przechowywanie Tokenów
 
@@ -222,8 +222,8 @@ const response = await fetch(`${baseUrl}/auth/login`, {
 // Global token
 localStorage.setItem('authToken', token);
 
-// Tenant token
-localStorage.setItem(`tenantToken:${tenantId}`, token);
+// Site token
+localStorage.setItem(`siteToken:${siteId}`, token);
 ```
 
 ## CORS Configuration

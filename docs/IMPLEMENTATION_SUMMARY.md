@@ -49,7 +49,7 @@
 ### Implementacja:
 - **Eventy:** `content.created`, `content.updated`, `content.deleted`
 - **Integracja:** Automatyczne wyzwalanie webhooków przy operacjach CRUD na elementach kolekcji
-- **Per-collection webhooks:** Webhooki mogą być skonfigurowane per kolekcja lub globalnie dla tenant
+- **Per-collection webhooks:** Webhooki mogą być skonfigurowane per kolekcja lub globalnie dla site
 
 ### Pliki:
 - `apps/api/src/modules/webhooks/webhooks.service.ts` (już istnieje)
@@ -77,7 +77,7 @@
 - `apps/api/src/modules/hooks/hooks.module.ts`
 
 ### Funkcjonalności:
-- Konfigurowalne hooki per tenant / per collection
+- Konfigurowalne hooki per site / per collection
 - Priorytetyzacja hooków (priority)
 - HTTP webhook handlers
 - Integracja z operacjami CRUD na elementach kolekcji

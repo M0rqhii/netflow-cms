@@ -1,5 +1,9 @@
 {
-  "moduleFileExtensions": ["js", "json", "ts"],
+  "moduleFileExtensions": [
+    "js",
+    "json",
+    "ts"
+  ],
   "rootDir": ".",
   "testEnvironment": "node",
   "testRegex": ".e2e-spec.ts$",
@@ -7,8 +11,11 @@
     "^.+\\.(t|j)s$": "ts-jest"
   },
   "moduleNameMapper": {
-    "^@repo/(.*)$": "<rootDir>/../../packages/$1/src"
+    "^@repo/(.*)$": "<rootDir>/../../../packages/$1/src"
   },
-  "setupFilesAfterEnv": ["<rootDir>/setup-e2e.ts"]
+  "setupFilesAfterEnv": [
+    "<rootDir>/setup-e2e.ts"
+  ],
+  "maxWorkers": 1,
+  "globalSetup": "<rootDir>/global-setup.cjs"
 }
-

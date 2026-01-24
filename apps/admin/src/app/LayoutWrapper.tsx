@@ -21,7 +21,7 @@ export default function LayoutWrapper({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const isLoginPage = useMemo(() => pathname === '/login', [pathname]);
+  const isPublicPage = useMemo(() => pathname === '/login' || pathname.startsWith('/invite'), [pathname]);
 
   const topbarRight = useMemo(
     () => (
@@ -39,7 +39,7 @@ export default function LayoutWrapper({
   );
 
   // Don't show navigation on login page
-  if (isLoginPage) {
+  if (isPublicPage) {
     return <>{children}</>;
   }
 

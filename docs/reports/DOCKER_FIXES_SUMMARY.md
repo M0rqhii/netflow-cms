@@ -7,11 +7,11 @@
 
 ## 🔧 Naprawione Problemy
 
-### 1. **Błąd kompilacji: `getTenantInvoices` zdefiniowane dwukrotnie** ✅
+### 1. **Błąd kompilacji: `getSiteInvoices` zdefiniowane dwukrotnie** ✅
 - **Plik:** `apps/admin/src/lib/api.ts`
-- **Zmiana:** Zmieniono funkcję `getTenantInvoices` na `getSiteInvoices`, alias pozostaje
+- **Zmiana:** Zmieniono funkcję `getSiteInvoices` na `getSiteInvoices`, alias pozostaje
 
-### 2. **Błąd kompilacji: `exchangeTenantToken` zdefiniowane dwukrotnie** ✅
+### 2. **Błąd kompilacji: `exchangeSiteToken` zdefiniowane dwukrotnie** ✅
 - **Plik:** `apps/admin/src/lib/api.ts`
 - **Zmiana:** Usunięto duplikat z linii 181, pozostawiono tylko alias na końcu pliku
 
@@ -19,13 +19,13 @@
 - **Plik:** `apps/api/src/health.controller.ts`
 - **Zmiana:** Dodano `@Throttle(10000, 60)` do wszystkich health endpointów
 
-### 4. **Błąd: `CurrentTenant is not defined`** ✅
+### 4. **Błąd: `CurrentSite is not defined`** ✅
 - **Plik:** `apps/api/src/modules/rbac/rbac.controller.ts`
-- **Zmiana:** Zmieniono `@CurrentTenant()` na `@CurrentOrg()` w linii 206
+- **Zmiana:** Zmieniono `@CurrentSite()` na `@CurrentOrg()` w linii 206
 
-### 5. **Błąd TypeScript: `tenantId` nie istnieje w Prisma types** ✅
+### 5. **Błąd TypeScript: `siteId` nie istnieje w Prisma types** ✅
 - **Plik:** `apps/api/src/modules/workflow/workflow.service.ts`
-- **Zmiana:** Zmieniono `tenantId` na `siteId: tenantId` w where clauses (linie 128, 136)
+- **Zmiana:** Zmieniono `siteId` na `siteId: siteId` w where clauses (linie 128, 136)
 
 ---
 

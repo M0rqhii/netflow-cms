@@ -223,7 +223,7 @@ You need to provide content before publishing. Either:
 if (!dto.pageId) {
   const draftPages = await this.prisma.page.findMany({
     where: {
-      tenantId,
+      siteId,
       environmentId: draftEnv.id,
     },
   });
@@ -639,8 +639,8 @@ Add a slug to your page before publishing. Slug is used in the page URL.
 // Sprawdź czy strona jest już opublikowana w target environment
 const existingProductionPage = await this.prisma.page.findUnique({
   where: {
-    tenant_env_slug: {
-      tenantId,
+    site_env_slug: {
+      siteId,
       environmentId: targetEnvironment.id,
       slug: sourcePage.slug,
     },
@@ -772,7 +772,7 @@ Add a title to create a page.
 ```typescript
 // W content-entries.service.ts publish()
 // Sprawdź wymagane pola dla content type
-const contentType = await this.getContentType(tenantId, contentTypeSlug);
+const contentType = await this.getContentType(siteId, contentTypeSlug);
 const requiredFields = contentType.fields.filter(f => f.required);
 
 for (const field of requiredFields) {

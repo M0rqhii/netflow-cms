@@ -40,13 +40,14 @@ describe('UsersService', () => {
         id: userId,
         email: 'test@example.com',
         role: 'viewer',
-        tenantId: 'tenant-123',
+        preferredLanguage: 'en',
+        orgId: 'org-123',
         createdAt: new Date(),
         updatedAt: new Date(),
-        tenant: {
-          id: 'tenant-123',
-          name: 'Test Tenant',
-          slug: 'test-tenant',
+        organization: {
+          id: 'org-123',
+          name: 'Test Organization',
+          slug: 'test-org',
           plan: 'free',
         },
       };
@@ -62,10 +63,11 @@ describe('UsersService', () => {
           id: true,
           email: true,
           role: true,
-          tenantId: true,
+          preferredLanguage: true,
+          orgId: true,
           createdAt: true,
           updatedAt: true,
-          tenant: {
+          organization: {
             select: {
               id: true,
               name: true,
@@ -88,8 +90,8 @@ describe('UsersService', () => {
   });
 
   describe('listUsers', () => {
-    it('should return list of users for tenant_admin', async () => {
-      const tenantId = 'tenant-123';
+    it('should return list of users for org admin (org_admin role)', async () => {
+      const orgId = 'org-123';
       const mockUsers = [
         {
           id: 'user-1',
@@ -109,11 +111,11 @@ describe('UsersService', () => {
 
       mockPrismaService.user.findMany.mockResolvedValue(mockUsers);
 
-      const result = await service.listUsers(tenantId, Role.TENANT_ADMIN);
+      const result = await service.listUsers(orgId, Role.ORG_ADMIN);
 
       expect(result).toEqual(mockUsers);
       expect(mockPrismaService.user.findMany).toHaveBeenCalledWith({
-        where: { tenantId },
+        where: { orgId },
         select: {
           id: true,
           email: true,
@@ -126,33 +128,33 @@ describe('UsersService', () => {
     });
 
     it('should return list of users for super_admin', async () => {
-      const tenantId = 'tenant-123';
+      const orgId = 'org-123';
       const mockUsers: any[] = [];
 
       mockPrismaService.user.findMany.mockResolvedValue(mockUsers);
 
-      const result = await service.listUsers(tenantId, Role.SUPER_ADMIN);
+      const result = await service.listUsers(orgId, Role.SUPER_ADMIN);
 
       expect(result).toEqual(mockUsers);
     });
 
     it('should throw ForbiddenException for non-admin roles', async () => {
-      const tenantId = 'tenant-123';
+      const orgId = 'org-123';
 
       await expect(
-        service.listUsers(tenantId, Role.EDITOR)
+        service.listUsers(orgId, Role.EDITOR)
       ).rejects.toThrow(ForbiddenException);
 
       await expect(
-        service.listUsers(tenantId, Role.VIEWER)
+        service.listUsers(orgId, Role.VIEWER)
       ).rejects.toThrow(ForbiddenException);
     });
   });
 
   describe('getUserById', () => {
-    it('should return user for tenant_admin', async () => {
+    it('should return user for org admin (org_admin role)', async () => {
       const userId = 'user-123';
-      const tenantId = 'tenant-123';
+      const orgId = 'org-123';
       const mockUser = {
         id: userId,
         email: 'test@example.com',
@@ -165,15 +167,15 @@ describe('UsersService', () => {
 
       const result = await service.getUserById(
         userId,
-        tenantId,
-        Role.TENANT_ADMIN
+        orgId,
+        Role.ORG_ADMIN
       );
 
       expect(result).toEqual(mockUser);
       expect(mockPrismaService.user.findFirst).toHaveBeenCalledWith({
         where: {
           id: userId,
-          tenantId,
+          orgId,
         },
         select: {
           id: true,
@@ -187,21 +189,21 @@ describe('UsersService', () => {
 
     it('should throw ForbiddenException for non-admin roles', async () => {
       const userId = 'user-123';
-      const tenantId = 'tenant-123';
+      const orgId = 'org-123';
 
       await expect(
-        service.getUserById(userId, tenantId, Role.EDITOR)
+        service.getUserById(userId, orgId, Role.EDITOR)
       ).rejects.toThrow(ForbiddenException);
     });
 
     it('should throw NotFoundException if user not found', async () => {
       const userId = 'user-123';
-      const tenantId = 'tenant-123';
+      const orgId = 'org-123';
 
       mockPrismaService.user.findFirst.mockResolvedValue(null);
 
       await expect(
-        service.getUserById(userId, tenantId, Role.TENANT_ADMIN)
+        service.getUserById(userId, orgId, Role.ORG_ADMIN)
       ).rejects.toThrow(NotFoundException);
     });
   });

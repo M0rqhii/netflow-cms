@@ -19,7 +19,7 @@ import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 
 /**
  * FeatureFlagsController - RESTful API for feature flags management
- * AI Note: Only accessible to platform admins (super_admin, tenant_admin)
+ * AI Note: Only accessible to platform admins (super_admin, org admin role)
  */
 @UseGuards(AuthGuard, RolesGuard, PermissionsGuard)
 @Controller('sites/:siteId/features')
@@ -32,7 +32,7 @@ export class FeatureFlagsController {
    */
   @Get()
   @Throttle(300, 60) // 300 requests per minute (higher limit for feature flag checks)
-  @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.ORG_ADMIN, Role.SUPER_ADMIN)
   async getSiteFeatures(
     @Param('siteId') siteId: string,
     @CurrentSite() _: string, // Validated by middleware

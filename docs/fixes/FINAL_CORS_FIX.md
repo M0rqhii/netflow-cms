@@ -40,7 +40,7 @@ Invoke-WebRequest -Uri "http://localhost:4000/api/v1/health" -UseBasicParsing
 
 **W przeglądarce:**
 1. Otwórz DevTools (F12) → Network tab
-2. Sprawdź OPTIONS request do `/api/v1/auth/me/tenants`
+2. Sprawdź OPTIONS request do `/api/v1/auth/me/sites`
 3. Sprawdź Response Headers:
    - `Access-Control-Allow-Origin: http://localhost:3000`
    - `Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD`
@@ -95,7 +95,7 @@ $headers = @{
     "Access-Control-Request-Method" = "GET"
     "Access-Control-Request-Headers" = "authorization"
 }
-Invoke-WebRequest -Uri "http://localhost:4000/api/v1/auth/me/tenants" -Method OPTIONS -Headers $headers -UseBasicParsing
+Invoke-WebRequest -Uri "http://localhost:4000/api/v1/auth/me/sites" -Method OPTIONS -Headers $headers -UseBasicParsing
 ```
 
 **Oczekiwany wynik:**

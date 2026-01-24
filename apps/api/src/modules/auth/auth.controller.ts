@@ -27,9 +27,30 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'Login successful' })
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
   @ApiResponse({ status: 429, description: 'Too many requests' })
-  @ApiBody({ description: 'Login credentials', schema: { type: 'object', properties: { email: { type: 'string' }, password: { type: 'string' }, tenantId: { type: 'string' } } } })
+  @ApiBody({ description: 'Login credentials', schema: { type: 'object', properties: { email: { type: 'string' }, password: { type: 'string' }, orgId: { type: 'string' } } } })
   async login(@Body(new ZodValidationPipe(loginSchema)) loginDto: LoginDto) {
     return this.authService.login(loginDto);
+  }
+
+  @Public()
+  @Throttle(20, 60) // 20 requests per minute
+  @Get('invite/:token')
+  async getInvite(@Param('token') token: string) {
+    return this.authService.getInviteDetails(token);
+  }
+
+  @Public()
+  @Throttle(5, 60) // 5 requests per minute
+  @Post('invite/accept')
+  @HttpCode(HttpStatus.OK)
+  async acceptInvite(
+    @Body(new ZodValidationPipe(z.object({
+      token: z.string().min(10),
+      password: z.string().min(6),
+      preferredLanguage: z.enum(['pl', 'en']).optional(),
+    }))) body: { token: string; password: string; preferredLanguage?: 'pl' | 'en' }
+  ) {
+    return this.authService.acceptInvite(body);
   }
 
   @Public()
@@ -69,9 +90,9 @@ export class AuthController {
 
   @UseGuards(AuthGuard)
   @Throttle(1000, 60) // 1000 requests per minute (very high limit for development)
-  @Get('me/tenants')
-  async getMyTenants(@CurrentUser() user: CurrentUserPayload, @Req() req: Request) {
-    const tenants = await this.authService.getUserTenants(user.id);
+  @Get('me/orgs')
+  async getMyOrgs(@CurrentUser() user: CurrentUserPayload, @Req() req: Request) {
+    const orgs = await this.authService.getUserOrgs(user.id);
     
     // Audit log: Hub access
     const forwardedFor = req.headers['x-forwarded-for'];
@@ -80,41 +101,41 @@ export class AuthController {
     await this.auditService.log({
       event: AuditEvent.HUB_ACCESS,
       userId: user.id,
-      tenantId: null, // Hub is global, no tenant
+      orgId: null, // Hub is global
       metadata: {
         ip,
         userAgent: req.headers['user-agent'],
-        tenantCount: tenants.length,
+        orgCount: orgs.length,
       },
     });
     
-    return tenants;
+    return orgs;
   }
 
   @UseGuards(AuthGuard)
   @Throttle(10, 60) // 10 requests per minute
-  @Post('tenant-token')
+  @Post('org-token')
   @HttpCode(HttpStatus.OK)
-  async issueTenantToken(
+  async issueOrgToken(
     @CurrentUser() user: CurrentUserPayload,
-    @Body(new ZodValidationPipe(z.object({ tenantId: z.string().uuid() })))
-    body: { tenantId: string },
+    @Body(new ZodValidationPipe(z.object({ orgId: z.string().uuid() })))
+    body: { orgId: string },
     @Req() req: Request
   ) {
-    const result = await this.authService.issueTenantToken(user.id, body.tenantId);
+    const result = await this.authService.issueOrgToken(user.id, body.orgId);
     
-    // Audit log: Tenant token exchange (tenant switch)
+    // Audit log: Org token exchange
     const forwardedFor = req.headers['x-forwarded-for'];
     const ip = req.ip || (Array.isArray(forwardedFor) ? forwardedFor[0] : forwardedFor) || 'unknown';
     
     await this.auditService.log({
-      event: AuditEvent.TENANT_TOKEN_EXCHANGE,
+      event: AuditEvent.ORG_TOKEN_EXCHANGE,
       userId: user.id,
-      tenantId: body.tenantId,
+      orgId: body.orgId,
       metadata: {
         ip,
         userAgent: req.headers['user-agent'],
-        action: 'tenant_switch',
+        action: 'org_switch',
       },
     });
     
@@ -122,11 +143,43 @@ export class AuthController {
   }
 
   @UseGuards(AuthGuard)
-  @Get('resolve-tenant/:slug')
-  async resolveTenantForUser(
+  @Get('resolve-org/:slug')
+  async resolveOrgForUser(
     @CurrentUser() user: CurrentUserPayload,
     @Param('slug') slug: string,
   ) {
-    return this.authService.resolveTenantForUser(user.id, slug);
+    return this.authService.resolveOrgForUser(user.id, slug);
+  }
+
+  @UseGuards(AuthGuard)
+  @Throttle(10, 60) // 10 requests per minute
+  @Post('site-token')
+  @HttpCode(HttpStatus.OK)
+  async issueSiteToken(
+    @CurrentUser() user: CurrentUserPayload,
+    @Body(new ZodValidationPipe(z.object({ siteId: z.string().uuid() })))
+    body: { siteId: string },
+    @Req() req: Request
+  ) {
+    const result = await this.authService.issueSiteToken(user.id, body.siteId);
+    
+    // Audit log: Site token exchange
+    const forwardedFor = req.headers['x-forwarded-for'];
+    const ip = req.ip || (Array.isArray(forwardedFor) ? forwardedFor[0] : forwardedFor) || 'unknown';
+    
+    await this.auditService.log({
+      event: AuditEvent.ORG_TOKEN_EXCHANGE, // Reuse same event type for backward compatibility
+      userId: user.id,
+      orgId: user.orgId || null,
+      siteId: body.siteId,
+      metadata: {
+        ip,
+        userAgent: req.headers['user-agent'],
+        action: 'site_switch',
+        siteId: body.siteId,
+      },
+    });
+    
+    return result;
   }
 }

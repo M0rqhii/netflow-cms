@@ -9,8 +9,8 @@ export interface JwtPayload {
   sub: string; // user id
   email: string;
   orgId?: string; // Organization ID (optional for global token)
-  tenantId?: string; // DEPRECATED: Backward compatibility - use orgId instead
-  role: string; // Backward compatibility: tenant role (super_admin, tenant_admin, editor, viewer)
+  siteId?: string; // Site ID (optional, only for site-scoped tokens)
+  role: string; // Backward compatibility: legacy role (super_admin, org_admin, editor, viewer)
   siteRole?: string; // Site role (viewer, editor, editor-in-chief, marketing, admin, owner)
   platformRole?: string; // Platform role (user, editor-in-chief, admin, owner)
   systemRole?: string; // System role (super_admin, system_admin, system_dev, system_support)
@@ -38,18 +38,37 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: JwtPayload): Promise<CurrentUserPayload> {
-    const user = await this.prisma.user.findUnique({
-      where: { id: payload.sub },
-      select: {
-        id: true,
-        email: true,
-        role: true, // Backward compatibility
-        siteRole: true,
-        platformRole: true,
-        systemRole: true,
-        isSuperAdmin: true,
-        orgId: true,
-      },
+    const orgIdFromToken = payload.orgId;
+    const siteIdFromToken = payload.siteId;
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+    if (orgIdFromToken && !uuidRegex.test(orgIdFromToken)) {
+      throw new UnauthorizedException('Invalid orgId in token');
+    }
+    if (siteIdFromToken && !uuidRegex.test(siteIdFromToken)) {
+      throw new UnauthorizedException('Invalid siteId in token');
+    }
+
+    const user = await this.prisma.$transaction(async (tx) => {
+      if (orgIdFromToken) {
+        await tx.$executeRawUnsafe(`SET LOCAL app.current_org_id = '${orgIdFromToken}'`);
+      }
+      if (siteIdFromToken) {
+        await tx.$executeRawUnsafe(`SET LOCAL app.current_site_id = '${siteIdFromToken}'`);
+      }
+      return tx.user.findUnique({
+        where: { id: payload.sub },
+        select: {
+          id: true,
+          email: true,
+          role: true, // Backward compatibility
+          siteRole: true,
+          platformRole: true,
+          systemRole: true,
+          isSuperAdmin: true,
+          orgId: true,
+        },
+      });
     });
 
     if (!user) {
@@ -57,7 +76,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     }
 
     // Use values from database (most up-to-date) or fall back to token payload
-    const orgId = payload.orgId ?? user.orgId;
+    const resolvedOrgId = orgIdFromToken ?? user.orgId;
     return {
       id: user.id,
       email: user.email,
@@ -66,8 +85,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       platformRole: user.platformRole || payload.platformRole || undefined,
       systemRole: user.systemRole || payload.systemRole || undefined,
       isSuperAdmin: user.isSuperAdmin || payload.isSuperAdmin || false,
-      orgId: orgId || undefined,
-      tenantId: payload.tenantId || orgId, // Backward compatibility - map orgId to tenantId
+      orgId: resolvedOrgId || undefined,
+      siteId: siteIdFromToken || undefined, // Site ID from token (for site-scoped tokens)
     };
   }
 }

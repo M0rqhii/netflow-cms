@@ -118,6 +118,7 @@ export function Sidebar() {
   const isPrivileged = Boolean(
     payload?.isSuperAdmin ||
       roleMarker === 'super_admin' ||
+      roleMarker === 'org_admin' ||
       roleMarker === 'site_admin' ||
       roleMarker === 'platform_admin' ||
       String(payload?.systemRole ?? '').toLowerCase() === 'super_admin',
@@ -130,14 +131,14 @@ export function Sidebar() {
         // First, try to get orgId from JWT token
         const token = getAuthToken();
         const payload = decodeAuthToken(token);
-        let orgIdFromToken = payload?.orgId || payload?.tenantId; // tenantId for backward compatibility
+        let orgIdFromToken = payload?.orgId;
         
         // If orgId not in token, try to get it from profile API
         if (!orgIdFromToken && payload?.sub) {
           try {
             const mod = await import('@/lib/api');
             const profile = await mod.getProfile();
-            orgIdFromToken = profile?.orgId || profile?.tenantId;
+            orgIdFromToken = profile?.orgId;
           } catch (profileError) {
             console.warn('[Sidebar] Could not fetch profile to get orgId:', profileError);
           }
@@ -147,15 +148,14 @@ export function Sidebar() {
           setOrgId(orgIdFromToken);
         }
         
-        // Also fetch sites to get count
-        const mod = await import('@/lib/api');
-        const data = await mod.fetchMySites();
-        // Filter out sites with missing site property (same as in dashboard and sites page)
-        const validSites = data.filter(s => s?.site != null);
+        // Also fetch sites to get count using cached hook
+        const mod = await import('@/hooks/useSites');
+        const { loadSitesWithCache } = mod;
+        const data = await loadSitesWithCache();
         if (!cancelled) {
-          setSiteCount(validSites.length);
+          setSiteCount(data.length);
           // If orgId still not found but user has sites, log a warning
-          if (!orgIdFromToken && validSites.length > 0) {
+          if (!orgIdFromToken && data.length > 0) {
             console.warn('[Sidebar] orgId not found. User should re-login to refresh token with orgId.');
           }
         }
@@ -166,7 +166,7 @@ export function Sidebar() {
           // Don't clear orgId if we got it from token
           const token = getAuthToken();
           const payload = decodeAuthToken(token);
-          const orgIdFromToken = payload?.orgId || payload?.tenantId;
+          const orgIdFromToken = payload?.orgId;
           if (!orgIdFromToken) {
             setOrgId(null);
           }

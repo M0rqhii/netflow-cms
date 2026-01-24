@@ -6,7 +6,7 @@ import {
   Req,
 } from '@nestjs/common';
 import { AuthGuard } from '../../common/auth/guards/auth.guard';
-import { TenantGuard } from '../../common/tenant/tenant.guard';
+import { SiteGuard } from '../../common/org-site/site.guard';
 import { RolesGuard } from '../../common/auth/guards/roles.guard';
 import { Roles } from '../../common/auth/decorators/roles.decorator';
 import { Role } from '../../common/auth/roles.enum';
@@ -17,9 +17,9 @@ import { Request } from 'express';
 
 /**
  * Search Controller - RESTful API for advanced search
- * AI Note: All endpoints require authentication and tenant context
+ * AI Note: All endpoints require authentication and site context
  */
-@UseGuards(AuthGuard, TenantGuard, RolesGuard)
+@UseGuards(AuthGuard, SiteGuard, RolesGuard)
 @Controller('search')
 export class SearchController {
   constructor(private readonly searchService: SearchService) {}
@@ -29,13 +29,13 @@ export class SearchController {
    * Unified search across all content
    */
   @Get()
-  @Roles(Role.VIEWER, Role.EDITOR, Role.TENANT_ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.VIEWER, Role.EDITOR, Role.ORG_ADMIN, Role.SUPER_ADMIN)
   async search(
     @Query(new ZodValidationPipe(searchSchema))
     query: any,
-    @Req() req: Request & { tenantId: string },
+    @Req() req: Request & { siteId: string },
   ) {
-    return this.searchService.search(req.tenantId, query);
+    return this.searchService.search(req.siteId, query);
   }
 
   /**
@@ -43,13 +43,13 @@ export class SearchController {
    * Search content entries
    */
   @Get('content')
-  @Roles(Role.VIEWER, Role.EDITOR, Role.TENANT_ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.VIEWER, Role.EDITOR, Role.ORG_ADMIN, Role.SUPER_ADMIN)
   async searchContent(
     @Query(new ZodValidationPipe(searchSchema))
     query: any,
-    @Req() req: Request & { tenantId: string },
+    @Req() req: Request & { siteId: string },
   ) {
-    return this.searchService.searchContent(req.tenantId, query);
+    return this.searchService.searchContent(req.siteId, query);
   }
 
   /**
@@ -57,13 +57,13 @@ export class SearchController {
    * Search collection items
    */
   @Get('collections')
-  @Roles(Role.VIEWER, Role.EDITOR, Role.TENANT_ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.VIEWER, Role.EDITOR, Role.ORG_ADMIN, Role.SUPER_ADMIN)
   async searchCollections(
     @Query(new ZodValidationPipe(searchSchema))
     query: any,
-    @Req() req: Request & { tenantId: string },
+    @Req() req: Request & { siteId: string },
   ) {
-    return this.searchService.searchCollections(req.tenantId, query);
+    return this.searchService.searchCollections(req.siteId, query);
   }
 
   /**
@@ -71,12 +71,12 @@ export class SearchController {
    * Get search suggestions
    */
   @Get('suggestions')
-  @Roles(Role.VIEWER, Role.EDITOR, Role.TENANT_ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.VIEWER, Role.EDITOR, Role.ORG_ADMIN, Role.SUPER_ADMIN)
   async getSuggestions(
     @Query('q') query: string,
-    @Req() req: Request & { tenantId: string },
+    @Req() req: Request & { siteId: string },
   ) {
-    return this.searchService.getSuggestions(req.tenantId, query);
+    return this.searchService.getSuggestions(req.siteId, query);
   }
 }
 

@@ -36,7 +36,7 @@ type UpdateBillingInfoDto = z.infer<typeof UpdateBillingInfoDtoSchema>;
 
 /**
  * AccountController - RESTful API for user account management
- * AI Note: All endpoints are global (no tenant context required)
+ * AI Note: All endpoints are global (no org/site context required)
  */
 @Controller('account')
 @UseGuards(AuthGuard, PermissionsGuard)

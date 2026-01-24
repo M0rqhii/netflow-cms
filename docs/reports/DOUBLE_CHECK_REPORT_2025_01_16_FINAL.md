@@ -36,7 +36,7 @@ Przeprowadzono kompleksowy audit całego repozytorium Netflow CMS, obejmujący:
 
 **Naprawa:**
 - ✅ Zaimplementowano pełną stronę listowania sites
-- ✅ Dodano pobieranie danych z API przez `fetchMyTenants()`
+- ✅ Dodano pobieranie danych z API przez `fetchMySites()`
 - ✅ Dodano filtrowanie po nazwie/slug i planie
 - ✅ Dodano tabelę z kolumnami: Name, Slug, Plan, Your Role, Actions
 - ✅ Dodano akcje: View, Users, Billing
@@ -54,7 +54,7 @@ export default function Page() {
 **Kod po:**
 ```tsx
 export default function SitesPage() {
-  const [sites, setSites] = useState<TenantInfo[]>([]);
+  const [sites, setSites] = useState<SiteInfo[]>([]);
   const [loading, setLoading] = useState(true);
   // ... pełna implementacja z filtrowaniem, tabelą, akcjami
 }
@@ -123,7 +123,7 @@ export default function SitesPage() {
 **Weryfikacja:**
 - ✅ `search.service.ts` - używa parametrów, waliduje `orderBy`, escape single quotes
 - ✅ `content-entries.service.ts` - używa parametrów, waliduje field names
-- ✅ `tenant-context.middleware.ts` - waliduje UUID przed użyciem w SET command
+- ✅ `site-context.middleware.ts` - waliduje UUID przed użyciem w SET command
 
 **Wnioski:** Wszystkie raw SQL queries używają parametrów i walidacji. Brak podatności na SQL injection.
 
@@ -152,9 +152,9 @@ export default function SitesPage() {
 - ✅ Hasła hashowane bcrypt (10 rund)
 - ✅ JWT tokeny z proper payload
 - ✅ Refresh tokens z rotacją i Redis storage
-- ✅ Tenant isolation przez TenantGuard
+- ✅ Org/site isolation przez SiteGuard
 - ✅ RBAC przez RolesGuard i PermissionsGuard
-- ✅ Platform roles dla multi-tenant access
+- ✅ Platform roles dla org/site access
 
 **Wnioski:** System autentykacji jest bezpieczny i zgodny z best practices.
 

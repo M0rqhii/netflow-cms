@@ -37,7 +37,7 @@ export class DevController {
     const tokenRole = user.role;
     const hasPrivilegedRoleFromToken = 
       tokenRole === 'super_admin' || 
-      tokenRole === 'tenant_admin';
+      tokenRole === 'org_admin';
     
     if (hasPrivilegedRoleFromToken) {
       return; // User has privileged role in token
@@ -72,8 +72,8 @@ export class DevController {
           return; // System super admin has access
         }
         
-        // Check tenant role
-        if (dbUser.role === 'super_admin' || dbUser.role === 'tenant_admin') {
+        // Check legacy role
+        if (dbUser.role === 'super_admin' || dbUser.role === 'org_admin') {
           return; // User has privileged role in database
         }
         
@@ -87,7 +87,7 @@ export class DevController {
     }
     
     // No privileged role found
-    throw new ForbiddenException('Insufficient permissions to access dev endpoints. Required role: super_admin, tenant_admin, or platform_admin');
+    throw new ForbiddenException('Insufficient permissions to access dev endpoints. Required role: super_admin, org_admin (legacy), or platform_admin');
   }
 
   @Get('summary')
@@ -95,7 +95,7 @@ export class DevController {
     await this.assertPrivileged(user);
 
     const [sites, users, emails, subscriptions] = await Promise.all([
-      this.prisma.tenant.count(),
+      this.prisma.site.count(),
       this.prisma.user.count(),
       this.safeCountEmails(),
       this.safeCountSubscriptions(),
@@ -113,12 +113,12 @@ export class DevController {
   @Get('sites')
   async sites(@CurrentUser() user: CurrentUserPayload) {
     await this.assertPrivileged(user);
-    return this.prisma.tenant.findMany({
+    return this.prisma.site.findMany({
       select: {
         id: true,
         name: true,
         slug: true,
-        plan: true,
+        orgId: true,
         createdAt: true,
       },
       orderBy: { createdAt: 'desc' },
@@ -155,8 +155,7 @@ export class DevController {
         select: {
           id: true,
           orgId: true,
-          plan: true,
-          status: true,
+            status: true,
           currentPeriodStart: true,
           currentPeriodEnd: true,
           createdAt: true,

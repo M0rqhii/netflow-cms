@@ -8,7 +8,7 @@ import {
   Req,
 } from '@nestjs/common';
 import { AuthGuard } from '../../common/auth/guards/auth.guard';
-import { TenantGuard } from '../../common/tenant/tenant.guard';
+import { SiteGuard } from '../../common/org-site/site.guard';
 import { RolesGuard } from '../../common/auth/guards/roles.guard';
 import { Roles } from '../../common/auth/decorators/roles.decorator';
 import { Role } from '../../common/auth/roles.enum';
@@ -20,9 +20,9 @@ import { Request } from 'express';
 
 /**
  * Workflow Controller - RESTful API for workflow management
- * AI Note: All endpoints require authentication and tenant context
+ * AI Note: All endpoints require authentication and site context
  */
-@UseGuards(AuthGuard, TenantGuard, RolesGuard)
+@UseGuards(AuthGuard, SiteGuard, RolesGuard)
 @Controller('workflows')
 export class WorkflowController {
   constructor(private readonly workflowService: WorkflowService) {}
@@ -32,23 +32,23 @@ export class WorkflowController {
    * Create a workflow
    */
   @Post()
-  @Roles(Role.EDITOR, Role.TENANT_ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.EDITOR, Role.ORG_ADMIN, Role.SUPER_ADMIN)
   async create(
     @Body(new ZodValidationPipe(createWorkflowSchema))
     body: any,
-    @Req() req: Request & { tenantId: string },
+    @Req() req: Request & { siteId: string },
   ) {
-    return this.workflowService.create(req.tenantId, body);
+    return this.workflowService.create(req.siteId, body);
   }
 
   /**
    * GET /api/v1/workflows
-   * List all workflows for a tenant
+   * List all workflows for a site
    */
   @Get()
-  @Roles(Role.VIEWER, Role.EDITOR, Role.TENANT_ADMIN, Role.SUPER_ADMIN)
-  async findAll(@Req() req: Request & { tenantId: string }) {
-    return this.workflowService.findAll(req.tenantId);
+  @Roles(Role.VIEWER, Role.EDITOR, Role.ORG_ADMIN, Role.SUPER_ADMIN)
+  async findAll(@Req() req: Request & { siteId: string }) {
+    return this.workflowService.findAll(req.siteId);
   }
 
   /**
@@ -56,12 +56,12 @@ export class WorkflowController {
    * Get a single workflow by ID
    */
   @Get(':id')
-  @Roles(Role.VIEWER, Role.EDITOR, Role.TENANT_ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.VIEWER, Role.EDITOR, Role.ORG_ADMIN, Role.SUPER_ADMIN)
   async findOne(
     @Param('id') id: string,
-    @Req() req: Request & { tenantId: string },
+    @Req() req: Request & { siteId: string },
   ) {
-    return this.workflowService.findOne(req.tenantId, id);
+    return this.workflowService.findOne(req.siteId, id);
   }
 
   /**
@@ -69,15 +69,15 @@ export class WorkflowController {
    * Execute workflow transition
    */
   @Post(':id/execute')
-  @Roles(Role.EDITOR, Role.TENANT_ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.EDITOR, Role.ORG_ADMIN, Role.SUPER_ADMIN)
   async executeTransition(
     @Param('id') id: string,
     @Body() body: { entityId: string; entityType: 'content' | 'collection'; transitionName: string },
     @CurrentUser() user: CurrentUserPayload,
-    @Req() req: Request & { tenantId: string },
+    @Req() req: Request & { siteId: string },
   ) {
     return this.workflowService.executeTransition(
-      req.tenantId,
+      req.siteId,
       id,
       body.entityId,
       body.entityType,

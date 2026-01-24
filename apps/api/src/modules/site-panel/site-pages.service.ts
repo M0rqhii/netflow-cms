@@ -113,16 +113,16 @@ export class SitePagesService {
     return { hasMetaTitle, hasMetaDescription, warnings };
   }
 
-  async list(tenantId: string, query: PageQueryDto) {
-    const where: Prisma.PageWhereInput = { siteId: tenantId };
+  async list(siteId: string, query: PageQueryDto) {
+    const where: Prisma.PageWhereInput = { siteId: siteId };
 
     if (query.environmentId) {
-      const env = await this.environments.getById(tenantId, query.environmentId);
+      const env = await this.environments.getById(siteId, query.environmentId);
       where.environmentId = env.id;
     } else if (query.environmentType) {
       const type = this.mapEnvironmentType(query.environmentType);
       const env = await this.environments.getByTypeOrCreate(
-        tenantId,
+        siteId,
         type || EnvironmentType.DRAFT,
       );
       where.environmentId = env.id;
@@ -138,9 +138,9 @@ export class SitePagesService {
     });
   }
 
-  async getById(tenantId: string, pageId: string) {
+  async getById(siteId: string, pageId: string) {
     const page = await this.prisma.page.findFirst({
-      where: { id: pageId, siteId: tenantId },
+      where: { id: pageId, siteId: siteId },
     });
     if (!page) {
       throw new NotFoundException('Page not found for this site');
@@ -148,7 +148,7 @@ export class SitePagesService {
     return page;
   }
 
-  async create(tenantId: string, dto: CreatePageDto, userId?: string) {
+  async create(siteId: string, dto: CreatePageDto, userId?: string) {
     // Guardrail: Validate title
     if (!dto.title || typeof dto.title !== 'string' || dto.title.trim().length === 0) {
       throw new BadRequestException({
@@ -176,7 +176,7 @@ export class SitePagesService {
       });
     }
 
-    const environment = await this.environments.getById(tenantId, dto.environmentId);
+    const environment = await this.environments.getById(siteId, dto.environmentId);
     const status = dto.status ? this.mapStatus(dto.status) : PageStatus.DRAFT;
     const publishedAt = status === PageStatus.PUBLISHED ? new Date() : null;
     const content = dto.content !== undefined ? (dto.content as Prisma.InputJsonValue) : {};
@@ -184,7 +184,7 @@ export class SitePagesService {
     try {
       const page = await this.prisma.page.create({
         data: {
-          siteId: tenantId,
+          siteId: siteId,
           environmentId: environment.id,
           slug: dto.slug,
           title: dto.title,
@@ -195,7 +195,7 @@ export class SitePagesService {
       });
 
       await this.logEvent(
-        tenantId,
+        siteId,
         userId,
         'page_created',
         `Page "${page.slug}" created in ${environment.type} environment`,
@@ -211,13 +211,13 @@ export class SitePagesService {
     }
   }
 
-  async update(tenantId: string, pageId: string, dto: UpdatePageDto, userId?: string) {
-    const page = await this.getById(tenantId, pageId);
+  async update(siteId: string, pageId: string, dto: UpdatePageDto, userId?: string) {
+    const page = await this.getById(siteId, pageId);
 
     if (dto.slug && dto.slug !== page.slug) {
       const existing = await this.prisma.page.findFirst({
         where: {
-          siteId: tenantId,
+          siteId: siteId,
           environmentId: page.environmentId,
           slug: dto.slug,
           NOT: { id: pageId },
@@ -246,7 +246,7 @@ export class SitePagesService {
     });
 
     await this.logEvent(
-      tenantId,
+      siteId,
       userId,
       'page_updated',
       `Page "${updated.slug}" updated`,
@@ -256,9 +256,9 @@ export class SitePagesService {
     return updated;
   }
 
-  async publish(tenantId: string, pageId: string, dto: PublishPageDto, userId?: string) {
-    const sourcePage = await this.getById(tenantId, pageId);
-    await this.environments.getById(tenantId, sourcePage.environmentId);
+  async publish(siteId: string, pageId: string, dto: PublishPageDto, userId?: string) {
+    const sourcePage = await this.getById(siteId, pageId);
+    await this.environments.getById(siteId, sourcePage.environmentId);
 
     // Guardrail: Validate title
     if (!sourcePage.title || typeof sourcePage.title !== 'string' || sourcePage.title.trim().length === 0) {
@@ -297,9 +297,9 @@ export class SitePagesService {
     }
 
     const targetEnvironment = dto.targetEnvironmentId
-      ? await this.environments.getById(tenantId, dto.targetEnvironmentId)
+      ? await this.environments.getById(siteId, dto.targetEnvironmentId)
       : await this.environments.getByTypeOrCreate(
-          tenantId,
+          siteId,
           this.mapEnvironmentType(dto.targetEnvironmentType) || EnvironmentType.PRODUCTION,
         );
 
@@ -307,7 +307,7 @@ export class SitePagesService {
     const existingProductionPage = await this.prisma.page.findUnique({
       where: {
         site_env_slug: {
-          siteId: tenantId,
+          siteId: siteId,
           environmentId: targetEnvironment.id,
           slug: sourcePage.slug,
         },
@@ -340,13 +340,13 @@ export class SitePagesService {
     const publishedPage = await this.prisma.page.upsert({
       where: {
         site_env_slug: {
-          siteId: tenantId,
+          siteId: siteId,
           environmentId: targetEnvironment.id,
           slug: sourcePage.slug,
         },
       },
       create: {
-        siteId: tenantId,
+        siteId: siteId,
         environmentId: targetEnvironment.id,
         slug: sourcePage.slug,
         title: sourcePage.title,
@@ -371,7 +371,7 @@ export class SitePagesService {
     });
 
     await this.logEvent(
-      tenantId,
+      siteId,
       userId,
       'page_published',
       `Page "${sourcePage.slug}" published to ${targetEnvironment.type}`,
@@ -396,14 +396,14 @@ export class SitePagesService {
     };
   }
 
-  async delete(tenantId: string, pageId: string, userId?: string) {
-    const page = await this.getById(tenantId, pageId);
+  async delete(siteId: string, pageId: string, userId?: string) {
+    const page = await this.getById(siteId, pageId);
     await this.prisma.page.delete({
       where: { id: page.id },
     });
 
     await this.logEvent(
-      tenantId,
+      siteId,
       userId,
       'page_deleted',
       `Page "${page.slug}" deleted`,
@@ -413,15 +413,15 @@ export class SitePagesService {
     return { success: true };
   }
 
-  async updateContent(tenantId: string, pageId: string, content: Prisma.InputJsonValue, userId?: string) {
-    const page = await this.getById(tenantId, pageId);
+  async updateContent(siteId: string, pageId: string, content: Prisma.InputJsonValue, userId?: string) {
+    const page = await this.getById(siteId, pageId);
     const updated = await this.prisma.page.update({
       where: { id: page.id },
       data: { content },
     });
 
     await this.logEvent(
-      tenantId,
+      siteId,
       userId,
       'page_updated',
       `Content updated for page "${updated.slug}"`,

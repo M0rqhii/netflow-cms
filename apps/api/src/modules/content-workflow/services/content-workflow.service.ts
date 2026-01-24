@@ -10,7 +10,7 @@ import { ReviewContentDto, CreateCommentDto, UpdateCommentDto } from '../dto';
 
 /**
  * ContentWorkflowService - business logic dla workflow treści (review, comments)
- * AI Note: Zawsze filtruj po tenantId - multi-tenant isolation
+ * AI Note: Zawsze filtruj po siteId - site isolation
  */
 @Injectable()
 export class ContentWorkflowService {
@@ -23,17 +23,17 @@ export class ContentWorkflowService {
    * Submit content for review
    */
   async submitForReview(
-    tenantId: string,
+    siteId: string,
     contentTypeSlug: string,
     entryId: string,
     userId: string,
   ) {
-    const contentType = await this.contentTypesService.getBySlug(tenantId, contentTypeSlug);
+    const contentType = await this.contentTypesService.getBySlug(siteId, contentTypeSlug);
     
     const entry = await this.prisma.contentEntry.findFirst({
       where: {
         id: entryId,
-        siteId: tenantId,
+        siteId: siteId,
         contentTypeId: contentType.id,
       },
     });
@@ -72,18 +72,18 @@ export class ContentWorkflowService {
    * Review content (approve/reject/request changes)
    */
   async reviewContent(
-    tenantId: string,
+    siteId: string,
     contentTypeSlug: string,
     entryId: string,
     reviewerId: string,
     dto: ReviewContentDto,
   ) {
-    const contentType = await this.contentTypesService.getBySlug(tenantId, contentTypeSlug);
+    const contentType = await this.contentTypesService.getBySlug(siteId, contentTypeSlug);
     
     const entry = await this.prisma.contentEntry.findFirst({
       where: {
         id: entryId,
-        siteId: tenantId,
+        siteId: siteId,
         contentTypeId: contentType.id,
       },
     });
@@ -100,7 +100,7 @@ export class ContentWorkflowService {
     await this.prisma.contentReview.create({
       data: {
         contentEntryId: entryId,
-        siteId: tenantId,
+        siteId: siteId,
         reviewerId,
         status: dto.status,
         comment: dto.comment,
@@ -148,16 +148,16 @@ export class ContentWorkflowService {
    * Get review history for content entry
    */
   async getReviewHistory(
-    tenantId: string,
+    siteId: string,
     contentTypeSlug: string,
     entryId: string,
   ) {
-    const contentType = await this.contentTypesService.getBySlug(tenantId, contentTypeSlug);
+    const contentType = await this.contentTypesService.getBySlug(siteId, contentTypeSlug);
     
     const entry = await this.prisma.contentEntry.findFirst({
       where: {
         id: entryId,
-        siteId: tenantId,
+        siteId: siteId,
         contentTypeId: contentType.id,
       },
     });
@@ -169,7 +169,7 @@ export class ContentWorkflowService {
     return this.prisma.contentReview.findMany({
       where: {
         contentEntryId: entryId,
-        siteId: tenantId,
+        siteId: siteId,
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -179,18 +179,18 @@ export class ContentWorkflowService {
    * Create comment on content entry
    */
   async createComment(
-    tenantId: string,
+    siteId: string,
     contentTypeSlug: string,
     entryId: string,
     authorId: string,
     dto: CreateCommentDto,
   ) {
-    const contentType = await this.contentTypesService.getBySlug(tenantId, contentTypeSlug);
+    const contentType = await this.contentTypesService.getBySlug(siteId, contentTypeSlug);
     
     const entry = await this.prisma.contentEntry.findFirst({
       where: {
         id: entryId,
-        siteId: tenantId,
+        siteId: siteId,
         contentTypeId: contentType.id,
       },
     });
@@ -202,7 +202,7 @@ export class ContentWorkflowService {
     return this.prisma.contentComment.create({
       data: {
         contentEntryId: entryId,
-        siteId: tenantId,
+        siteId: siteId,
         authorId,
         content: dto.content,
       },
@@ -213,17 +213,17 @@ export class ContentWorkflowService {
    * Get comments for content entry
    */
   async getComments(
-    tenantId: string,
+    siteId: string,
     contentTypeSlug: string,
     entryId: string,
     includeResolved: boolean = false,
   ) {
-    const contentType = await this.contentTypesService.getBySlug(tenantId, contentTypeSlug);
+    const contentType = await this.contentTypesService.getBySlug(siteId, contentTypeSlug);
     
     const entry = await this.prisma.contentEntry.findFirst({
       where: {
         id: entryId,
-        siteId: tenantId,
+        siteId: siteId,
         contentTypeId: contentType.id,
       },
     });
@@ -235,7 +235,7 @@ export class ContentWorkflowService {
     return this.prisma.contentComment.findMany({
       where: {
         contentEntryId: entryId,
-        siteId: tenantId,
+        siteId: siteId,
         ...(includeResolved ? {} : { resolved: false }),
       },
       orderBy: { createdAt: 'asc' },
@@ -246,19 +246,19 @@ export class ContentWorkflowService {
    * Update comment
    */
   async updateComment(
-    tenantId: string,
+    siteId: string,
     contentTypeSlug: string,
     entryId: string,
     commentId: string,
     authorId: string,
     dto: UpdateCommentDto,
   ) {
-    const contentType = await this.contentTypesService.getBySlug(tenantId, contentTypeSlug);
+    const contentType = await this.contentTypesService.getBySlug(siteId, contentTypeSlug);
     
     const entry = await this.prisma.contentEntry.findFirst({
       where: {
         id: entryId,
-        siteId: tenantId,
+        siteId: siteId,
         contentTypeId: contentType.id,
       },
     });
@@ -271,7 +271,7 @@ export class ContentWorkflowService {
       where: {
         id: commentId,
         contentEntryId: entryId,
-        siteId: tenantId,
+        siteId: siteId,
       },
     });
 
@@ -297,18 +297,18 @@ export class ContentWorkflowService {
    * Delete comment
    */
   async deleteComment(
-    tenantId: string,
+    siteId: string,
     contentTypeSlug: string,
     entryId: string,
     commentId: string,
     userId: string,
   ) {
-    const contentType = await this.contentTypesService.getBySlug(tenantId, contentTypeSlug);
+    const contentType = await this.contentTypesService.getBySlug(siteId, contentTypeSlug);
     
     const entry = await this.prisma.contentEntry.findFirst({
       where: {
         id: entryId,
-        siteId: tenantId,
+        siteId: siteId,
         contentTypeId: contentType.id,
       },
     });
@@ -321,7 +321,7 @@ export class ContentWorkflowService {
       where: {
         id: commentId,
         contentEntryId: entryId,
-        siteId: tenantId,
+        siteId: siteId,
       },
     });
 

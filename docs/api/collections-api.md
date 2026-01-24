@@ -2,11 +2,13 @@
 
 ## Overview
 
-Collections API umożliwia zarządzanie kolekcjami treści z pełną izolacją multi-tenant, wersjonowaniem i cache'owaniem.
+Collections API umo?liwia zarz?dzanie kolekcjami tre?ci z pe?n? izolacj? org/site, wersjonowaniem i cache'owaniem.
 
 **Base URL:** `/api/v1/collections`
 
-**Authentication:** Wymagany nagłówek `X-Tenant-ID`
+**Authentication:** Bearer token wymagany. Dla endpoint?w site-scoped u?yj:
+- **Site token** (rekomendowane): `POST /api/v1/auth/site-token` ? `Authorization: Bearer <site-token>`
+- **Global token + headers**: `Authorization: Bearer <auth-token>` oraz `X-Org-ID`, `X-Site-ID`
 
 ---
 
@@ -16,7 +18,9 @@ Collections API umożliwia zarządzanie kolekcjami treści z pełną izolacją m
 
 ```http
 POST /api/v1/collections
-X-Tenant-ID: <tenant-id>
+Authorization: Bearer <token>
+X-Org-ID: <org-id>
+X-Site-ID: <site-id>
 Content-Type: application/json
 
 {
@@ -33,10 +37,10 @@ Content-Type: application/json
 ```json
 {
   "id": "uuid",
-  "tenantId": "tenant-id",
+  "siteId": "site-id",
   "slug": "articles",
   "name": "Articles",
-  "schemaJson": {...},
+  "schemaJson": {},
   "createdAt": "2024-01-01T00:00:00Z",
   "updatedAt": "2024-01-01T00:00:00Z"
 }
@@ -46,7 +50,9 @@ Content-Type: application/json
 
 ```http
 GET /api/v1/collections
-X-Tenant-ID: <tenant-id>
+Authorization: Bearer <token>
+X-Org-ID: <org-id>
+X-Site-ID: <site-id>
 ```
 
 **Response:** `200 OK`
@@ -55,8 +61,7 @@ X-Tenant-ID: <tenant-id>
   {
     "id": "uuid",
     "slug": "articles",
-    "name": "Articles",
-    ...
+    "name": "Articles"
   }
 ]
 ```
@@ -65,7 +70,9 @@ X-Tenant-ID: <tenant-id>
 
 ```http
 GET /api/v1/collections/:slug
-X-Tenant-ID: <tenant-id>
+Authorization: Bearer <token>
+X-Org-ID: <org-id>
+X-Site-ID: <site-id>
 ```
 
 **Response:** `200 OK` lub `404 Not Found`
@@ -74,12 +81,14 @@ X-Tenant-ID: <tenant-id>
 
 ```http
 PUT /api/v1/collections/:slug
-X-Tenant-ID: <tenant-id>
+Authorization: Bearer <token>
+X-Org-ID: <org-id>
+X-Site-ID: <site-id>
 Content-Type: application/json
 
 {
   "name": "Updated Name",
-  "schemaJson": {...}
+  "schemaJson": {}
 }
 ```
 
@@ -89,7 +98,9 @@ Content-Type: application/json
 
 ```http
 DELETE /api/v1/collections/:slug
-X-Tenant-ID: <tenant-id>
+Authorization: Bearer <token>
+X-Org-ID: <org-id>
+X-Site-ID: <site-id>
 ```
 
 **Response:** `200 OK`
@@ -107,7 +118,9 @@ X-Tenant-ID: <tenant-id>
 
 ```http
 POST /api/v1/collections/:slug/items
-X-Tenant-ID: <tenant-id>
+Authorization: Bearer <token>
+X-Org-ID: <org-id>
+X-Site-ID: <site-id>
 Content-Type: application/json
 
 {
@@ -123,10 +136,10 @@ Content-Type: application/json
 ```json
 {
   "id": "uuid",
-  "tenantId": "tenant-id",
+  "siteId": "site-id",
   "collectionId": "uuid",
   "status": "DRAFT",
-  "data": {...},
+  "data": {},
   "version": 1,
   "etag": "sha1-hash",
   "createdAt": "2024-01-01T00:00:00Z"
@@ -137,12 +150,14 @@ Content-Type: application/json
 
 ```http
 GET /api/v1/collections/:slug/items?page=1&pageSize=20&status=DRAFT
-X-Tenant-ID: <tenant-id>
+Authorization: Bearer <token>
+X-Org-ID: <org-id>
+X-Site-ID: <site-id>
 ```
 
 **Query Parameters:**
 - `page` (number, default: 1) - numer strony
-- `pageSize` (number, default: 20, max: 100) - liczba items na stronę
+- `pageSize` (number, default: 20, max: 100) - liczba items na stron?
 - `status` (enum: DRAFT | PUBLISHED) - filtrowanie po statusie
 - `sort` (string) - sortowanie (np. "-createdAt,name")
 - `filter` (object) - dodatkowe filtry
@@ -153,7 +168,7 @@ X-Tenant-ID: <tenant-id>
   "total": 100,
   "page": 1,
   "pageSize": 20,
-  "items": [...]
+  "items": []
 }
 ```
 
@@ -161,17 +176,21 @@ X-Tenant-ID: <tenant-id>
 
 ```http
 GET /api/v1/collections/:slug/items/:id
-X-Tenant-ID: <tenant-id>
+Authorization: Bearer <token>
+X-Org-ID: <org-id>
+X-Site-ID: <site-id>
 If-None-Match: <etag> (opcjonalnie)
 ```
 
-**Response:** `200 OK` lub `304 Not Modified` (jeśli ETag matches)
+**Response:** `200 OK` lub `304 Not Modified` (je?li ETag matches)
 
 ### Update Item
 
 ```http
 PUT /api/v1/collections/:slug/items/:id
-X-Tenant-ID: <tenant-id>
+Authorization: Bearer <token>
+X-Org-ID: <org-id>
+X-Site-ID: <site-id>
 Content-Type: application/json
 
 {
@@ -183,7 +202,7 @@ Content-Type: application/json
 }
 ```
 
-**Optimistic Locking:** Jeśli `version` nie pasuje do aktualnej wersji, zwraca `409 Conflict`
+**Optimistic Locking:** Je?li `version` nie pasuje do aktualnej wersji, zwraca `409 Conflict`
 
 **Response:** `200 OK` lub `409 Conflict`
 
@@ -191,7 +210,9 @@ Content-Type: application/json
 
 ```http
 DELETE /api/v1/collections/:slug/items/:id
-X-Tenant-ID: <tenant-id>
+Authorization: Bearer <token>
+X-Org-ID: <org-id>
+X-Site-ID: <site-id>
 ```
 
 **Response:** `200 OK`
@@ -209,7 +230,7 @@ X-Tenant-ID: <tenant-id>
 ```json
 {
   "statusCode": 400,
-  "message": "Missing X-Tenant-Id header"
+  "message": "Missing site or organization context"
 }
 ```
 
@@ -237,37 +258,5 @@ X-Tenant-ID: <tenant-id>
 
 ```bash
 # Create collection
-curl -X POST http://localhost:4000/api/v1/collections \
-  -H 'Content-Type: application/json' \
-  -H 'X-Tenant-ID: tenant-123' \
-  -d '{
-    "slug": "articles",
-    "name": "Articles",
-    "schemaJson": {"title": "string"}
-  }'
-
-# Create item
-curl -X POST http://localhost:4000/api/v1/collections/articles/items \
-  -H 'Content-Type: application/json' \
-  -H 'X-Tenant-ID: tenant-123' \
-  -d '{
-    "data": {"title": "Hello World"},
-    "status": "DRAFT"
-  }'
-
-# Get item with ETag
-curl -i http://localhost:4000/api/v1/collections/articles/items/item-id \
-  -H 'X-Tenant-ID: tenant-123' \
-  -H 'If-None-Match: <etag>'
+curl -X POST http://localhost:4000/api/v1/collections   -H "Authorization: Bearer $TOKEN"   -H "X-Org-ID: $ORG_ID"   -H "X-Site-ID: $SITE_ID"   -H "Content-Type: application/json"   -d '{"slug":"articles","name":"Articles","schemaJson":{"title":"string","content":"string"}}'
 ```
-
----
-
-## Notes
-
-- Wszystkie endpointy wymagają nagłówka `X-Tenant-ID`
-- Multi-tenant isolation jest wymuszane automatycznie
-- ETag jest automatycznie generowany dla items
-- Redis cache działa dla metadanych kolekcji (30s TTL)
-- Optimistic locking przez pole `version`
-

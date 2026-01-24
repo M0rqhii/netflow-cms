@@ -35,9 +35,7 @@ export class OrgSiteContextMiddleware implements NestMiddleware {
     // Extract org ID from various sources
     const orgId =
       req.headers['x-org-id'] ||
-      req.headers['x-tenant-id'] || // Backward compatibility
-      (req.query.orgId as string) ||
-      (req.query.tenantId as string); // Backward compatibility
+      (req.query.orgId as string);
 
     // Extract site ID from various sources
     const siteId =
@@ -50,9 +48,24 @@ export class OrgSiteContextMiddleware implements NestMiddleware {
     if (!resolvedOrgId && user?.orgId) {
       resolvedOrgId = user.orgId;
     }
-    // Backward compatibility: also check tenantId
-    if (!resolvedOrgId && user?.tenantId) {
-      resolvedOrgId = user.tenantId;
+
+    // Validate UUID format to prevent SQL injection
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+    let resolvedSiteId: string | undefined = typeof siteId === 'string' ? siteId : undefined;
+    if (resolvedSiteId && !uuidRegex.test(resolvedSiteId)) {
+      throw new BadRequestException('Invalid site ID format (must be UUID)');
+    }
+
+    // If orgId is missing but siteId is present, derive orgId from site
+    let resolvedSite: { orgId: string } | null = null;
+    if (!resolvedOrgId && resolvedSiteId) {
+      resolvedSite = await this.siteService.findById(resolvedSiteId);
+      if (!resolvedSite) {
+        throw new BadRequestException(`Site not found: ${resolvedSiteId}`);
+      }
+      resolvedOrgId = resolvedSite.orgId;
     }
 
     // Skip middleware if still no org ID provided (for public or global routes)
@@ -64,9 +77,6 @@ export class OrgSiteContextMiddleware implements NestMiddleware {
       throw new BadRequestException('Invalid organization ID format');
     }
 
-    // Validate UUID format to prevent SQL injection
-    const uuidRegex =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(resolvedOrgId)) {
       throw new BadRequestException('Invalid organization ID format (must be UUID)');
     }
@@ -79,25 +89,17 @@ export class OrgSiteContextMiddleware implements NestMiddleware {
 
     // If user is authenticated, validate they have access to this organization
     if (user && user.orgId && user.orgId !== resolvedOrgId) {
-      // Also check tenantId for backward compatibility
-      if (user.tenantId && user.tenantId !== resolvedOrgId) {
-        this.logger.warn(
-          `User ${user.id} attempted to access organization ${resolvedOrgId} but token org is ${user.orgId}`,
-        );
-        throw new ForbiddenException(
-          'You do not have access to this organization',
-        );
-      }
+      this.logger.warn(
+        `User ${user.id} attempted to access organization ${resolvedOrgId} but token org is ${user.orgId}`,
+      );
+      throw new ForbiddenException(
+        'You do not have access to this organization',
+      );
     }
 
     // Validate site if provided
-    let resolvedSiteId: string | undefined = typeof siteId === 'string' ? siteId : undefined;
     if (resolvedSiteId) {
-      if (!uuidRegex.test(resolvedSiteId)) {
-        throw new BadRequestException('Invalid site ID format (must be UUID)');
-      }
-
-      const site = await this.siteService.findById(resolvedSiteId);
+      const site = resolvedSite || await this.siteService.findById(resolvedSiteId);
       if (!site) {
         throw new BadRequestException(`Site not found: ${resolvedSiteId}`);
       }
@@ -114,8 +116,6 @@ export class OrgSiteContextMiddleware implements NestMiddleware {
     if (resolvedSiteId) {
       (req as unknown as { siteId: string }).siteId = resolvedSiteId;
     }
-    // Backward compatibility
-    (req as unknown as { tenantId: string }).tenantId = resolvedOrgId;
 
     // Set PostgreSQL session variables for Row-Level Security
     // This ensures all queries are automatically filtered by org/site
@@ -129,10 +129,6 @@ export class OrgSiteContextMiddleware implements NestMiddleware {
           `SET app.current_site_id = '${resolvedSiteId}'`,
         );
       }
-      // Backward compatibility
-      await this.prisma.$executeRawUnsafe(
-        `SET app.current_tenant_id = '${resolvedOrgId}'`,
-      );
       this.logger.debug(`Set org context: ${resolvedOrgId}${resolvedSiteId ? `, site: ${resolvedSiteId}` : ''}`);
     } catch (error) {
       this.logger.error(
@@ -148,7 +144,6 @@ export class OrgSiteContextMiddleware implements NestMiddleware {
         if (resolvedSiteId) {
           await this.prisma.$executeRawUnsafe(`RESET app.current_site_id`);
         }
-        await this.prisma.$executeRawUnsafe(`RESET app.current_tenant_id`);
       } catch (error) {
         this.logger.error(
           `Failed to clear org/site context: ${error}`,

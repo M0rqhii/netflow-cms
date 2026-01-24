@@ -1,8 +1,8 @@
-# Szybka Naprawa: NetworkError w Tenants
+# Szybka Naprawa: NetworkError w Sites
 
 ## Problem
 
-NetworkError when attempting to fetch resource w `/tenants`
+NetworkError when attempting to fetch resource w `/sites`
 
 ## Szybkie Rozwiązanie (3 kroki)
 
@@ -42,9 +42,9 @@ pnpm --filter admin dev
 
 ## Sprawdzenie
 
-1. Otwórz http://localhost:3000/tenants
+1. Otwórz http://localhost:3000/sites
 2. Otwórz DevTools (F12) → Console
-3. Sprawdź czy widzisz logi `[SDK] Request: http://localhost:4000/api/v1/auth/me/tenants`
+3. Sprawdź czy widzisz logi `[SDK] Request: http://localhost:4000/api/v1/auth/me/sites`
 4. Sprawdź Network tab → czy request ma status 200 OK
 
 ## Jeśli nadal nie działa
@@ -56,8 +56,8 @@ pnpm --filter admin dev
    - Sprawdź czy widzisz logi `[SDK] Request:`
 
 2. **Network tab:**
-   - Sprawdź request do `/api/v1/auth/me/tenants`
-   - Sprawdź URL requestu (powinno być `http://localhost:4000/api/v1/auth/me/tenants`)
+   - Sprawdź request do `/api/v1/auth/me/sites`
+   - Sprawdź URL requestu (powinno być `http://localhost:4000/api/v1/auth/me/sites`)
    - Sprawdź status (powinno być 200 OK)
    - Sprawdź czy są błędy CORS
 
@@ -101,7 +101,7 @@ pnpm --filter api dev
 ### Problem 2: NEXT_PUBLIC_API_URL nie jest ustawione
 
 **Objawy:**
-- Request idzie do `undefined/api/v1/auth/me/tenants`
+- Request idzie do `undefined/api/v1/auth/me/sites`
 - NetworkError
 
 **Rozwiązanie:**

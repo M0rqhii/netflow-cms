@@ -34,7 +34,7 @@ export class WebhooksController {
    * Create a webhook
    */
   @Post()
-  @Roles(Role.EDITOR, Role.TENANT_ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.EDITOR, Role.ORG_ADMIN, Role.SUPER_ADMIN)
   @Permissions(Permission.COLLECTIONS_WRITE) // Webhooks are collection-related
   async create(
     @Body(new ZodValidationPipe(createWebhookSchema))
@@ -75,7 +75,7 @@ export class WebhooksController {
    * Update a webhook
    */
   @Put(':id')
-  @Roles(Role.EDITOR, Role.TENANT_ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.EDITOR, Role.ORG_ADMIN, Role.SUPER_ADMIN)
   @Permissions(Permission.COLLECTIONS_WRITE) // Webhooks are collection-related
   async update(
     @Param('id') id: string,
@@ -91,7 +91,7 @@ export class WebhooksController {
    * Delete a webhook
    */
   @Delete(':id')
-  @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.ORG_ADMIN, Role.SUPER_ADMIN)
   @Permissions(Permission.COLLECTIONS_DELETE) // Webhooks are collection-related
   async remove(
     @Param('id') id: string,

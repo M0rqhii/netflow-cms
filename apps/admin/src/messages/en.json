@@ -38,7 +38,18 @@
     "loginSubtitle": "Sign in to access your platform",
     "loginNote": "No site ID required — this is global login",
     "invalidCredentials": "Invalid credentials",
-    "loginFailed": "Login failed"
+    "loginFailed": "Login failed",
+    "inviteTitle": "You're invited",
+    "inviteSubtitle": "Set your password to join the organization",
+    "inviteOrganization": "Organization",
+    "inviteSite": "Site",
+    "inviteEmail": "Invited Email",
+    "inviteInvalid": "Invite link is invalid or expired",
+    "acceptInvite": "Accept Invite",
+    "acceptingInvite": "Accepting invite...",
+    "confirmPassword": "Confirm Password",
+    "passwordMinLength": "Password must be at least 6 characters",
+    "passwordMismatch": "Passwords do not match"
   },
   "navigation": {
     "dashboard": "Overview",
@@ -182,6 +193,8 @@
     "yourRole": "Your role",
     "quickActions": "Quick Actions",
     "openSitePanel": "Open Project Panel",
+    "editInBuilder": "Edit in Builder",
+    "marketing": "Marketing",
     "manageUsers": "Manage Users",
     "viewBilling": "View Billing",
     "active": "Active"

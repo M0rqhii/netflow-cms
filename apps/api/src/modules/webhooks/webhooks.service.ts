@@ -33,10 +33,10 @@ export enum WebhookEvent {
   MEDIA_UPLOADED = 'media.uploaded',
   MEDIA_DELETED = 'media.deleted',
   
-  // Tenant Events
-  TENANT_CREATED = 'tenant.created',
-  TENANT_UPDATED = 'tenant.updated',
-  TENANT_DELETED = 'tenant.deleted',
+  // Organization Events
+  ORG_CREATED = 'org.created',
+  ORG_UPDATED = 'org.updated',
+  ORG_DELETED = 'org.deleted',
   
   // User Events
   USER_CREATED = 'user.created',

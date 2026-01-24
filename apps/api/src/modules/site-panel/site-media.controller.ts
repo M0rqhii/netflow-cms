@@ -18,6 +18,13 @@ import { CurrentSite } from '../../common/decorators/current-site.decorator';
 import { CurrentUser, CurrentUserPayload } from '../../common/auth/decorators/current-user.decorator';
 import { SiteMediaService } from './site-media.service';
 
+type UploadedFile = {
+  buffer: Buffer;
+  originalname: string;
+  mimetype: string;
+  size: number;
+};
+
 @UseGuards(AuthGuard)
 @Controller('site-panel/:siteId/media')
 export class SiteMediaController {
@@ -48,7 +55,7 @@ export class SiteMediaController {
         ],
       }),
     )
-    file: Express.Multer.File,
+    file: UploadedFile,
   ) {
     // siteId is validated by middleware to match currentSiteId
     return this.siteMediaService.upload({ siteId, userId: user.id, file });

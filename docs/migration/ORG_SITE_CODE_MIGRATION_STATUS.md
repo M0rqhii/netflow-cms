@@ -1,4 +1,4 @@
-# Status Migracji Kodu: Tenant → Organization + Site
+# Status Migracji Kodu: Site → Organization + Site
 
 **Data rozpoczęcia:** 2025-01-16  
 **Status:** 🚧 W trakcie (główne serwisy zakończone)
@@ -9,8 +9,8 @@
 
 ### 1. Schemat Prisma
 - ✅ Dodano modele `Organization` i `Site`
-- ✅ Zaktualizowano wszystkie relacje (tenantId → orgId / siteId)
-- ✅ Zachowano backward compatibility (model `Tenant` jako DEPRECATED)
+- ✅ Zaktualizowano wszystkie relacje (siteId → orgId / siteId)
+- ✅ Zachowano backward compatibility (model `Site` jako DEPRECATED)
 
 ### 2. Nowe Serwisy i Moduły
 - ✅ `OrganizationService` - zarządzanie organizacjami
@@ -20,8 +20,8 @@
 - ✅ `OrgSiteModule`
 
 ### 3. Interfejsy i Typy
-- ✅ `JwtPayload` - dodano `orgId`, zachowano `tenantId` (DEPRECATED)
-- ✅ `CurrentUserPayload` - dodano `orgId`, zachowano `tenantId` (DEPRECATED)
+- ✅ `JwtPayload` - dodano `orgId`, zachowano `siteId` (DEPRECATED)
+- ✅ `CurrentUserPayload` - dodano `orgId`, zachowano `siteId` (DEPRECATED)
 - ✅ `AuthResponse` - dodano `orgId`
 - ✅ `CurrentOrg` decorator - pobiera orgId z requestu
 - ✅ `CurrentSite` decorator - pobiera siteId z requestu
@@ -31,25 +31,25 @@
 - ✅ `validateUser()` - zmieniono na `orgId`
 - ✅ `login()` - używa `orgId`, wspiera backward compatibility
 - ✅ `register()` - używa `orgId`
-- ✅ `getUserOrgs()` - nowa metoda (zastępuje `getUserTenants()`)
-- ✅ `issueOrgToken()` - nowa metoda (zastępuje `issueTenantToken()`)
-- ✅ `resolveOrgForUser()` - nowa metoda (zastępuje `resolveTenantForUser()`)
+- ✅ `getUserOrgs()` - nowa metoda (zastępuje `getUserSites()`)
+- ✅ `issueOrgToken()` - nowa metoda (zastępuje `issueSiteToken()`)
+- ✅ `resolveOrgForUser()` - nowa metoda (zastępuje `resolveSiteForUser()`)
 - ✅ `getProfile()` - używa `orgId`
-- ✅ `LoginDto` - dodano `orgId`, zachowano `tenantId` (DEPRECATED)
-- ✅ `RegisterDto` - dodano `orgId`, zachowano `tenantId` (DEPRECATED)
+- ✅ `LoginDto` - dodano `orgId`, zachowano `siteId` (DEPRECATED)
+- ✅ `RegisterDto` - dodano `orgId`, zachowano `siteId` (DEPRECATED)
 
 ### 5. Billing Service
-- ✅ Wszystkie metody używają `orgId` zamiast `tenantId`
+- ✅ Wszystkie metody używają `orgId` zamiast `siteId`
 - ✅ `getSiteSubscription()` - zwraca tylko podstawowe info (plan, status) - BEZ danych org
 - ✅ `updateSiteSubscription()` - ma ostrzeżenie (powinno być tylko na poziomie org)
-- ✅ `getMyBillingInfo()` - zwraca organizacje zamiast tenantów
+- ✅ `getMyBillingInfo()` - zwraca organizacje zamiast siteów
 
 ### 6. Content Services (Site-level)
-- ✅ `ContentTypesService` - `tenantId` → `siteId`
-- ✅ `ContentEntriesService` - `tenantId` → `siteId`
-- ✅ `CollectionsService` - `tenantId` → `siteId`
-- ✅ `CollectionItemsService` - `tenantId` → `siteId`
-- ✅ `MediaService` - `tenantId` → `siteId`, usunięto relację do `tenant`
+- ✅ `ContentTypesService` - `siteId` → `siteId`
+- ✅ `ContentEntriesService` - `siteId` → `siteId`
+- ✅ `CollectionsService` - `siteId` → `siteId`
+- ✅ `CollectionItemsService` - `siteId` → `siteId`
+- ✅ `MediaService` - `siteId` → `siteId`, usunięto relację do `site`
 
 ### 7. RBAC
 - ✅ `SiteRbacController` - nowy kontroler dla Site-level RBAC
@@ -67,34 +67,34 @@
 ## ⏳ W trakcie / Do zrobienia
 
 ### 1. RBAC Service
-- [ ] Zaktualizować `rbac.service.ts` - używać `orgId` zamiast `tenantId`
+- [ ] Zaktualizować `rbac.service.ts` - używać `orgId` zamiast `siteId`
 - [ ] Sprawdzić czy wszystkie metody RBAC używają `orgId`
 
 ### 2. Pozostałe Serwisy
-- [ ] `WorkflowConfigService` - `tenantId` → `siteId`
-- [ ] `ContentVersioningService` - `tenantId` → `siteId`
-- [ ] `WebhooksService` - `tenantId` → `siteId`
-- [ ] `HooksService` - `tenantId` → `siteId`
-- [ ] `SiteEventsService` - `tenantId` → `siteId`
-- [ ] `SiteSeoService` - `tenantId` → `siteId`
-- [ ] `SitePagesService` - `tenantId` → `siteId`
-- [ ] `SiteDeploymentsService` - `tenantId` → `siteId`
-- [ ] `SnapshotsService` - `tenantId` → `siteId`
-- [ ] `CollectionRolesService` - `tenantId` → `siteId`
+- [ ] `WorkflowConfigService` - `siteId` → `siteId`
+- [ ] `ContentVersioningService` - `siteId` → `siteId`
+- [ ] `WebhooksService` - `siteId` → `siteId`
+- [ ] `HooksService` - `siteId` → `siteId`
+- [ ] `SiteEventsService` - `siteId` → `siteId`
+- [ ] `SiteSeoService` - `siteId` → `siteId`
+- [ ] `SitePagesService` - `siteId` → `siteId`
+- [ ] `SiteDeploymentsService` - `siteId` → `siteId`
+- [ ] `SnapshotsService` - `siteId` → `siteId`
+- [ ] `CollectionRolesService` - `siteId` → `siteId`
 
 ### 3. Kontrolery
-- [ ] Wszystkie kontrolery używające `tenantId` → `orgId` / `siteId`
+- [ ] Wszystkie kontrolery używające `siteId` → `orgId` / `siteId`
 - [ ] Zaktualizować endpointy w kontrolerach
 - [ ] Dodać guards dla Site-level endpoints
 
 ### 4. Moduły
-- [ ] `TenantsModule` → `OrganizationsModule` + `SitesModule`
+- [ ] `SitesModule` → `OrganizationsModule` + `SitesModule`
 - [ ] Zaktualizować importy w `app.module.ts`
 - [ ] Zaktualizować middleware registration
 
 ### 5. GraphQL
 - [ ] Zaktualizować resolvery GraphQL
-- [ ] `tenant.resolver.ts` → `organization.resolver.ts` + `site.resolver.ts`
+- [ ] `site.resolver.ts` → `organization.resolver.ts` + `site.resolver.ts`
 
 ### 6. Testy
 - [ ] Zaktualizować wszystkie testy
@@ -104,7 +104,7 @@
 
 ## 📝 Notatki
 
-- **Backward Compatibility:** Zachowujemy `tenantId` w interfejsach dla kompatybilności wstecznej
+- **Backward Compatibility:** Zachowujemy `siteId` w interfejsach dla kompatybilności wstecznej
 - **Migracja danych:** SQL migracja jest gotowa, ale nie została jeszcze uruchomiona
 - **Hierarchia:** 
   - Organization zarządza: billing, hosting, domeny, RBAC (ORG + SITE scope), wiele Site'ów

@@ -7,34 +7,34 @@
 
 ## 🔍 Zidentyfikowane Problemy
 
-### 1. **Błąd Kompilacji: `getTenantInvoices` zdefiniowane dwukrotnie** ✅ NAPRAWIONE
+### 1. **Błąd Kompilacji: `getSiteInvoices` zdefiniowane dwukrotnie** ✅ NAPRAWIONE
 
 **Problem:**
-- Funkcja `getTenantInvoices` była zdefiniowana jako funkcja w linii 1399
-- Następnie była również zdefiniowana jako alias w linii 2337: `export const getTenantInvoices = getSiteInvoices;`
-- To powodowało błąd kompilacji: `'getTenantInvoices' redefined`
+- Funkcja `getSiteInvoices` była zdefiniowana jako funkcja w linii 1399
+- Następnie była również zdefiniowana jako alias w linii 2337: `export const getSiteInvoices = getSiteInvoices;`
+- To powodowało błąd kompilacji: `'getSiteInvoices' redefined`
 
 **Lokalizacja:** `apps/admin/src/lib/api.ts:1399, 2337`
 
 **Ryzyko:** Krytyczne - blokuje kompilację frontendu
 
 **Naprawa:**
-- ✅ Zmieniono funkcję `getTenantInvoices` na `getSiteInvoices` (linia 1399)
-- ✅ Alias `getTenantInvoices = getSiteInvoices` teraz działa poprawnie
-- ✅ Funkcja używa SDK `client.getTenantInvoices()` wewnętrznie, ale jest eksportowana jako `getSiteInvoices`
+- ✅ Zmieniono funkcję `getSiteInvoices` na `getSiteInvoices` (linia 1399)
+- ✅ Alias `getSiteInvoices = getSiteInvoices` teraz działa poprawnie
+- ✅ Funkcja używa SDK `client.getSiteInvoices()` wewnętrznie, ale jest eksportowana jako `getSiteInvoices`
 - ✅ Backward compatibility zachowana przez alias
 
 **Kod przed:**
 ```typescript
-export async function getTenantInvoices(tenantId: string, page?: number, pageSize?: number): Promise<{ invoices: Invoice[]; pagination: any }> {
+export async function getSiteInvoices(siteId: string, page?: number, pageSize?: number): Promise<{ invoices: Invoice[]; pagination: any }> {
   const token = getAuthToken();
   if (!token) throw new Error('Missing auth token. Please login.');
-  return client.getTenantInvoices(token, tenantId, page, pageSize);
+  return client.getSiteInvoices(token, siteId, page, pageSize);
 }
 
 // ... później w pliku ...
 
-export const getTenantInvoices = getSiteInvoices; // ❌ getSiteInvoices nie istnieje
+export const getSiteInvoices = getSiteInvoices; // ❌ getSiteInvoices nie istnieje
 ```
 
 **Kod po:**
@@ -42,12 +42,12 @@ export const getTenantInvoices = getSiteInvoices; // ❌ getSiteInvoices nie ist
 export async function getSiteInvoices(siteId: string, page?: number, pageSize?: number): Promise<{ invoices: Invoice[]; pagination: any }> {
   const token = getAuthToken();
   if (!token) throw new Error('Missing auth token. Please login.');
-  return client.getTenantInvoices(token, siteId, page, pageSize);
+  return client.getSiteInvoices(token, siteId, page, pageSize);
 }
 
 // ... później w pliku ...
 
-export const getTenantInvoices = getSiteInvoices; // ✅ Teraz działa poprawnie
+export const getSiteInvoices = getSiteInvoices; // ✅ Teraz działa poprawnie
 ```
 
 **Status:** ✅ **NAPRAWIONE**
@@ -146,7 +146,7 @@ export class HealthController {
 - ✅ **Błędy kompilacji:** 0 (naprawione)
 - ✅ **Health checks:** Działają poprawnie (wysokie limity throttlera)
 - ✅ **Linter:** Brak błędów
-- ✅ **Backward compatibility:** Zachowana (alias `getTenantInvoices` działa)
+- ✅ **Backward compatibility:** Zachowana (alias `getSiteInvoices` działa)
 
 ---
 

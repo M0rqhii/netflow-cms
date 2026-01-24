@@ -18,7 +18,7 @@ import {
 } from '@/lib/api';
 import type { SiteInfo } from '@repo/sdk';
 
-const PRIVILEGED_ROLES = ['super_admin', 'site_admin'];
+const PRIVILEGED_ROLES = ['super_admin', 'org_admin', 'site_admin'];
 const PRIVILEGED_PLATFORM_ROLES = ['platform_admin'];
 
 export default function DevPanelPage() {
@@ -192,7 +192,7 @@ export default function DevPanelPage() {
       <div className="container py-10">
         <EmptyState
           title="Access denied"
-          description="Only privileged users (super_admin, site_admin, or platform_admin) can access the Dev Panel."
+          description="Only privileged users (super_admin, org_admin, site_admin, or platform_admin) can access the Dev Panel."
           action={{
             label: 'Back to dashboard',
             onClick: () => (window.location.href = '/dashboard'),

@@ -78,7 +78,9 @@ pnpm --filter api test
 ```bash
 curl -X POST http://localhost:4000/api/v1/collections \
   -H 'Content-Type: application/json' \
-  -H 'X-Tenant-ID: tenant-123' \
+  -H 'Authorization: Bearer <token>' \
+  -H 'X-Org-ID: org-123' \
+  -H 'X-Site-ID: site-123' \
   -d '{
     "slug": "articles",
     "name": "Articles",
@@ -91,7 +93,9 @@ curl -X POST http://localhost:4000/api/v1/collections \
 ```bash
 curl -X POST http://localhost:4000/api/v1/collections/articles/items \
   -H 'Content-Type: application/json' \
-  -H 'X-Tenant-ID: tenant-123' \
+  -H 'Authorization: Bearer <token>' \
+  -H 'X-Org-ID: org-123' \
+  -H 'X-Site-ID: site-123' \
   -d '{
     "data": {"title": "Hello World", "content": "Article content"},
     "status": "DRAFT"
@@ -102,7 +106,9 @@ curl -X POST http://localhost:4000/api/v1/collections/articles/items \
 
 ```bash
 curl http://localhost:4000/api/v1/collections/articles/items?page=1&pageSize=20 \
-  -H 'X-Tenant-ID: tenant-123'
+  -H 'Authorization: Bearer <token>' \
+  -H 'X-Org-ID: org-123' \
+  -H 'X-Site-ID: site-123'
 ```
 
 ---

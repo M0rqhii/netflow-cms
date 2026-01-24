@@ -8,7 +8,7 @@
 
 ## Summary
 
-Zaimplementowano podstawowe funkcjonalności zarządzania mediami dla multi-tenant headless CMS, w tym API do przesyłania plików, zarządzanie biblioteką mediów oraz podstawową strukturę dla integracji CDN.
+Zaimplementowano podstawowe funkcjonalności zarządzania mediami dla org/site headless CMS, w tym API do przesyłania plików, zarządzanie biblioteką mediów oraz podstawową strukturę dla integracji CDN.
 
 ---
 
@@ -27,7 +27,7 @@ Zaimplementowano podstawowe funkcjonalności zarządzania mediami dla multi-tena
 - ✅ Walidacja rozmiaru plików (max 50MB) ✅
 - ✅ Wsparcie dla obrazów, video, dokumentów ✅
 - ✅ Automatyczne generowanie URL (placeholder dla CDN) ✅
-- ✅ Role-based access control (Editor, Tenant Admin, Super Admin) ✅
+- ✅ Role-based access control (Editor, Site Admin, Super Admin) ✅
 
 **Allowed MIME Types:**
 - Images: `image/jpeg`, `image/png`, `image/gif`, `image/webp`, `image/svg+xml`
@@ -79,7 +79,7 @@ Zaimplementowano podstawowe funkcjonalności zarządzania mediami dla multi-tena
 ```typescript
 // Generate URL (for MVP, use a placeholder - in production, upload to S3/CDN)
 const baseUrl = this.configService.get<string>('MEDIA_BASE_URL') || 'https://cdn.example.com';
-const fileUrl = `${baseUrl}/media/${tenantId}/${file.filename}`;
+const fileUrl = `${baseUrl}/media/${siteId}/${file.filename}`;
 ```
 
 **Future Enhancements:**
@@ -143,7 +143,7 @@ apps/api/src/modules/media/
 
 **MediaFile Model:**
 - `id`: UUID
-- `tenantId`: Tenant ID (foreign key)
+- `siteId`: Site ID (foreign key)
 - `filename`: Original filename
 - `url`: URL to file (S3/CDN)
 - `mimeType`: MIME type
@@ -160,28 +160,28 @@ apps/api/src/modules/media/
 
 **POST /api/v1/media**
 - Upload a media file
-- Required roles: Editor, Tenant Admin, Super Admin
+- Required roles: Editor, Site Admin, Super Admin
 
 **GET /api/v1/media**
 - List all media files with pagination
 - Query parameters: page, pageSize, mimeType, search, sortBy, sortOrder
-- Required roles: Viewer, Editor, Tenant Admin, Super Admin
+- Required roles: Viewer, Editor, Site Admin, Super Admin
 
 **GET /api/v1/media/stats**
 - Get media library statistics
-- Required roles: Viewer, Editor, Tenant Admin, Super Admin
+- Required roles: Viewer, Editor, Site Admin, Super Admin
 
 **GET /api/v1/media/:id**
 - Get a single media file by ID
-- Required roles: Viewer, Editor, Tenant Admin, Super Admin
+- Required roles: Viewer, Editor, Site Admin, Super Admin
 
 **PUT /api/v1/media/:id**
 - Update a media file (filename, alt, metadata)
-- Required roles: Editor, Tenant Admin, Super Admin
+- Required roles: Editor, Site Admin, Super Admin
 
 **DELETE /api/v1/media/:id**
 - Delete a media file
-- Required roles: Tenant Admin, Super Admin
+- Required roles: Site Admin, Super Admin
 
 ---
 
@@ -230,7 +230,7 @@ apps/api/src/modules/media/
 
 - For MVP, files are stored with placeholder URLs
 - In production, files should be uploaded to S3/CDN
-- Media files are tenant-scoped (isolated per tenant)
+- Media files are site-scoped (isolated per site)
 - Role-based access control is enforced
 - File validation is performed on upload
 - Media library supports pagination, filtering, and searching

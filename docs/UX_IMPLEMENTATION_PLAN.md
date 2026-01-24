@@ -287,7 +287,7 @@ const hasPagesCheck = pagesCount > 0;
 ```tsx
 // W funkcji handlePublishAll (linia 79-107)
 const handlePublishAll = async () => {
-  if (!tenantId) return;
+  if (!siteId) return;
 
   // GUARDRAIL: Nie pozwól publikować jeśli brak pages
   if (pagesCount === 0) {
@@ -301,12 +301,12 @@ const handlePublishAll = async () => {
   try {
     setPublishing(true);
 
-    let token = getTenantToken(tenantId);
+    let token = getSiteToken(siteId);
     if (!token) {
-      token = await exchangeTenantToken(tenantId);
+      token = await exchangeSiteToken(siteId);
     }
 
-    await apiClient.publishSite(token, tenantId);
+    await apiClient.publishSite(token, siteId);
 
     toast.push({
       tone: 'success',
@@ -389,7 +389,7 @@ const handlePublishAll = async () => {
 // DODAJ walidację przed tworzeniem:
 const handleCreate = async (e: React.FormEvent) => {
   e.preventDefault();
-  if (!tenantId || !createEnvironmentId) return;
+  if (!siteId || !createEnvironmentId) return;
 
   // GUARDRAIL: Walidacja tytułu
   if (!createTitle || createTitle.trim().length === 0) {
@@ -412,12 +412,12 @@ const handleCreate = async (e: React.FormEvent) => {
   }
 
   try {
-    let token = getTenantToken(tenantId);
+    let token = getSiteToken(siteId);
     if (!token) {
-      token = await exchangeTenantToken(tenantId);
+      token = await exchangeSiteToken(siteId);
     }
 
-    await apiClient.createPage(token, tenantId, {
+    await apiClient.createPage(token, siteId, {
       environmentId: createEnvironmentId,
       slug: finalSlug,
       title: createTitle,
@@ -498,7 +498,7 @@ export default function PageBuilderPage() {
 // W handlePublishConfirm (linia 166-199)
 // DODAJ guardrails:
 const handlePublishConfirm = async () => {
-  if (!tenantId || !pageId || !page) return;
+  if (!siteId || !pageId || !page) return;
 
   // GUARDRAIL 1: Sprawdź czy strona ma treść
   const hasContent = content && 
@@ -539,13 +539,13 @@ const handlePublishConfirm = async () => {
     setSaving(true);
 
     // Zapisz przed publikacją
-    let token = getTenantToken(tenantId);
+    let token = getSiteToken(siteId);
     if (!token) {
-      token = await exchangeTenantToken(tenantId);
+      token = await exchangeSiteToken(siteId);
     }
 
-    await apiClient.updatePageContent(token, tenantId, pageId, content);
-    await apiClient.publishPage(token, tenantId, pageId);
+    await apiClient.updatePageContent(token, siteId, pageId, content);
+    await apiClient.publishPage(token, siteId, pageId);
 
     toast.push({
       tone: 'success',
@@ -723,7 +723,7 @@ function PageBuilderWithSave({
 // DODAJ walidacje:
 const handlePublish = async (e: React.FormEvent) => {
   e.preventDefault();
-  if (!tenantId) return;
+  if (!siteId) return;
 
   // GUARDRAIL 1: Sprawdź czy wybrano kanały
   if (!selectedChannels || selectedChannels.length === 0) {
@@ -747,8 +747,8 @@ const handlePublish = async (e: React.FormEvent) => {
   }
 
   try {
-    await publishMarketingContent(tenantId, {
-      siteId: tenantId,
+    await publishMarketingContent(siteId, {
+      siteId: siteId,
       draftId: selectedDraftId || undefined,
       channels: selectedChannels,
       content: selectedDraftId ? undefined : draftContent,
@@ -805,7 +805,7 @@ const hasAnyDrafts = drafts.length > 0;
 // DODAJ walidacje:
 const handleCreateDraft = async (e: React.FormEvent) => {
   e.preventDefault();
-  if (!tenantId) return;
+  if (!siteId) return;
 
   // GUARDRAIL 1: Walidacja tytułu
   if (!draftTitle || draftTitle.trim().length === 0) {
@@ -826,8 +826,8 @@ const handleCreateDraft = async (e: React.FormEvent) => {
   }
 
   try {
-    await createDistributionDraft(tenantId, {
-      siteId: tenantId,
+    await createDistributionDraft(siteId, {
+      siteId: siteId,
       title: draftTitle,
       content: draftContent,
       channels: selectedChannels,

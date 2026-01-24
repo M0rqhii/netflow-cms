@@ -3,7 +3,7 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { CreateHookDto, UpdateHookDto } from './dto';
 
 /**
- * Hooks Service - configurable hooks per tenant/collection
+ * Hooks Service - configurable hooks per site/collection
  * AI Note: Provides extensibility through configurable hooks
  */
 @Injectable()

@@ -1,5 +1,12 @@
 import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 
+type UploadedFile = {
+  buffer: Buffer;
+  originalname: string;
+  mimetype: string;
+  size: number;
+};
+
 /**
  * File Validator Service
  * Provides advanced file validation including magic number checking
@@ -120,7 +127,7 @@ export class FileValidatorService {
    * Comprehensive file validation
    */
   validateFile(
-    file: Express.Multer.File,
+    file: UploadedFile,
     allowedMimeTypes: string[],
     maxSize: number,
   ): void {

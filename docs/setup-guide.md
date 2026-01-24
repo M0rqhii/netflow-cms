@@ -9,7 +9,7 @@
 
 ## Wprowadzenie
 
-Ten dokument zawiera **kompletne instrukcje** krok po kroku do uruchomienia środowiska AI-assisted coding dla projektu Multi-Tenant Headless CMS.
+Ten dokument zawiera **kompletne instrukcje** krok po kroku do uruchomienia środowiska AI-assisted coding dla projektu Multi-Site Headless CMS.
 
 **Czas potrzebny:** ~30-60 minut  
 **Wymagania:** Node.js 18+, pnpm 8+, Git, PostgreSQL 14+, Docker (opcjonalnie)
@@ -85,7 +85,7 @@ mkdir -p docs
 mkdir -p apps/api/src/{modules,common/{guards,decorators,filters,interceptors,pipes}}
 mkdir -p apps/api/prisma/migrations
 mkdir -p apps/api/test
-mkdir -p apps/admin/app/{\(auth\),\(dashboard\)/\[tenant\]}
+mkdir -p apps/admin/app/{\(auth\),\(dashboard\)/\[site\]}
 mkdir -p apps/admin/components
 mkdir -p apps/admin/lib
 mkdir -p apps/admin/public
@@ -116,7 +116,7 @@ cat > package.json << 'EOF'
   "name": "netflow-cms",
   "version": "1.0.0",
   "private": true,
-  "description": "Multi-Tenant Headless CMS - Monorepo",
+  "description": "Multi-Site Headless CMS - Monorepo",
   "workspaces": [
     "apps/*",
     "packages/*"
@@ -404,7 +404,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Tenant {
+model Site {
   id        String   @id @default(uuid())
   name      String
   slug      String   @unique
@@ -413,7 +413,7 @@ model Tenant {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@map("tenants")
+  @@map("sites")
 }
 EOF
 
@@ -723,7 +723,7 @@ Utwórz plik z promptami systemowymi dla różnych modeli:
 cat > .ai-prompts/system-prompt.txt << 'EOF'
 # System Prompt dla AI-Assisted Coding
 
-Jesteś częścią zespołu AI-agentów pracujących nad projektem Multi-Tenant Headless CMS.
+Jesteś częścią zespołu AI-agentów pracujących nad projektem Multi-Site Headless CMS.
 
 ## Twoja Rola
 - Backend Codex: Specjalista od NestJS + Prisma + PostgreSQL
@@ -737,7 +737,7 @@ Jesteś częścią zespołu AI-agentów pracujących nad projektem Multi-Tenant 
 2. Sprawdzaj docs/prd.md dla wymagań
 3. Sprawdzaj docs/plan.md dla zadań
 4. Używaj .aicli/commands.yaml do generowania kodu
-5. Zawsze dodawaj tenantId dla multi-tenant isolation
+5. Zawsze dodawaj siteId dla org/site isolation
 6. Testy są obowiązkowe (>80% coverage)
 7. Dokumentacja musi być aktualna
 
@@ -948,7 +948,7 @@ chmod +x scripts/gemini-prompt.sh
 
 ```bash
 cat > .cursorrules << 'EOF'
-# Cursor AI Rules for Multi-Tenant Headless CMS
+# Cursor AI Rules for Multi-Site Headless CMS
 
 ## Context Files
 Always read these files before starting:
@@ -960,7 +960,7 @@ Always read these files before starting:
 
 ## Code Standards
 - TypeScript strict mode
-- Always use tenantId for multi-tenant isolation
+- Always use siteId for org/site isolation
 - Tests required (>80% coverage)
 - No 'any' types
 - Accessibility WCAG 2.1 AA

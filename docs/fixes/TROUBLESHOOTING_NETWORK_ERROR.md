@@ -1,6 +1,6 @@
-# Troubleshooting: NetworkError w Tenants
+# Troubleshooting: NetworkError w Sites
 
-**Problem:** NetworkError when attempting to fetch resource w `/tenants`
+**Problem:** NetworkError when attempting to fetch resource w `/sites`
 
 ## Możliwe Przyczyny
 
@@ -138,12 +138,12 @@ pnpm --filter admin dev
 
 ### Krok 4: Sprawdź w Przeglądarce
 
-1. Otwórz http://localhost:3000/tenants
+1. Otwórz http://localhost:3000/sites
 2. Otwórz DevTools (F12) → Network tab
-3. Sprawdź request do `/api/v1/auth/me/tenants`
+3. Sprawdź request do `/api/v1/auth/me/sites`
 4. Sprawdź:
    - **Status:** Powinno być 200 OK
-   - **URL:** Powinno być `http://localhost:4000/api/v1/auth/me/tenants`
+   - **URL:** Powinno być `http://localhost:4000/api/v1/auth/me/sites`
    - **Headers:** Powinno mieć `Authorization: Bearer <token>`
 
 ## Debugowanie
@@ -200,7 +200,7 @@ pnpm --filter api dev
 ### Problem 2: NEXT_PUBLIC_API_URL nie jest ustawione
 
 **Objawy:**
-- Request idzie do `undefined/api/v1/auth/me/tenants`
+- Request idzie do `undefined/api/v1/auth/me/sites`
 - NetworkError
 
 **Rozwiązanie:**
@@ -286,7 +286,7 @@ app.enableCors({
    ```
 
 4. **Sprawdź w przeglądarce:**
-   - Otwórz http://localhost:3000/tenants
+   - Otwórz http://localhost:3000/sites
    - Sprawdź DevTools → Network tab
    - Sprawdź czy request działa
 

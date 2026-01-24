@@ -33,22 +33,22 @@ Zaimplementowano wszystkie funkcjonalności Sprint 4: Webhooks, GraphQL API, Wor
 - ✅ Secret generation i signature verification ✅
 - ✅ Asynchronous webhook delivery ✅
 
-**Status:** ✅ Zaimplementowane (MVP - stored in Tenant.settings)
+**Status:** ✅ Zaimplementowane (MVP - stored in Site.settings)
 
 ### 2. GraphQL API ✅
 
 **Pliki:**
 - `apps/api/src/modules/graphql/graphql.module.ts` - GraphQLModule
 - `apps/api/src/modules/graphql/graphql.resolvers.module.ts` - GraphQLResolversModule
-- `apps/api/src/modules/graphql/resolvers/tenant.resolver.ts` - TenantResolver
+- `apps/api/src/modules/graphql/resolvers/site.resolver.ts` - SiteResolver
 - `apps/api/src/modules/graphql/resolvers/content.resolver.ts` - ContentResolver
 
 **Implementacja:**
 - ✅ GraphQL module structure ✅
-- ✅ GraphQL resolvers for Tenant and Content ✅
+- ✅ GraphQL resolvers for Site and Content ✅
 - ✅ Query and Mutation support ✅
 - ✅ Authentication integration ✅
-- ✅ Tenant context integration ✅
+- ✅ Site context integration ✅
 
 **Note:** GraphQL packages need to be installed:
 ```bash
@@ -74,7 +74,7 @@ npm install @nestjs/graphql @nestjs/apollo graphql apollo-server-express
 - ✅ State transition validation ✅
 - ✅ Content and collection item workflow support ✅
 
-**Status:** ✅ Zaimplementowane (MVP - stored in Tenant.settings)
+**Status:** ✅ Zaimplementowane (MVP - stored in Site.settings)
 
 ### 4. Advanced search (Elasticsearch) ✅
 
@@ -116,7 +116,7 @@ npm install @elastic/elasticsearch
 - GraphQL resolvers
 - Query and Mutation support
 - Authentication integration
-- Tenant context integration
+- Site context integration
 
 ### ✅ Workflow management
 - Workflow definition system
@@ -154,7 +154,7 @@ apps/api/src/modules/graphql/
 ├── graphql.module.ts           # GraphQLModule
 ├── graphql.resolvers.module.ts # GraphQLResolversModule
 └── resolvers/
-    ├── tenant.resolver.ts      # TenantResolver
+    ├── site.resolver.ts      # SiteResolver
     ├── content.resolver.ts     # ContentResolver
     └── index.ts
 ```
@@ -232,12 +232,12 @@ apps/api/src/modules/search/
 
 ## Notes
 
-- Webhooks are stored in Tenant.settings for MVP
+- Webhooks are stored in Site.settings for MVP
 - GraphQL structure is ready, requires package installation
-- Workflows are stored in Tenant.settings for MVP
+- Workflows are stored in Site.settings for MVP
 - Search uses Prisma for MVP, Elasticsearch ready for production
 - All modules are integrated with AppModule
-- All endpoints require authentication and tenant context
+- All endpoints require authentication and site context
 
 ---
 

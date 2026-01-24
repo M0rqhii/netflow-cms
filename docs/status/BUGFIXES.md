@@ -55,14 +55,14 @@ const where: any = { ... };
 ```typescript
 const cached = await this.cache.get<{
   id: string;
-  tenantId: string;
+  siteId: string;
   slug: string;
   name: string;
   schemaJson: Record<string, unknown>;
 }>(cacheKey);
 
 const where: {
-  tenantId: string;
+  siteId: string;
   collectionId: string;
   status?: 'DRAFT' | 'PUBLISHED';
 } = { ... };
@@ -126,7 +126,7 @@ async get(..., @Res() res: Response) {
 @UseInterceptors(ETagInterceptor)
 @Get(':id')
 async get(..., @Headers('if-none-match') ifNoneMatch: string | undefined) {
-  const item = await this.itemsService.get(tenantId, slug, id);
+  const item = await this.itemsService.get(siteId, slug, id);
   if (ifNoneMatch && ifNoneMatch === item.etag) {
     throw new NotModifiedException();
   }

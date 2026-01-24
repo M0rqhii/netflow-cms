@@ -4,7 +4,7 @@
 **Wersja:** 1.0.0  
 **Data:** 2024-01-01  
 **Status:** Active  
-**Projekt:** Multi-Tenant Headless CMS
+**Projekt:** Multi-Site Headless CMS
 
 ---
 
@@ -31,11 +31,11 @@ Ten dokument definiuje szczegółową konfigurację dla **5 agentów specjalisty
 - **Implementacja API** - RESTful endpoints zgodne z OpenAPI
 - **Business Logic** - implementacja logiki biznesowej w services
 - **Database Layer** - Prisma schemas, migrations, repositories
-- **Authentication & Authorization** - JWT, RBAC, tenant isolation
+- **Authentication & Authorization** - JWT, RBAC, org/site isolation
 - **Caching** - strategia cache'owania z Redis
 - **Performance** - optymalizacja queries, indexing
 - **Security** - walidacja danych, SQL injection protection, XSS/CSRF
-- **Multi-Tenant Isolation** - zapewnienie pełnej izolacji danych
+- **Multi-Site Isolation** - zapewnienie pełnej izolacji danych
 
 **Stack Technologiczny:**
 - **Framework:** NestJS 10+
@@ -92,18 +92,18 @@ context:
 requirements:
   - "Implementuj endpoint POST /api/v1/content-types"
   - "Walidacja schematu content type przez Zod"
-  - "Izolacja per tenant (tenantId)"
+  - "Izolacja per site (siteId)"
   - "Testy jednostkowe i integracyjne"
 
 acceptance_criteria:
   - "Endpoint zwraca 201 Created z nowym content type"
   - "Walidacja działa dla nieprawidłowych danych"
-  - "Content types są izolowane per tenant"
+  - "Content types są izolowane per site"
   - "Testy przechodzą (>85% coverage)"
 
 dependencies:
   - "TNT-002: Database Schema (completed)"
-  - "TNT-006: Tenant Context Middleware (completed)"
+  - "TNT-006: Site Context Middleware (completed)"
 
 deliverables:
   - "apps/api/src/modules/content-types/content-types.controller.ts"
@@ -125,7 +125,7 @@ Implementuj API dla zarządzania tagami (TNT-015).
 
 **Requirements:**
 - CRUD endpoints dla tags
-- Multi-tenant isolation
+- Org/site isolation
 - Walidacja przez Zod schemas
 - Testy >85% coverage
 
@@ -142,7 +142,7 @@ Implementuj API dla zarządzania tagami (TNT-015).
 ```typescript
 // apps/api/src/modules/{feature}/{feature}.controller.ts
 @Controller('{resource}')
-@UseGuards(AuthGuard, TenantGuard)
+@UseGuards(AuthGuard, SiteGuard)
 export class {Feature}Controller {
   // Implementacja endpoints
 }
@@ -150,7 +150,7 @@ export class {Feature}Controller {
 // apps/api/src/modules/{feature}/{feature}.service.ts
 @Injectable()
 export class {Feature}Service {
-  // Business logic z tenantId
+  // Business logic z siteId
 }
 
 // apps/api/src/modules/{feature}/{feature}.repository.ts
@@ -161,7 +161,7 @@ export class {Feature}Repository {
 ```
 
 **Wymagania:**
-- ✅ Wszystkie metody filtrują po `tenantId`
+- ✅ Wszystkie metody filtrują po `siteId`
 - ✅ Użycie Zod schemas z `@repo/schemas`
 - ✅ Error handling przez exception filters
 - ✅ Logging dla ważnych operacji
@@ -178,14 +178,14 @@ describe('{Feature}Controller', () => {
 // apps/api/test/{feature}.integration.test.ts
 describe('{Feature} API (e2e)', () => {
   // Integration tests
-  // Tenant isolation tests
+  // Org/site isolation tests
 });
 ```
 
 **Wymagania:**
 - ✅ Unit tests dla services (>90% coverage)
 - ✅ Integration tests dla wszystkich endpoints
-- ✅ Security tests dla tenant isolation
+- ✅ Security tests dla org/site isolation
 - ✅ Testy dla error scenarios
 - ✅ Coverage >85% dla całego modułu
 
@@ -198,7 +198,7 @@ describe('{Feature} API (e2e)', () => {
 - [TNT-XXX] Feature: {Description}
   - Endpoint: POST /api/v1/{resource}
   - Endpoint: GET /api/v1/{resource}
-  - Multi-tenant isolation
+  - Org/site isolation
   - Zod validation
 
 ### Changed
@@ -244,7 +244,7 @@ describe('{Feature} API (e2e)', () => {
 **Coverage:** 92%
 - Unit tests: `tags.controller.spec.ts` (95% coverage)
 - Integration tests: `tags.integration.test.ts`
-- Security tests: Tenant isolation verified ✅
+- Security tests: Org/site isolation verified ✅
 
 **Test Results:**
 ```
@@ -263,7 +263,7 @@ Tests: 45 passed, 0 failed
   - GET /api/v1/tags/:id - Get tag
   - PATCH /api/v1/tags/:id - Update tag
   - DELETE /api/v1/tags/:id - Delete tag
-  - Multi-tenant isolation
+  - Org/site isolation
   - Zod validation
 ```
 
@@ -363,7 +363,7 @@ dependencies:
   - "@repo/sdk: Tags API client (available)"
 
 deliverables:
-  - "apps/admin/app/(dashboard)/[tenant]/content-types/page.tsx"
+  - "apps/admin/app/(dashboard)/[site]/content-types/page.tsx"
   - "apps/admin/components/content-types/ContentTypeForm.tsx"
   - "apps/admin/components/content-types/ContentTypeList.tsx"
   - "apps/admin/components/content-types/SchemaEditor.tsx (TipTap)"
@@ -397,8 +397,8 @@ Stwórz UI dla zarządzania tagami (TNT-016).
 #### 2.4.1 Kod (Implementation)
 
 ```typescript
-// apps/admin/app/(dashboard)/[tenant]/tags/page.tsx
-export default async function TagsPage({ params }: { params: { tenant: string } }) {
+// apps/admin/app/(dashboard)/[site]/tags/page.tsx
+export default async function TagsPage({ params }: { params: { site: string } }) {
   // Server Component
 }
 
@@ -479,7 +479,7 @@ describe('TagForm', () => {
 ### ✅ Implementation Complete
 
 **Files Created:**
-- `apps/admin/app/(dashboard)/[tenant]/tags/page.tsx`
+- `apps/admin/app/(dashboard)/[site]/tags/page.tsx`
 - `apps/admin/components/tags/TagForm.tsx`
 - `apps/admin/components/tags/TagList.tsx`
 - `apps/admin/components/tags/TagCard.tsx`
@@ -487,7 +487,7 @@ describe('TagForm', () => {
 
 **Files Updated:**
 - `packages/ui/src/index.ts` (exported TagBadge)
-- `apps/admin/app/(dashboard)/[tenant]/layout.tsx` (added nav link)
+- `apps/admin/app/(dashboard)/[site]/layout.tsx` (added nav link)
 
 ### ✅ Tests Complete
 
@@ -534,7 +534,7 @@ Accessibility: 0 violations
 - **Unit Tests** - testy jednostkowe dla backend i frontend
 - **Integration Tests** - testy integracyjne API endpoints
 - **E2E Tests** - testy end-to-end scenariuszy użytkownika
-- **Security Tests** - testy bezpieczeństwa (tenant isolation, auth)
+- **Security Tests** - testy bezpieczeństwa (org/site isolation, auth)
 - **Performance Tests** - testy wydajności (load, stress)
 - **Accessibility Tests** - testy dostępności (WCAG compliance)
 - **Test Coverage** - zapewnienie >80% coverage
@@ -596,13 +596,13 @@ requirements:
   - "Unit tests dla TagsService (>90% coverage)"
   - "Integration tests dla wszystkich tags endpoints"
   - "E2E test dla scenariusza tworzenia tagu"
-  - "Security test dla tenant isolation"
+  - "Security test dla org/site isolation"
   - "Accessibility test dla tags UI"
 
 acceptance_criteria:
   - "Wszystkie testy przechodzą"
   - "Coverage >85% dla całego modułu"
-  - "Security tests potwierdzają izolację tenantów"
+  - "Security tests potwierdzają izolację siteów"
   - "E2E testy pokrywają happy path i error scenarios"
   - "Accessibility tests przechodzą (0 violations)"
 
@@ -630,7 +630,7 @@ Stwórz kompleksowe testy dla Tags feature (TNT-017).
 - Unit tests dla TagsService
 - Integration tests dla Tags API
 - E2E test dla tags management flow
-- Security test dla tenant isolation
+- Security test dla org/site isolation
 - Coverage >85%
 
 **Backend:** TNT-015 (ready)
@@ -651,7 +651,7 @@ describe('TagsService', () => {
       // Unit test
     });
 
-    it('should enforce tenant isolation', async () => {
+    it('should enforce org/site isolation', async () => {
       // Security test
     });
   });
@@ -674,7 +674,7 @@ test('should create tag through UI', async ({ page }) => {
 - ✅ Unit tests dla wszystkich services (>90% coverage)
 - ✅ Integration tests dla wszystkich endpoints
 - ✅ E2E tests dla krytycznych user flows
-- ✅ Security tests dla tenant isolation
+- ✅ Security tests dla org/site isolation
 - ✅ Accessibility tests (axe-core)
 - ✅ Error scenario tests
 - ✅ Deterministic tests (no flaky tests)
@@ -717,7 +717,7 @@ test('should create tag through UI', async ({ page }) => {
 - PASS: tags.spec.ts (12 tests)
 
 **Security Tests:**
-- PASS: Tenant isolation verified ✅
+- PASS: Org/site isolation verified ✅
 - PASS: Authorization checks verified ✅
 
 **Accessibility Tests:**
@@ -736,7 +736,7 @@ test('should create tag through UI', async ({ page }) => {
   - Unit tests: {module} (>90% coverage)
   - Integration tests: {endpoints}
   - E2E tests: {scenarios}
-  - Security tests: Tenant isolation verified
+  - Security tests: Org/site isolation verified
 ```
 
 ### 3.5 Przykład Kompletnego Outputu
@@ -769,7 +769,7 @@ PASS  tags.spec.ts (12 E2E tests)
 
 Total: 122 tests, 0 failures
 Coverage: 92%
-Security: Tenant isolation verified ✅
+Security: Org/site isolation verified ✅
 Accessibility: 0 violations ✅
 ```
 
@@ -781,7 +781,7 @@ Accessibility: 0 violations ✅
   - Unit tests: TagsService, TagsController (>90% coverage)
   - Integration tests: All tags endpoints
   - E2E tests: Tags management flow
-  - Security tests: Tenant isolation verified
+  - Security tests: Org/site isolation verified
   - Accessibility tests: 0 violations
 ```
 ```
@@ -1156,7 +1156,7 @@ Zaktualizuj dokumentację dla Tags feature (TNT-018).
 - [TNT-015] Feature: Tags API
   - POST /api/v1/tags - Create tag
   - GET /api/v1/tags - List tags
-  - Multi-tenant isolation
+  - Org/site isolation
   - Zod validation
 
 - [TNT-016] Feature: Tags Admin UI
@@ -1167,7 +1167,7 @@ Zaktualizuj dokumentację dla Tags feature (TNT-018).
 - [TNT-017] Tests: Comprehensive test suite for Tags
   - Unit tests: >90% coverage
   - E2E tests: Tags management flow
-  - Security tests: Tenant isolation verified
+  - Security tests: Org/site isolation verified
 
 ### Changed
 - [TNT-018] Documentation: Updated API docs and guides
@@ -1225,7 +1225,7 @@ Implements Tags feature with API, UI, and comprehensive tests.
 ## Testing
 - ✅ All tests passing (122 tests)
 - ✅ Coverage: 92%
-- ✅ Security: Tenant isolation verified
+- ✅ Security: Org/site isolation verified
 - ✅ Accessibility: 0 violations
 
 ## Checklist

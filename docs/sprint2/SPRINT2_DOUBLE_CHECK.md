@@ -24,7 +24,7 @@ Sprawdzono zgodność implementacji z wymaganiami Sprint 2: Media Management & E
 - ✅ Walidacja rozmiaru plików (max 50MB) ✅
 - ✅ Wsparcie dla obrazów, video, dokumentów ✅
 - ✅ Automatyczne generowanie URL (placeholder dla CDN) ✅
-- ✅ Role-based access control (Editor, Tenant Admin, Super Admin) ✅
+- ✅ Role-based access control (Editor, Site Admin, Super Admin) ✅
 
 **Allowed MIME Types:**
 - Images: `image/jpeg`, `image/png`, `image/gif`, `image/webp`, `image/svg+xml` ✅
@@ -87,7 +87,7 @@ Sprawdzono zgodność implementacji z wymaganiami Sprint 2: Media Management & E
 ```typescript
 // Generate URL (for MVP, use a placeholder - in production, upload to S3/CDN)
 const baseUrl = this.configService.get<string>('MEDIA_BASE_URL') || 'https://cdn.example.com';
-const fileUrl = `${baseUrl}/media/${tenantId}/${file.filename || file.originalname}`;
+const fileUrl = `${baseUrl}/media/${siteId}/${file.filename || file.originalname}`;
 ```
 
 **Future Enhancements:**
@@ -169,7 +169,7 @@ const fileUrl = `${baseUrl}/media/${tenantId}/${file.filename || file.originalna
 
 **Guards:**
 - ✅ `AuthGuard` - Authentication required ✅
-- ✅ `TenantGuard` - Tenant context required ✅
+- ✅ `SiteGuard` - Site context required ✅
 - ✅ `RolesGuard` - Role-based access control ✅
 
 **Status:** ✅ Zgodne z wymaganiami
@@ -201,8 +201,8 @@ const fileUrl = `${baseUrl}/media/${tenantId}/${file.filename || file.originalna
 4. ✅ Reject file > 50MB ✅
 5. ✅ Reject unsupported MIME type ✅
 6. ✅ Require authentication ✅
-7. ✅ Require tenant context ✅
-8. ✅ Require Editor/Tenant Admin/Super Admin role ✅
+7. ✅ Require site context ✅
+8. ✅ Require Editor/Site Admin/Super Admin role ✅
 
 **Status:** ✅ Zgodne z wymaganiami
 
@@ -254,22 +254,22 @@ const fileUrl = `${baseUrl}/media/${tenantId}/${file.filename || file.originalna
 
 **Status:** ✅ Zgodne z wymaganiami
 
-### ✅ 5.2 Tenant Isolation
+### ✅ 5.2 Site Isolation
 
 **Implementacja:**
-- ✅ Media files są tenant-scoped ✅
-- ✅ `TenantGuard` wymusza tenant context ✅
-- ✅ Wszystkie queries filtrują po tenantId ✅
+- ✅ Media files są site-scoped ✅
+- ✅ `SiteGuard` wymusza site context ✅
+- ✅ Wszystkie queries filtrują po siteId ✅
 
 **Status:** ✅ Zgodne z wymaganiami
 
 ### ✅ 5.3 Role-Based Access Control
 
 **Implementacja:**
-- ✅ Upload: Editor, Tenant Admin, Super Admin ✅
-- ✅ List/Get: Viewer, Editor, Tenant Admin, Super Admin ✅
-- ✅ Update: Editor, Tenant Admin, Super Admin ✅
-- ✅ Delete: Tenant Admin, Super Admin ✅
+- ✅ Upload: Editor, Site Admin, Super Admin ✅
+- ✅ List/Get: Viewer, Editor, Site Admin, Super Admin ✅
+- ✅ Update: Editor, Site Admin, Super Admin ✅
+- ✅ Delete: Site Admin, Super Admin ✅
 
 **Status:** ✅ Zgodne z wymaganiami
 
@@ -284,7 +284,7 @@ const fileUrl = `${baseUrl}/media/${tenantId}/${file.filename || file.originalna
 **Uwagi:**
 - For MVP, files are stored with placeholder URLs
 - In production, files should be uploaded to S3/CDN
-- Media files are tenant-scoped (isolated per tenant)
+- Media files are site-scoped (isolated per site)
 - Role-based access control is enforced
 - File validation is performed on upload
 - Media library supports pagination, filtering, and searching
@@ -320,7 +320,7 @@ const fileUrl = `${baseUrl}/media/${tenantId}/${file.filename || file.originalna
 - ✅ Endpoint działa poprawnie ✅
 - ✅ File validation działa poprawnie ✅
 - ✅ Role-based access control działa poprawnie ✅
-- ✅ Tenant isolation działa poprawnie ✅
+- ✅ Org/site isolation działa poprawnie ✅
 
 ### ✅ Test 2: Media Library Management
 - ✅ Listowanie z paginacją działa poprawnie ✅

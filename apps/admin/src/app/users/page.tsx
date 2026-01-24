@@ -21,6 +21,7 @@ const mapOldRoleToSiteRole = (role: string | undefined): string => {
   if (!role) return 'viewer';
   const mapping: Record<string, string> = {
     'super_admin': 'owner', // Super admin maps to owner in site context
+    'org_admin': 'admin',
     'site_admin': 'admin',
     'editor': 'editor',
     'viewer': 'viewer',

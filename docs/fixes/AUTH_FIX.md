@@ -7,11 +7,11 @@ Failed to fetch content types: 401 Unauthorized - {"statusCode":401,"timestamp":
 ```
 
 ## Przyczyna
-Funkcja `fetchTenantTypes` nie obsługiwała poprawnie błędów 401 - nie czyściła tokenów i nie przekierowywała do logowania.
+Funkcja `fetchSiteTypes` nie obsługiwała poprawnie błędów 401 - nie czyściła tokenów i nie przekierowywała do logowania.
 
 ## Rozwiązanie
 
-### 1. ✅ Dodano obsługę 401 w `fetchTenantTypes`
+### 1. ✅ Dodano obsługę 401 w `fetchSiteTypes`
 - Funkcja teraz wywołuje `handleApiError` przy błędzie 401
 - Automatycznie czyści tokeny i przekierowuje do `/login`
 
@@ -23,7 +23,7 @@ Funkcja `fetchTenantTypes` nie obsługiwała poprawnie błędów 401 - nie czyś
 1. **Sprawdź czy jesteś zalogowany:**
    - Otwórz DevTools (F12)
    - Przejdź do zakładki Application → Local Storage
-   - Sprawdź czy istnieje klucz `authToken` lub `tenantToken:{tenantId}`
+   - Sprawdź czy istnieje klucz `authToken` lub `siteToken:{siteId}`
 
 2. **Zaloguj się ponownie:**
    - Przejdź do `/login`
@@ -37,8 +37,8 @@ Funkcja `fetchTenantTypes` nie obsługiwała poprawnie błędów 401 - nie czyś
 
 Po zalogowaniu, frontend powinien automatycznie:
 - Pobrać token z localStorage
-- Wymienić token na tenant token (jeśli potrzebny)
-- Dodać header `Authorization: Bearer {token}` i `X-Tenant-ID: {tenantId}` do żądań
+- Wymienić token na site token (jeśli potrzebny)
+- Dodać header `Authorization: Bearer {token}` i `X-Site-ID: {siteId}` do żądań
 
 Jeśli nadal masz problemy, sprawdź:
 - Czy backend działa: `http://localhost:4000/api/v1/health`

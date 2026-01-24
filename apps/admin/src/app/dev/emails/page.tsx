@@ -8,7 +8,7 @@ import { decodeAuthToken, getAuthToken, getDevEmails } from '@/lib/api';
 import { LoadingSpinner } from '@repo/ui';
 import { DevPanelLayout } from '@/components/dev-panel/DevPanelLayout';
 
-const PRIVILEGED_ROLES = ['super_admin', 'site_admin'];
+const PRIVILEGED_ROLES = ['super_admin', 'org_admin', 'site_admin'];
 const PRIVILEGED_PLATFORM_ROLES = ['platform_admin'];
 
 export default function DevEmailsPage() {

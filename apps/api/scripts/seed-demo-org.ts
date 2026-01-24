@@ -72,7 +72,9 @@ async function main() {
       orgId: demoOrg.id,
       email: 'anna.nowak@techflow-solutions.com',
       passwordHash,
-      role: 'tenant_admin',
+      role: 'org_admin',
+      siteRole: 'admin',
+      platformRole: 'admin',
       preferredLanguage: 'pl',
     },
   });
@@ -90,6 +92,8 @@ async function main() {
       email: 'tomasz.wisniewski@techflow-solutions.com',
       passwordHash,
       role: 'editor',
+      siteRole: 'editor',
+      platformRole: 'user',
       preferredLanguage: 'pl',
     },
   });
@@ -106,12 +110,23 @@ async function main() {
       orgId: demoOrg.id,
       email: 'maria.kowalska@techflow-solutions.com',
       passwordHash,
-      role: 'tenant_admin',
+      role: 'org_admin',
+      siteRole: 'admin',
+      platformRole: 'admin',
       preferredLanguage: 'pl',
     },
   });
 
   console.log('✅ Created users:');
+  await prisma.userOrg.createMany({
+    data: [
+      { userId: ownerUser.id, orgId: demoOrg.id, role: ownerUser.role },
+      { userId: editorUser.id, orgId: demoOrg.id, role: editorUser.role },
+      { userId: marketingUser.id, orgId: demoOrg.id, role: marketingUser.role },
+    ],
+    skipDuplicates: true,
+  });
+
   console.log(`   - Owner: ${ownerUser.email}`);
   console.log(`   - Editor: ${editorUser.email}`);
   console.log(`   - Marketing Manager: ${marketingUser.email}`);

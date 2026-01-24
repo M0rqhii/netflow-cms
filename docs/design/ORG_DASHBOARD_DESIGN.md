@@ -402,7 +402,7 @@ Użytkownik po zalogowaniu widzi:
 **Status strony:**
 ```typescript
 // Pseudokod
-function getSiteStatus(site: Tenant): 'LIVE' | 'DRAFT' | 'ERROR' {
+function getSiteStatus(site: Site): 'LIVE' | 'DRAFT' | 'ERROR' {
   // 1. Sprawdź czy jest ERROR (ostatni deploy failed w 7 dni)
   const lastFailedDeploy = await getLastFailedDeploy(site.id, 7 days);
   if (lastFailedDeploy) return 'ERROR';

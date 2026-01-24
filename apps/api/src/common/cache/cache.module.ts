@@ -14,6 +14,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
     NestCacheModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => {
+        const disableRedis = configService.get<string>('REDIS_DISABLED') === '1' || process.env.NODE_ENV === 'test';
         const host = configService.get<string>('REDIS_HOST') || 'localhost';
         const port = configService.get<string>('REDIS_PORT') || '6379';
         const url = configService.get<string>('REDIS_URL') || `redis://${host}:${port}`;
@@ -22,6 +23,9 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
         const ttl = configService.get<number>('CACHE_TTL') || 600; // 10 minutes default (increased from 5)
 
         const logger = new Logger('CacheModule');
+        if (disableRedis) {
+          return { ttl: ttl * 1000 };
+        }
         try {
           const store = await redisStore({
             url,

@@ -12,7 +12,7 @@ This document describes the Role-Based Access Control (RBAC) database model for 
 
 ```
 ┌─────────────┐
-│   Tenant    │
+│   Site    │
 │  (orgId)    │
 └──────┬──────┘
        │
@@ -90,7 +90,7 @@ This document describes the Role-Based Access Control (RBAC) database model for 
 
 **Fields**:
 - `id` (UUID, PK): Unique identifier
-- `orgId` (String, FK → Tenant): Organization ID (tenantId)
+- `orgId` (String, FK → Site): Organization ID (siteId)
 - `name` (String): Role name (e.g., "Org Owner", "Site Admin")
 - `description` (String?): Role description
 - `type` (String): `SYSTEM` or `CUSTOM`
@@ -109,7 +109,7 @@ This document describes the Role-Based Access Control (RBAC) database model for 
 - `roles_type_idx`: Index on `type`
 
 **Relations**:
-- `tenant`: Belongs to Tenant
+- `site`: Belongs to Site
 - `roleCapabilities`: Many-to-many with Capability via RoleCapability
 - `userRoles`: One-to-many with UserRole
 
@@ -141,7 +141,7 @@ This document describes the Role-Based Access Control (RBAC) database model for 
 
 **Fields**:
 - `id` (UUID, PK): Unique identifier
-- `orgId` (String, FK → Tenant): Organization ID (tenantId)
+- `orgId` (String, FK → Site): Organization ID (siteId)
 - `userId` (String): User ID
 - `roleId` (String, FK → Role): Role ID
 - `siteId` (String?): Site ID (nullable) - if null, role is ORG scope; if set, role is SITE scope
@@ -159,7 +159,7 @@ This document describes the Role-Based Access Control (RBAC) database model for 
 - `user_roles_siteId_idx`: Index on `siteId`
 
 **Relations**:
-- `tenant`: Belongs to Tenant
+- `site`: Belongs to Site
 - `role`: Belongs to Role
 
 ### OrgPolicy
@@ -168,7 +168,7 @@ This document describes the Role-Based Access Control (RBAC) database model for 
 
 **Fields**:
 - `id` (UUID, PK): Unique identifier
-- `orgId` (String, FK → Tenant): Organization ID (tenantId)
+- `orgId` (String, FK → Site): Organization ID (siteId)
 - `capabilityKey` (String): Capability key (e.g., `builder.rollback`)
 - `enabled` (Boolean): Whether the capability is enabled in the organization
 - `createdByUserId` (String?): ID of user who created the policy
@@ -184,7 +184,7 @@ This document describes the Role-Based Access Control (RBAC) database model for 
 - `org_policies_capabilityKey_idx`: Index on `capabilityKey`
 
 **Relations**:
-- `tenant`: Belongs to Tenant
+- `site`: Belongs to Site
 
 **Permission Check Logic**:
 ```
@@ -218,13 +218,13 @@ can(user, capability) =
 
 ## Row Level Security (RLS)
 
-All RBAC tables have RLS enabled with tenant isolation policies:
+All RBAC tables have RLS enabled with org/site isolation policies:
 
-- **roles**: `orgId = current_setting('app.current_tenant_id')`
+- **roles**: `orgId = current_setting('app.current_site_id')`
 - **role_capabilities**: Via role.orgId (nested check)
-- **user_roles**: `orgId = current_setting('app.current_tenant_id')`
-- **org_policies**: `orgId = current_setting('app.current_tenant_id')`
-- **audit_logs**: `orgId IS NULL OR orgId = current_setting('app.current_tenant_id')`
+- **user_roles**: `orgId = current_setting('app.current_site_id')`
+- **org_policies**: `orgId = current_setting('app.current_site_id')`
+- **audit_logs**: `orgId IS NULL OR orgId = current_setting('app.current_site_id')`
 
 ## System Roles (Presets)
 
@@ -443,7 +443,7 @@ npx prisma migrate deploy
 
 The seed script (`prisma/seed.ts`) creates:
 - All capabilities from the list above
-- System roles for tenant1 (Acme Corp)
+- System roles for site1 (Acme Corp)
 - Default org policies (most enabled, risky ones disabled)
 - Sample role assignment (adminUser → Org Owner)
 

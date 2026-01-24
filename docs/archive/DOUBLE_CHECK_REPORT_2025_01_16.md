@@ -32,13 +32,13 @@ Przeprowadzono kompleksowy audit całego repozytorium Netflow CMS, obejmujący:
 **Lokalizacje:**
 - `apps/admin/src/lib/api.ts:45` - console.error w clearAuthTokens
 - `apps/admin/src/components/content/DynamicFormField.tsx:36` - console.error w catch
-- `apps/admin/src/components/ui/TenantSwitcher.tsx:24,52` - console.error i alert()
-- `apps/admin/src/app/tenant/[slug]/types/page.tsx:48` - console.error
-- `apps/admin/src/app/tenant/[slug]/media/page.tsx:43` - console.error
+- `apps/admin/src/components/ui/SiteSwitcher.tsx:24,52` - console.error i alert()
+- `apps/admin/src/app/site/[slug]/types/page.tsx:48` - console.error
+- `apps/admin/src/app/site/[slug]/media/page.tsx:43` - console.error
 - `apps/admin/src/app/collections/page.tsx:47` - console.error
 - `apps/admin/src/app/media/page.tsx:48` - console.error
 - `apps/admin/src/app/users/page.tsx:59` - console.error
-- `apps/admin/src/app/tenant/[slug]/users/page.tsx:44,48,55,79` - console.error
+- `apps/admin/src/app/site/[slug]/users/page.tsx:44,48,55,79` - console.error
 - `apps/admin/src/app/types/page.tsx:44` - console.error
 - `apps/admin/src/hooks/useLanguage.ts:80` - console.warn
 
@@ -154,13 +154,13 @@ Przeprowadzono kompleksowy audit całego repozytorium Netflow CMS, obejmujący:
 **Zmiany:**
 - ✅ Usunięto `console.error` z `apps/admin/src/lib/api.ts` (clearAuthTokens)
 - ✅ Usunięto `console.error` z `apps/admin/src/components/content/DynamicFormField.tsx`
-- ✅ Zastąpiono `console.error` i `alert()` w `apps/admin/src/components/ui/TenantSwitcher.tsx` przez toast notifications
-- ✅ Dodano proper error handling z toast notifications w TenantSwitcher
+- ✅ Zastąpiono `console.error` i `alert()` w `apps/admin/src/components/ui/SiteSwitcher.tsx` przez toast notifications
+- ✅ Dodano proper error handling z toast notifications w SiteSwitcher
 - ✅ Dodano tłumaczenia błędów w `en.json` i `pl.json`
 
 **Pliki zmodyfikowane:**
 - `apps/admin/src/lib/api.ts`
-- `apps/admin/src/components/ui/TenantSwitcher.tsx`
+- `apps/admin/src/components/ui/SiteSwitcher.tsx`
 - `apps/admin/src/components/content/DynamicFormField.tsx`
 - `apps/admin/src/messages/en.json`
 - `apps/admin/src/messages/pl.json`

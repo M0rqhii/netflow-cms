@@ -49,7 +49,7 @@ this.logger.error('Hook execution failed:', error instanceof Error ? error.stack
 ### 3. **Dokumentacja bezpieczeństwa SQL**
 
 **Problem:**
-- Brak komentarza wyjaśniającego bezpieczeństwo użycia `$executeRawUnsafe` w `tenant-context.middleware.ts`
+- Brak komentarza wyjaśniającego bezpieczeństwo użycia `$executeRawUnsafe` w `site-context.middleware.ts`
 
 **Rozwiązanie:**
 - Dodano szczegółowy komentarz wyjaśniający:
@@ -58,7 +58,7 @@ this.logger.error('Hook execution failed:', error instanceof Error ? error.stack
   - Lokalizację walidacji w kodzie
 
 **Naprawiony plik:**
-- `apps/api/src/common/tenant/tenant-context.middleware.ts` (linia 83-86)
+- `apps/api/src/common/site/site-context.middleware.ts` (linia 83-86)
 
 ## 🔒 Bezpieczeństwo
 
@@ -70,11 +70,11 @@ this.logger.error('Hook execution failed:', error instanceof Error ? error.stack
    - Walidacja pól przed użyciem w SQL (whitelist)
    - UUID validation przed użyciem w SET commands
 
-2. ✅ **Tenant Isolation**
-   - Wszystkie zapytania filtrowane przez `tenantId`
+2. ✅ **Site Isolation**
+   - Wszystkie zapytania filtrowane przez `siteId`
    - Walidacja UUID przed użyciem w SQL
    - Database-level RLS policies
-   - Middleware ustawia kontekst tenant w PostgreSQL session
+   - Middleware ustawia kontekst site w PostgreSQL session
 
 3. ✅ **Error Handling**
    - Wszystkie błędy są właściwie obsługiwane
@@ -171,7 +171,7 @@ this.logger.error('Hook execution failed:', error instanceof Error ? error.stack
 - `ContentEntriesService.list()` - ma paginację
 - `SearchService.searchContent()` - ma paginację
 - `MediaService.findAll()` - ma paginację
-- `TenantsService.findAll()` - ma paginację z max limitem 100
+- `SitesService.findAll()` - ma paginację z max limitem 100
 
 ### 2. ✅ Environment Variables
 - Wszystkie zmienne środowiskowe mają domyślne wartości lub walidację

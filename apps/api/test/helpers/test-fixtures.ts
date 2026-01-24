@@ -4,20 +4,20 @@ import { Role } from '../../src/common/auth/roles.enum';
  * Test data fixtures for consistent test data across test suites
  */
 export const TestFixtures = {
-  tenants: {
+  organizations: {
     free: {
-      name: 'Free Plan Tenant',
-      slug: 'free-tenant',
+      name: 'Free Plan Organization',
+      slug: 'free-org',
       plan: 'free',
     },
     pro: {
-      name: 'Pro Plan Tenant',
-      slug: 'pro-tenant',
+      name: 'Pro Plan Organization',
+      slug: 'pro-org',
       plan: 'pro',
     },
     enterprise: {
-      name: 'Enterprise Plan Tenant',
-      slug: 'enterprise-tenant',
+      name: 'Enterprise Plan Organization',
+      slug: 'enterprise-org',
       plan: 'enterprise',
     },
   },
@@ -28,9 +28,9 @@ export const TestFixtures = {
       role: Role.SUPER_ADMIN,
       password: 'SuperAdmin123!',
     },
-    tenantAdmin: {
+    orgAdmin: {
       email: 'admin@test.com',
-      role: Role.TENANT_ADMIN,
+      role: Role.ORG_ADMIN,
       password: 'Admin123!',
     },
     editor: {
@@ -125,5 +125,3 @@ export const TestFixtures = {
     },
   },
 };
-
-

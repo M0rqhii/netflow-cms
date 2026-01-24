@@ -79,7 +79,7 @@ export class BillingController {
   }
 
   /**
-   * Get subscription status for current tenant
+   * Get subscription status for current organization
    * GET /billing/subscription/status
    */
   @Get('subscription/status')
@@ -210,8 +210,8 @@ export class BillingController {
   @Get('site/:id')
   @UseGuards(AuthGuard, RolesGuard, PermissionsGuard)
   @Permissions(Permission.BILLING_READ)
-  async getSiteSubscription(@Param('id') siteId: string) {
-    return this.billingService.getSiteSubscription(siteId);
+  async getSiteSubscription(@CurrentOrg() orgId: string, @Param('id') siteId: string) {
+    return this.billingService.getSiteSubscription(orgId, siteId);
   }
 
   /**
@@ -222,10 +222,11 @@ export class BillingController {
   @UseGuards(AuthGuard, RolesGuard, PermissionsGuard)
   @Permissions(Permission.BILLING_WRITE)
   async updateSiteSubscription(
+    @CurrentOrg() orgId: string,
     @Param('id') siteId: string,
     @Body(new ZodValidationPipe(UpdateSiteSubscriptionDtoSchema)) dto: UpdateSiteSubscriptionDto,
   ) {
-    return this.billingService.updateSiteSubscription(siteId, dto);
+    return this.billingService.updateSiteSubscription(orgId, siteId, dto);
   }
 
   /**

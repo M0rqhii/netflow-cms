@@ -2,10 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AuthGuard } from './auth.guard';
 import { PrismaService } from '../../prisma/prisma.service';
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 describe('AuthGuard', () => {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  let guard: AuthGuard;
+    let guard: AuthGuard;
 
   const mockPrismaService = {
     user: {
@@ -32,6 +30,9 @@ describe('AuthGuard', () => {
   });
 
   describe('canActivate', () => {
+    it('should be defined', () => {
+      expect(guard).toBeDefined();
+    });
     // Note: AuthGuard extends PassportAuthGuard which requires JWT strategy
     // These tests are better suited for E2E tests with full setup
     it.skip('should throw UnauthorizedException if authorization header is missing', async () => {
@@ -47,22 +48,7 @@ describe('AuthGuard', () => {
     });
 
     it.skip('should attach user to request if token is valid', async () => {
-      const userId = '123e4567-e89b-12d3-a456-426614174000';
-      const mockUser = {
-        id: userId,
-        email: 'test@example.com',
-        role: 'viewer',
-        orgId: 'org-123',
-      };
-
-      const request: any = {
-        headers: {
-          authorization: `Bearer ${userId}`,
-        },
-      };
-
-      // Note: This test is skipped as it requires full JWT strategy setup
-      // The test logic is commented out to avoid compilation errors
+      // This test is skipped as it requires full JWT strategy setup
     });
   });
 });

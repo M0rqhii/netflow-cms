@@ -4,10 +4,10 @@
 
 **Błąd CORS z OPTIONS request:**
 ```
-XHROPTIONS http://localhost:4000/api/v1/auth/me/tenants
+XHROPTIONS http://localhost:4000/api/v1/auth/me/sites
 CORS Failed
 
-Zablokowano żądanie do zasobu innego pochodzenia: zasady „Same Origin Policy” nie pozwalają wczytywać zdalnych zasobów z „http://localhost:4000/api/v1/auth/me/tenants" (nieudane żądanie CORS).
+Zablokowano żądanie do zasobu innego pochodzenia: zasady „Same Origin Policy” nie pozwalają wczytywać zdalnych zasobów z „http://localhost:4000/api/v1/auth/me/sites" (nieudane żądanie CORS).
 ```
 
 ## Przyczyna
@@ -75,7 +75,7 @@ Powinieneś zobaczyć:
 ### Krok 2: Sprawdź OPTIONS Request
 
 **W DevTools → Network tab:**
-1. Sprawdź OPTIONS request do `/api/v1/auth/me/tenants`
+1. Sprawdź OPTIONS request do `/api/v1/auth/me/sites`
 2. Sprawdź Response Headers:
    - `Access-Control-Allow-Origin: http://localhost:3000`
    - `Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD`
@@ -87,7 +87,7 @@ Powinieneś zobaczyć:
 
 Po udanym OPTIONS request, powinien być GET request:
 1. Status: **200 OK**
-2. Response: Lista tenantów
+2. Response: Lista siteów
 3. Brak błędów CORS
 
 ## Weryfikacja
@@ -98,12 +98,12 @@ Możesz przetestować OPTIONS request ręcznie:
 
 **Windows PowerShell:**
 ```powershell
-Invoke-WebRequest -Uri "http://localhost:4000/api/v1/auth/me/tenants" -Method OPTIONS -Headers @{"Origin"="http://localhost:3000"; "Access-Control-Request-Method"="GET"; "Access-Control-Request-Headers"="authorization"} -UseBasicParsing
+Invoke-WebRequest -Uri "http://localhost:4000/api/v1/auth/me/sites" -Method OPTIONS -Headers @{"Origin"="http://localhost:3000"; "Access-Control-Request-Method"="GET"; "Access-Control-Request-Headers"="authorization"} -UseBasicParsing
 ```
 
 **Linux/Mac:**
 ```bash
-curl -X OPTIONS http://localhost:4000/api/v1/auth/me/tenants \
+curl -X OPTIONS http://localhost:4000/api/v1/auth/me/sites \
   -H "Origin: http://localhost:3000" \
   -H "Access-Control-Request-Method: GET" \
   -H "Access-Control-Request-Headers: authorization" \
@@ -116,7 +116,7 @@ curl -X OPTIONS http://localhost:4000/api/v1/auth/me/tenants \
 
 ### Sprawdź w Przeglądarce
 
-1. Otwórz http://localhost:3000/tenants
+1. Otwórz http://localhost:3000/sites
 2. Otwórz DevTools (F12) → Network tab
 3. Sprawdź requesty:
    - **OPTIONS** → Status 204, Headers CORS OK

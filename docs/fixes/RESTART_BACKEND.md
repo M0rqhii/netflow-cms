@@ -77,14 +77,14 @@ pnpm --filter api dev
 
 ### Sprawdź w Przeglądarce
 
-1. Otwórz http://localhost:3000/tenants
+1. Otwórz http://localhost:3000/sites
 2. Otwórz DevTools (F12) → Network tab
 3. Sprawdź OPTIONS request:
    - Status: **204 No Content**
    - Headers: `Access-Control-Allow-Origin: http://localhost:3000`
 4. Sprawdź GET request:
    - Status: **200 OK**
-   - Response: Lista tenantów
+   - Response: Lista siteów
    - **Brak błędów CORS**
 
 ## Podsumowanie

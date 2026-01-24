@@ -17,14 +17,14 @@ Przeprowadzono pełny audit projektu po refaktoryzacji Platform Panel. Zidentyfi
 
 ## ✅ Wykryte Problemy i Rozwiązania
 
-### 1. ❌ Problem: Nieużywane wywołanie `exchangeTenantToken` w Platform Panel
+### 1. ❌ Problem: Nieużywane wywołanie `exchangeSiteToken` w Platform Panel
 
 **Lokalizacja:** `apps/admin/src/app/sites/[slug]/page.tsx` (linia 36)
 
 **Problem:**
-- `exchangeTenantToken` jest wywoływany dla Platform Panel routes (`/sites/[slug]`)
-- To wywołanie jest potrzebne tylko dla Site Panel routes (`/tenant/[slug]/*`)
-- Platform Panel routes używają global token (`authToken`), nie tenant-scoped token
+- `exchangeSiteToken` jest wywoływany dla Platform Panel routes (`/sites/[slug]`)
+- To wywołanie jest potrzebne tylko dla Site Panel routes (`/site/[slug]/*`)
+- Platform Panel routes używają global token (`authToken`), nie site-scoped token
 
 **Ryzyko:**
 - Niepotrzebne wywołania API
@@ -32,8 +32,8 @@ Przeprowadzono pełny audit projektu po refaktoryzacji Platform Panel. Zidentyfi
 - Mylące dla przyszłych deweloperów
 
 **Rozwiązanie:**
-- Usunąć wywołanie `exchangeTenantToken` z `/sites/[slug]/page.tsx`
-- Usunąć nieużywany import `exchangeTenantToken`
+- Usunąć wywołanie `exchangeSiteToken` z `/sites/[slug]/page.tsx`
+- Usunąć nieużywany import `exchangeSiteToken`
 
 **Status:** ✅ **NAPRAWIONE**
 
@@ -50,7 +50,7 @@ Przeprowadzono pełny audit projektu po refaktoryzacji Platform Panel. Zidentyfi
 **Problem:**
 - Stare globalne strony są nadal dostępne bezpośrednio przez URL
 - Zgodnie z założeniem Platform Panel, te strony powinny być ukryte
-- Te funkcjonalności są dostępne tylko w Site Panel (`/tenant/[slug]/*`)
+- Te funkcjonalności są dostępne tylko w Site Panel (`/site/[slug]/*`)
 
 **Ryzyko:**
 - Mylące dla użytkowników
@@ -120,9 +120,9 @@ Przeprowadzono pełny audit projektu po refaktoryzacji Platform Panel. Zidentyfi
 **Analiza:**
 - ✅ Sidebar pokazuje tylko Platform Panel routes
 - ✅ Dashboard używa Platform Panel routes
-- ✅ Przekierowania `/tenants` → `/sites` działają
-- ✅ Przekierowania `/tenant/new` → `/sites/new` działają
-- ✅ Site Panel routes (`/tenant/*`) są nadal dostępne (dla przyszłości), ale nie są promowane
+- ✅ Przekierowania `/sites` → `/sites` działają
+- ✅ Przekierowania `/site/new` → `/sites/new` działają
+- ✅ Site Panel routes (`/site/*`) są nadal dostępne (dla przyszłości), ale nie są promowane
 
 **Status:** ✅ **SPÓJNE**
 
@@ -130,20 +130,20 @@ Przeprowadzono pełny audit projektu po refaktoryzacji Platform Panel. Zidentyfi
 
 ## 🔧 Wdrożone Poprawki
 
-### Poprawka 1: Usunięcie nieużywanego `exchangeTenantToken` ✅
+### Poprawka 1: Usunięcie nieużywanego `exchangeSiteToken` ✅
 
 **Pliki:** 
 - `apps/admin/src/app/sites/[slug]/page.tsx`
 - `apps/admin/src/app/sites/page.tsx`
-- `apps/admin/src/components/ui/TenantSwitcher.tsx`
+- `apps/admin/src/components/ui/SiteSwitcher.tsx`
 
 **Zmiany:**
-- ✅ Usunięto wywołanie `exchangeTenantToken(site.tenantId)` z Platform Panel routes
-- ✅ Usunięto nieużywane importy `exchangeTenantToken`
+- ✅ Usunięto wywołanie `exchangeSiteToken(site.siteId)` z Platform Panel routes
+- ✅ Usunięto nieużywane importy `exchangeSiteToken`
 - ✅ Zmieniono przycisk "Open Site" na link "View Details" w `/sites/page.tsx`
 - ✅ Usunięto funkcję `onEnter` z `/sites/page.tsx`
 
-**Uzasadnienie:** Platform Panel routes używają global token (`authToken`), nie potrzebują tenant-scoped token exchange.
+**Uzasadnienie:** Platform Panel routes używają global token (`authToken`), nie potrzebują site-scoped token exchange.
 
 ---
 
@@ -191,7 +191,7 @@ Przeprowadzono pełny audit projektu po refaktoryzacji Platform Panel. Zidentyfi
 ## ✅ Rekomendacje
 
 ### Wysoki Priorytet ✅
-1. ✅ Usunąć nieużywane wywołania `exchangeTenantToken` z Platform Panel routes
+1. ✅ Usunąć nieużywane wywołania `exchangeSiteToken` z Platform Panel routes
 2. ✅ Ukryć/przekierować stare globalne strony
 
 ### Średni Priorytet ✅
@@ -210,7 +210,7 @@ Przeprowadzono pełny audit projektu po refaktoryzacji Platform Panel. Zidentyfi
 **✅ KOD JEST GOTOWY DO UŻYCIA** - wszystkie krytyczne problemy zostały naprawione.
 
 ### Podsumowanie zmian:
-- ✅ Usunięto nieużywane wywołania `exchangeTenantToken` z Platform Panel routes
+- ✅ Usunięto nieużywane wywołania `exchangeSiteToken` z Platform Panel routes
 - ✅ Ukryto/przekierowano stare globalne strony (`/collections`, `/media`, `/types`, `/users`, `/settings`)
 - ✅ Opakowano console.error w warunki development w Platform Panel routes
 - ✅ Poprawiono spójność routingu Platform Panel vs Site Panel
@@ -243,7 +243,7 @@ Przeprowadzono pełny audit projektu po refaktoryzacji Platform Panel. Zidentyfi
 ## ✅ Finalne Podsumowanie
 
 ### Naprawione Problemy:
-1. ✅ Usunięto nieużywane wywołania `exchangeTenantToken` (3 pliki)
+1. ✅ Usunięto nieużywane wywołania `exchangeSiteToken` (3 pliki)
 2. ✅ Ukryto/przekierowano stare globalne strony (5 plików)
 3. ✅ Opakowano console.error w warunki development (Platform Panel routes)
 4. ✅ Poprawiono routing i spójność Platform Panel vs Site Panel

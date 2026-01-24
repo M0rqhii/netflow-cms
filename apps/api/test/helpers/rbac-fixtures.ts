@@ -25,7 +25,7 @@ export const RbacFixtures = {
       dnsManage: 'domains.dns.manage',
     },
     hosting: {
-      view: 'hosting.view',
+      view: 'hosting.usage.view',
       deploy: 'hosting.deploy',
       logsView: 'hosting.logs.view',
     },

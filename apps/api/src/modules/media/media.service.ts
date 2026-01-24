@@ -7,6 +7,13 @@ import { Prisma } from '@prisma/client';
 import { SiteEventsService } from '../site-events/site-events.service';
 import { FileValidatorService } from '../../common/security/file-validator.service';
 
+type UploadedFile = {
+  buffer: Buffer;
+  originalname: string;
+  mimetype: string;
+  size: number;
+};
+
 /**
  * Media Service - handles media file operations
  * AI Note: Manages media files (upload, retrieval, deletion)
@@ -31,7 +38,7 @@ export class MediaService {
   async upload(
     siteId: string,
     uploadedById: string,
-    file: Express.Multer.File,
+    file: UploadedFile,
     dto: UploadMediaDto,
   ) {
     // Comprehensive file validation
@@ -61,7 +68,7 @@ export class MediaService {
       file: file.buffer,
       filename: dto.filename || file.originalname,
       contentType: dto.mimeType || file.mimetype,
-      tenantId: siteId, // FileStorage still uses tenantId internally (backward compatibility)
+      siteId: siteId, // FileStorage still uses siteId internally (backward compatibility)
       folder: 'media',
       metadata: {
         ...(dto.metadata || {}),
@@ -103,7 +110,7 @@ export class MediaService {
         uploadedById: true,
         createdAt: true,
         updatedAt: true,
-        // NO tenant/site relation - Site has no access to org data
+        // NO org/site relation - Site has no access to org data
       },
     });
 
@@ -162,7 +169,7 @@ export class MediaService {
           uploadedById: true,
           createdAt: true,
           updatedAt: true,
-          // NO tenant/site relation - Site has no access to org data
+          // NO org/site relation - Site has no access to org data
         },
       }),
       this.prisma.mediaItem.count({ where }),
@@ -230,7 +237,7 @@ export class MediaService {
         uploadedById: true,
         createdAt: true,
         updatedAt: true,
-        // NO tenant/site relation - Site has no access to org data
+        // NO org/site relation - Site has no access to org data
       },
     });
 
@@ -272,7 +279,7 @@ export class MediaService {
         uploadedById: true,
         createdAt: true,
         updatedAt: true,
-        // NO tenant/site relation - Site has no access to org data
+        // NO org/site relation - Site has no access to org data
       },
     });
   }
@@ -293,7 +300,7 @@ export class MediaService {
       try {
         await this.fileStorage.deleteFile({
           key: storageKey,
-          tenantId: siteId, // FileStorage still uses tenantId internally (backward compatibility)
+          siteId: siteId, // FileStorage still uses siteId internally (backward compatibility)
         });
       } catch (error) {
         // Log error but continue with DB deletion

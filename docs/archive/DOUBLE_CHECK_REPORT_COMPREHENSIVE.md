@@ -144,7 +144,7 @@ const { passwordHash: _, ...result } = user;
 - Wszystkie zostały zweryfikowane pod kątem bezpieczeństwa
 
 **Status:**
-- ✅ `tenant-context.middleware.ts` - Bezpieczne (UUID validation przed użyciem)
+- ✅ `site-context.middleware.ts` - Bezpieczne (UUID validation przed użyciem)
 - ✅ `content-entries.service.ts` - Bezpieczne (parametryzowane, walidacja fields)
 - ✅ `search.service.ts` - Naprawione (zobacz #1)
 
@@ -197,7 +197,7 @@ const { passwordHash: _, ...result } = user;
 - ✅ Proper dependency injection
 
 ### Bezpieczeństwo
-- ✅ Multi-tenant isolation przez Row-Level Security
+- ✅ Org/site isolation przez Row-Level Security
 - ✅ JWT authentication z proper validation
 - ✅ RBAC z permissions system
 - ✅ Input validation przez Zod schemas
@@ -287,7 +287,7 @@ const { passwordHash: _, ...result } = user;
 - ✅ SQL injection vulnerabilities naprawione
 - ✅ Input validation przez Zod
 - ✅ Authentication i authorization działają poprawnie
-- ✅ Multi-tenant isolation zweryfikowana
+- ✅ Org/site isolation zweryfikowana
 
 ### Performance
 - ✅ Database queries zoptymalizowane

@@ -63,7 +63,7 @@ export class ElasticsearchService implements OnModuleInit, OnModuleDestroy {
               mappings: {
                 properties: {
                   id: { type: 'keyword' },
-                  tenantId: { type: 'keyword' },
+                  siteId: { type: 'keyword' },
                   data: { type: 'text', analyzer: 'standard' },
                   status: { type: 'keyword' },
                   createdAt: { type: 'date' },
@@ -223,8 +223,8 @@ export class ElasticsearchService implements OnModuleInit, OnModuleDestroy {
       // Add filters
       if (filters) {
         const filterClauses: any[] = [];
-        if (filters.tenantId) {
-          filterClauses.push({ term: { tenantId: filters.tenantId } });
+        if (filters.siteId) {
+          filterClauses.push({ term: { siteId: filters.siteId } });
         }
         if (filters.status) {
           filterClauses.push({ term: { status: filters.status } });

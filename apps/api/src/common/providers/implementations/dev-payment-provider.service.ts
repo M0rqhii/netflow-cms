@@ -21,7 +21,7 @@ export class DevPaymentProvider implements PaymentProvider {
   constructor(private readonly prisma: PrismaService) {}
 
   async createSubscription(params: CreateSubscriptionParams): Promise<SubscriptionResult> {
-    this.logger.log(`[DEV] Creating subscription for tenant ${params.tenantId}, plan: ${params.plan}`);
+    this.logger.log(`[DEV] Creating subscription for organization ${params.orgId}, plan: ${params.plan}`);
 
     const now = new Date();
     const trialDays = params.trialDays ?? 0;
@@ -31,7 +31,7 @@ export class DevPaymentProvider implements PaymentProvider {
     // Create subscription in database
     const subscription = await this.prisma.subscription.create({
       data: {
-        orgId: params.tenantId,
+        orgId: params.orgId,
         plan: params.plan,
         status: 'active',
         currentPeriodStart: now,
@@ -40,8 +40,8 @@ export class DevPaymentProvider implements PaymentProvider {
         trialEnd: trialDays > 0 ? periodEnd : null,
         cancelAtPeriodEnd: false,
         cancelledAt: null,
-        stripeCustomerId: params.customerId || `dev_customer_${params.tenantId}`,
-        stripeSubscriptionId: `dev_sub_${Date.now()}_${params.tenantId}`,
+        stripeCustomerId: params.customerId || `dev_customer_${params.orgId}`,
+        stripeSubscriptionId: `dev_sub_${Date.now()}_${params.orgId}`,
       },
     });
 

@@ -3,7 +3,7 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 
 /**
  * StatsService - provides statistics for the platform
- * AI Note: Returns aggregated counts for tenants, collections, media, and users
+ * AI Note: Returns aggregated counts for organizations, collections, media, and users
  */
 @Injectable()
 export class StatsService {
@@ -13,19 +13,19 @@ export class StatsService {
 
   /**
    * Get quick statistics for the platform
-   * Returns counts of tenants, collections, media files, and users
+   * Returns counts of organizations, collections, media files, and users
    */
   async getQuickStats() {
     try {
-      const [tenants, collections, media, users] = await Promise.all([
-        this.prisma.tenant.count(),
+      const [organizations, collections, media, users] = await Promise.all([
+        this.prisma.organization.count(),
         this.prisma.collection.count(),
         this.prisma.mediaItem.count(),
         this.prisma.user.count(),
       ]);
 
-      // Count active tenants (organizations with at least one user)
-      const activeTenants = await this.prisma.organization.count({
+      // Count active organizations (organizations with at least one user)
+      const activeOrganizations = await this.prisma.organization.count({
         where: {
           users: {
             some: {},
@@ -34,12 +34,12 @@ export class StatsService {
       });
 
       return {
-        tenants,
+        organizations,
         collections,
         media,
         users,
-        active: activeTenants,
-        total: tenants,
+        active: activeOrganizations,
+        total: organizations,
       };
     } catch (error) {
       this.logger.error('Failed to fetch quick stats', error instanceof Error ? error.stack : String(error));
@@ -48,14 +48,14 @@ export class StatsService {
   }
 
   /**
-   * Get tenant-specific statistics
-   * Returns counts of collections and media files for a tenant
+   * Get organization-specific statistics
+   * Returns counts of collections and media files for an organization
    */
-  async getTenantStats(tenantId: string) {
+  async getOrgStats(orgId: string) {
     try {
       const [collections, media] = await Promise.all([
-        this.prisma.collection.count({ where: { siteId: tenantId } }),
-        this.prisma.mediaItem.count({ where: { siteId: tenantId } }),
+        this.prisma.collection.count({ where: { site: { orgId } } }),
+        this.prisma.mediaItem.count({ where: { site: { orgId } } }),
       ]);
 
       return {
@@ -63,7 +63,7 @@ export class StatsService {
         media,
       };
     } catch (error) {
-      this.logger.error('Failed to fetch tenant stats', error instanceof Error ? error.stack : String(error));
+      this.logger.error('Failed to fetch organization stats', error instanceof Error ? error.stack : String(error));
       throw error;
     }
   }

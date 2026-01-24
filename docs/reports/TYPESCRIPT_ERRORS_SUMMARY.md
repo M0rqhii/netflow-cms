@@ -15,7 +15,7 @@ Backend ma 35 błędów TypeScript, które blokują kompilację. Większość to
 1. ✅ `Express.Multer.File` - dodano pełny typ
 2. ✅ `metadata` - obsługa null/undefined
 
-### ✅ Naprawione w `user-tenants.service.ts`:
+### ✅ Naprawione w `user-sites.service.ts`:
 1. ✅ `UnauthorizedException` - usunięto nieużywany import
 
 ## Pozostałe Błędy
@@ -65,7 +65,7 @@ pnpm --filter api dev
 **Naprawione:**
 - ✅ Błędy w `auth.controller.ts`
 - ✅ Błędy w `media.controller.ts` i `media.service.ts`
-- ✅ Błędy w `user-tenants.service.ts`
+- ✅ Błędy w `user-sites.service.ts`
 
 **Pozostałe:**
 - ⚠️ 35 błędów w innych plikach (głównie nieużywane importy)

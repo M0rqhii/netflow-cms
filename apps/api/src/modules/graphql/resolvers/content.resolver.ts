@@ -25,8 +25,8 @@ export class ContentResolver {
   // Placeholder - GraphQL implementation ready when packages are installed
   // @Resolver('Content')
   // @Query(() => [Object], { name: 'contentEntries' })
-  // @UseGuards(AuthGuard, TenantGuard, RolesGuard)
-  // @Roles(Role.VIEWER, Role.EDITOR, Role.TENANT_ADMIN, Role.SUPER_ADMIN)
+  // @UseGuards(AuthGuard, SiteGuard, RolesGuard)
+  // @Roles(Role.VIEWER, Role.EDITOR, Role.ORG_ADMIN, Role.SUPER_ADMIN)
   // async findAll(...) { ... }
 }
 

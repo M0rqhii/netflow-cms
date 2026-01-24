@@ -43,7 +43,7 @@ export class CapabilityGuard implements CanActivate {
       throw new ForbiddenException('User not authenticated');
     }
 
-    const orgId = request.tenantId || user.tenantId;
+    const orgId = request.orgId || user.orgId;
     const siteId = request.params?.siteId || request.body?.siteId || request.query?.siteId;
 
     // Check each required capability

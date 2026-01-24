@@ -99,13 +99,13 @@ Aplikacja używa **App Router** z Next.js 14, który wprowadza:
 /login                        # Publiczna strona logowania
 
 # Site Panel Routes (NA PÓŹNIEJ - nie implementujemy teraz)
-/tenant/[slug]                # Site dashboard (Page Builder)
-/tenant/[slug]/collections    # Zarządzanie kolekcjami
-/tenant/[slug]/collections/[collectionSlug]/items  # Elementy kolekcji
-/tenant/[slug]/content/[contentTypeSlug]  # Wpisy treści
-/tenant/[slug]/media          # Media library
-/tenant/[slug]/pages          # Page Builder (drag & drop)
-/tenant/[slug]/settings       # Ustawienia strony
+/site/[slug]                # Site dashboard (Page Builder)
+/site/[slug]/collections    # Zarządzanie kolekcjami
+/site/[slug]/collections/[collectionSlug]/items  # Elementy kolekcji
+/site/[slug]/content/[contentTypeSlug]  # Wpisy treści
+/site/[slug]/media          # Media library
+/site/[slug]/pages          # Page Builder (drag & drop)
+/site/[slug]/settings       # Ustawienia strony
 ```
 
 ### Token Management
@@ -114,12 +114,12 @@ Aplikacja używa dwóch typów tokenów:
 
 1. **Global Token** (`authToken`) - dla operacji platformowych
    - Przechowywany w `localStorage` jako `authToken`
-   - Używany do: `/dashboard`, `/tenants`, tworzenia tenantów
+   - Używany do: `/dashboard`, `/sites`, tworzenia siteów
 
-2. **Tenant-Scoped Token** (`tenantToken:{tenantId}`) - dla operacji per-tenant
-   - Przechowywany w `localStorage` jako `tenantToken:{tenantId}`
-   - Automatycznie wymieniany z global token przez `/auth/tenant-token`
-   - Używany do wszystkich operacji w kontekście tenant
+2. **Site-Scoped Token** (`siteToken:{siteId}`) - dla operacji per-site
+   - Przechowywany w `localStorage` jako `siteToken:{siteId}`
+   - Automatycznie wymieniany z global token przez `/auth/site-token`
+   - Używany do wszystkich operacji w kontekście site
 
 ---
 
@@ -130,8 +130,8 @@ apps/admin/
 ├── src/
 │   ├── app/                    # Next.js App Router pages
 │   │   ├── dashboard/          # Global Hub
-│   │   ├── tenant/             # Tenant routes
-│   │   │   └── [slug]/         # Dynamic tenant routes
+│   │   ├── site/             # Site routes
+│   │   │   └── [slug]/         # Dynamic site routes
 │   │   ├── login/              # Login page
 │   │   ├── layout.tsx          # Root layout
 │   │   └── globals.css          # Global styles
@@ -195,7 +195,7 @@ Główny wrapper aplikacji, który renderuje:
 ```
 
 #### `Sidebar`
-Boczna nawigacja z menu głównym. Automatycznie pokazuje liczbę tenantów.
+Boczna nawigacja z menu głównym. Automatycznie pokazuje liczbę siteów.
 
 **Funkcje:**
 - Collapsible (zapisywane w localStorage)
@@ -206,7 +206,7 @@ Boczna nawigacja z menu głównym. Automatycznie pokazuje liczbę tenantów.
 
 #### `Topbar`
 Górny pasek z:
-- Tenant switcher
+- Site switcher
 - Language toggle
 - Theme toggle
 - Collapse toggle
@@ -255,60 +255,60 @@ Komponent ochrony tras wymagających autentykacji.
 ### Global Routes
 
 #### `/dashboard`
-Strona główna Hub - lista tenantów użytkownika.
+Strona główna Hub - lista siteów użytkownika.
 
 **Funkcje:**
-- Lista wszystkich tenantów użytkownika
-- Quick stats (liczba tenantów, kolekcji, media, użytkowników)
+- Lista wszystkich siteów użytkownika
+- Quick stats (liczba siteów, kolekcji, media, użytkowników)
 - Recent activity
-- Tenant overview z statystykami
-- Filtrowanie i grupowanie tenantów
-- Pin/unpin tenantów
-- Tworzenie nowego tenant
+- Site overview z statystykami
+- Filtrowanie i grupowanie siteów
+- Pin/unpin siteów
+- Tworzenie nowego site
 
 **Wymagania:**
 - Global token (`authToken`)
 
-#### `/tenants`
-Strona zarządzania tenantami (platform-level).
+#### `/sites`
+Strona zarządzania siteami (platform-level).
 
 **Wymagania:**
 - Global token
 - Platform role: `PLATFORM_ADMIN` lub `PLATFORM_USER`
 
-### Tenant Routes
+### Site Routes
 
-Wszystkie trasy pod `/tenant/[slug]/*` wymagają:
-- Tenant-scoped token
-- Poprawnego `tenantId` w URL
+Wszystkie trasy pod `/site/[slug]/*` wymagają:
+- Site-scoped token
+- Poprawnego `siteId` w URL
 
-#### `/tenant/[slug]`
-Dashboard konkretnego tenant.
+#### `/site/[slug]`
+Dashboard konkretnego site.
 
-#### `/tenant/[slug]/collections`
-Lista kolekcji tenant.
+#### `/site/[slug]/collections`
+Lista kolekcji site.
 
-#### `/tenant/[slug]/collections/[collectionSlug]/items`
+#### `/site/[slug]/collections/[collectionSlug]/items`
 Elementy kolekcji.
 
-#### `/tenant/[slug]/content/[contentTypeSlug]`
+#### `/site/[slug]/content/[contentTypeSlug]`
 Wpisy treści dla typu treści.
 
-#### `/tenant/[slug]/media`
-Media library tenant.
+#### `/site/[slug]/media`
+Media library site.
 
-#### `/tenant/[slug]/users`
-Zarządzanie użytkownikami tenant.
+#### `/site/[slug]/users`
+Zarządzanie użytkownikami site.
 
-#### `/tenant/[slug]/settings`
-Ustawienia tenant.
+#### `/site/[slug]/settings`
+Ustawienia site.
 
 ### Middleware
 
 Middleware (`src/middleware.ts`) obsługuje:
 - Public routes (`/login`, `/`)
-- Global routes (`/dashboard`, `/tenants`)
-- Tenant routes (`/tenant/*`)
+- Global routes (`/dashboard`, `/sites`)
+- Site routes (`/site/*`)
 
 **Uwaga:** Middleware nie sprawdza tokenów w localStorage (to robią komponenty), ale może być rozszerzony o sprawdzanie cookies/headers.
 
@@ -319,9 +319,9 @@ Middleware (`src/middleware.ts`) obsługuje:
 ### Token Flow
 
 1. **Login** → otrzymanie global token
-2. **Dashboard** → użycie global token do pobrania listy tenantów
-3. **Enter Tenant** → wymiana global token na tenant-scoped token
-4. **Tenant Operations** → użycie tenant-scoped token
+2. **Dashboard** → użycie global token do pobrania listy siteów
+3. **Enter Site** → wymiana global token na site-scoped token
+4. **Site Operations** → użycie site-scoped token
 
 ### Funkcje Token Management
 
@@ -332,15 +332,15 @@ Middleware (`src/middleware.ts`) obsługuje:
 getAuthToken(): string | null
 setAuthToken(token: string): void
 
-// Tenant-scoped token
-getTenantToken(tenantId: string): string | null
-setTenantToken(tenantId: string, token: string): void
+// Site-scoped token
+getSiteToken(siteId: string): string | null
+setSiteToken(siteId: string, token: string): void
 
 // Clear all tokens
 clearAuthTokens(): void
 
-// Exchange global token for tenant token
-exchangeTenantToken(tenantId: string): Promise<string>
+// Exchange global token for site token
+exchangeSiteToken(siteId: string): Promise<string>
 ```
 
 ### RBAC (Role-Based Access Control)
@@ -350,10 +350,10 @@ exchangeTenantToken(tenantId: string): Promise<string>
 Funkcje pomocnicze do sprawdzania uprawnień:
 
 ```typescript
-canInvite(role: TenantRole): boolean
-canManageUsers(role: TenantRole): boolean
-canEditContent(role: TenantRole): boolean
-canReviewContent(role: TenantRole): boolean
+canInvite(role: SiteRole): boolean
+canManageUsers(role: SiteRole): boolean
+canEditContent(role: SiteRole): boolean
+canReviewContent(role: SiteRole): boolean
 ```
 
 **Role:**
@@ -378,102 +378,102 @@ Wszystkie funkcje API automatycznie:
 **Lokalizacja:** `src/lib/api.ts`
 
 Wszystkie funkcje API:
-- Używają `ensureTenantToken()` dla operacji tenant
+- Używają `ensureSiteToken()` dla operacji site
 - Używają `getAuthToken()` dla operacji globalnych
 - Automatycznie dodają header `Authorization: Bearer {token}`
-- Automatycznie dodają header `X-Tenant-ID: {tenantId}` dla operacji tenant
+- Automatycznie dodają header `X-Site-ID: {siteId}` dla operacji site
 - Obsługują błędy i przekierowania
 
 ### Główne Kategorie API
 
-#### Tenants
+#### Sites
 ```typescript
-fetchMyTenants(): Promise<TenantInfo[]>
-createTenant(payload): Promise<Tenant>
-exchangeTenantToken(tenantId): Promise<string>
+fetchMySites(): Promise<SiteInfo[]>
+createSite(payload): Promise<Site>
+exchangeSiteToken(siteId): Promise<string>
 ```
 
 #### Collections
 ```typescript
-fetchTenantCollections(tenantId): Promise<CollectionSummary[]>
-getCollection(tenantId, slug): Promise<Collection>
-createCollection(tenantId, payload): Promise<CollectionSummary>
-updateCollection(tenantId, slug, payload): Promise<CollectionSummary>
-deleteCollection(tenantId, slug): Promise<void>
+fetchSiteCollections(siteId): Promise<CollectionSummary[]>
+getCollection(siteId, slug): Promise<Collection>
+createCollection(siteId, payload): Promise<CollectionSummary>
+updateCollection(siteId, slug, payload): Promise<CollectionSummary>
+deleteCollection(siteId, slug): Promise<void>
 ```
 
 #### Collection Items
 ```typescript
-fetchCollectionItems(tenantId, collectionSlug, query?): Promise<{items, total, page, pageSize}>
-getCollectionItem(tenantId, collectionSlug, itemId): Promise<CollectionItem>
-createCollectionItem(tenantId, collectionSlug, payload): Promise<CollectionItem>
-updateCollectionItem(tenantId, collectionSlug, itemId, payload): Promise<CollectionItem>
-deleteCollectionItem(tenantId, collectionSlug, itemId): Promise<void>
+fetchCollectionItems(siteId, collectionSlug, query?): Promise<{items, total, page, pageSize}>
+getCollectionItem(siteId, collectionSlug, itemId): Promise<CollectionItem>
+createCollectionItem(siteId, collectionSlug, payload): Promise<CollectionItem>
+updateCollectionItem(siteId, collectionSlug, itemId, payload): Promise<CollectionItem>
+deleteCollectionItem(siteId, collectionSlug, itemId): Promise<void>
 ```
 
 #### Content Types & Entries
 ```typescript
-fetchTenantTypes(tenantId): Promise<TypeSummary[]>
-getContentType(tenantId, id): Promise<ContentType>
-createType(tenantId, payload): Promise<TypeSummary>
-updateType(tenantId, id, payload): Promise<TypeSummary>
-deleteType(tenantId, id): Promise<void>
+fetchSiteTypes(siteId): Promise<TypeSummary[]>
+getContentType(siteId, id): Promise<ContentType>
+createType(siteId, payload): Promise<TypeSummary>
+updateType(siteId, id, payload): Promise<TypeSummary>
+deleteType(siteId, id): Promise<void>
 
-fetchContentEntries(tenantId, contentTypeSlug, query?): Promise<{entries, total, page, pageSize}>
-getContentEntry(tenantId, contentTypeSlug, entryId): Promise<ContentEntry>
-createContentEntry(tenantId, contentTypeSlug, payload): Promise<ContentEntry>
-updateContentEntry(tenantId, contentTypeSlug, entryId, payload): Promise<ContentEntry>
-deleteContentEntry(tenantId, contentTypeSlug, entryId): Promise<void>
+fetchContentEntries(siteId, contentTypeSlug, query?): Promise<{entries, total, page, pageSize}>
+getContentEntry(siteId, contentTypeSlug, entryId): Promise<ContentEntry>
+createContentEntry(siteId, contentTypeSlug, payload): Promise<ContentEntry>
+updateContentEntry(siteId, contentTypeSlug, entryId, payload): Promise<ContentEntry>
+deleteContentEntry(siteId, contentTypeSlug, entryId): Promise<void>
 ```
 
 #### Content Workflow
 ```typescript
-submitContentForReview(tenantId, contentTypeSlug, entryId): Promise<Review>
-reviewContent(tenantId, contentTypeSlug, entryId, status, comment?): Promise<Review>
-getContentReviewHistory(tenantId, contentTypeSlug, entryId): Promise<Review[]>
-createContentComment(tenantId, contentTypeSlug, entryId, content): Promise<Comment>
-getContentComments(tenantId, contentTypeSlug, entryId, includeResolved?): Promise<Comment[]>
-updateContentComment(tenantId, contentTypeSlug, entryId, commentId, updates): Promise<Comment>
-deleteContentComment(tenantId, contentTypeSlug, entryId, commentId): Promise<void>
+submitContentForReview(siteId, contentTypeSlug, entryId): Promise<Review>
+reviewContent(siteId, contentTypeSlug, entryId, status, comment?): Promise<Review>
+getContentReviewHistory(siteId, contentTypeSlug, entryId): Promise<Review[]>
+createContentComment(siteId, contentTypeSlug, entryId, content): Promise<Comment>
+getContentComments(siteId, contentTypeSlug, entryId, includeResolved?): Promise<Comment[]>
+updateContentComment(siteId, contentTypeSlug, entryId, commentId, updates): Promise<Comment>
+deleteContentComment(siteId, contentTypeSlug, entryId, commentId): Promise<void>
 ```
 
 #### Media
 ```typescript
-fetchTenantMedia(tenantId): Promise<MediaItem[]>
-uploadTenantMedia(tenantId, file): Promise<MediaItem>
-updateMediaItem(tenantId, id, payload): Promise<MediaItem>
-deleteMediaItem(tenantId, id): Promise<void>
+fetchSiteMedia(siteId): Promise<MediaItem[]>
+uploadSiteMedia(siteId, file): Promise<MediaItem>
+updateMediaItem(siteId, id, payload): Promise<MediaItem>
+deleteMediaItem(siteId, id): Promise<void>
 ```
 
 #### Users & Invites
 ```typescript
-fetchTenantUsers(tenantId): Promise<UserSummary[]>
-fetchTenantInvites(tenantId): Promise<InviteSummary[]>
-inviteUser(tenantId, payload): Promise<InviteSummary>
-revokeInvite(tenantId, inviteId): Promise<void>
+fetchSiteUsers(siteId): Promise<UserSummary[]>
+fetchSiteInvites(siteId): Promise<InviteSummary[]>
+inviteUser(siteId, payload): Promise<InviteSummary>
+revokeInvite(siteId, inviteId): Promise<void>
 ```
 
 #### Tasks
 ```typescript
-fetchTenantTasks(tenantId, filters?): Promise<Task[]>
-createTask(tenantId, payload): Promise<Task>
-updateTask(tenantId, id, payload): Promise<Task>
-deleteTask(tenantId, id): Promise<void>
+fetchSiteTasks(siteId, filters?): Promise<Task[]>
+createTask(siteId, payload): Promise<Task>
+updateTask(siteId, id, payload): Promise<Task>
+deleteTask(siteId, id): Promise<void>
 ```
 
 #### Collection Roles
 ```typescript
-fetchCollectionRoles(tenantId, collectionId): Promise<CollectionRole[]>
-assignCollectionRole(tenantId, collectionId, payload): Promise<CollectionRole>
-updateCollectionRole(tenantId, collectionId, userId, payload): Promise<CollectionRole>
-removeCollectionRole(tenantId, collectionId, userId): Promise<void>
+fetchCollectionRoles(siteId, collectionId): Promise<CollectionRole[]>
+assignCollectionRole(siteId, collectionId, payload): Promise<CollectionRole>
+updateCollectionRole(siteId, collectionId, userId, payload): Promise<CollectionRole>
+removeCollectionRole(siteId, collectionId, userId): Promise<void>
 ```
 
 #### Stats & Activity
 ```typescript
 fetchQuickStats(): Promise<QuickStats>
 fetchActivity(limit?): Promise<ActivityItem[]>
-fetchTenantStats(tenantId): Promise<{collections: number, media: number}>
+fetchSiteStats(siteId): Promise<{collections: number, media: number}>
 ```
 
 ### Environment Variables
@@ -499,18 +499,18 @@ Zarządzanie stanem UI (sidebar collapsed, theme, etc.) przez Zustand.
 Funkcje do zarządzania preferencjami użytkownika:
 
 ```typescript
-// Last tenant
-setLastTenantSlug(slug: string): void
-getLastTenantSlug(): string | null
+// Last site
+setLastSiteSlug(slug: string): void
+getLastSiteSlug(): string | null
 
-// Recently used tenants
-getRecentlyUsedTenants(): string[]
-clearRecentlyUsedTenants(): void
+// Recently used sites
+getRecentlyUsedSites(): string[]
+clearRecentlyUsedSites(): void
 
-// Pinned tenants
-getPinnedTenants(): string[]
-togglePinTenant(slug: string): void
-isTenantPinned(slug: string): boolean
+// Pinned sites
+getPinnedSites(): string[]
+togglePinSite(slug: string): void
+isSitePinned(slug: string): boolean
 ```
 
 ### React State
@@ -574,7 +574,7 @@ Wszystkie komponenty UI znajdują się w `src/components/ui/`:
 - `LanguageToggle` - przełącznik języka
 - `Modal` - modal dialog
 - `SearchAndFilters` - wyszukiwarka i filtry
-- `TenantSwitcher` - przełącznik tenant
+- `SiteSwitcher` - przełącznik site
 - `ThemeToggle` - przełącznik motywu
 - `Toast` - powiadomienia toast
 
@@ -647,8 +647,8 @@ export function MyComponent({}: MyComponentProps) {
 
 1. Dodaj funkcję w `src/lib/api.ts`:
 ```typescript
-export async function myApiFunction(tenantId: string, payload: any): Promise<MyType> {
-  const token = await ensureTenantToken(tenantId).catch(() => getAuthToken());
+export async function myApiFunction(siteId: string, payload: any): Promise<MyType> {
+  const token = await ensureSiteToken(siteId).catch(() => getAuthToken());
   if (!token) throw new Error('Missing auth token');
   
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
@@ -657,7 +657,7 @@ export async function myApiFunction(tenantId: string, payload: any): Promise<MyT
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
-      'X-Tenant-ID': tenantId,
+      'X-Site-ID': siteId,
     },
     body: JSON.stringify(payload),
   });
@@ -717,8 +717,8 @@ Zawsze obsługuj błędy API:
 
 ```tsx
 try {
-  const data = await fetchMyTenants();
-  setTenants(data);
+  const data = await fetchMySites();
+  setSites(data);
 } catch (error) {
   const errorMessage = error instanceof Error ? error.message : 'Unknown error';
   setError(errorMessage);
@@ -752,7 +752,7 @@ if (loading) return <LoadingSpinner />;
 
 ### 4. Token Management
 
-- Zawsze używaj `ensureTenantToken()` dla operacji tenant
+- Zawsze używaj `ensureSiteToken()` dla operacji site
 - Zawsze sprawdzaj token przed API call
 - Obsługuj 401 errors i przekierowania
 
@@ -807,13 +807,13 @@ if (loading) return <LoadingSpinner />;
 3. Sprawdź CORS settings w backend
 4. Sprawdź network tab w DevTools
 
-### Problem: Tenant token exchange fails
+### Problem: Site token exchange fails
 
 **Rozwiązanie:**
 1. Sprawdź czy global token jest poprawny
-2. Sprawdź czy `tenantId` jest poprawny
-3. Sprawdź backend logs dla `/auth/tenant-token` endpoint
-4. Sprawdź czy użytkownik ma dostęp do tenant
+2. Sprawdź czy `siteId` jest poprawny
+3. Sprawdź backend logs dla `/auth/site-token` endpoint
+4. Sprawdź czy użytkownik ma dostęp do site
 
 ### Problem: Translations not working
 
@@ -837,78 +837,78 @@ if (loading) return <LoadingSpinner />;
 ### Authentication
 - `getAuthToken()` - pobierz global token
 - `setAuthToken(token)` - ustaw global token
-- `getTenantToken(tenantId)` - pobierz tenant token
-- `setTenantToken(tenantId, token)` - ustaw tenant token
-- `exchangeTenantToken(tenantId)` - wymień global token na tenant token
+- `getSiteToken(siteId)` - pobierz site token
+- `setSiteToken(siteId, token)` - ustaw site token
+- `exchangeSiteToken(siteId)` - wymień global token na site token
 - `clearAuthTokens()` - wyczyść wszystkie tokeny
 
-### Tenants
-- `fetchMyTenants()` - pobierz listę tenantów użytkownika
-- `createTenant(payload)` - utwórz nowy tenant
+### Sites
+- `fetchMySites()` - pobierz listę siteów użytkownika
+- `createSite(payload)` - utwórz nowy site
 
 ### Collections
-- `fetchTenantCollections(tenantId)` - pobierz kolekcje tenant
-- `getCollection(tenantId, slug)` - pobierz kolekcję
-- `createCollection(tenantId, payload)` - utwórz kolekcję
-- `updateCollection(tenantId, slug, payload)` - zaktualizuj kolekcję
-- `deleteCollection(tenantId, slug)` - usuń kolekcję
+- `fetchSiteCollections(siteId)` - pobierz kolekcje site
+- `getCollection(siteId, slug)` - pobierz kolekcję
+- `createCollection(siteId, payload)` - utwórz kolekcję
+- `updateCollection(siteId, slug, payload)` - zaktualizuj kolekcję
+- `deleteCollection(siteId, slug)` - usuń kolekcję
 
 ### Collection Items
-- `fetchCollectionItems(tenantId, collectionSlug, query?)` - pobierz elementy
-- `getCollectionItem(tenantId, collectionSlug, itemId)` - pobierz element
-- `createCollectionItem(tenantId, collectionSlug, payload)` - utwórz element
-- `updateCollectionItem(tenantId, collectionSlug, itemId, payload)` - zaktualizuj element
-- `deleteCollectionItem(tenantId, collectionSlug, itemId)` - usuń element
+- `fetchCollectionItems(siteId, collectionSlug, query?)` - pobierz elementy
+- `getCollectionItem(siteId, collectionSlug, itemId)` - pobierz element
+- `createCollectionItem(siteId, collectionSlug, payload)` - utwórz element
+- `updateCollectionItem(siteId, collectionSlug, itemId, payload)` - zaktualizuj element
+- `deleteCollectionItem(siteId, collectionSlug, itemId)` - usuń element
 
 ### Content Types & Entries
-- `fetchTenantTypes(tenantId)` - pobierz typy treści
-- `getContentType(tenantId, id)` - pobierz typ treści
-- `createType(tenantId, payload)` - utwórz typ treści
-- `updateType(tenantId, id, payload)` - zaktualizuj typ treści
-- `deleteType(tenantId, id)` - usuń typ treści
-- `fetchContentEntries(tenantId, contentTypeSlug, query?)` - pobierz wpisy
-- `getContentEntry(tenantId, contentTypeSlug, entryId)` - pobierz wpis
-- `createContentEntry(tenantId, contentTypeSlug, payload)` - utwórz wpis
-- `updateContentEntry(tenantId, contentTypeSlug, entryId, payload)` - zaktualizuj wpis
-- `deleteContentEntry(tenantId, contentTypeSlug, entryId)` - usuń wpis
+- `fetchSiteTypes(siteId)` - pobierz typy treści
+- `getContentType(siteId, id)` - pobierz typ treści
+- `createType(siteId, payload)` - utwórz typ treści
+- `updateType(siteId, id, payload)` - zaktualizuj typ treści
+- `deleteType(siteId, id)` - usuń typ treści
+- `fetchContentEntries(siteId, contentTypeSlug, query?)` - pobierz wpisy
+- `getContentEntry(siteId, contentTypeSlug, entryId)` - pobierz wpis
+- `createContentEntry(siteId, contentTypeSlug, payload)` - utwórz wpis
+- `updateContentEntry(siteId, contentTypeSlug, entryId, payload)` - zaktualizuj wpis
+- `deleteContentEntry(siteId, contentTypeSlug, entryId)` - usuń wpis
 
 ### Content Workflow
-- `submitContentForReview(tenantId, contentTypeSlug, entryId)` - wyślij do review
-- `reviewContent(tenantId, contentTypeSlug, entryId, status, comment?)` - zrecenzuj
-- `getContentReviewHistory(tenantId, contentTypeSlug, entryId)` - pobierz historię review
-- `createContentComment(tenantId, contentTypeSlug, entryId, content)` - utwórz komentarz
-- `getContentComments(tenantId, contentTypeSlug, entryId, includeResolved?)` - pobierz komentarze
-- `updateContentComment(tenantId, contentTypeSlug, entryId, commentId, updates)` - zaktualizuj komentarz
-- `deleteContentComment(tenantId, contentTypeSlug, entryId, commentId)` - usuń komentarz
+- `submitContentForReview(siteId, contentTypeSlug, entryId)` - wyślij do review
+- `reviewContent(siteId, contentTypeSlug, entryId, status, comment?)` - zrecenzuj
+- `getContentReviewHistory(siteId, contentTypeSlug, entryId)` - pobierz historię review
+- `createContentComment(siteId, contentTypeSlug, entryId, content)` - utwórz komentarz
+- `getContentComments(siteId, contentTypeSlug, entryId, includeResolved?)` - pobierz komentarze
+- `updateContentComment(siteId, contentTypeSlug, entryId, commentId, updates)` - zaktualizuj komentarz
+- `deleteContentComment(siteId, contentTypeSlug, entryId, commentId)` - usuń komentarz
 
 ### Media
-- `fetchTenantMedia(tenantId)` - pobierz media
-- `uploadTenantMedia(tenantId, file)` - prześlij plik
-- `updateMediaItem(tenantId, id, payload)` - zaktualizuj media
-- `deleteMediaItem(tenantId, id)` - usuń media
+- `fetchSiteMedia(siteId)` - pobierz media
+- `uploadSiteMedia(siteId, file)` - prześlij plik
+- `updateMediaItem(siteId, id, payload)` - zaktualizuj media
+- `deleteMediaItem(siteId, id)` - usuń media
 
 ### Users & Invites
-- `fetchTenantUsers(tenantId)` - pobierz użytkowników
-- `fetchTenantInvites(tenantId)` - pobierz zaproszenia
-- `inviteUser(tenantId, payload)` - zaproś użytkownika
-- `revokeInvite(tenantId, inviteId)` - anuluj zaproszenie
+- `fetchSiteUsers(siteId)` - pobierz użytkowników
+- `fetchSiteInvites(siteId)` - pobierz zaproszenia
+- `inviteUser(siteId, payload)` - zaproś użytkownika
+- `revokeInvite(siteId, inviteId)` - anuluj zaproszenie
 
 ### Tasks
-- `fetchTenantTasks(tenantId, filters?)` - pobierz zadania
-- `createTask(tenantId, payload)` - utwórz zadanie
-- `updateTask(tenantId, id, payload)` - zaktualizuj zadanie
-- `deleteTask(tenantId, id)` - usuń zadanie
+- `fetchSiteTasks(siteId, filters?)` - pobierz zadania
+- `createTask(siteId, payload)` - utwórz zadanie
+- `updateTask(siteId, id, payload)` - zaktualizuj zadanie
+- `deleteTask(siteId, id)` - usuń zadanie
 
 ### Collection Roles
-- `fetchCollectionRoles(tenantId, collectionId)` - pobierz role kolekcji
-- `assignCollectionRole(tenantId, collectionId, payload)` - przypisz rolę
-- `updateCollectionRole(tenantId, collectionId, userId, payload)` - zaktualizuj rolę
-- `removeCollectionRole(tenantId, collectionId, userId)` - usuń rolę
+- `fetchCollectionRoles(siteId, collectionId)` - pobierz role kolekcji
+- `assignCollectionRole(siteId, collectionId, payload)` - przypisz rolę
+- `updateCollectionRole(siteId, collectionId, userId, payload)` - zaktualizuj rolę
+- `removeCollectionRole(siteId, collectionId, userId)` - usuń rolę
 
 ### Stats & Activity
 - `fetchQuickStats()` - pobierz quick stats
 - `fetchActivity(limit?)` - pobierz aktywność
-- `fetchTenantStats(tenantId)` - pobierz statystyki tenant
+- `fetchSiteStats(siteId)` - pobierz statystyki site
 
 ---
 

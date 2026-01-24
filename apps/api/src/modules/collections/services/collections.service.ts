@@ -57,17 +57,37 @@ export class CollectionsService {
       throw e;
     }
   }
+  async list(siteId: string, query: { page?: number; pageSize?: number; sort?: string }) {
+    const page = query.page || 1;
+    const pageSize = Math.min(query.pageSize || 50, 100);
+    const sort = (query.sort || '').trim();
 
-  async list(siteId: string) {
-    const cacheKey = `collections:${siteId}:list`;
+    const cacheKey = `collections:${siteId}:list:${page}:${pageSize}:${sort || 'default'}`;
     const cached = await this.cache.get(cacheKey);
     if (cached) {
       return cached;
     }
 
+    const orderBy: Array<Record<string, 'asc' | 'desc'>> = [];
+    if (sort) {
+      sort.split(',').forEach((field: string) => {
+        const desc = field.startsWith('-');
+        const fieldName = desc ? field.slice(1) : field;
+        const validFields = ['createdAt', 'updatedAt', 'name', 'slug'];
+        if (validFields.includes(fieldName)) {
+          orderBy.push({ [fieldName]: desc ? 'desc' : 'asc' });
+        }
+      });
+    }
+    if (orderBy.length === 0) {
+      orderBy.push({ createdAt: 'desc' });
+    }
+
     const result = await this.prisma.collection.findMany({
       where: { siteId },
-      orderBy: { createdAt: 'desc' },
+      orderBy,
+      skip: (page - 1) * pageSize,
+      take: pageSize,
       select: {
         id: true,
         siteId: true,
@@ -184,3 +204,5 @@ export class CollectionsService {
     return { ok: true };
   }
 }
+
+

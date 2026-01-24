@@ -4,7 +4,7 @@ import { validate } from './common/config/env.validation';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { RoleBasedThrottlerGuard } from './common/throttler/role-based-throttler.guard';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
-import { TenantModule } from './common/tenant/tenant.module';
+import { OrgSiteModule } from './common/org-site/org-site.module';
 import { AuthModule as CommonAuthModule } from './common/auth/auth.module';
 import { AuditModule } from './common/audit/audit.module';
 import { CacheModule } from './common/cache/cache.module';
@@ -17,8 +17,6 @@ import { SaasModule } from './common/saas/saas.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { CollectionsModule } from './modules/collections/collections.module';
 import { UsersModule } from './modules/users/users.module';
-import { UserTenantsModule } from './modules/user-tenants/user-tenants.module';
-import { TenantsModule } from './modules/tenants/tenants.module';
 import { ContentTypesModule } from './modules/content-types/content-types.module';
 import { ContentEntriesModule } from './modules/content-entries/content-entries.module';
 import { ContentWorkflowModule } from './modules/content-workflow/content-workflow.module';
@@ -45,6 +43,8 @@ import { SnapshotsModule } from './modules/snapshots/snapshots.module';
 import { RbacModule } from './modules/rbac/rbac.module';
 import { MarketingModule } from './modules/marketing/marketing.module';
 import { OrgDashboardModule } from './modules/org-dashboard/org-dashboard.module';
+import { OrganizationsModule } from './modules/organizations/organizations.module';
+import { SitesModule } from './modules/sites/sites.module';
 import { HealthController } from './health.controller';
 import { PrismaService } from './common/prisma/prisma.service';
 import { ProvidersModule } from './common/providers/providers.module';
@@ -72,7 +72,7 @@ const isProductionProfile = (process.env.APP_PROFILE || process.env.NODE_ENV || 
       limit: 100, // 100 requests per minute (default, overridden by RoleBasedThrottlerGuard)
       storage: undefined, // Uses default in-memory storage, can be Redis for distributed systems
     }),
-    TenantModule,
+    OrgSiteModule,
     CommonAuthModule,
     AuditModule,
     MonitoringModule,
@@ -85,8 +85,6 @@ const isProductionProfile = (process.env.APP_PROFILE || process.env.NODE_ENV || 
     AuthModule,
     CollectionsModule,
     UsersModule,
-    UserTenantsModule,
-    TenantsModule,
     ContentTypesModule,
     ContentEntriesModule,
     ContentWorkflowModule,
@@ -112,6 +110,7 @@ const isProductionProfile = (process.env.APP_PROFILE || process.env.NODE_ENV || 
     RbacModule,
     MarketingModule,
     OrgDashboardModule,
+    SitesModule,
     ...(isProductionProfile ? [] : [DevModule]),
     // Add feature modules here
     // ContentModule,

@@ -4,13 +4,14 @@ export enum AuditEvent {
   // Authentication
   GLOBAL_LOGIN = 'global.login',
   GLOBAL_LOGOUT = 'global.logout',
-  TENANT_TOKEN_EXCHANGE = 'tenant.token.exchange',
+  ORG_TOKEN_EXCHANGE = 'org.token.exchange',
+  SITE_TOKEN_EXCHANGE = 'site.token.exchange',
   
-  // Tenant Operations
-  TENANT_SWITCH = 'tenant.switch',
-  TENANT_CREATE = 'tenant.create',
-  TENANT_UPDATE = 'tenant.update',
-  TENANT_DELETE = 'tenant.delete',
+  // Organization Operations
+  ORG_SWITCH = 'org.switch',
+  ORG_CREATE = 'org.create',
+  ORG_UPDATE = 'org.update',
+  ORG_DELETE = 'org.delete',
   
   // User Management
   USER_INVITE = 'user.invite',
@@ -19,13 +20,14 @@ export enum AuditEvent {
   
   // Access
   HUB_ACCESS = 'hub.access',
-  TENANT_CMS_ACCESS = 'tenant.cms.access',
+  SITE_CMS_ACCESS = 'site.cms.access',
 }
 
 export interface AuditLogData {
   event: AuditEvent;
   userId: string;
-  tenantId?: string | null;
+  orgId?: string | null;
+  siteId?: string | null;
   metadata?: {
     ip?: string;
     userAgent?: string;
@@ -51,7 +53,8 @@ export class AuditService {
     const logEntry = {
       event: data.event,
       userId: data.userId,
-      tenantId: data.tenantId || null,
+      orgId: data.orgId || null,
+      siteId: data.siteId || null,
       metadata: data.metadata || {},
       timestamp: new Date(),
     };
@@ -65,7 +68,8 @@ export class AuditService {
 
   async queryLogs(_filters: {
     userId?: string;
-    tenantId?: string;
+    orgId?: string;
+    siteId?: string;
     event?: AuditEvent;
     startDate?: Date;
     endDate?: Date;

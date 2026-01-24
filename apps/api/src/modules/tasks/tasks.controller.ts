@@ -76,7 +76,7 @@ export class TasksController {
   }
 
   @Delete(':id')
-  @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.ORG_ADMIN, Role.SUPER_ADMIN)
   @Permissions(Permission.CONTENT_DELETE)
   @HttpCode(HttpStatus.NO_CONTENT)
   delete(

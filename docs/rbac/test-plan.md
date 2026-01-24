@@ -195,7 +195,7 @@ This document outlines the integration test plan for the RBAC (Role-Based Access
 
 ### Test Environment
 - Isolated test database
-- Test fixtures for tenants, users, roles
+- Test fixtures for sites, users, roles
 - Cleanup after each test suite
 
 ### Test Structure

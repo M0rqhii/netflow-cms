@@ -1,6 +1,10 @@
-import { Injectable, NotFoundException, ForbiddenException, ConflictException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, ConflictException, BadRequestException, Inject, Optional, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { Role } from '../../common/auth/roles.enum';
+import { AuditService, AuditEvent } from '../../common/audit/audit.service';
+import { Mailer } from '../../common/providers/interfaces';
+import { randomBytes } from 'crypto';
 import * as bcrypt from 'bcrypt';
 
 /**
@@ -9,7 +13,54 @@ import * as bcrypt from 'bcrypt';
  */
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(UsersService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional() @Inject('Mailer') private readonly mailer?: Mailer,
+    @Optional() private readonly configService?: ConfigService,
+    @Optional() private readonly auditService?: AuditService,
+  ) {}
+
+  private normalizeInviteRole(role: string): string {
+    const normalized = role === 'site_admin' ? Role.ORG_ADMIN : role;
+    const allowed = [Role.ORG_ADMIN, Role.EDITOR, Role.VIEWER];
+    if (!allowed.includes(normalized as Role)) {
+      throw new BadRequestException(`Invalid role. Must be one of: ${allowed.join(', ')}`);
+    }
+    return normalized;
+  }
+
+  private getInviteTtlMs(): number {
+    const ttlRaw =
+      this.configService?.get<string>('INVITE_TTL_DAYS') ||
+      process.env.INVITE_TTL_DAYS;
+    const ttlDays = ttlRaw ? Number(ttlRaw) : 7;
+    const safeDays = Number.isFinite(ttlDays) && ttlDays > 0 ? ttlDays : 7;
+    return safeDays * 24 * 60 * 60 * 1000;
+  }
+
+  private buildInviteLink(token: string): string {
+    const baseUrl =
+      this.configService?.get<string>('FRONTEND_URL') ||
+      process.env.FRONTEND_URL ||
+      process.env.NEXT_PUBLIC_APP_URL ||
+      'http://localhost:3000';
+    return `${baseUrl.replace(/\/$/, '')}/invite/${token}`;
+  }
+
+  private async ensureSiteInOrg(orgId: string, siteId: string) {
+    const site = await this.prisma.site.findFirst({
+      where: { id: siteId, orgId },
+      select: { id: true, name: true, slug: true, orgId: true },
+    });
+
+    if (!site) {
+      throw new NotFoundException('Site not found');
+    }
+
+    return site;
+  }
 
   /**
    * Get current user information
@@ -47,19 +98,19 @@ export class UsersService {
   }
 
   /**
-   * List users in a tenant (only for admins)
+   * List users in an organization (only for admins)
    */
-  async listUsers(tenantId: string, requestingUserRole: string) {
-    // Only tenant_admin and super_admin can list users
+  async listUsers(orgId: string, requestingUserRole: string) {
+    // Only org admins (org_admin role) and super_admin can list users
     if (
-      requestingUserRole !== Role.TENANT_ADMIN &&
+      requestingUserRole !== Role.ORG_ADMIN &&
       requestingUserRole !== Role.SUPER_ADMIN
     ) {
       throw new ForbiddenException('Insufficient permissions to list users');
     }
 
     const users = await this.prisma.user.findMany({
-      where: { orgId: tenantId },
+      where: { orgId: orgId },
       select: {
         id: true,
         email: true,
@@ -74,12 +125,36 @@ export class UsersService {
   }
 
   /**
+   * List pending invites for a site (admin only)
+   */
+  async listInvites(orgId: string, siteId: string) {
+    await this.ensureSiteInOrg(orgId, siteId);
+    const now = new Date();
+    return this.prisma.userInvite.findMany({
+      where: {
+        orgId,
+        siteId,
+        status: 'pending',
+        expiresAt: { gt: now },
+      },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        createdAt: true,
+        expiresAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  /**
    * Get user by ID (only for admins)
    */
-  async getUserById(userId: string, tenantId: string, requestingUserRole: string) {
-    // Only tenant_admin and super_admin can view user details
+  async getUserById(userId: string, orgId: string, requestingUserRole: string) {
+    // Only org admins (org_admin role) and super_admin can view user details
     if (
-      requestingUserRole !== Role.TENANT_ADMIN &&
+      requestingUserRole !== Role.ORG_ADMIN &&
       requestingUserRole !== Role.SUPER_ADMIN
     ) {
       throw new ForbiddenException('Insufficient permissions to view user');
@@ -88,7 +163,7 @@ export class UsersService {
     const user = await this.prisma.user.findFirst({
       where: {
         id: userId,
-        orgId: tenantId, // Ensure user belongs to the same organization
+        orgId: orgId, // Ensure user belongs to the same organization
       },
       select: {
         id: true,
@@ -138,34 +213,40 @@ export class UsersService {
    * Security: Only super_admin can create super_admin users
    */
   async createUser(
-    tenantId: string,
+    orgId: string,
     dto: { email: string; password: string; role: string; preferredLanguage?: 'pl' | 'en' },
     requestingUserRole: string,
   ) {
-    // Only tenant_admin and super_admin can create users
+    // Only org admins (org_admin role) and super_admin can create users
     if (
-      requestingUserRole !== Role.TENANT_ADMIN &&
+      requestingUserRole !== Role.ORG_ADMIN &&
       requestingUserRole !== Role.SUPER_ADMIN
     ) {
       throw new ForbiddenException('Insufficient permissions to create users');
     }
 
+    const normalizedRole = dto.role === 'site_admin' ? Role.ORG_ADMIN : dto.role;
+
     // Security: Only super_admin can create super_admin users
-    if (dto.role === Role.SUPER_ADMIN && requestingUserRole !== Role.SUPER_ADMIN) {
+    if (normalizedRole === Role.SUPER_ADMIN && requestingUserRole !== Role.SUPER_ADMIN) {
       throw new ForbiddenException('Only super_admin can create super_admin users');
     }
 
     // Validate role
-    const validRoles = [Role.SUPER_ADMIN, Role.TENANT_ADMIN, Role.EDITOR, Role.VIEWER];
-    if (!validRoles.includes(dto.role as Role)) {
+    const validRoles = [Role.SUPER_ADMIN, Role.ORG_ADMIN, Role.EDITOR, Role.VIEWER];
+    if (!validRoles.includes(normalizedRole as Role)) {
       throw new BadRequestException(`Invalid role. Must be one of: ${validRoles.join(', ')}`);
     }
+
+    const siteRole = normalizedRole === Role.ORG_ADMIN ? 'admin' : normalizedRole === Role.EDITOR ? 'editor' : 'viewer';
+    const platformRole = normalizedRole === Role.SUPER_ADMIN || normalizedRole === Role.ORG_ADMIN ? 'admin' : 'user';
+    const isSuperAdmin = normalizedRole === Role.SUPER_ADMIN;
 
     // Check if user already exists
     const existingUser = await this.prisma.user.findUnique({
       where: {
         orgId_email: {
-          orgId: tenantId,
+          orgId: orgId,
           email: dto.email,
         },
       },
@@ -177,7 +258,7 @@ export class UsersService {
 
     // Check if organization exists
     const organization = await this.prisma.organization.findUnique({
-      where: { id: tenantId },
+      where: { id: orgId },
     });
 
     if (!organization) {
@@ -192,8 +273,11 @@ export class UsersService {
       data: {
         email: dto.email,
         passwordHash,
-        orgId: tenantId,
-        role: dto.role,
+        orgId: orgId,
+        role: normalizedRole,
+        siteRole,
+        platformRole,
+        isSuperAdmin,
         preferredLanguage: dto.preferredLanguage || 'en',
       },
       select: {
@@ -205,7 +289,130 @@ export class UsersService {
       },
     });
 
+    await this.prisma.userOrg.upsert({
+      where: { userId_orgId: { userId: user.id, orgId } },
+      update: { role: normalizedRole },
+      create: { userId: user.id, orgId, role: normalizedRole },
+    });
+
     return user;
+  }
+
+  /**
+   * Create a new invite for a user (admin only)
+   */
+  async createInvite(
+    orgId: string,
+    siteId: string,
+    dto: { email: string; role: string },
+    invitedById: string,
+  ) {
+    const site = await this.ensureSiteInOrg(orgId, siteId);
+    const email = dto.email.trim().toLowerCase();
+    const role = this.normalizeInviteRole(dto.role);
+
+    const existingUser = await this.prisma.user.findUnique({
+      where: {
+        orgId_email: {
+          orgId,
+          email,
+        },
+      },
+    });
+
+    if (existingUser) {
+      throw new ConflictException('User with this email already exists');
+    }
+
+    const existingInvite = await this.prisma.userInvite.findFirst({
+      where: {
+        orgId,
+        siteId,
+        email,
+        status: 'pending',
+        expiresAt: { gt: new Date() },
+      },
+      select: { id: true },
+    });
+
+    if (existingInvite) {
+      throw new ConflictException('Invite already sent for this email');
+    }
+
+    const token = randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + this.getInviteTtlMs());
+
+    const invite = await this.prisma.userInvite.create({
+      data: {
+        orgId,
+        siteId,
+        email,
+        role,
+        token,
+        status: 'pending',
+        invitedById,
+        expiresAt,
+      },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        createdAt: true,
+        expiresAt: true,
+      },
+    });
+
+    const organization = await this.prisma.organization.findUnique({
+      where: { id: orgId },
+      select: { name: true, slug: true },
+    });
+
+    const inviteLink = this.buildInviteLink(token);
+    const subject = `You're invited to ${organization?.name || 'an organization'} on Netflow CMS`;
+    const body = [
+      `You've been invited to join ${organization?.name || 'an organization'} on Netflow CMS.`,
+      site?.name ? `Site: ${site.name}` : undefined,
+      '',
+      `Accept your invite: ${inviteLink}`,
+      '',
+      `This invite expires on ${expiresAt.toISOString()}.`,
+    ]
+      .filter(Boolean)
+      .join('\n');
+
+    if (this.mailer) {
+      await this.mailer.sendEmail({
+        to: email,
+        subject,
+        body,
+        metadata: {
+          orgId,
+          siteId,
+          inviteId: invite.id,
+          orgSlug: organization?.slug,
+          siteSlug: site?.slug,
+        },
+      });
+    } else {
+      this.logger.warn(`Mailer not configured; invite email for ${email} not sent`);
+    }
+
+    if (this.auditService) {
+      await this.auditService.log({
+        event: AuditEvent.USER_INVITE,
+        userId: invitedById,
+        orgId,
+        siteId,
+        metadata: {
+          inviteId: invite.id,
+          email,
+          role,
+          action: 'create',
+        },
+      });
+    }
+
+    return invite;
   }
 
   /**
@@ -214,26 +421,28 @@ export class UsersService {
    */
   async updateUserRole(
     userId: string,
-    tenantId: string,
+    orgId: string,
     newRole: string,
     requestingUserRole: string,
   ) {
-    // Only tenant_admin and super_admin can update user roles
+    // Only org admins (org_admin role) and super_admin can update user roles
     if (
-      requestingUserRole !== Role.TENANT_ADMIN &&
+      requestingUserRole !== Role.ORG_ADMIN &&
       requestingUserRole !== Role.SUPER_ADMIN
     ) {
       throw new ForbiddenException('Insufficient permissions to update user roles');
     }
 
+    const normalizedRole = newRole === 'site_admin' ? Role.ORG_ADMIN : newRole;
+
     // Security: Only super_admin can assign super_admin role
-    if (newRole === Role.SUPER_ADMIN && requestingUserRole !== Role.SUPER_ADMIN) {
+    if (normalizedRole === Role.SUPER_ADMIN && requestingUserRole !== Role.SUPER_ADMIN) {
       throw new ForbiddenException('Only super_admin can assign super_admin role');
     }
 
     // Validate role
-    const validRoles = [Role.SUPER_ADMIN, Role.TENANT_ADMIN, Role.EDITOR, Role.VIEWER];
-    if (!validRoles.includes(newRole as Role)) {
+    const validRoles = [Role.SUPER_ADMIN, Role.ORG_ADMIN, Role.EDITOR, Role.VIEWER];
+    if (!validRoles.includes(normalizedRole as Role)) {
       throw new BadRequestException(`Invalid role. Must be one of: ${validRoles.join(', ')}`);
     }
 
@@ -241,7 +450,7 @@ export class UsersService {
     const user = await this.prisma.user.findFirst({
       where: {
         id: userId,
-        orgId: tenantId,
+        orgId: orgId,
       },
     });
 
@@ -254,20 +463,24 @@ export class UsersService {
       // Check if this is the last super_admin in the organization
       const superAdminCount = await this.prisma.user.count({
         where: {
-          orgId: tenantId,
+          orgId: orgId,
           role: Role.SUPER_ADMIN,
         },
       });
 
       if (superAdminCount === 1) {
-        throw new BadRequestException('Cannot remove the last super_admin from tenant');
+        throw new BadRequestException('Cannot remove the last super_admin from organization');
       }
     }
+
+    const siteRole = normalizedRole === Role.ORG_ADMIN ? 'admin' : normalizedRole === Role.EDITOR ? 'editor' : 'viewer';
+    const platformRole = normalizedRole === Role.SUPER_ADMIN || normalizedRole === Role.ORG_ADMIN ? 'admin' : 'user';
+    const isSuperAdmin = normalizedRole === Role.SUPER_ADMIN;
 
     // Update user role
     const updatedUser = await this.prisma.user.update({
       where: { id: userId },
-      data: { role: newRole },
+      data: { role: normalizedRole, siteRole, platformRole, isSuperAdmin },
       select: {
         id: true,
         email: true,
@@ -276,8 +489,55 @@ export class UsersService {
       },
     });
 
+    await this.prisma.userOrg.upsert({
+      where: { userId_orgId: { userId, orgId } },
+      update: { role: normalizedRole },
+      create: { userId, orgId, role: normalizedRole },
+    });
+
     return updatedUser;
   }
+
+  /**
+   * Revoke a pending invite (admin only)
+   */
+  async revokeInvite(
+    orgId: string,
+    siteId: string,
+    inviteId: string,
+    revokedById: string,
+  ) {
+    await this.ensureSiteInOrg(orgId, siteId);
+    const invite = await this.prisma.userInvite.findFirst({
+      where: { id: inviteId, orgId, siteId },
+      select: { id: true, email: true, role: true },
+    });
+
+    if (!invite) {
+      throw new NotFoundException('Invite not found');
+    }
+
+    await this.prisma.userInvite.update({
+      where: { id: inviteId },
+      data: { status: 'revoked' },
+    });
+
+    if (this.auditService) {
+      await this.auditService.log({
+        event: AuditEvent.USER_INVITE,
+        userId: revokedById,
+        orgId,
+        siteId,
+        metadata: {
+          inviteId,
+          email: invite.email,
+          role: invite.role,
+          action: 'revoke',
+        },
+      });
+    }
+  }
+
 }
 
 

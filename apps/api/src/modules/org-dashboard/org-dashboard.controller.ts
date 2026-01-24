@@ -1,6 +1,6 @@
 import { Controller, Get, Param, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '../../common/auth/guards/auth.guard';
-import { TenantGuard } from '../../common/tenant/tenant.guard';
+import { OrgGuard } from '../../common/org-site/org.guard';
 import { CurrentUser } from '../../common/auth/decorators/current-user.decorator';
 import { CurrentUserPayload } from '../../common/auth/decorators/current-user.decorator';
 import { OrgDashboardService } from './org-dashboard.service';
@@ -10,7 +10,7 @@ import { OrgDashboardService } from './org-dashboard.service';
  * 
  * Provides dashboard data for organization with role-based filtering
  */
-@UseGuards(AuthGuard, TenantGuard)
+@UseGuards(AuthGuard, OrgGuard)
 @Controller('orgs/:orgId/dashboard')
 export class OrgDashboardController {
   constructor(private readonly dashboardService: OrgDashboardService) {}

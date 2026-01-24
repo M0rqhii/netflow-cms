@@ -6,7 +6,7 @@ Backend działał na porcie 4000, ale nie odpowiadał na żądania HTTP. Błędy
 ## Naprawione Błędy
 
 ### 1. ✅ Błędne ścieżki importów
-- `hooks.controller.ts` - poprawiono ścieżkę do `CurrentTenant` decorator
+- `hooks.controller.ts` - poprawiono ścieżkę do `CurrentSite` decorator
 - `hooks.module.ts` - zastąpiono nieistniejący `PrismaModule` przez `PrismaService`
 - `content-versioning.module.ts` - zastąpiono nieistniejący `PrismaModule` przez `PrismaService`
 

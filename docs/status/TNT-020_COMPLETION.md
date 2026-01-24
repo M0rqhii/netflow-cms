@@ -19,12 +19,12 @@ Zadanie TNT-020 zostało ukończone. Przygotowano kompletną dokumentację archi
 **Plik:** `docs/TNT-020_ARCHITECTURE_UX.md`
 
 Dokument zawiera:
-- ✅ Architekturę przepływów (Global Login → Hub → Tenant Switch)
+- ✅ Architekturę przepływów (Global Login → Hub → Site Switch)
 - ✅ Szczegółowe przepływy autentykacji
 - ✅ UX Mockups/Wireframes dla:
   - Global Login Page
   - Platform Hub Dashboard
-  - Tenant Switcher (future)
+  - Site Switcher (future)
   - Invite User Modal (roadmap)
 - ✅ Specyfikację techniczną endpointów API
 - ✅ Middleware i Guardy
@@ -37,24 +37,24 @@ Dokument zawiera:
 
 ## Completed Tasks
 
-### ✅ Makiety UX (Dashboard, tenant switcher, zaproszenia)
+### ✅ Makiety UX (Dashboard, site switcher, zaproszenia)
 - Utworzono wireframes w formacie ASCII dla wszystkich kluczowych ekranów
 - Zdefiniowano layout i elementy interfejsu
 - Określono kluczowe elementy każdego ekranu
-- Przygotowano mockups dla funkcji roadmap (invite modal, tenant switcher)
+- Przygotowano mockups dla funkcji roadmap (invite modal, site switcher)
 
-### ✅ Spec. przepływów: global login → Hub → switch do tenant (bez pon. logowania)
+### ✅ Spec. przepływów: global login → Hub → switch do site (bez pon. logowania)
 - Szczegółowo opisano przepływ autentykacji:
-  - Global Login (bez tenantId)
-  - Platform Hub (lista tenantów)
-  - Tenant Token Exchange (bez ponownego logowania)
+  - Global Login (bez siteId)
+  - Platform Hub (lista siteów)
+  - Site Token Exchange (bez ponownego logowania)
 - Zdefiniowano endpointy API:
   - `POST /api/v1/auth/login` (global)
-  - `GET /api/v1/me/tenants` (lista tenantów)
-  - `POST /api/v1/auth/tenant-token` (exchange)
+  - `GET /api/v1/me/sites` (lista siteów)
+  - `POST /api/v1/auth/site-token` (exchange)
 - Określono strategię tokenów:
-  - Global token (7d, bez tenantId)
-  - Tenant token (1h, z tenantId)
+  - Global token (7d, bez siteId)
+  - Site token (1h, z siteId)
 - Zdefiniowano middleware i guardy dla frontend i backend
 
 ### ✅ Polityki bezpieczeństwa (CSRF, uprawnienia, audyt)
@@ -65,7 +65,7 @@ Dokument zawiera:
   - Implementacja dla backend i frontend
 - **Uprawnienia:**
   - Definicja ról platformowych (platform_admin, org_owner, user)
-  - Definicja ról per-tenant (admin, editor, viewer)
+  - Definicja ról per-site (admin, editor, viewer)
   - Permission matrix dla wszystkich operacji
   - Guards implementation
 - **Audit Logging:**
@@ -76,7 +76,7 @@ Dokument zawiera:
   - Limity dla kluczowych endpointów
   - Implementation strategy
 - **Token Security:**
-  - Specyfikacja global vs tenant tokenów
+  - Specyfikacja global vs site tokenów
   - Token validation strategy
 
 ---
@@ -84,18 +84,18 @@ Dokument zawiera:
 ## Acceptance Criteria
 
 ### ✅ Spójny UX z minimalnym tarciem (SSO między poziomami)
-- Zdefiniowano seamless flow między global login → Hub → tenant switch
-- Brak potrzeby ponownego logowania przy przełączaniu tenantów
-- Automatyczny refresh tenant tokenu przy wygaśnięciu
+- Zdefiniowano seamless flow między global login → Hub → site switch
+- Brak potrzeby ponownego logowania przy przełączaniu siteów
+- Automatyczny refresh site tokenu przy wygaśnięciu
 - Seamless experience dla użytkownika
 
 ### ✅ Zdefiniowane ekrany i scenariusze
 - Wszystkie kluczowe ekrany zdefiniowane z wireframes
 - 4 główne scenariusze użytkownika opisane:
   1. Pierwsze logowanie
-  2. Przełączanie między tenantami
-  3. Wygaśnięcie tenant tokenu
-  4. Platform Admin tworzy tenant
+  2. Przełączanie między siteami
+  3. Wygaśnięcie site tokenu
+  4. Platform Admin tworzy site
 - Dodatkowe scenariusze dla roadmap (invite, manage)
 
 ---
@@ -103,18 +103,18 @@ Dokument zawiera:
 ## Technical Specifications
 
 ### API Endpoints
-- `POST /api/v1/auth/login` - Global login (bez tenantId)
-- `GET /api/v1/me/tenants` - Lista tenantów użytkownika
-- `POST /api/v1/auth/tenant-token` - Exchange global token na tenant token
+- `POST /api/v1/auth/login` - Global login (bez siteId)
+- `GET /api/v1/me/sites` - Lista siteów użytkownika
+- `POST /api/v1/auth/site-token` - Exchange global token na site token
 
 ### Token Strategy
-- **Global Token:** 7 dni, bez tenantId, dostęp do Hub
-- **Tenant Token:** 1 godzina, z tenantId, dostęp do tenant CMS
-- **Storage:** localStorage (global) i per-tenant (tenantToken:{tenantId})
+- **Global Token:** 7 dni, bez siteId, dostęp do Hub
+- **Site Token:** 1 godzina, z siteId, dostęp do site CMS
+- **Storage:** localStorage (global) i per-site (siteToken:{siteId})
 
 ### Security Policies
 - CSRF protection z tokenami i origin validation
-- Role-based access control (platform + tenant roles)
+- Role-based access control (platform + site roles)
 - Audit logging dla wszystkich kluczowych operacji
 - Rate limiting dla endpointów auth i zarządzania
 
@@ -123,16 +123,16 @@ Dokument zawiera:
 ## Dependencies Status
 
 - ✅ **TNT-004 (RBAC):** Done - Wymagane dla uprawnień platformowych
-- ⏳ **TNT-021 (User↔Tenant Model):** Pending - Wymagane dla członkostwa
-- ⏳ **TNT-022 (Tenant Token Exchange):** Pending - Wymagane dla switch flow
+- ⏳ **TNT-021 (User↔Site Model):** Pending - Wymagane dla członkostwa
+- ⏳ **TNT-022 (Site Token Exchange):** Pending - Wymagane dla switch flow
 
 ---
 
 ## Next Steps
 
-1. **TNT-021:** Implementacja modelu User↔Tenant (członkostwo)
-2. **TNT-022:** Implementacja endpointów tenant token exchange
-3. **TNT-023:** Implementacja frontend Hub i przełączania tenantów
+1. **TNT-021:** Implementacja modelu User↔Site (członkostwo)
+2. **TNT-022:** Implementacja endpointów site token exchange
+3. **TNT-023:** Implementacja frontend Hub i przełączania siteów
 4. **TNT-024:** Rozszerzenie RBAC o role platformowe
 
 ---

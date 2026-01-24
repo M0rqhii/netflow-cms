@@ -2,7 +2,7 @@
 
 ## Overview
 
-Module for managing media files (images, videos, documents) in the multi-tenant CMS.
+Module for managing media files (images, videos, documents) in the org/site CMS.
 
 ## Features
 
@@ -11,7 +11,7 @@ Module for managing media files (images, videos, documents) in the multi-tenant 
 - ✅ Get single media file by ID
 - ✅ Update media file metadata (filename, alt, metadata)
 - ✅ Delete media files
-- ✅ Tenant-scoped media files
+- ✅ Site-scoped media files
 - ✅ Role-based access control
 
 ## API Endpoints
@@ -21,7 +21,8 @@ Upload a media file.
 
 **Headers:**
 - `Authorization: Bearer <token>`
-- `X-Tenant-ID: <tenant-id>` (if not in token)
+- `X-Org-ID: <org-id>` (optional, if not in token)
+- `X-Site-ID: <site-id>` (if not in token)
 - `Content-Type: multipart/form-data`
 
 **Body:**
@@ -38,9 +39,9 @@ Upload a media file.
 ```json
 {
   "id": "media-id",
-  "tenantId": "tenant-id",
+  "siteId": "site-id",
   "filename": "image.jpg",
-  "url": "https://cdn.example.com/media/tenant-id/image.jpg",
+  "url": "https://cdn.example.com/media/site-id/image.jpg",
   "mimeType": "image/jpeg",
   "size": 1024000,
   "width": 1920,
@@ -53,7 +54,7 @@ Upload a media file.
 }
 ```
 
-**Required Roles:** Editor, Tenant Admin, Super Admin
+**Required Roles:** Editor, Org Admin, Super Admin
 
 ### GET /api/v1/media
 List all media files with pagination.
@@ -79,7 +80,7 @@ List all media files with pagination.
 }
 ```
 
-**Required Roles:** Viewer, Editor, Tenant Admin, Super Admin
+**Required Roles:** Viewer, Editor, Org Admin, Super Admin
 
 ### GET /api/v1/media/:id
 Get a single media file by ID.
@@ -88,14 +89,14 @@ Get a single media file by ID.
 ```json
 {
   "id": "media-id",
-  "tenantId": "tenant-id",
+  "siteId": "site-id",
   "filename": "image.jpg",
-  "url": "https://cdn.example.com/media/tenant-id/image.jpg",
+  "url": "https://cdn.example.com/media/site-id/image.jpg",
   ...
 }
 ```
 
-**Required Roles:** Viewer, Editor, Tenant Admin, Super Admin
+**Required Roles:** Viewer, Editor, Org Admin, Super Admin
 
 ### PUT /api/v1/media/:id
 Update a media file.
@@ -115,7 +116,7 @@ Update a media file.
 }
 ```
 
-**Required Roles:** Editor, Tenant Admin, Super Admin
+**Required Roles:** Editor, Org Admin, Super Admin
 
 ### DELETE /api/v1/media/:id
 Delete a media file.
@@ -131,7 +132,7 @@ Delete a media file.
 }
 ```
 
-**Required Roles:** Tenant Admin, Super Admin
+**Required Roles:** Org Admin, Super Admin
 
 ## File Validation
 
@@ -157,6 +158,6 @@ Delete a media file.
 
 - For MVP, files are stored with placeholder URLs
 - In production, files should be uploaded to S3/CDN
-- Media files are tenant-scoped (isolated per tenant)
+- Media files are site-scoped (isolated per site)
 - Role-based access control is enforced
 

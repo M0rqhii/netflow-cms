@@ -40,7 +40,7 @@ powershell -File .\\\\scripts\\\\dev.ps1 health
 - Email: `admin@acme-corp.com`
 - Password: `password123`
 
-After login, use the Dashboard (Hub) to enter the tenant CMS.
+After login, use the Dashboard (Hub) to enter the site CMS.
 
 ## Useful commands
 

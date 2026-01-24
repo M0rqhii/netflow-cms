@@ -1,88 +1,104 @@
-/// <reference types="jest" />
+///api/v1/ <reference types="jest" /api/v1/>
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { JwtService } from '@nestjs/jwt';
-import { AppModule } from '../src/app.module';
+import { TestAppModule } from '../src/test-app.module';
 import { PrismaService } from '../src/common/prisma/prisma.service';
+import { createUserWithOrg } from './helpers/rls';
+
+// Tests for org-scoped auth hub endpoints
 
 describe('Auth Hub Endpoints (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
   let jwtService: JwtService;
   let userId: string;
-  let tenantAId: string;
-  let tenantBId: string;
+  let orgAId: string;
+  let orgBId: string;
   let globalToken: string;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
+      imports: [TestAppModule],
     }).compile();
 
     app = moduleFixture.createNestApplication();
+    app.setGlobalPrefix('api/v1');
     prisma = moduleFixture.get<PrismaService>(PrismaService);
     jwtService = moduleFixture.get<JwtService>(JwtService);
     await app.init();
 
-    const ta = await prisma.tenant.create({ data: { name: 'Tenant A', slug: 'tenant-a', plan: 'free' } });
-    const tb = await prisma.tenant.create({ data: { name: 'Tenant B', slug: 'tenant-b', plan: 'free' } });
-    tenantAId = ta.id; tenantBId = tb.id;
+    const orgA = await prisma.organization.create({
+      data: { name: 'Org A', slug: 'org-a', plan: 'free' },
+    });
+    const orgB = await prisma.organization.create({
+      data: { name: 'Org B', slug: 'org-b', plan: 'free' },
+    });
+    orgAId = orgA.id; orgBId = orgB.id;
 
-    const user = await prisma.user.create({
+    // Create a site for each org to satisfy RLS/api/v1/middleware when needed
+    await prisma.site.create({ data: { orgId: orgAId, name: 'Org A Site', slug: `org-a-site-${Date.now()}` } });
+    await prisma.site.create({ data: { orgId: orgBId, name: 'Org B Site', slug: `org-b-site-${Date.now()}` } });
+
+    const user = await createUserWithOrg(prisma, {
       data: {
         email: 'hub@test.com',
         passwordHash: '$2b$10$rQZ8vK9JZ8vK9JZ8vK9JZ8vK9JZ8vK9JZ8vK9JZ8vK9JZ8vK9JZ8vK',
-        tenantId: ta.id,
-        role: 'tenant_admin',
+        orgId: orgAId,
+        role: 'org_admin',
+        siteRole: 'admin',
       },
     });
     userId = user.id;
 
-    // Try to create memberships if table exists (ignore errors otherwise)
-    try {
-      // @ts-ignore
-      await prisma.userTenant.create({ data: { userId, tenantId: ta.id, role: 'tenant_admin' } });
-      // @ts-ignore
-      await prisma.userTenant.create({ data: { userId, tenantId: tb.id, role: 'editor' } });
-    } catch (_) {}
+    await prisma.userOrg.createMany({
+      data: [
+        { userId, orgId: orgAId, role: 'owner' },
+        { userId, orgId: orgBId, role: 'editor' },
+      ],
+    });
 
-    globalToken = jwtService.sign({ sub: userId, email: user.email, role: 'tenant_admin' });
+    globalToken = jwtService.sign({ sub: userId, email: user.email, role: 'org_admin' });
   });
 
   afterAll(async () => {
-    // Cleanup
-    // @ts-ignore
-    try { await prisma.userTenant.deleteMany({ where: { userId } }); } catch (_) {}
+    await prisma.userOrg.deleteMany({ where: { userId } });
     await prisma.user.deleteMany({ where: { id: userId } });
-    await prisma.tenant.deleteMany({ where: { id: { in: [tenantAId, tenantBId] } } });
+    await prisma.site.deleteMany({ where: { orgId: { in: [orgAId, orgBId] } } });
+    await prisma.organization.deleteMany({ where: { id: { in: [orgAId, orgBId] } } });
     await app.close();
   });
 
-  it('GET /auth/me/tenants returns memberships', async () => {
+  it('GET /api/v1/auth/api/v1/me/api/v1/orgs returns memberships', async () => {
     const res = await request(app.getHttpServer())
-      .get('/auth/me/tenants')
+      .get('/api/v1/auth/me/orgs')
       .set('Authorization', `Bearer ${globalToken}`)
       .expect(200);
     expect(Array.isArray(res.body)).toBe(true);
     expect(res.body.length).toBeGreaterThanOrEqual(1);
   });
 
-  it('POST /auth/tenant-token issues tenant-scoped token', async () => {
+  it('POST /api/v1/auth/api/v1/org-token issues org-scoped token', async () => {
     const res = await request(app.getHttpServer())
-      .post('/auth/tenant-token')
+      .post('/api/v1/auth/org-token')
       .set('Authorization', `Bearer ${globalToken}`)
-      .send({ tenantId: tenantAId })
+      .send({ orgId: orgAId })
       .expect(200);
     expect(res.body).toHaveProperty('access_token');
   });
 
-  it('GET /auth/resolve-tenant/:slug resolves membership', async () => {
+  it('GET /api/v1/auth/api/v1/resolve-org/api/v1/:slug resolves membership', async () => {
     const res = await request(app.getHttpServer())
-      .get('/auth/resolve-tenant/tenant-a')
+      .get('/api/v1/auth/resolve-org/org-a')
       .set('Authorization', `Bearer ${globalToken}`)
       .expect(200);
-    expect(res.body).toHaveProperty('id', tenantAId);
+    expect(res.body).toHaveProperty('id', orgAId);
   });
 });
+
+
+
+
+
 

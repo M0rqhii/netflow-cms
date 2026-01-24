@@ -169,7 +169,7 @@ export function hasPermission(role: Role, permission: Permission): boolean {
 ### 8. **BillingController - brakowało `RolesGuard` i `PermissionsGuard`** ✅ NAPRAWIONE
 
 **Problem:**
-- Niektóre endpointy w `BillingController` używały tylko `AuthGuard, TenantGuard` bez `RolesGuard, PermissionsGuard`
+- Niektóre endpointy w `BillingController` używały tylko `AuthGuard, SiteGuard` bez `RolesGuard, PermissionsGuard`
 - Niespójne z resztą systemu
 
 **Lokalizacja:** `apps/api/src/modules/billing/billing.controller.ts`

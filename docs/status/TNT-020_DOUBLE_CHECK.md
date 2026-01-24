@@ -17,53 +17,53 @@ Sprawdzono zgodność implementacji z dokumentacją TNT-020_ARCHITECTURE_UX.md.
 **Specyfikacja:**
 ```
 POST /api/v1/auth/login
-Body: { email, password } // NO tenantId
+Body: { email, password } // NO siteId
 Response: { access_token, user }
 ```
 
 **Implementacja:**
-- ✅ `LoginDto` - `tenantId` jest opcjonalne (`optional()`)
-- ✅ `AuthService.login()` - obsługuje global login (bez tenantId)
-- ✅ Token globalny bez `tenantId` dla użytkowników z wieloma członkostwami
+- ✅ `LoginDto` - `siteId` jest opcjonalne (`optional()`)
+- ✅ `AuthService.login()` - obsługuje global login (bez siteId)
+- ✅ Token globalny bez `siteId` dla użytkowników z wieloma członkostwami
 - ✅ Endpoint: `POST /api/v1/auth/login` ✅
 - ✅ Rate limiting: 5/min ✅
 
 **Status:** ✅ Zgodne z dokumentacją
 
-### ✅ 2.2 Get My Tenants
+### ✅ 2.2 Get My Sites
 **Specyfikacja:**
 ```
-GET /api/v1/me/tenants
+GET /api/v1/me/sites
 Headers: { Authorization: "Bearer {global_token}" }
-Response: { tenants: Array<{ tenantId, tenant: { id, name, slug }, role }> }
+Response: { sites: Array<{ siteId, site: { id, name, slug }, role }> }
 ```
 
 **Implementacja:**
-- ✅ Endpoint: `GET /api/v1/auth/me/tenants` ✅
+- ✅ Endpoint: `GET /api/v1/auth/me/sites` ✅
 - ✅ Wymaga `AuthGuard` (global token) ✅
-- ✅ Zwraca: `[{ tenantId, role, tenant: { id, name, slug, plan } }]` ✅
+- ✅ Zwraca: `[{ siteId, role, site: { id, name, slug, plan } }]` ✅
 - ✅ Rate limiting: 30/min ✅
 
 **Uwaga:** 
-- Dokumentacja mówi o `GET /api/v1/me/tenants`, ale implementacja używa `GET /api/v1/auth/me/tenants`
+- Dokumentacja mówi o `GET /api/v1/me/sites`, ale implementacja używa `GET /api/v1/auth/me/sites`
 - To jest zgodne z konwencją API (wszystkie auth endpointy pod `/auth`)
 - Response nie zawiera `joinedAt` i `lastActiveAt` (roadmap)
 
 **Status:** ✅ Zgodne z dokumentacją (z drobnymi różnicami w strukturze URL)
 
-### ✅ 2.3 Tenant Token Exchange
+### ✅ 2.3 Site Token Exchange
 **Specyfikacja:**
 ```
-POST /api/v1/auth/tenant-token
+POST /api/v1/auth/site-token
 Headers: { Authorization: "Bearer {global_token}" }
-Body: { tenantId: string }
+Body: { siteId: string }
 Response: { access_token, expires_in }
 ```
 
 **Implementacja:**
-- ✅ Endpoint: `POST /api/v1/auth/tenant-token` ✅
+- ✅ Endpoint: `POST /api/v1/auth/site-token` ✅
 - ✅ Wymaga `AuthGuard` (global token) ✅
-- ✅ Body: `{ tenantId: string }` ✅
+- ✅ Body: `{ siteId: string }` ✅
 - ✅ Response: `{ access_token, expires_in }` ✅
 - ✅ Token ma krótszy czas życia (1h vs 7d) ✅
 - ✅ Rate limiting: 10/min ✅
@@ -76,14 +76,14 @@ Response: { access_token, expires_in }
 
 ### ✅ 3.1 Global Login Page
 **Specyfikacja:**
-- Formularz: email + password (BEZ tenantId)
+- Formularz: email + password (BEZ siteId)
 - Tytuł: "Platform Login"
-- Notatka: "No tenant ID required - this is global login"
+- Notatka: "No site ID required - this is global login"
 
 **Implementacja:**
-- ✅ Formularz: email + password (brak pola tenantId) ✅
+- ✅ Formularz: email + password (brak pola siteId) ✅
 - ✅ Tytuł: "Platform Login" ✅
-- ✅ Notatka: "Note: No tenant ID required - this is global login" ✅
+- ✅ Notatka: "Note: No site ID required - this is global login" ✅
 - ✅ Wywołanie: `api.login(undefined, email, password)` ✅
 - ✅ Redirect do `/dashboard` po logowaniu ✅
 
@@ -93,37 +93,37 @@ Response: { access_token, expires_in }
 **Specyfikacja (z mockups):**
 - Header z logo i menu użytkownika
 - Quick Stats (metryki platformowe)
-- Lista tenantów z:
+- Lista siteów z:
   - Nazwą i slugiem
-  - Rolą użytkownika w tenant
+  - Rolą użytkownika w site
   - Akcjami: Enter CMS, Manage, Invite
-- Przycisk "New Tenant"
+- Przycisk "New Site"
 - Recent Activity (roadmap)
 
 **Implementacja:**
 - ✅ Header z tytułem "Platform Admin Hub" i email użytkownika ✅
-- ✅ Quick Stats (Tenants, Users, Active, Total) ✅
-- ✅ Lista tenantów z:
+- ✅ Quick Stats (Sites, Users, Active, Total) ✅
+- ✅ Lista siteów z:
   - Nazwą i slugiem ✅
   - Rolą użytkownika (formatRole) ✅
   - Akcjami: "Enter CMS", "Manage", "Invite" ✅
-- ✅ Przycisk "+ New Tenant" ✅
+- ✅ Przycisk "+ New Site" ✅
 - ✅ Recent Activity (placeholder) ✅
-- ✅ Wywołanie: `fetchMyTenants()` ✅
-- ✅ Przełączanie: `exchangeTenantToken()` + redirect ✅
+- ✅ Wywołanie: `fetchMySites()` ✅
+- ✅ Przełączanie: `exchangeSiteToken()` + redirect ✅
 
 **Status:** ✅ Zgodne z dokumentacją i mockups
 
 ### ✅ 3.3 SDK
 **Specyfikacja:**
-- `login(tenantId?, email, password)` - tenantId opcjonalne
-- `getMyTenants(token)` - lista tenantów
-- `issueTenantToken(token, tenantId)` - exchange token
+- `login(siteId?, email, password)` - siteId opcjonalne
+- `getMySites(token)` - lista siteów
+- `issueSiteToken(token, siteId)` - exchange token
 
 **Implementacja:**
-- ✅ `login(tenantId: string | undefined, email, password)` ✅
-- ✅ `getMyTenants(token)` ✅
-- ✅ `issueTenantToken(token, tenantId)` ✅
+- ✅ `login(siteId: string | undefined, email, password)` ✅
+- ✅ `getMySites(token)` ✅
+- ✅ `issueSiteToken(token, siteId)` ✅
 
 **Status:** ✅ Zgodne z dokumentacją
 
@@ -170,16 +170,16 @@ Response: { access_token, expires_in }
 **Specyfikacja:**
 - Login: 5/min per IP+email
 - Register: 3/min per IP
-- Tenant Token: 10/min per user
-- Get Tenants: 30/min per user
+- Site Token: 10/min per user
+- Get Sites: 30/min per user
 
 **Implementacja:**
 - ✅ `ThrottlerModule` dodany do `AppModule` ✅
 - ✅ `ThrottlerGuard` jako global guard ✅
 - ✅ Login: `@Throttle({ limit: 5, ttl: 60000 })` ✅
 - ✅ Register: `@Throttle({ limit: 3, ttl: 60000 })` ✅
-- ✅ Tenant Token: `@Throttle({ limit: 10, ttl: 60000 })` ✅
-- ✅ Get Tenants: `@Throttle({ limit: 30, ttl: 60000 })` ✅
+- ✅ Site Token: `@Throttle({ limit: 10, ttl: 60000 })` ✅
+- ✅ Get Sites: `@Throttle({ limit: 30, ttl: 60000 })` ✅
 
 **Status:** ✅ Zgodne z dokumentacją
 
@@ -191,28 +191,28 @@ Response: { access_token, expires_in }
 **Specyfikacja:**
 - Czas życia: 7 dni
 - Claims: `sub`, `email`, `role` (platform role), `iat`, `exp`
-- NIE zawiera: `tenantId` (dla multi-tenant users)
+- NIE zawiera: `siteId` (dla org/site users)
 
 **Implementacja:**
 - ✅ Czas życia: 7 dni (domyślnie z `JWT_EXPIRES_IN`) ✅
-- ✅ Claims: `sub`, `email`, `role`, `tenantId?` ✅
-- ✅ `tenantId` jest `undefined` dla global token (multi-tenant users) ✅
+- ✅ Claims: `sub`, `email`, `role`, `siteId?` ✅
+- ✅ `siteId` jest `undefined` dla global token (org/site users) ✅
 - ✅ Token zapisywany jako `authToken` w localStorage ✅
 
 **Status:** ✅ Zgodne z dokumentacją
 
-### ✅ 5.2 Tenant Token
+### ✅ 5.2 Site Token
 **Specyfikacja:**
 - Czas życia: 1 godzina
-- Claims: `sub`, `email`, `role` (tenant role), `tenantId`, `iat`, `exp`
-- Zawiera: `tenantId` (wymagane)
+- Claims: `sub`, `email`, `role` (site role), `siteId`, `iat`, `exp`
+- Zawiera: `siteId` (wymagane)
 
 **Implementacja:**
 - ✅ Czas życia: 1 godzina (`expiresIn: 3600`) ✅
-- ✅ Claims: `sub`, `email`, `role`, `tenantId` ✅
-- ✅ `tenantId` jest wymagane ✅
+- ✅ Claims: `sub`, `email`, `role`, `siteId` ✅
+- ✅ `siteId` jest wymagane ✅
 - ✅ Response zawiera `expires_in: 3600` ✅
-- ✅ Token zapisywany jako `tenantToken:{tenantId}` ✅
+- ✅ Token zapisywany jako `siteToken:{siteId}` ✅
 
 **Status:** ✅ Zgodne z dokumentacją
 
@@ -223,7 +223,7 @@ Response: { access_token, expires_in }
 ### ✅ 6.1 Global Login → Hub
 **Specyfikacja:**
 1. Użytkownik wchodzi na `/login`
-2. Wypełnia formularz (email, password) - BEZ tenantId
+2. Wypełnia formularz (email, password) - BEZ siteId
 3. POST `/api/v1/auth/login` { email, password }
 4. Backend weryfikuje użytkownika (globalny token)
 5. JWT zawiera: { sub, email, role, platformRole }
@@ -232,7 +232,7 @@ Response: { access_token, expires_in }
 
 **Implementacja:**
 - ✅ Login page: `/login` ✅
-- ✅ Formularz: email + password (bez tenantId) ✅
+- ✅ Formularz: email + password (bez siteId) ✅
 - ✅ POST `/api/v1/auth/login` ✅
 - ✅ Global token generowany ✅
 - ✅ Token zapisywany jako `authToken` ✅
@@ -240,26 +240,26 @@ Response: { access_token, expires_in }
 
 **Status:** ✅ Zgodne z dokumentacją
 
-### ✅ 6.2 Hub → Tenant Switch
+### ✅ 6.2 Hub → Site Switch
 **Specyfikacja:**
 1. Użytkownik na `/dashboard`
-2. Aplikacja pobiera listę tenantów: GET `/api/v1/me/tenants`
-3. Wyświetla listę tenantów z akcjami
+2. Aplikacja pobiera listę siteów: GET `/api/v1/me/sites`
+3. Wyświetla listę siteów z akcjami
 4. Użytkownik klika "Enter CMS"
-5. POST `/api/v1/auth/tenant-token` { tenantId }
-6. Backend generuje tenant-scoped JWT
-7. Token zapisywany jako `tenantToken:{tenantId}`
-8. Redirect do `/tenant/{slug}/*`
+5. POST `/api/v1/auth/site-token` { siteId }
+6. Backend generuje site-scoped JWT
+7. Token zapisywany jako `siteToken:{siteId}`
+8. Redirect do `/site/{slug}/*`
 
 **Implementacja:**
 - ✅ Dashboard: `/dashboard` ✅
-- ✅ GET `/api/v1/auth/me/tenants` ✅
-- ✅ Lista tenantów wyświetlana ✅
+- ✅ GET `/api/v1/auth/me/sites` ✅
+- ✅ Lista siteów wyświetlana ✅
 - ✅ "Enter CMS" button ✅
-- ✅ POST `/api/v1/auth/tenant-token` { tenantId } ✅
-- ✅ Tenant token generowany (1h expiration) ✅
-- ✅ Token zapisywany jako `tenantToken:{tenantId}` ✅
-- ✅ Redirect do `/tenant/{slug}` ✅
+- ✅ POST `/api/v1/auth/site-token` { siteId } ✅
+- ✅ Site token generowany (1h expiration) ✅
+- ✅ Token zapisywany jako `siteToken:{siteId}` ✅
+- ✅ Redirect do `/site/{slug}` ✅
 
 **Status:** ✅ Zgodne z dokumentacją
 
@@ -274,12 +274,12 @@ Response: { access_token, expires_in }
 
 **Rekomendacja:** Middleware można dodać w TNT-023 lub jako osobne zadanie.
 
-### ⚠️ 7.2 Response Get My Tenants
+### ⚠️ 7.2 Response Get My Sites
 **Problem:** Dokumentacja wspomina o `joinedAt` i `lastActiveAt` w response, ale implementacja ich nie zwraca.
 
 **Status:** ⚠️ Brakuje pól (roadmap)
 
-**Rekomendacja:** Można dodać w przyszłości, gdy będą dostępne w UserTenant model.
+**Rekomendacja:** Można dodać w przyszłości, gdy będą dostępne w UserSite model.
 
 ### ⚠️ 7.3 CSRF Guard
 **Problem:** CSRF Guard jest utworzony, ale nie jest używany jako global guard.
@@ -300,16 +300,16 @@ Response: { access_token, expires_in }
 ## 8. Podsumowanie
 
 ### ✅ Zaimplementowane zgodnie z dokumentacją:
-1. ✅ Global Login (bez tenantId)
-2. ✅ Get My Tenants endpoint
-3. ✅ Tenant Token Exchange endpoint
+1. ✅ Global Login (bez siteId)
+2. ✅ Get My Sites endpoint
+3. ✅ Site Token Exchange endpoint
 4. ✅ Frontend Login Page
 5. ✅ Frontend Hub Dashboard
 6. ✅ SDK methods
 7. ✅ Rate Limiting
 8. ✅ Audit Logging
 9. ✅ CSRF Guard (gotowy do użycia)
-10. ✅ Token Strategy (global vs tenant)
+10. ✅ Token Strategy (global vs site)
 
 ### ⚠️ Opcjonalne/Brakujące (roadmap):
 1. ⚠️ Frontend Middleware (opcjonalne)

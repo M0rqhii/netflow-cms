@@ -10,7 +10,7 @@ export const createWebhookSchema = z.object({
   secret: z.string().optional(),
   active: z.boolean().default(true),
   description: z.string().optional(),
-  collectionId: z.string().uuid().optional(), // Optional - if null, webhook is global for tenant
+  collectionId: z.string().uuid().optional(), // Optional - if null, webhook is global for site
   retryCount: z.number().int().positive().max(10).default(3),
   timeout: z.number().int().positive().max(30000).default(5000),
 });

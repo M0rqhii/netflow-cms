@@ -8,14 +8,13 @@ const client: ApiClient = createApiClient();
 type JwtPayload = {
   exp?: number;
   email?: string;
-  role?: string; // site role (super_admin, site_admin, editor, viewer)
+  role?: string; // role (super_admin, org_admin, editor, viewer)
   platformRole?: string; // platform role (platform_admin, org_owner, user)
   systemRole?: string; // system role (super_admin, system_admin, system_dev, system_support)
   isSuperAdmin?: boolean; // flag for super admin
   sub?: string; // user id
   siteId?: string;
   orgId?: string; // organization id
-  tenantId?: string; // backward compatibility - same as orgId
   [key: string]: unknown;
 };
 
@@ -827,6 +826,43 @@ export async function fetchSiteInvites(siteId: string): Promise<InviteSummary[]>
   return res.json();
 }
 
+export type InviteDetails = {
+  id: string;
+  email: string;
+  role: string;
+  expiresAt: string;
+  organization: { id: string; name: string; slug: string };
+  site?: { id: string; name: string; slug: string } | null;
+};
+
+export async function fetchInviteDetails(token: string): Promise<InviteDetails> {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+  const res = await fetch(`${baseUrl}/auth/invite/${encodeURIComponent(token)}`);
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`Failed to load invite: ${res.status} ${res.statusText}${text ? ` - ${text}` : ''}`);
+  }
+  return res.json();
+}
+
+export async function acceptInvite(
+  token: string,
+  password: string,
+  preferredLanguage?: 'pl' | 'en'
+): Promise<{ access_token: string; refresh_token: string; user: { id: string; email: string; role: string; orgId: string } }> {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+  const res = await fetch(`${baseUrl}/auth/invite/accept`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token, password, preferredLanguage }),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(text || res.statusText);
+  }
+  return res.json();
+}
+
 export async function inviteUser(siteId: string, payload: { email: string; role: string }): Promise<InviteSummary> {
   const token = await ensureSiteToken(siteId).catch(() => getAuthToken());
   if (!token) throw new Error('Missing auth token. Please login.');
@@ -1498,7 +1534,6 @@ export type AccountInfo = {
   email: string;
   role: string;
   orgId?: string; // organization id
-  tenantId?: string; // backward compatibility - same as orgId
   preferredLanguage: string;
   createdAt: string;
   updatedAt: string;
@@ -1515,7 +1550,7 @@ export async function getAccount(): Promise<AccountInfo> {
   return client.getAccount(token);
 }
 
-export async function getProfile(): Promise<{ id: string; email: string; role: string; orgId: string; tenantId: string; preferredLanguage: string }> {
+export async function getProfile(): Promise<{ id: string; email: string; role: string; orgId: string; preferredLanguage: string }> {
   const token = getAuthToken();
   if (!token) throw new Error('Missing auth token. Please login.');
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';

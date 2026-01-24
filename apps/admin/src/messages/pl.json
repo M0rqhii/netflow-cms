@@ -36,9 +36,20 @@
     "loggingIn": "Logowanie...",
     "loginTitle": "Logowanie do platformy",
     "loginSubtitle": "Zaloguj się, aby uzyskać dostęp do platformy",
-    "loginNote": "Nie wymagane ID strony — to jest globalne logowanie",
+    "loginNote": "Nie wymagane ID strony - to jest globalne logowanie",
     "invalidCredentials": "Nieprawidłowe dane logowania",
-    "loginFailed": "Logowanie nie powiodło się"
+    "loginFailed": "Logowanie nie powiodło się",
+    "inviteTitle": "Zaproszenie",
+    "inviteSubtitle": "Ustaw haslo, aby dolaczyc do organizacji",
+    "inviteOrganization": "Organizacja",
+    "inviteSite": "Strona",
+    "inviteEmail": "Email zaproszenia",
+    "inviteInvalid": "Link zaproszenia jest nieprawidlowy lub wygasl",
+    "acceptInvite": "Akceptuj zaproszenie",
+    "acceptingInvite": "Akceptowanie zaproszenia...",
+    "confirmPassword": "Potwierdz haslo",
+    "passwordMinLength": "Haslo musi miec co najmniej 6 znakow",
+    "passwordMismatch": "Hasla nie sa takie same"
   },
   "navigation": {
     "dashboard": "Przegląd",
@@ -158,7 +169,7 @@
     "openInBuilder": "Otwórz w edytorze",
     "willBe": "Będzie",
     "createPageToStart": "Utwórz stronę, aby rozpocząć budowanie swojej witryny.",
-    "areYouSureDeletePage": "Czy na pewno chcesz usunąć tę stronę? Tej akcji nie można cofnąć."
+    "areYouSureDeletePage": "Czy na pewno chcesz usunąć tę stronę- Tej akcji nie można cofnąć."
   },
   "language": {
     "selectLanguage": "Wybierz język",
@@ -182,6 +193,8 @@
     "yourRole": "Twoja rola",
     "quickActions": "Szybkie akcje",
     "openSitePanel": "Otwórz panel projektu",
+    "editInBuilder": "Edytuj w builderze",
+    "marketing": "Marketing",
     "manageUsers": "Zarządzaj użytkownikami",
     "viewBilling": "Zobacz rozliczenia",
     "active": "Aktywny"
@@ -503,7 +516,7 @@
     "platformRole": "Rola platformy",
     "editSiteRole": "Edytuj rolę strony dla",
     "editPlatformRole": "Edytuj rolę platformy dla",
-    "areYouSureDeleteUser": "Czy na pewno chcesz usunąć tego użytkownika?"
+    "areYouSureDeleteUser": "Czy na pewno chcesz usunąć tego użytkownika-"
   },
   "errors": {
     "generic": "Wystąpił błąd",

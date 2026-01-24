@@ -90,7 +90,8 @@ export function MediaManager({ siteSlug }: Props) {
     return () => {
       mounted = false;
     };
-  }, [push, siteSlug]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [siteSlug]); // push is stable, no need to include in dependencies
 
   const loadMedia = async (siteId: string) => {
     setLoading(true);

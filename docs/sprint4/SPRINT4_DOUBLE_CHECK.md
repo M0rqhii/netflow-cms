@@ -41,11 +41,11 @@ Sprawdzono zgodność implementacji z wymaganiami Sprint 4: Advanced Features z 
 - ✅ Content Events: `content.created`, `content.updated`, `content.deleted`, `content.published`, `content.unpublished` ✅
 - ✅ Collection Events: `collection.created`, `collection.updated`, `collection.deleted`, `collection.item.created`, `collection.item.updated`, `collection.item.deleted` ✅
 - ✅ Media Events: `media.uploaded`, `media.deleted` ✅
-- ✅ Tenant Events: `tenant.created`, `tenant.updated`, `tenant.deleted` ✅
+- ✅ Site Events: `site.created`, `site.updated`, `site.deleted` ✅
 - ✅ User Events: `user.created`, `user.updated`, `user.deleted` ✅
 
 **Features:**
-- ✅ Webhook registration per tenant ✅
+- ✅ Webhook registration per site ✅
 - ✅ Event filtering ✅
 - ✅ Signed payload (HMAC SHA256) ✅
 - ✅ Asynchronous delivery ✅
@@ -53,7 +53,7 @@ Sprawdzono zgodność implementacji z wymaganiami Sprint 4: Advanced Features z 
 - ✅ Active/inactive webhooks ✅
 
 **Storage:**
-- ✅ Webhooks stored in `Tenant.settings.webhooks` (JSON field) for MVP ✅
+- ✅ Webhooks stored in `Site.settings.webhooks` (JSON field) for MVP ✅
 - ⚠️ Production: Create dedicated Webhook model in Prisma schema (roadmap) ✅
 
 **Status:** ✅ Zgodne z wymaganiami (MVP implementation)
@@ -189,22 +189,22 @@ Sprawdzono zgodność implementacji z wymaganiami Sprint 4: Advanced Features z 
 
 **Status:** ✅ Zgodne z wymaganiami
 
-### ✅ 5.2 Tenant Isolation
+### ✅ 5.2 Site Isolation
 
 **Implementacja:**
-- ✅ Webhooks są tenant-scoped ✅
-- ✅ TenantGuard wymusza tenant context ✅
-- ✅ Wszystkie queries filtrują po tenantId ✅
+- ✅ Webhooks są site-scoped ✅
+- ✅ SiteGuard wymusza site context ✅
+- ✅ Wszystkie queries filtrują po siteId ✅
 
 **Status:** ✅ Zgodne z wymaganiami
 
 ### ✅ 5.3 Role-Based Access Control
 
 **Implementacja:**
-- ✅ Create: Editor, Tenant Admin, Super Admin ✅
-- ✅ List/Get: Viewer, Editor, Tenant Admin, Super Admin ✅
-- ✅ Update: Editor, Tenant Admin, Super Admin ✅
-- ✅ Delete: Tenant Admin, Super Admin ✅
+- ✅ Create: Editor, Site Admin, Super Admin ✅
+- ✅ List/Get: Viewer, Editor, Site Admin, Super Admin ✅
+- ✅ Update: Editor, Site Admin, Super Admin ✅
+- ✅ Delete: Site Admin, Super Admin ✅
 
 **Status:** ✅ Zgodne z wymaganiami
 
@@ -214,7 +214,7 @@ Sprawdzono zgodność implementacji z wymaganiami Sprint 4: Advanced Features z 
 
 ### ✅ 6.1 Webhooks - MVP Implementation
 
-**Problem:** Webhooks są przechowywane w `Tenant.settings.webhooks` (JSON field) zamiast dedykowanego modelu.
+**Problem:** Webhooks są przechowywane w `Site.settings.webhooks` (JSON field) zamiast dedykowanego modelu.
 
 **Status:** ⚠️ Obecna implementacja jest akceptowalna (MVP)
 

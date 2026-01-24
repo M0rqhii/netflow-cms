@@ -178,9 +178,9 @@ Przeprowadzono kompleksową weryfikację całego systemu - backendu, frontendu, 
 **Status:** ✅ Wszystkie moduły działają
 
 1. ✅ **AuthModule** - Autentykacja działa
-2. ✅ **TenantsModule** - Zarządzanie tenantami działa
+2. ✅ **SitesModule** - Zarządzanie siteami działa
 3. ✅ **UsersModule** - Zarządzanie użytkownikami działa
-4. ✅ **UserTenantsModule** - Członkostwa działają
+4. ✅ **UserSitesModule** - Członkostwa działają
 5. ✅ **ContentTypesModule** - Content types działają
 6. ✅ **ContentEntriesModule** - Content entries działają (zoptymalizowane)
 7. ✅ **CollectionsModule** - Collections działają
@@ -192,7 +192,7 @@ Przeprowadzono kompleksową weryfikację całego systemu - backendu, frontendu, 
 13. ✅ **MonitoringModule** - Monitoring działa
 14. ✅ **CacheModule** - Cache działa
 15. ✅ **AuditModule** - Audit działa
-16. ✅ **TenantModule** - Tenant context działa
+16. ✅ **SiteModule** - Site context działa
 
 ### Frontend - Komponenty
 
@@ -200,7 +200,7 @@ Przeprowadzono kompleksową weryfikację całego systemu - backendu, frontendu, 
 
 1. ✅ **Login Page** - Logowanie działa
 2. ✅ **Dashboard** - Hub działa
-3. ✅ **Tenant Pages** - Wszystkie strony tenant działają
+3. ✅ **Site Pages** - Wszystkie strony site działają
 4. ✅ **API Helpers** - Wszystkie funkcje działają
 5. ✅ **Middleware** - Ochrona tras działa
 6. ✅ **Token Management** - Zarządzanie tokenami działa

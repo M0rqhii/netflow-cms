@@ -18,6 +18,7 @@ import { Permissions } from '../../../common/auth/decorators/permissions.decorat
 import { CurrentSite } from '../../../common/decorators/current-site.decorator';
 import { CurrentUser, CurrentUserPayload } from '../../../common/auth/decorators/current-user.decorator';
 import { Permission } from '../../../common/auth/roles.enum';
+import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe';
 import { ContentEntriesService } from '../services/content-entries.service';
 import {
   CreateContentEntryDtoSchema,
@@ -40,10 +41,9 @@ export class ContentEntriesController {
     @CurrentSite() siteId: string,
     @CurrentUser() user: CurrentUserPayload,
     @Param('contentTypeSlug') contentTypeSlug: string,
-    @Body() body: unknown
+    @Body(new ZodValidationPipe(CreateContentEntryDtoSchema)) body: unknown
   ) {
-    const dto = CreateContentEntryDtoSchema.parse(body);
-    return this.contentEntriesService.create(siteId, contentTypeSlug, dto, user.id);
+    return this.contentEntriesService.create(siteId, contentTypeSlug, body as any, user.id);
   }
 
   @Get()
@@ -51,10 +51,9 @@ export class ContentEntriesController {
   list(
     @CurrentSite() siteId: string,
     @Param('contentTypeSlug') contentTypeSlug: string,
-    @Query() query: unknown
+    @Query(new ZodValidationPipe(ContentEntryQueryDtoSchema)) query: unknown
   ) {
-    const dto = ContentEntryQueryDtoSchema.parse(query);
-    return this.contentEntriesService.list(siteId, contentTypeSlug, dto);
+    return this.contentEntriesService.list(siteId, contentTypeSlug, query as any);
   }
 
   @Get(':id')
@@ -74,10 +73,9 @@ export class ContentEntriesController {
     @CurrentUser() user: CurrentUserPayload,
     @Param('contentTypeSlug') contentTypeSlug: string,
     @Param('id') id: string,
-    @Body() body: unknown
+    @Body(new ZodValidationPipe(UpdateContentEntryDtoSchema)) body: unknown
   ) {
-    const dto = UpdateContentEntryDtoSchema.parse(body);
-    return this.contentEntriesService.update(siteId, contentTypeSlug, id, dto, user.id);
+    return this.contentEntriesService.update(siteId, contentTypeSlug, id, body as any, user.id);
   }
 
   @Delete(':id')
@@ -91,4 +89,5 @@ export class ContentEntriesController {
     return this.contentEntriesService.remove(siteId, contentTypeSlug, id);
   }
 }
+
 

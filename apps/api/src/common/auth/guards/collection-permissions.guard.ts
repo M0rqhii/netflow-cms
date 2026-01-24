@@ -7,13 +7,13 @@ import { CollectionRolesService } from '../../../modules/collection-roles/collec
 
 /**
  * CollectionPermissionsGuard - checks permissions per collection
- * AI Note: Checks both tenant-level permissions and collection-specific roles
+ * AI Note: Checks both org-level permissions and collection-specific roles
  * 
  * Usage:
  * @CollectionPermissions('collectionId', Permission.ITEMS_CREATE)
  * 
  * This guard:
- * 1. Checks tenant-level permissions first (Role-based)
+ * 1. Checks org-level permissions first (Role-based)
  * 2. If collectionId is provided, checks collection-specific roles
  * 3. Allows access if either check passes
  */
@@ -42,27 +42,27 @@ export class CollectionPermissionsGuard implements CanActivate {
     }
 
     const userRole = user.role as Role;
-    const tenantId = request.tenantId || user.tenantId;
+    const siteId = request.siteId || user.siteId;
 
     // Super admin has all permissions
     if (userRole === Role.SUPER_ADMIN) {
       return true;
     }
 
-    // Check tenant-level permissions first
-    const hasTenantPermission = hasAnyPermission(userRole, requiredPermissions);
-    if (hasTenantPermission) {
+    // Check org-level permissions first
+    const hasOrgPermission = hasAnyPermission(userRole, requiredPermissions);
+    if (hasOrgPermission) {
       return true;
     }
 
     // If collectionId is in params/body, check collection-specific permissions
     const collectionId = request.params?.collectionId || request.body?.collectionId;
-    if (collectionId && tenantId) {
+    if (collectionId && siteId) {
       // Map permissions to collection role requirements
       const requiredRole = this.mapPermissionToCollectionRole(requiredPermissions[0]);
       if (requiredRole) {
         const hasCollectionPermission = await this.collectionRolesService.hasCollectionPermission(
-          tenantId,
+          siteId,
           collectionId,
           user.id,
           requiredRole,

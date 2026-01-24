@@ -24,6 +24,7 @@ model Organization {
   // Relations
   users             User[]
   memberships       UserOrg[]
+  invites           UserInvite[]
   sites             Site[]
   subscriptions     Subscription[]
   invoices          Invoice[]
@@ -44,14 +45,15 @@ model Organization {
 // Site model - strony należące do organizacji
 model Site {
   id        String   @id @default(uuid())
-  orgId     String
+  orgId     String   @map("org_id")
   name      String
   slug      String
   settings  Json     @default("{}")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   organization     Organization     @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  invites          UserInvite[]
   contentTypes     ContentType[]
   contentEntries   ContentEntry[]
   collections      Collection[]
@@ -79,19 +81,6 @@ model Site {
   @@map("sites")
 }
 
-// Tenant model - DEPRECATED: Używany tylko dla backward compatibility
-// TODO: Usunąć po zakończeniu migracji
-model Tenant {
-  id        String   @id @default(uuid())
-  name      String
-  slug      String   @unique
-  plan      String   @default("free")
-  settings  Json     @default("{}")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@map("tenants")
-}
 
 // User model - użytkownicy w systemie
 model User {
@@ -99,12 +88,13 @@ model User {
   orgId             String   @map("org_id") // Główna organizacja
   email             String
   passwordHash      String
-  role              String   @default("viewer") // Backward compatibility: super_admin, tenant_admin, editor, viewer
+  role              String   @default("viewer") // Backward compatibility: super_admin, org_admin, editor, viewer
   siteRole          String   @default("viewer") // viewer, editor, editor-in-chief, marketing, admin, owner
   platformRole      String?  // user, editor-in-chief, admin, owner (nullable)
   systemRole        String?  // super_admin, system_admin, system_dev, system_support (nullable)
   isSuperAdmin      Boolean  @default(false) // Flaga dla super admin
   preferredLanguage String   @default("en") // pl, en
+  billingInfo      Json     @default("{}") @map("billing_info")
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
@@ -112,6 +102,7 @@ model User {
 
   // Multi-org membership
   memberships UserOrg[]
+  invitesSent UserInvite[]
 
   @@unique([orgId, email])
   @@index([orgId])
@@ -293,21 +284,34 @@ model UserOrg {
   @@map("user_orgs")
 }
 
-// UserTenant join table — DEPRECATED: Używany tylko dla backward compatibility
-// TODO: Usunąć po zakończeniu migracji
-model UserTenant {
-  id        String   @id @default(uuid())
-  userId    String   @map("user_id")
-  tenantId  String   @map("tenant_id")
-  role      String   @default("viewer")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+// UserInvite model - zaproszenia do organizacji/site
+model UserInvite {
+  id           String   @id @default(uuid())
+  orgId        String   @map("org_id")
+  siteId       String?  @map("site_id")
+  email        String
+  role         String   @default("viewer")
+  token        String   @unique
+  status       String   @default("pending") // pending, accepted, revoked, expired
+  invitedById  String?  @map("invited_by_id")
+  expiresAt    DateTime @map("expires_at")
+  acceptedAt   DateTime? @map("accepted_at")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
-  @@unique([userId, tenantId])
-  @@index([tenantId])
-  @@index([userId])
-  @@map("user_tenants")
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  site         Site?        @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  invitedBy    User?        @relation(fields: [invitedById], references: [id], onDelete: SetNull)
+
+  @@index([orgId])
+  @@index([siteId])
+  @@index([email])
+  @@index([status])
+  @@index([expiresAt])
+  @@map("user_invites")
 }
+
+
 
 // ContentReview model - historia recenzji i akceptacji treści
 model ContentReview {
@@ -868,7 +872,7 @@ model AuditLog {
   entityId   String   // ID encji która została zmieniona
   action     String   // "create", "update", "delete", "assign", "revoke"
   actorUserId String? // ID użytkownika który wykonał akcję
-  orgId      String?  // tenantId - organizacja (opcjonalne)
+  orgId      String?  // orgId - organizacja (opcjonalne)
   siteId     String?  // ID strony (opcjonalne)
   metadata   Json     @default("{}") // Dodatkowe metadane
   createdAt  DateTime @default(now())

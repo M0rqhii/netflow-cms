@@ -73,18 +73,26 @@ export class FeatureFlagsService {
    * Get effective features for a site (plan features + overrides)
    */
   async getEffectiveFeatures(siteId: string): Promise<string[]> {
-    // Get tenant to determine plan
-    const tenant = await this.prisma.tenant.findUnique({
+    const site = await this.prisma.site.findUnique({
       where: { id: siteId },
-      select: { plan: true },
+      select: { orgId: true },
     });
 
-    if (!tenant) {
+    if (!site) {
       throw new NotFoundException(`Site with ID ${siteId} not found`);
     }
 
+    const organization = await this.prisma.organization.findUnique({
+      where: { id: site.orgId },
+      select: { plan: true },
+    });
+
+    if (!organization) {
+      throw new NotFoundException(`Organization with ID ${site.orgId} not found`);
+    }
+
     // Get plan features
-    const planFeatures = this.getPlanFeatures(tenant.plan);
+    const planFeatures = this.getPlanFeatures(organization.plan);
 
     // Get overrides
     const overrides = await this.getOverrides(siteId);
@@ -133,12 +141,12 @@ export class FeatureFlagsService {
    */
   async setFeatureOverride(siteId: string, dto: FeatureOverrideDto) {
     // Verify site exists
-    const tenant = await this.prisma.tenant.findUnique({
+    const site = await this.prisma.site.findUnique({
       where: { id: siteId },
       select: { id: true },
     });
 
-    if (!tenant) {
+    if (!site) {
       throw new NotFoundException(`Site with ID ${siteId} not found`);
     }
 
@@ -185,22 +193,30 @@ export class FeatureFlagsService {
    * Get complete feature status for a site
    */
   async getSiteFeatures(siteId: string) {
-    // Get tenant to determine plan
-    const tenant = await this.prisma.tenant.findUnique({
+    const site = await this.prisma.site.findUnique({
       where: { id: siteId },
-      select: { plan: true },
+      select: { orgId: true },
     });
 
-    if (!tenant) {
+    if (!site) {
       throw new NotFoundException(`Site with ID ${siteId} not found`);
     }
 
-    const planFeatures = this.getPlanFeatures(tenant.plan);
+    const organization = await this.prisma.organization.findUnique({
+      where: { id: site.orgId },
+      select: { plan: true },
+    });
+
+    if (!organization) {
+      throw new NotFoundException(`Organization with ID ${site.orgId} not found`);
+    }
+
+    const planFeatures = this.getPlanFeatures(organization.plan);
     const overrides = await this.getOverrides(siteId);
     const effective = await this.getEffectiveFeatures(siteId);
 
     return {
-      plan: tenant.plan,
+      plan: organization.plan,
       planFeatures,
       overrides: overrides.map((o) => ({
         featureKey: o.featureKey,

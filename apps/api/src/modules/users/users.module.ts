@@ -3,7 +3,6 @@ import { UsersController } from './users.controller';
 import { PlatformUsersController } from './platform-users.controller';
 import { UsersService } from './users.service';
 import { AuthModule } from '../../common/auth/auth.module';
-import { TenantModule } from '../../common/tenant/tenant.module';
 import { PrismaService } from '../../common/prisma/prisma.service';
 
 /**
@@ -11,7 +10,7 @@ import { PrismaService } from '../../common/prisma/prisma.service';
  * AI Note: Provides user endpoints with RBAC protection
  */
 @Module({
-  imports: [AuthModule, TenantModule],
+  imports: [AuthModule],
   controllers: [UsersController, PlatformUsersController],
   providers: [UsersService, PrismaService],
   exports: [UsersService],

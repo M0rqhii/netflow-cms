@@ -13,13 +13,13 @@ import { PrometheusService } from '../monitoring/prometheus.service';
 export class PrismaOptimizationService {
   private readonly validModels = [
     'user',
-    'tenant',
+    'organization',
+    'site',
     'contentType',
     'contentEntry',
     'collection',
     'collectionItem',
-    'mediaFile',
-    'userTenant',
+    'mediaItem',
     'contentReview',
     'contentComment',
     'task',
@@ -181,13 +181,28 @@ export class PrismaOptimizationService {
     idleConnections: string;
     totalConnections: string;
   }> {
-    // Prisma doesn't expose connection pool stats directly
-    // This is a placeholder for future implementation
-    return {
-      activeConnections: 'N/A',
-      idleConnections: 'N/A',
-      totalConnections: 'N/A',
-    };
+    try {
+      const rows = await this.prisma.$queryRawUnsafe<Array<{ active: bigint; idle: bigint; total: bigint }>>(
+        `SELECT
+          COUNT(*) FILTER (WHERE state = 'active') AS active,
+          COUNT(*) FILTER (WHERE state = 'idle') AS idle,
+          COUNT(*) AS total
+        FROM pg_stat_activity
+        WHERE datname = current_database();`,
+      );
+      const stats = rows?.[0];
+      return {
+        activeConnections: stats?.active?.toString() ?? '0',
+        idleConnections: stats?.idle?.toString() ?? '0',
+        totalConnections: stats?.total?.toString() ?? '0',
+      };
+    } catch (error) {
+      return {
+        activeConnections: 'N/A',
+        idleConnections: 'N/A',
+        totalConnections: 'N/A',
+      };
+    }
   }
 }
 

@@ -33,7 +33,7 @@ Aby ukończyć Sprint 4, należy zaimplementować:
    - Resolvers dla wszystkich encji
    - Query i Mutation support
    - Authentication integration
-   - Tenant context integration
+   - Site context integration
 
 2. **Workflow management** ✅ (do zaimplementowania)
    - Workflow definition system

@@ -25,9 +25,9 @@ Przeprowadzono szczegółową weryfikację całego systemu. Wszystkie komponenty
 
 **Moduły:**
 - ✅ AuthModule
-- ✅ TenantsModule
+- ✅ SitesModule
 - ✅ UsersModule
-- ✅ UserTenantsModule
+- ✅ UserSitesModule
 - ✅ ContentTypesModule
 - ✅ ContentEntriesModule (zoptymalizowany)
 - ✅ CollectionsModule
@@ -39,7 +39,7 @@ Przeprowadzono szczegółową weryfikację całego systemu. Wszystkie komponenty
 - ✅ MonitoringModule (nowy)
 - ✅ CacheModule
 - ✅ AuditModule
-- ✅ TenantModule
+- ✅ SiteModule
 
 ### ✅ Frontend (Next.js Admin)
 
@@ -56,7 +56,7 @@ Przeprowadzono szczegółową weryfikację całego systemu. Wszystkie komponenty
 **Komponenty:**
 - ✅ Login Page
 - ✅ Dashboard (Hub)
-- ✅ Tenant Pages
+- ✅ Site Pages
 - ✅ API Helpers
 - ✅ Middleware
 - ✅ Token Management
@@ -187,7 +187,7 @@ Przeprowadzono szczegółową weryfikację całego systemu. Wszystkie komponenty
 
 **Uwaga:**
 ```typescript
-// TODO: In future, get from User.platformRole field or UserTenant.platformRole
+// TODO: In future, get from User.platformRole field or UserSite.platformRole
 ```
 
 **Status:** To jest planowana funkcjonalność, nie błąd. Obecna implementacja działa poprawnie.

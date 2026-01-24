@@ -3,7 +3,7 @@ import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/commo
 import * as crypto from 'crypto';
 
 /**
- * PrismaService - rozszerzony Prisma Client z middleware dla multi-tenant
+ * PrismaService - rozszerzony Prisma Client z middleware dla org/site
  * AI Note: Zawsze używaj tego serwisu zamiast bezpośrednio PrismaClient
  * 
  * Connection Pooling Configuration:

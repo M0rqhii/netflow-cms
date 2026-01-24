@@ -1,49 +1,71 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
-import * as request from 'supertest';
-import { AppModule } from '../src/app.module';
+import request from 'supertest';
+import { JwtService } from '@nestjs/jwt';
+import { TestAppModule } from '../src/test-app.module';
 import { PrismaService } from '../src/common/prisma/prisma.service';
+import { createUserWithOrg } from './helpers/rls';
 
 describe('ContentEntries (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
-  const tenantId = 'tenant-e2e-content-entries';
+  let jwtService: JwtService;
+  let orgId: string;
+  let siteId: string;
+  let token: string;
   let contentTypeId: string;
   const contentTypeSlug = 'article';
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
+      imports: [TestAppModule],
     }).compile();
 
     app = moduleFixture.createNestApplication();
+    app.setGlobalPrefix('api/v1');
     prisma = moduleFixture.get<PrismaService>(PrismaService);
+    jwtService = moduleFixture.get<JwtService>(JwtService);
 
     await app.init();
 
-    // Create test tenant if it doesn't exist
-    await prisma.tenant.upsert({
-      where: { slug: tenantId },
-      update: {},
-      create: {
-        id: tenantId,
-        name: 'Test Tenant',
-        slug: tenantId,
-        plan: 'free',
+    const organization = await prisma.organization.create({
+      data: { name: 'Content Entries Org', slug: `content-entries-org-${Date.now()}`, plan: 'free' },
+    });
+    orgId = organization.id;
+
+    const site = await prisma.site.create({
+      data: { orgId, name: 'Content Entries Site', slug: `content-entries-site-${Date.now()}` },
+    });
+    siteId = site.id;
+
+    const user = await createUserWithOrg(prisma, {
+      data: {
+        orgId,
+        email: 'content-entries-admin@test.com',
+        passwordHash: 'hashed-password',
+        role: 'org_admin',
+        siteRole: 'admin',
       },
     });
 
-    // Create content type for testing
+    token = jwtService.sign({
+      sub: user.id,
+      email: user.email,
+      orgId,
+      siteId,
+      role: user.role,
+    });
+
     const contentType = await prisma.contentType.upsert({
       where: {
-        tenantId_slug: {
-          tenantId,
+        siteId_slug: {
+          siteId,
           slug: contentTypeSlug,
         },
       },
       update: {},
       create: {
-        tenantId,
+        siteId,
         name: 'Article',
         slug: contentTypeSlug,
         schema: {
@@ -62,18 +84,20 @@ describe('ContentEntries (e2e)', () => {
   });
 
   afterAll(async () => {
-    // Cleanup
-    await prisma.contentEntry.deleteMany({ where: { tenantId } });
-    await prisma.contentType.deleteMany({ where: { tenantId } });
-    await prisma.tenant.deleteMany({ where: { id: tenantId } });
+    await prisma.contentEntry.deleteMany({ where: { siteId } });
+    await prisma.contentType.deleteMany({ where: { siteId } });
+    await prisma.user.deleteMany({ where: { orgId } });
+    await prisma.site.deleteMany({ where: { id: siteId } });
+    await prisma.organization.deleteMany({ where: { id: orgId } });
     await app.close();
   });
 
-  describe('POST /api/v1/content/:contentTypeSlug', () => {
+  describe('POST /api/api/v1/v1/api/v1/content/api/v1/:contentTypeSlug', () => {
     it('should create content entry', () => {
       return request(app.getHttpServer())
         .post(`/api/v1/content/${contentTypeSlug}`)
-        .set('X-Tenant-Id', tenantId)
+        .set('Authorization', `Bearer ${token}`)
+        .set('X-Site-ID', siteId)
         .send({
           data: {
             title: 'My First Article',
@@ -85,7 +109,7 @@ describe('ContentEntries (e2e)', () => {
         .expect(201)
         .expect((res) => {
           expect(res.body).toHaveProperty('id');
-          expect(res.body.tenantId).toBe(tenantId);
+          expect(res.body.siteId).toBe(siteId);
           expect(res.body.contentTypeId).toBe(contentTypeId);
           expect(res.body.data).toMatchObject({
             title: 'My First Article',
@@ -99,7 +123,8 @@ describe('ContentEntries (e2e)', () => {
     it('should return 400 if required field is missing', () => {
       return request(app.getHttpServer())
         .post(`/api/v1/content/${contentTypeSlug}`)
-        .set('X-Tenant-Id', tenantId)
+        .set('Authorization', `Bearer ${token}`)
+        .set('X-Site-ID', siteId)
         .send({
           data: {
             // title is missing
@@ -113,7 +138,8 @@ describe('ContentEntries (e2e)', () => {
     it('should return 400 if field type is invalid', () => {
       return request(app.getHttpServer())
         .post(`/api/v1/content/${contentTypeSlug}`)
-        .set('X-Tenant-Id', tenantId)
+        .set('Authorization', `Bearer ${token}`)
+        .set('X-Site-ID', siteId)
         .send({
           data: {
             title: 123, // Should be string
@@ -124,9 +150,10 @@ describe('ContentEntries (e2e)', () => {
         .expect(400);
     });
 
-    it('should return 400 without X-Tenant-Id', () => {
+    it('should return 400 without X-Site-ID', () => {
       return request(app.getHttpServer())
         .post(`/api/v1/content/${contentTypeSlug}`)
+        .set('Authorization', `Bearer ${token}`)
         .send({
           data: {
             title: 'Test',
@@ -139,7 +166,8 @@ describe('ContentEntries (e2e)', () => {
     it('should return 404 for non-existent content type', () => {
       return request(app.getHttpServer())
         .post('/api/v1/content/non-existent')
-        .set('X-Tenant-Id', tenantId)
+        .set('Authorization', `Bearer ${token}`)
+        .set('X-Site-ID', siteId)
         .send({
           data: {
             title: 'Test',
@@ -150,15 +178,11 @@ describe('ContentEntries (e2e)', () => {
     });
   });
 
-  describe('GET /api/v1/content/:contentTypeSlug', () => {
-    let entryId1: string;
-    let entryId2: string;
-
+  describe('GET /api/api/v1/v1/api/v1/content/api/v1/:contentTypeSlug', () => {
     beforeAll(async () => {
-      // Create test entries
-      const entry1 = await prisma.contentEntry.create({
+      await prisma.contentEntry.create({
         data: {
-          tenantId,
+          siteId,
           contentTypeId,
           data: {
             title: 'Published Article',
@@ -169,9 +193,9 @@ describe('ContentEntries (e2e)', () => {
         },
       });
 
-      const entry2 = await prisma.contentEntry.create({
+      await prisma.contentEntry.create({
         data: {
-          tenantId,
+          siteId,
           contentTypeId,
           data: {
             title: 'Draft Article',
@@ -181,15 +205,13 @@ describe('ContentEntries (e2e)', () => {
           status: 'draft',
         },
       });
-
-      entryId1 = entry1.id;
-      entryId2 = entry2.id;
     });
 
     it('should list content entries', () => {
       return request(app.getHttpServer())
         .get(`/api/v1/content/${contentTypeSlug}`)
-        .set('X-Tenant-Id', tenantId)
+        .set('Authorization', `Bearer ${token}`)
+        .set('X-Site-ID', siteId)
         .expect(200)
         .expect((res) => {
           expect(res.body).toHaveProperty('total');
@@ -204,7 +226,8 @@ describe('ContentEntries (e2e)', () => {
     it('should filter by status', () => {
       return request(app.getHttpServer())
         .get(`/api/v1/content/${contentTypeSlug}?status=published`)
-        .set('X-Tenant-Id', tenantId)
+        .set('Authorization', `Bearer ${token}`)
+        .set('X-Site-ID', siteId)
         .expect(200)
         .expect((res) => {
           expect(res.body.entries.every((e: any) => e.status === 'published')).toBe(true);
@@ -214,7 +237,8 @@ describe('ContentEntries (e2e)', () => {
     it('should support pagination', () => {
       return request(app.getHttpServer())
         .get(`/api/v1/content/${contentTypeSlug}?page=1&pageSize=1`)
-        .set('X-Tenant-Id', tenantId)
+        .set('Authorization', `Bearer ${token}`)
+        .set('X-Site-ID', siteId)
         .expect(200)
         .expect((res) => {
           expect(res.body.page).toBe(1);
@@ -226,7 +250,8 @@ describe('ContentEntries (e2e)', () => {
     it('should support sorting', () => {
       return request(app.getHttpServer())
         .get(`/api/v1/content/${contentTypeSlug}?sort=-createdAt`)
-        .set('X-Tenant-Id', tenantId)
+        .set('Authorization', `Bearer ${token}`)
+        .set('X-Site-ID', siteId)
         .expect(200)
         .expect((res) => {
           if (res.body.entries.length > 1) {
@@ -240,13 +265,13 @@ describe('ContentEntries (e2e)', () => {
     it('should filter by JSON fields', () => {
       return request(app.getHttpServer())
         .get(`/api/v1/content/${contentTypeSlug}`)
-        .set('X-Tenant-Id', tenantId)
+        .set('Authorization', `Bearer ${token}`)
+        .set('X-Site-ID', siteId)
         .query({
           'filter[author]': 'Author 1',
         })
         .expect(200)
         .expect((res) => {
-          // Should filter entries where author = 'Author 1'
           if (res.body.entries.length > 0) {
             res.body.entries.forEach((entry: any) => {
               expect(entry.data.author).toBe('Author 1');
@@ -258,10 +283,10 @@ describe('ContentEntries (e2e)', () => {
     it('should support full-text search', () => {
       return request(app.getHttpServer())
         .get(`/api/v1/content/${contentTypeSlug}?search=Published`)
-        .set('X-Tenant-Id', tenantId)
+        .set('Authorization', `Bearer ${token}`)
+        .set('X-Site-ID', siteId)
         .expect(200)
         .expect((res) => {
-          // Should find entries containing "Published"
           res.body.entries.forEach((entry: any) => {
             const dataStr = JSON.stringify(entry.data).toLowerCase();
             expect(dataStr).toContain('published');
@@ -270,13 +295,13 @@ describe('ContentEntries (e2e)', () => {
     });
   });
 
-  describe('GET /api/v1/content/:contentTypeSlug/:id', () => {
+  describe('GET /api/api/v1/v1/api/v1/content/api/v1/:contentTypeSlug/api/v1/:id', () => {
     let entryId: string;
 
     beforeAll(async () => {
       const entry = await prisma.contentEntry.create({
         data: {
-          tenantId,
+          siteId,
           contentTypeId,
           data: {
             title: 'Test Get Article',
@@ -292,11 +317,12 @@ describe('ContentEntries (e2e)', () => {
     it('should get content entry by id', () => {
       return request(app.getHttpServer())
         .get(`/api/v1/content/${contentTypeSlug}/${entryId}`)
-        .set('X-Tenant-Id', tenantId)
+        .set('Authorization', `Bearer ${token}`)
+        .set('X-Site-ID', siteId)
         .expect(200)
         .expect((res) => {
           expect(res.body.id).toBe(entryId);
-          expect(res.body.tenantId).toBe(tenantId);
+          expect(res.body.siteId).toBe(siteId);
           expect(res.body.contentType).toBeDefined();
           expect(res.body.contentType.slug).toBe(contentTypeSlug);
         });
@@ -305,15 +331,15 @@ describe('ContentEntries (e2e)', () => {
     it('should return 404 for nonexistent entry', () => {
       return request(app.getHttpServer())
         .get(`/api/v1/content/${contentTypeSlug}/00000000-0000-0000-0000-000000000000`)
-        .set('X-Tenant-Id', tenantId)
+        .set('Authorization', `Bearer ${token}`)
+        .set('X-Site-ID', siteId)
         .expect(404);
     });
 
     it('should return 404 for wrong content type', async () => {
-      // Create entry in different content type
       const otherContentType = await prisma.contentType.create({
         data: {
-          tenantId,
+          siteId,
           name: 'Page',
           slug: 'page',
           schema: {
@@ -325,33 +351,32 @@ describe('ContentEntries (e2e)', () => {
 
       const otherEntry = await prisma.contentEntry.create({
         data: {
-          tenantId,
+          siteId,
           contentTypeId: otherContentType.id,
           data: { title: 'Page Title' },
           status: 'draft',
         },
       });
 
-      // Try to get it via article endpoint
       return request(app.getHttpServer())
         .get(`/api/v1/content/${contentTypeSlug}/${otherEntry.id}`)
-        .set('X-Tenant-Id', tenantId)
+        .set('Authorization', `Bearer ${token}`)
+        .set('X-Site-ID', siteId)
         .expect(404)
         .then(async () => {
-          // Cleanup
           await prisma.contentEntry.delete({ where: { id: otherEntry.id } });
           await prisma.contentType.delete({ where: { id: otherContentType.id } });
         });
     });
   });
 
-  describe('PATCH /api/v1/content/:contentTypeSlug/:id', () => {
+  describe('PATCH /api/api/v1/v1/api/v1/content/api/v1/:contentTypeSlug/api/v1/:id', () => {
     let entryId: string;
 
     beforeAll(async () => {
       const entry = await prisma.contentEntry.create({
         data: {
-          tenantId,
+          siteId,
           contentTypeId,
           data: {
             title: 'Original Title',
@@ -367,7 +392,8 @@ describe('ContentEntries (e2e)', () => {
     it('should update content entry data', () => {
       return request(app.getHttpServer())
         .patch(`/api/v1/content/${contentTypeSlug}/${entryId}`)
-        .set('X-Tenant-Id', tenantId)
+        .set('Authorization', `Bearer ${token}`)
+        .set('X-Site-ID', siteId)
         .send({
           data: {
             title: 'Updated Title',
@@ -388,7 +414,8 @@ describe('ContentEntries (e2e)', () => {
     it('should update status only', () => {
       return request(app.getHttpServer())
         .patch(`/api/v1/content/${contentTypeSlug}/${entryId}`)
-        .set('X-Tenant-Id', tenantId)
+        .set('Authorization', `Bearer ${token}`)
+        .set('X-Site-ID', siteId)
         .send({
           status: 'published',
         })
@@ -401,7 +428,8 @@ describe('ContentEntries (e2e)', () => {
     it('should return 400 if updated data is invalid', () => {
       return request(app.getHttpServer())
         .patch(`/api/v1/content/${contentTypeSlug}/${entryId}`)
-        .set('X-Tenant-Id', tenantId)
+        .set('Authorization', `Bearer ${token}`)
+        .set('X-Site-ID', siteId)
         .send({
           data: {
             title: 123, // Invalid type
@@ -414,7 +442,8 @@ describe('ContentEntries (e2e)', () => {
     it('should return 404 for nonexistent entry', () => {
       return request(app.getHttpServer())
         .patch(`/api/v1/content/${contentTypeSlug}/00000000-0000-0000-0000-000000000000`)
-        .set('X-Tenant-Id', tenantId)
+        .set('Authorization', `Bearer ${token}`)
+        .set('X-Site-ID', siteId)
         .send({
           data: {
             title: 'Test',
@@ -425,13 +454,13 @@ describe('ContentEntries (e2e)', () => {
     });
   });
 
-  describe('DELETE /api/v1/content/:contentTypeSlug/:id', () => {
+  describe('DELETE /api/api/v1/v1/api/v1/content/api/v1/:contentTypeSlug/api/v1/:id', () => {
     let entryId: string;
 
     beforeEach(async () => {
       const entry = await prisma.contentEntry.create({
         data: {
-          tenantId,
+          siteId,
           contentTypeId,
           data: {
             title: 'To Delete',
@@ -447,13 +476,13 @@ describe('ContentEntries (e2e)', () => {
     it('should delete content entry', () => {
       return request(app.getHttpServer())
         .delete(`/api/v1/content/${contentTypeSlug}/${entryId}`)
-        .set('X-Tenant-Id', tenantId)
+        .set('Authorization', `Bearer ${token}`)
+        .set('X-Site-ID', siteId)
         .expect(200)
         .expect((res) => {
           expect(res.body).toHaveProperty('ok', true);
         })
         .then(async () => {
-          // Verify it's deleted
           const deleted = await prisma.contentEntry.findFirst({
             where: { id: entryId },
           });
@@ -464,31 +493,40 @@ describe('ContentEntries (e2e)', () => {
     it('should return 404 for nonexistent entry', () => {
       return request(app.getHttpServer())
         .delete(`/api/v1/content/${contentTypeSlug}/00000000-0000-0000-0000-000000000000`)
-        .set('X-Tenant-Id', tenantId)
+        .set('Authorization', `Bearer ${token}`)
+        .set('X-Site-ID', siteId)
         .expect(404);
     });
   });
 
-  describe('tenant isolation', () => {
-    it('should only return entries for specific tenant', async () => {
-      const tenantId2 = 'tenant-e2e-content-entries-2';
-
-      // Create second tenant
-      await prisma.tenant.upsert({
-        where: { slug: tenantId2 },
-        update: {},
-        create: {
-          id: tenantId2,
-          name: 'Test Tenant 2',
-          slug: tenantId2,
-          plan: 'free',
+  describe('site isolation', () => {
+    it('should only return entries for specific site', async () => {
+      const org2 = await prisma.organization.create({
+        data: { name: 'Content Entries Org 2', slug: `content-entries-org-2-${Date.now()}`, plan: 'free' },
+      });
+      const site2 = await prisma.site.create({
+        data: { orgId: org2.id, name: 'Content Entries Site 2', slug: `content-entries-site-2-${Date.now()}` },
+      });
+      const user2 = await createUserWithOrg(prisma, {
+        data: {
+          orgId: org2.id,
+          email: 'content-entries-admin-2@test.com',
+          passwordHash: 'hashed-password',
+          role: 'org_admin',
+        siteRole: 'admin',
         },
       });
+      const token2 = jwtService.sign({
+        sub: user2.id,
+        email: user2.email,
+        orgId: org2.id,
+        siteId: site2.id,
+        role: user2.role,
+      });
 
-      // Create content type for tenant 2
       const contentType2 = await prisma.contentType.create({
         data: {
-          tenantId: tenantId2,
+          siteId: site2.id,
           name: 'Article',
           slug: contentTypeSlug,
           schema: {
@@ -502,47 +540,49 @@ describe('ContentEntries (e2e)', () => {
         },
       });
 
-      // Create entry for tenant 1
       await prisma.contentEntry.create({
         data: {
-          tenantId,
+          siteId,
           contentTypeId,
-          data: { title: 'Tenant 1 Entry', content: 'Content' },
+          data: { title: 'Site 1 Entry', content: 'Content' },
           status: 'draft',
         },
       });
 
-      // Create entry for tenant 2
       await prisma.contentEntry.create({
         data: {
-          tenantId: tenantId2,
+          siteId: site2.id,
           contentTypeId: contentType2.id,
-          data: { title: 'Tenant 2 Entry', content: 'Content' },
+          data: { title: 'Site 2 Entry', content: 'Content' },
           status: 'draft',
         },
       });
 
-      // List for tenant 1
       const res1 = await request(app.getHttpServer())
         .get(`/api/v1/content/${contentTypeSlug}`)
-        .set('X-Tenant-Id', tenantId)
+        .set('Authorization', `Bearer ${token}`)
+        .set('X-Site-ID', siteId)
         .expect(200);
 
-      // List for tenant 2
       const res2 = await request(app.getHttpServer())
         .get(`/api/v1/content/${contentTypeSlug}`)
-        .set('X-Tenant-Id', tenantId2)
+        .set('Authorization', `Bearer ${token2}`)
+        .set('X-Site-ID', site2.id)
         .expect(200);
 
-      // Verify isolation
-      expect(res1.body.entries.every((e: any) => e.tenantId === tenantId)).toBe(true);
-      expect(res2.body.entries.every((e: any) => e.tenantId === tenantId2)).toBe(true);
+      expect(res1.body.entries.every((e: any) => e.siteId === siteId)).toBe(true);
+      expect(res2.body.entries.every((e: any) => e.siteId === site2.id)).toBe(true);
 
-      // Cleanup tenant 2
-      await prisma.contentEntry.deleteMany({ where: { tenantId: tenantId2 } });
-      await prisma.contentType.deleteMany({ where: { tenantId: tenantId2 } });
-      await prisma.tenant.delete({ where: { id: tenantId2 } });
+      await prisma.contentEntry.deleteMany({ where: { siteId: site2.id } });
+      await prisma.contentType.deleteMany({ where: { siteId: site2.id } });
+      await prisma.user.delete({ where: { id: user2.id } });
+      await prisma.site.delete({ where: { id: site2.id } });
+      await prisma.organization.delete({ where: { id: org2.id } });
     });
   });
 });
+
+
+
+
 

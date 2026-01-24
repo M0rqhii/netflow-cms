@@ -20,7 +20,7 @@ interface UpdateBillingInfoDto {
 
 /**
  * AccountService - Service for user account management
- * AI Note: Handles account operations without tenant context
+ * AI Note: Handles account operations without org/site context
  */
 @Injectable()
 export class AccountService {
@@ -37,6 +37,7 @@ export class AccountService {
         email: true,
         role: true,
         preferredLanguage: true,
+        billingInfo: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -46,12 +47,11 @@ export class AccountService {
       throw new NotFoundException('User not found');
     }
 
-    // Get billing info from user settings (stored in a JSON field or separate table)
-    // For now, return empty billing info - can be extended later
+    const rawBilling = (user.billingInfo as Record<string, any> | null) || {};
     const billingInfo = {
-      companyName: null,
-      nip: null,
-      address: null,
+      companyName: rawBilling.companyName ?? null,
+      nip: rawBilling.nip ?? null,
+      address: rawBilling.address ?? null,
     };
 
     return {
@@ -131,14 +131,14 @@ export class AccountService {
 
   /**
    * Get billing information
-   * Note: For now, returns placeholder data. Can be extended with a separate BillingInfo model
+   * Stored on User.billingInfo JSON field
    */
   async getBillingInfo(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: {
         id: true,
-        email: true,
+        billingInfo: true,
       },
     });
 
@@ -146,24 +146,24 @@ export class AccountService {
       throw new NotFoundException('User not found');
     }
 
-    // For now, return empty billing info
-    // In the future, this can be stored in a separate BillingInfo table or User.settings JSON
+    const rawBilling = (user.billingInfo as Record<string, any> | null) || {};
     return {
-      companyName: null,
-      nip: null,
-      address: null,
+      companyName: rawBilling.companyName ?? null,
+      nip: rawBilling.nip ?? null,
+      address: rawBilling.address ?? null,
     };
   }
 
   /**
    * Update billing information
-   * Note: For now, stores in a placeholder. Can be extended with a separate BillingInfo model
+   * Stored on User.billingInfo JSON field
    */
   async updateBillingInfo(userId: string, dto: UpdateBillingInfoDto) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: {
         id: true,
+        billingInfo: true,
       },
     });
 
@@ -171,18 +171,22 @@ export class AccountService {
       throw new NotFoundException('User not found');
     }
 
-    // For now, billing info is not stored in User model
-    // This is a placeholder - in production, you'd want a separate BillingInfo table
-    // or extend User model with billing fields
+    const rawBilling = (user.billingInfo as Record<string, any> | null) || {};
+    const nextBilling = {
+      companyName: dto.companyName ?? rawBilling.companyName ?? null,
+      nip: dto.nip ?? rawBilling.nip ?? null,
+      address: dto.address ?? rawBilling.address ?? null,
+    };
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { billingInfo: nextBilling },
+    });
 
     return {
       success: true,
       message: 'Billing information updated successfully',
-      billingInfo: {
-        companyName: dto.companyName || null,
-        nip: dto.nip || null,
-        address: dto.address || null,
-      },
+      billingInfo: nextBilling,
     };
   }
 }

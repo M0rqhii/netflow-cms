@@ -52,13 +52,10 @@ export enum Permission {
   USERS_WRITE = 'users:write',
   USERS_DELETE = 'users:delete',
   
-  // Organization/Tenant management
+  // Organization management
   ORGANIZATIONS_READ = 'organizations:read',
   ORGANIZATIONS_WRITE = 'organizations:write',
   ORGANIZATIONS_DELETE = 'organizations:delete',
-  TENANTS_READ = 'tenants:read',      // Backward compatibility
-  TENANTS_WRITE = 'tenants:write',    // Backward compatibility
-  TENANTS_DELETE = 'tenants:delete',  // Backward compatibility
   
   // Site management
   SITES_READ = 'sites:read',
@@ -135,6 +132,10 @@ export const SITE_ROLE_PERMISSIONS: Record<SiteRole, Permission[]> = {
   
   [SiteRole.EDITOR]: [
     // Wszystko z VIEWER +
+    Permission.COLLECTIONS_READ,
+    Permission.ITEMS_READ,
+    Permission.CONTENT_TYPES_READ,
+    Permission.CONTENT_READ,
     Permission.ITEMS_CREATE,
     Permission.ITEMS_UPDATE,
     Permission.ITEMS_WRITE,
@@ -150,6 +151,21 @@ export const SITE_ROLE_PERMISSIONS: Record<SiteRole, Permission[]> = {
   
   [SiteRole.EDITOR_IN_CHIEF]: [
     // Wszystko z EDITOR +
+    Permission.COLLECTIONS_READ,
+    Permission.ITEMS_READ,
+    Permission.CONTENT_TYPES_READ,
+    Permission.CONTENT_READ,
+    Permission.ITEMS_CREATE,
+    Permission.ITEMS_UPDATE,
+    Permission.ITEMS_WRITE,
+    Permission.CONTENT_CREATE,
+    Permission.CONTENT_UPDATE,
+    Permission.CONTENT_COMMENT,
+    Permission.CONTENT_WRITE,
+    Permission.MEDIA_READ,
+    Permission.MEDIA_WRITE,
+    Permission.PAGES_READ,
+    Permission.PAGES_WRITE,
     Permission.ITEMS_PUBLISH,
     Permission.CONTENT_PUBLISH,
     Permission.CONTENT_REVIEW,
@@ -173,9 +189,26 @@ export const SITE_ROLE_PERMISSIONS: Record<SiteRole, Permission[]> = {
     Permission.PAGES_WRITE,
     Permission.PAGES_PUBLISH,
   ],
-  
+
   [SiteRole.ADMIN]: [
     // Wszystko z MARKETING +
+    Permission.COLLECTIONS_READ,
+    Permission.ITEMS_READ,
+    Permission.ITEMS_CREATE,
+    Permission.ITEMS_UPDATE,
+    Permission.ITEMS_WRITE,
+    Permission.ITEMS_PUBLISH,
+    Permission.CONTENT_READ,
+    Permission.CONTENT_CREATE,
+    Permission.CONTENT_UPDATE,
+    Permission.CONTENT_WRITE,
+    Permission.CONTENT_PUBLISH,
+    Permission.CONTENT_COMMENT,
+    Permission.MEDIA_READ,
+    Permission.MEDIA_WRITE,
+    Permission.PAGES_READ,
+    Permission.PAGES_WRITE,
+    Permission.PAGES_PUBLISH,
     Permission.USERS_READ,
     Permission.USERS_WRITE,
     Permission.COLLECTIONS_CREATE,
@@ -183,6 +216,7 @@ export const SITE_ROLE_PERMISSIONS: Record<SiteRole, Permission[]> = {
     Permission.COLLECTIONS_DELETE,
     Permission.COLLECTIONS_WRITE,
     Permission.ITEMS_DELETE,
+    Permission.CONTENT_TYPES_READ,
     Permission.CONTENT_TYPES_CREATE,
     Permission.CONTENT_TYPES_UPDATE,
     Permission.CONTENT_TYPES_DELETE,
@@ -190,6 +224,8 @@ export const SITE_ROLE_PERMISSIONS: Record<SiteRole, Permission[]> = {
     Permission.CONTENT_DELETE,
     Permission.MEDIA_DELETE,
     Permission.ENVIRONMENTS_MANAGE,
+    // UWAGA: SITES_READ/WRITE s� tylko dla PlatformRole, nie SiteRole
+    // SiteRole.ADMIN zarz�dza tre�ci� w site, nie tworzy nowych sites
   ],
   
   [SiteRole.OWNER]: [
@@ -260,9 +296,6 @@ export const SYSTEM_ROLE_PERMISSIONS: Record<SystemRole, Permission[]> = {
     Permission.ORGANIZATIONS_READ,
     Permission.ORGANIZATIONS_WRITE,
     Permission.ORGANIZATIONS_DELETE,
-    Permission.TENANTS_READ,
-    Permission.TENANTS_WRITE,
-    Permission.TENANTS_DELETE,
     Permission.USERS_READ,
     Permission.USERS_WRITE,
     Permission.USERS_DELETE,
@@ -301,15 +334,17 @@ export const SYSTEM_ROLE_PERMISSIONS: Record<SystemRole, Permission[]> = {
 // Backward compatibility - stary enum Role
 export enum Role {
   SUPER_ADMIN = 'super_admin',
-  TENANT_ADMIN = 'tenant_admin',
+  ORG_ADMIN = 'org_admin',
   EDITOR = 'editor',
   VIEWER = 'viewer',
 }
 
 // Backward compatibility - mapowanie starych ról do nowych
+// UWAGA: org_admin powinien mieć uprawnienia platformowe (zarządzanie organizacją),
+// nie site'owe (zarządzanie treścią). Dlatego mapujemy do PLATFORM_ROLE_PERMISSIONS[PlatformRole.ADMIN]
 export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   [Role.SUPER_ADMIN]: SYSTEM_ROLE_PERMISSIONS[SystemRole.SUPER_ADMIN],
-  [Role.TENANT_ADMIN]: SITE_ROLE_PERMISSIONS[SiteRole.ADMIN],
+  [Role.ORG_ADMIN]: PLATFORM_ROLE_PERMISSIONS[PlatformRole.ADMIN], // Zarządzanie organizacją (sites, users, billing)
   [Role.EDITOR]: SITE_ROLE_PERMISSIONS[SiteRole.EDITOR],
   [Role.VIEWER]: SITE_ROLE_PERMISSIONS[SiteRole.VIEWER],
 };
@@ -391,4 +426,10 @@ export function hasAllPermissions(role: Role, permissions: Permission[]): boolea
   }
   return permissions.every(permission => hasPermission(role, permission));
 }
+
+
+
+
+
+
 

@@ -40,7 +40,7 @@ export class ActivityService {
       }
 
       // Determine effective orgId (from user token or query param)
-      const effectiveOrgId = orgId || user.orgId || user.tenantId;
+      const effectiveOrgId = orgId || user.orgId || user.orgId;
       if (!effectiveOrgId) {
         throw new ForbiddenException('Organization ID is required');
       }
@@ -105,34 +105,53 @@ export class ActivityService {
    * Get user's role in organization
    */
   private async getUserOrgRole(userId: string, orgId: string): Promise<{ role: string } | null> {
-    try {
-      const membership = await this.prisma.userOrg.findUnique({
-        where: {
-          userId_orgId: {
-            userId,
-            orgId,
-          },
+    const membership = await this.prisma.userOrg.findUnique({
+      where: {
+        userId_orgId: {
+          userId,
+          orgId,
         },
-        select: { role: true },
-      });
-      return membership;
-    } catch (error) {
-      // Fallback to legacy UserTenant
-      try {
-        const legacy = await this.prisma.userTenant.findUnique({
-          where: {
-            userId_tenantId: {
-              userId,
-              tenantId: orgId,
-            },
-          },
-          select: { role: true },
-        });
-        return legacy;
-      } catch {
-        return null;
+      },
+      select: { role: true },
+    });
+    if (membership?.role) {
+      const role = membership.role.toLowerCase();
+      if (role === 'owner' || role === 'super_admin') {
+        return { role: 'owner' };
       }
+      if (role === 'admin' || role === 'org_admin') {
+        return { role: 'admin' };
+      }
+      return { role: 'member' };
     }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        orgId: true,
+        role: true,
+        platformRole: true,
+        systemRole: true,
+        isSuperAdmin: true,
+      },
+    });
+
+    if (!user || user.orgId != orgId) {
+      return null;
+    }
+
+    const platformRole = user.platformRole?.toLowerCase();
+    if (user.isSuperAdmin || user.systemRole === 'super_admin') {
+      return { role: 'owner' };
+    }
+    if (platformRole == 'owner' || platformRole == 'org_owner') {
+      return { role: 'owner' };
+    }
+    if (platformRole == 'admin' || platformRole == 'org_admin' || user.role == 'org_admin') {
+      return { role: 'admin' };
+    }
+
+    return { role: 'member' };
   }
 
   /**
@@ -204,9 +223,9 @@ export class ActivityService {
         createdAt: string;
       }> = [];
 
-      // Get recent tenants (only if no orgId filter - platform-wide)
+      // Get recent organizations (only if no orgId filter - platform-wide)
       if (!orgId) {
-        const recentTenants = await this.prisma.tenant.findMany({
+        const recentOrganizations = await this.prisma.organization.findMany({
           take: Math.min(limit, 5),
           orderBy: { createdAt: 'desc' },
           select: {
@@ -216,13 +235,13 @@ export class ActivityService {
           },
         });
 
-        recentTenants.forEach((tenant) => {
+        recentOrganizations.forEach((organization) => {
           activities.push({
-            id: `tenant-${tenant.id}`,
-            type: 'tenant.created',
-            message: `Tenant "${tenant.name}" was created`,
-            description: `New tenant added to the platform`,
-            createdAt: tenant.createdAt.toISOString(),
+            id: `org-${organization.id}`,
+            type: 'org.created',
+            message: `Organization "${organization.name}" was created`,
+            description: `New organization added to the platform`,
+            createdAt: organization.createdAt.toISOString(),
           });
         });
       }

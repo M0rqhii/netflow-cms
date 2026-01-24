@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { TenantModule } from '../../common/tenant/tenant.module';
 import { AuthModule } from '../../common/auth/auth.module';
 import { ContentTypesController } from './controllers/content-types.controller';
 import { ContentTypesService } from './services/content-types.service';
@@ -10,7 +9,7 @@ import { ContentTypesService } from './services/content-types.service';
  * AI Note: Importuj w app.module.ts
  */
 @Module({
-  imports: [TenantModule, AuthModule],
+  imports: [AuthModule],
   providers: [PrismaService, ContentTypesService],
   controllers: [ContentTypesController],
   exports: [ContentTypesService],

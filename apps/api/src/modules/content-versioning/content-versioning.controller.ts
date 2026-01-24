@@ -15,7 +15,7 @@ import { CurrentUser } from '../../common/auth/decorators/current-user.decorator
 import { CurrentUserPayload } from '../../common/auth/decorators/current-user.decorator';
 import { CurrentSite } from '../../common/decorators/current-site.decorator';
 
-@Controller('api/v1/collections/:collectionSlug/items/:itemId/versions')
+@Controller('collections/:collectionSlug/items/:itemId/versions')
 @UseGuards(AuthGuard, PermissionsGuard)
 export class ContentVersioningController {
   constructor(
@@ -91,4 +91,5 @@ export class ContentVersioningController {
     );
   }
 }
+
 

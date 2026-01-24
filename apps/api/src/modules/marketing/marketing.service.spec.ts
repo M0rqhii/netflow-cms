@@ -6,12 +6,16 @@ import { NotFoundException, BadRequestException } from '@nestjs/common';
 
 describe('MarketingService', () => {
   let service: MarketingService;
-  let prisma: PrismaService;
-  let rbac: RbacService;
 
   const mockPrismaService = {
-    tenant: {
+    site: {
       findFirst: jest.fn(),
+    },
+    siteEnvironment: {
+      findFirst: jest.fn(),
+    },
+    page: {
+      count: jest.fn(),
     },
     campaign: {
       create: jest.fn(),
@@ -71,8 +75,6 @@ describe('MarketingService', () => {
     }).compile();
 
     service = module.get<MarketingService>(MarketingService);
-    prisma = module.get<PrismaService>(PrismaService);
-    rbac = module.get<RbacService>(RbacService);
   });
 
   afterEach(() => {
@@ -89,7 +91,7 @@ describe('MarketingService', () => {
       };
       const userId = 'user-1';
 
-      mockPrismaService.tenant.findFirst.mockResolvedValue({ id: 'site-1' });
+      mockPrismaService.site.findFirst.mockResolvedValue({ id: 'site-1' });
       mockPrismaService.campaign.create.mockResolvedValue({
         id: 'campaign-1',
         ...dto,
@@ -117,7 +119,7 @@ describe('MarketingService', () => {
       };
       const userId = 'user-1';
 
-      mockPrismaService.tenant.findFirst.mockResolvedValue(null);
+      mockPrismaService.site.findFirst.mockResolvedValue(null);
 
       await expect(service.createCampaign(orgId, dto, userId)).rejects.toThrow(
         NotFoundException
@@ -185,12 +187,12 @@ describe('MarketingService', () => {
       const dto = {
         siteId: 'site-1',
         title: 'Test Draft',
-        content: { site: { title: 'Test' } },
-        channels: ['site', 'facebook'],
+        content: { site: { title: 'Test' }, facebook: { text: 'Test' } },
+        channels: ['site', 'facebook'] as ('site' | 'facebook')[],
       };
       const userId = 'user-1';
 
-      mockPrismaService.tenant.findFirst.mockResolvedValue({ id: 'site-1' });
+      mockPrismaService.site.findFirst.mockResolvedValue({ id: 'site-1' });
       mockPrismaService.distributionDraft.create.mockResolvedValue({
         id: 'draft-1',
         ...dto,
@@ -214,11 +216,15 @@ describe('MarketingService', () => {
       const orgId = 'org-1';
       const dto = {
         siteId: 'site-1',
-        channels: ['site', 'facebook'],
+        channels: ['site', 'facebook'] as ('site' | 'facebook')[],
+        content: { site: { title: 'Test' }, facebook: { text: 'Test' } },
       };
       const userId = 'user-1';
 
-      mockPrismaService.tenant.findFirst.mockResolvedValue({ id: 'site-1' });
+      mockPrismaService.site.findFirst.mockResolvedValue({ id: 'site-1' });
+      mockPrismaService.siteEnvironment.findFirst.mockResolvedValue({ id: 'env-1' });
+      mockPrismaService.page.count.mockResolvedValue(1);
+      mockPrismaService.channelConnection.findMany.mockResolvedValue([{ channel: 'facebook' }]);
       mockRbacService.canUserPerform.mockResolvedValue(true);
       mockPrismaService.publishJob.create.mockResolvedValue({
         id: 'job-1',
@@ -242,11 +248,14 @@ describe('MarketingService', () => {
       const orgId = 'org-1';
       const dto = {
         siteId: 'site-1',
-        channels: ['site', 'ads'],
+        channels: ['site', 'ads'] as ('site' | 'ads')[],
+        content: { site: { title: 'Test' }, ads: { text: 'Ad' } },
       };
       const userId = 'user-1';
 
-      mockPrismaService.tenant.findFirst.mockResolvedValue({ id: 'site-1' });
+      mockPrismaService.site.findFirst.mockResolvedValue({ id: 'site-1' });
+      mockPrismaService.siteEnvironment.findFirst.mockResolvedValue({ id: 'env-1' });
+      mockPrismaService.page.count.mockResolvedValue(1);
       mockRbacService.canUserPerform.mockResolvedValue(false);
       mockRbacService.getPolicies.mockResolvedValue([]);
 
@@ -263,10 +272,12 @@ describe('MarketingService', () => {
         siteId: 'site-1',
         channel: 'facebook' as const,
         channelName: 'My Page',
+        credentials: {},
+        metadata: {},
       };
       const userId = 'user-1';
 
-      mockPrismaService.tenant.findFirst.mockResolvedValue({ id: 'site-1' });
+      mockPrismaService.site.findFirst.mockResolvedValue({ id: 'site-1' });
       mockPrismaService.channelConnection.findUnique.mockResolvedValue(null);
       mockPrismaService.channelConnection.create.mockResolvedValue({
         id: 'connection-1',
@@ -290,10 +301,12 @@ describe('MarketingService', () => {
       const dto = {
         siteId: 'site-1',
         channel: 'facebook' as const,
+        credentials: {},
+        metadata: {},
       };
       const userId = 'user-1';
 
-      mockPrismaService.tenant.findFirst.mockResolvedValue({ id: 'site-1' });
+      mockPrismaService.site.findFirst.mockResolvedValue({ id: 'site-1' });
       mockPrismaService.channelConnection.findUnique.mockResolvedValue({
         id: 'existing-connection',
       });

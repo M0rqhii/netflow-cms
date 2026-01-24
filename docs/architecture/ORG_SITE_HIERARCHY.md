@@ -186,7 +186,7 @@ async getSubscription(@CurrentSite() siteId: string) {
 
 ## Migracja
 
-Podczas migracji z `Tenant` na `Organization + Site`:
-- `Tenant` → `Organization` (billing, hosting, RBAC)
-- `Tenant` → `Site` (content, media, pages)
-- Zachować backward compatibility przez mapowanie `tenantId` → `orgId`
+Podczas migracji z `Site` na `Organization + Site`:
+- `Site` → `Organization` (billing, hosting, RBAC)
+- `Site` → `Site` (content, media, pages)
+- Zachować backward compatibility przez mapowanie `siteId` → `orgId`

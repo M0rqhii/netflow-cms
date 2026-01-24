@@ -265,7 +265,7 @@ export class ContentEntriesService {
       
       if (searchQuery) {
         // Use tsvector search with ranking - use table alias to avoid ambiguity
-        conditions.push(`ce."searchVector" @@ to_tsquery('english', $${paramIndex})`);
+        conditions.push(`to_tsvector('english', ce.data::text) @@ to_tsquery('english', $${paramIndex})`);
         params.push(searchQuery);
         paramIndex++;
       }
@@ -299,16 +299,16 @@ export class ContentEntriesService {
 
     // Use raw SQL for efficient JSON filtering and full-text search
     // This avoids fetching all records and filtering in memory
-    // Note: Use table alias 'ce' for searchVector to avoid ambiguity
+    // Use computed tsvector to avoid dependency on stored search vector column
     const searchRanking = query.search 
-      ? `, ts_rank(ce."searchVector", to_tsquery('english', $${paramIndex - 1})) as rank`
+      ? `, ts_rank(to_tsvector('english', ce.data::text), to_tsquery('english', $${paramIndex - 1})) as rank`
       : '';
     const orderByWithRank = query.search && searchRanking
       ? `ORDER BY rank DESC, ${orderByClause.replace('ORDER BY ', '')}`
       : orderByClause;
     
     // Explicitly select columns to avoid tsvector deserialization issues
-    // Exclude searchVector as it's not needed and causes Prisma deserialization errors
+    // Exclude computed search vector from the select; not needed in response
     const entries = (await this.prisma.$queryRawUnsafe(
       `
         SELECT 
@@ -528,4 +528,6 @@ export class ContentEntriesService {
     return { ok: true };
   }
 }
+
+
 

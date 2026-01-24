@@ -40,8 +40,8 @@ Kompletna dokumentacja techniczna Admin Panel zawierająca:
 Dokumentacja zawiera:
 
 - Architektura App Router z Next.js 14
-- Struktura routing (global routes vs tenant routes)
-- Token management (global token vs tenant-scoped token)
+- Struktura routing (global routes vs site routes)
+- Token management (global token vs site-scoped token)
 - Struktura katalogów i organizacja plików
 - Dokumentacja wszystkich komponentów z lokalizacjami
 
@@ -50,7 +50,7 @@ Dokumentacja zawiera:
 Dokumentacja zawiera:
 
 - Kompletna lista wszystkich funkcji API z `src/lib/api.ts`
-- Token flow (login → dashboard → tenant operations)
+- Token flow (login → dashboard → site operations)
 - Error handling i przekierowania
 - Environment variables
 - Przykłady użycia dla każdej kategorii API
@@ -59,7 +59,7 @@ Dokumentacja zawiera:
 
 Dokumentacja zawiera:
 
-- Wszystkie trasy aplikacji (global i tenant)
+- Wszystkie trasy aplikacji (global i site)
 - Middleware configuration
 - Wymagania autoryzacyjne dla każdej trasy
 - Navigation patterns i best practices
@@ -119,7 +119,7 @@ Dodano referencję do nowej dokumentacji w głównym README projektu.
 Dokumentacja zawiera kompletny API reference dla:
 
 - Authentication (6 funkcji)
-- Tenants (2 funkcje)
+- Sites (2 funkcje)
 - Collections (5 funkcji)
 - Collection Items (5 funkcji)
 - Content Types & Entries (9 funkcji)

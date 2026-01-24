@@ -9,7 +9,7 @@ import { StructuredLoggerService } from '../logging/structured-logger.service';
  * - Content changes (create, update, delete, publish)
  * - Permission changes (role assignments, permission grants)
  * - Authentication events (login, logout, token exchange)
- * - Tenant operations (create, update, plan changes)
+ * - Organization operations (create, update, plan changes)
  */
 export enum AuditEventType {
   // Content Events
@@ -30,10 +30,10 @@ export enum AuditEventType {
   LOGOUT = 'LOGOUT',
   TOKEN_EXCHANGED = 'TOKEN_EXCHANGED',
   
-  // Tenant Events
-  TENANT_CREATED = 'TENANT_CREATED',
-  TENANT_UPDATED = 'TENANT_UPDATED',
-  TENANT_PLAN_CHANGED = 'TENANT_PLAN_CHANGED',
+  // Organization Events
+  ORG_CREATED = 'ORG_CREATED',
+  ORG_UPDATED = 'ORG_UPDATED',
+  ORG_PLAN_CHANGED = 'ORG_PLAN_CHANGED',
   
   // Collection Events
   COLLECTION_CREATED = 'COLLECTION_CREATED',
@@ -47,7 +47,8 @@ export enum AuditEventType {
 
 export interface AuditMetadata {
   userId?: string;
-  tenantId?: string;
+  orgId?: string;
+  siteId?: string;
   resourceId?: string;
   resourceType?: string;
   action?: string;
@@ -111,15 +112,15 @@ export class AuditLoggerService {
   }
 
   /**
-   * Log tenant operation
+   * Log organization operation
    */
-  logTenantOperation(
-    event: AuditEventType.TENANT_CREATED | AuditEventType.TENANT_UPDATED | AuditEventType.TENANT_PLAN_CHANGED,
+  logOrgOperation(
+    event: AuditEventType.ORG_CREATED | AuditEventType.ORG_UPDATED | AuditEventType.ORG_PLAN_CHANGED,
     metadata: AuditMetadata,
   ): void {
     this.log(event, {
       ...metadata,
-      resourceType: 'tenant',
+      resourceType: 'organization',
     });
   }
 }

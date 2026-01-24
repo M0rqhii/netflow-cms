@@ -1,10 +1,10 @@
 # Plan Sprintu / Plan Zadań
 
-## Multi-Tenant Headless CMS
+## Multi-Site Headless CMS
 
 **Sprint:** Sprint 1 - MVP Foundation  
 **Okres:** 2024-01-01 - 2024-01-14 (2 tygodnie)  
-**Cel:** Podstawowa infrastruktura multi‑tenant i core API
+**Cel:** Podstawowa infrastruktura multi‑site i core API
 
 ---
 
@@ -12,7 +12,7 @@
 
 ### Cel Sprintu
 
-Stworzenie fundamentu aplikacji multi‑tenant headless CMS z podstawową funkcjonalnością zarządzania tenantami i treścią.
+Stworzenie fundamentu aplikacji multi‑site headless CMS z podstawową funkcjonalnością zarządzania siteami i treścią.
 
 ### Definition of Done
 
@@ -56,12 +56,12 @@ Stworzenie fundamentu aplikacji multi‑tenant headless CMS z podstawową funkcj
 **Priority:** P0 (Critical)
 
 **Opis:**
-Zaprojektowanie Platform Panel jako punkt wejścia po logowaniu: lista stron/tenantów, metryki i operacje zarządcze (tworzenie stron, zaproszenia, billing).
+Zaprojektowanie Platform Panel jako punkt wejścia po logowaniu: lista stron/siteów, metryki i operacje zarządcze (tworzenie stron, zaproszenia, billing).
 
 **Zadania:**
 
-- [x] Makiety UX (Dashboard, tenant switcher, zaproszenia)
-- [x] Spec. przepływów: global login → Hub → switch do tenant (bez pon. logowania)
+- [x] Makiety UX (Dashboard, site switcher, zaproszenia)
+- [x] Spec. przepływów: global login → Hub → switch do site (bez pon. logowania)
 - [x] Polityki bezpieczeństwa (CSRF, uprawnienia, audyt)
 
 **Akceptacja:**
@@ -79,7 +79,7 @@ Zaprojektowanie Platform Panel jako punkt wejścia po logowaniu: lista stron/ten
 
 ---
 
-#### TNT-021: Model uprawnień i członkostwa (User↔Tenant)
+#### TNT-021: Model uprawnień i członkostwa (User↔Site)
 
 **Status:** Done  
 **Asignee:** Architecture Agent + Backend Codex  
@@ -87,17 +87,17 @@ Zaprojektowanie Platform Panel jako punkt wejścia po logowaniu: lista stron/ten
 **Priority:** P0 (Critical)
 
 **Opis:**
-Umożliwić jednemu użytkownikowi dostęp do wielu tenantów. Wprowadzić tabelę członkostwa i role per‑tenant + role platformowe.
+Umożliwić jednemu użytkownikowi dostęp do wielu siteów. Wprowadzić tabelę członkostwa i role per‑site + role platformowe.
 
 **Zadania:**
 
-- [x] Nowy model `UserTenant` (userId, tenantId, role, unique [userId, tenantId])
+- [x] Nowy model `UserSite` (userId, siteId, role, unique [userId, siteId])
 - [x] Role platformowe: `platform_admin`, `org_owner` (rozszerzenie `Role` lub osobna tabela)
-- [x] Migracja: przeniesienie `User.tenantId` do `UserTenant` (backfill), utrzymanie kompatybilności
+- [x] Migracja: przeniesienie `User.siteId` do `UserSite` (backfill), utrzymanie kompatybilności
 
 **Akceptacja:**
 
-- Użytkownik może mieć wiele ról w wielu tenantach
+- Użytkownik może mieć wiele ról w wielu siteach
 - Stary login nadal działa w trakcie migracji
 
 **Dependencies:** TNT-002  
@@ -106,15 +106,15 @@ Umożliwić jednemu użytkownikowi dostęp do wielu tenantów. Wprowadzić tabel
 
 **Deliverables:**
 
-- `apps/api/src/modules/user-tenants/user-tenants.service.ts` - Service do zarządzania członkostwami
-- `apps/api/src/modules/user-tenants/user-tenants.module.ts` - Module dla UserTenants
+- `apps/api/src/modules/user-sites/user-sites.service.ts` - Service do zarządzania członkostwami
+- `apps/api/src/modules/user-sites/user-sites.module.ts` - Module dla UserSites
 - `apps/api/src/common/auth/roles.enum.ts` - Dodano PlatformRole enum
-- Refaktoryzacja `auth.service.ts` - pełna obsługa UserTenant bez workaroundów
+- Refaktoryzacja `auth.service.ts` - pełna obsługa UserSite bez workaroundów
 - Aktualizacja JWT strategy - obsługa ról platformowych
 
 ---
 
-#### TNT-022: Token wymiany (tenant switch) i lista tenantów
+#### TNT-022: Token wymiany (site switch) i lista siteów
 
 **Status:** Done  
 **Asignee:** Backend Codex  
@@ -122,13 +122,13 @@ Umożliwić jednemu użytkownikowi dostęp do wielu tenantów. Wprowadzić tabel
 **Priority:** P0 (Critical)
 
 **Opis:**
-Endpointy do pobrania listy tenantów użytkownika oraz do wystawienia krótkotrwałego tokenu tenant‑scoped (bez ponownego wpisywania hasła).
+Endpointy do pobrania listy siteów użytkownika oraz do wystawienia krótkotrwałego tokenu site‑scoped (bez ponownego wpisywania hasła).
 
 **Zadania:**
 
-- [x] GET `/me/tenants` – lista członkostw i ról
-- [x] POST `/auth/tenant-token` { tenantId } – walidacja członkostwa → JWT z `tenantId`
-- [x] Aktualizacja `TenantGuard` – preferuj `tenantId` z JWT, fallback: header
+- [x] GET `/me/sites` – lista członkostw i ról
+- [x] POST `/auth/site-token` { siteId } – walidacja członkostwa → JWT z `siteId`
+- [x] Aktualizacja `SiteGuard` – preferuj `siteId` z JWT, fallback: header
 
 **Akceptacja:**
 
@@ -140,13 +140,13 @@ Endpointy do pobrania listy tenantów użytkownika oraz do wystawienia krótkotr
 
 **Deliverables:**
 
-- `GET /api/v1/auth/me/tenants` - Endpoint do pobrania listy członkostw użytkownika
-- `POST /api/v1/auth/tenant-token` - Endpoint do wymiany tokenu na tenant-scoped token
-- `TenantGuard` zaktualizowany - preferuje tenantId z JWT, fallback: header
+- `GET /api/v1/auth/me/sites` - Endpoint do pobrania listy członkostw użytkownika
+- `POST /api/v1/auth/site-token` - Endpoint do wymiany tokenu na site-scoped token
+- `SiteGuard` zaktualizowany - preferuje siteId z JWT, fallback: header
 
 ---
 
-#### TNT-023: Admin (Next.js) – Hub i przełączanie tenantów
+#### TNT-023: Admin (Next.js) – Hub i przełączanie siteów
 
 **Status:** Done  
 **Asignee:** Frontend Maestro  
@@ -154,13 +154,13 @@ Endpointy do pobrania listy tenantów użytkownika oraz do wystawienia krótkotr
 **Priority:** P1 (High)
 
 **Opis:**
-Struktura aplikacji admin: `/dashboard` (globalny Hub), `/tenant/[slug]/*` (obszar CMS). Middleware rozróżnia token globalny i tenant‑scoped.
+Struktura aplikacji admin: `/dashboard` (globalny Hub), `/site/[slug]/*` (obszar CMS). Middleware rozróżnia token globalny i site‑scoped.
 
 **Zadania:**
 
-- [x] Ekran Hub z listą tenantów i akcjami (wejście, utwórz, zaproś)
-- [x] Przełączanie: wywołanie `/auth/tenant-token` i zapis tokenu per‑tenant
-- [x] Ochrona tras: globalne vs tenantowe (middleware)
+- [x] Ekran Hub z listą siteów i akcjami (wejście, utwórz, zaproś)
+- [x] Przełączanie: wywołanie `/auth/site-token` i zapis tokenu per‑site
+- [x] Ochrona tras: globalne vs siteowe (middleware)
 
 **Akceptacja:**
 
@@ -172,9 +172,9 @@ Struktura aplikacji admin: `/dashboard` (globalny Hub), `/tenant/[slug]/*` (obsz
 
 **Deliverables:**
 
-- `apps/admin/src/app/dashboard/page.tsx` - Hub z listą tenantów i akcjami
-- `apps/admin/src/app/tenant/[slug]/page.tsx` - Tenant CMS page z automatycznym token exchange
-- `apps/admin/src/middleware.ts` - Middleware do ochrony tras (globalne vs tenantowe)
+- `apps/admin/src/app/dashboard/page.tsx` - Hub z listą siteów i akcjami
+- `apps/admin/src/app/site/[slug]/page.tsx` - Site CMS page z automatycznym token exchange
+- `apps/admin/src/middleware.ts` - Middleware do ochrony tras (globalne vs siteowe)
 - `apps/admin/src/lib/api.ts` - Helper functions dla tokenów
 
 ---
@@ -187,7 +187,7 @@ Struktura aplikacji admin: `/dashboard` (globalny Hub), `/tenant/[slug]/*` (obsz
 **Priority:** P1 (High)
 
 **Opis:**
-Zdefiniować i wyegzekwować role platformowe (np. tworzenie tenantów, zarządzanie zaproszeniami) oraz mapowanie ról per‑tenant.
+Zdefiniować i wyegzekwować role platformowe (np. tworzenie siteów, zarządzanie zaproszeniami) oraz mapowanie ról per‑site.
 
 **Zadania:**
 
@@ -197,7 +197,7 @@ Zdefiniować i wyegzekwować role platformowe (np. tworzenie tenantów, zarządz
 
 **Akceptacja:**
 
-- Brak eskalacji uprawnień między tenantami
+- Brak eskalacji uprawnień między siteami
 
 **Dependencies:** TNT-021, TNT-022  
 **Estimated Time:** 2 dni  
@@ -209,7 +209,7 @@ Zdefiniować i wyegzekwować role platformowe (np. tworzenie tenantów, zarządz
 - `apps/api/src/common/auth/guards/platform-roles.guard.ts` - PlatformRolesGuard
 - `apps/api/src/common/auth/decorators/platform-roles.decorator.ts` - @PlatformRoles() decorator
 - `apps/api/src/modules/auth/auth.service.ts` - Ustawianie platformRole w tokenach
-- `apps/api/src/modules/tenants/tenants.controller.ts` - Użycie PlatformRolesGuard
+- `apps/api/src/modules/sites/sites.controller.ts` - Użycie PlatformRolesGuard
 
 ---
 
@@ -221,12 +221,12 @@ Zdefiniować i wyegzekwować role platformowe (np. tworzenie tenantów, zarządz
 **Priority:** P0 (Critical)
 
 **Opis:**
-Bezpieczne przejście do modelu `UserTenant` bez przestojów. Skrypty migracyjne i weryfikacja.
+Bezpieczne przejście do modelu `UserSite` bez przestojów. Skrypty migracyjne i weryfikacja.
 
 **Zadania:**
 
 - [x] Migracje i backfill
-- [x] Flagi kompatybilności (czasowe akceptowanie `X-Tenant-ID`)
+- [x] Flagi kompatybilności (czasowe akceptowanie `X-Site-ID`)
 - [x] Plan rollbacku
 
 **Akceptacja:**
@@ -239,12 +239,12 @@ Bezpieczne przejście do modelu `UserTenant` bez przestojów. Skrypty migracyjne
 
 **Deliverables:**
 
-- `apps/api/prisma/migrations/20251109000100_user_tenants/migration.sql` - Migration z backfill
+- `apps/api/prisma/migrations/20251109000100_user_sites/migration.sql` - Migration z backfill
 - `apps/api/src/modules/auth/auth.service.ts` - Backward compatibility logic
-- `apps/api/src/common/tenant/tenant.guard.ts` - X-Tenant-ID header support
-- `apps/api/src/common/tenant/tenant-context.middleware.ts` - X-Tenant-ID header support
+- `apps/api/src/common/site/site.guard.ts` - X-Site-ID header support
+- `apps/api/src/common/site/site-context.middleware.ts` - X-Site-ID header support
 - `docs/migration/TNT-025_MIGRATION_PLAN.md` - Migration plan i dokumentacja
-- `apps/api/prisma/migrations/rollback_user_tenants.sql` - Rollback script
+- `apps/api/prisma/migrations/rollback_user_sites.sql` - Rollback script
 - `docs/migration/TNT-025_VERIFICATION_QUERIES.sql` - Verification queries
 
 ---
@@ -257,11 +257,11 @@ Bezpieczne przejście do modelu `UserTenant` bez przestojów. Skrypty migracyjne
 **Priority:** P2 (Medium)
 
 **Opis:**
-Logi audytowe: przełączanie tenantów, wejścia do paneli, zmiany ról. Metryki Hub.
+Logi audytowe: przełączanie siteów, wejścia do paneli, zmiany ról. Metryki Hub.
 
 **Zadania:**
 
-- [x] Audit log dla `/auth/tenant-token` i operacji Hub
+- [x] Audit log dla `/auth/site-token` i operacji Hub
 - [x] Metryki (np. Prometheus/Grafana – roadmap)
 
 **Akceptacja:**
@@ -276,7 +276,7 @@ Logi audytowe: przełączanie tenantów, wejścia do paneli, zmiany ról. Metryk
 
 - `apps/api/src/common/audit/audit.service.ts` - AuditService z console.log (MVP)
 - `apps/api/src/common/audit/audit.interceptor.ts` - AuditInterceptor dla automatycznego logowania
-- `apps/api/src/modules/auth/auth.controller.ts` - Manual audit logging dla Hub i tenant-token
+- `apps/api/src/modules/auth/auth.controller.ts` - Manual audit logging dla Hub i site-token
 - `apps/api/src/modules/auth/auth.service.ts` - Audit logging dla login, register, logout
 - `docs/observability/TNT-026_METRICS_ROADMAP.md` - Roadmap dla Prometheus/Grafana
 
@@ -332,19 +332,19 @@ Stworzenie podstawowej struktury projektu, konfiguracja środowiska development 
 **Priority:** P0 (Critical)
 
 **Opis:**
-Projekt i implementacja schematu bazy danych dla multi‑tenant systemu z pełną izolacją danych.
+Projekt i implementacja schematu bazy danych dla multi‑site systemu z pełną izolacją danych.
 
 **Zadania:**
 
 - [x] Projekt schematu bazy danych (ERD)
-- [x] Implementacja migracji dla tabel: `tenants`, `users`, `content_types`, `content_entries`, `collections`, `collection_items`, `media_files`
+- [x] Implementacja migracji dla tabel: `sites`, `users`, `content_types`, `content_entries`, `collections`, `collection_items`, `media_files`
 - [x] Implementacja row‑level security policies (RLS) w PostgreSQL
 - [x] Indeksy dla wydajności
 - [x] Seed data dla development
 
 **Akceptacja:**
 
-- Wszystkie tabele mają `tenantId` dla izolacji
+- Wszystkie tabele mają `siteId` dla izolacji
 - RLS policies działają poprawnie
 - Migracje można uruchomić i rollbackować
 - Testy jednostkowe dla schematu przechodzą
@@ -380,15 +380,15 @@ Implementacja systemu autentykacji z JWT tokens i refresh tokens.
 **Specyfikacja techniczna (MVP + plan rozszerzeń)**
 
 - Tokeny
-  - Access: JWT HS256; claims: `sub`, `email`, `role`, `tenantId`; `exp = JWT_EXPIRES_IN` (domyślnie 7d).
+  - Access: JWT HS256; claims: `sub`, `email`, `role`, `siteId`; `exp = JWT_EXPIRES_IN` (domyślnie 7d).
   - Refresh (Phase 2): JWT HS256 z `REFRESH_TOKEN_SECRET`; `exp = REFRESH_TOKEN_EXPIRES_IN` (domyślnie 7d);
     przechowywanie `jti` w Redis: klucz `refresh:{userId}:{jti}` z TTL; rotacja przy odświeżeniu; logout = usunięcie `jti`.
 - API
-  - POST `/api/v1/auth/register` → body: `{ tenantId, email, password, role? }` → `{ access_token, user }` (201)
-  - POST `/api/v1/auth/login` → body: `{ tenantId, email, password }` → `{ access_token, user }` (200)
+  - POST `/api/v1/auth/register` → body: `{ siteId, email, password, role? }` → `{ access_token, user }` (201)
+  - POST `/api/v1/auth/login` → body: `{ siteId, email, password }` → `{ access_token, user }` (200)
   - POST `/api/v1/auth/refresh` (Phase 2) → `{ refresh_token }` → `{ access_token, refresh_token }` (200)
   - POST `/api/v1/auth/logout` (Phase 2) → `{ refresh_token? }` → 204
-  - GET `/api/v1/auth/me` → `{ id, email, role, tenantId }` (200)
+  - GET `/api/v1/auth/me` → `{ id, email, role, siteId }` (200)
 - Rate limiting (Phase 2)
   - `@nestjs/throttler`: login `5/min` per IP+email; register `3/min` per IP; 429 po przekroczeniu.
 - Bezpieczeństwo
@@ -432,7 +432,7 @@ System uprawnień oparty na rolach (RBAC) z granularnymi uprawnieniami.
 
 **Zadania:**
 
-- [x] Definicja ról (Super Admin, Tenant Admin, Editor, Viewer)
+- [x] Definicja ról (Super Admin, Site Admin, Editor, Viewer)
 - [x] System uprawnień (permission‑based)
 - [x] Guardy do sprawdzania ról i uprawnień
 - [x] Endpoint GET /api/v1/users/me (current user info)
@@ -450,9 +450,9 @@ System uprawnień oparty na rolach (RBAC) z granularnymi uprawnieniami.
 
 ---
 
-### Epic 3: Tenant Management
+### Epic 3: Site Management
 
-#### TNT-005: Tenant CRUD API
+#### TNT-005: Site CRUD API
 
 **Status:** Completed  
 **Asignee:** Code Generation Agent  
@@ -460,15 +460,15 @@ System uprawnień oparty na rolach (RBAC) z granularnymi uprawnieniami.
 **Priority:** P0 (Critical)
 
 **Opis:**
-API do zarządzania tenantami (Create, Read, Update, Delete).
+API do zarządzania siteami (Create, Read, Update, Delete).
 
 **Zadania:**
 
-- [x] POST /api/v1/tenants (tworzenie tenantów)
-- [x] GET /api/v1/tenants (lista tenantów z paginacją)
-- [x] GET /api/v1/tenants/:id (szczegóły)
-- [x] PATCH /api/v1/tenants/:id (aktualizacja)
-- [x] DELETE /api/v1/tenants/:id (soft/hard delete wg ustaleń)
+- [x] POST /api/v1/sites (tworzenie siteów)
+- [x] GET /api/v1/sites (lista siteów z paginacją)
+- [x] GET /api/v1/sites/:id (szczegóły)
+- [x] PATCH /api/v1/sites/:id (aktualizacja)
+- [x] DELETE /api/v1/sites/:id (soft/hard delete wg ustaleń)
 - [x] Walidacja danych wejściowych
 - [x] Testy jednostkowe i integracyjne
 
@@ -483,7 +483,7 @@ API do zarządzania tenantami (Create, Read, Update, Delete).
 
 ---
 
-#### TNT-006: Tenant Context Middleware
+#### TNT-006: Site Context Middleware
 
 **Status:** Done  
 **Asignee:** Code Generation Agent  
@@ -491,20 +491,20 @@ API do zarządzania tenantami (Create, Read, Update, Delete).
 **Priority:** P0 (Critical)
 
 **Opis:**
-Middleware do automatycznego ustawiania kontekstu tenantów w requestach.
+Middleware do automatycznego ustawiania kontekstu siteów w requestach.
 
 **Zadania:**
 
-- [x] Ekstrakcja tenantId z requestu (header/query)
-- [x] Automatyczne ustawianie `current_tenant_id` w database session
-- [x] Walidacja czy użytkownik ma dostęp do tenanta
+- [x] Ekstrakcja siteId z requestu (header/query)
+- [x] Automatyczne ustawianie `current_site_id` w database session
+- [x] Walidacja czy użytkownik ma dostęp do sitea
 - [x] Testy middleware
 
 **Akceptacja:**
 
-- Middleware poprawnie identyfikuje tenantów
-- Automatyczne filtrowanie danych po tenantId działa
-- Użytkownik nie może uzyskać dostępu do danych innych tenantów
+- Middleware poprawnie identyfikuje siteów
+- Automatyczne filtrowanie danych po siteId działa
+- Użytkownik nie może uzyskać dostępu do danych innych siteów
 - Testy przechodzą
 
 **Dependencies:** TNT-004, TNT-005  
@@ -538,7 +538,7 @@ API do definiowania i zarządzania content types (schematami treści).
 
 - Można tworzyć content types z różnymi typami pól
 - Walidacja schematu działa poprawnie
-- Content types są izolowane per tenant
+- Content types są izolowane per site
 - Testy przechodzą
 
 **Dependencies:** TNT-006  
@@ -572,7 +572,7 @@ API do zarządzania wpisami treści (content entries).
 
 - Wszystkie operacje CRUD działają
 - Walidacja działa zgodnie ze schematem content type
-- Entries są izolowane per tenant
+- Entries są izolowane per site
 - Testy przechodzą (>85% coverage)
 
 **Dependencies:** TNT-007  
@@ -597,14 +597,14 @@ Zaawansowany system zarządzania kolekcjami treści z wersjonowaniem, ETag i cac
 - [x] Status DRAFT/PUBLISHED
 - [x] ETag support (If-None-Match → 304)
 - [x] Redis cache dla metadanych kolekcji
-- [x] TenantGuard i TenantModule
+- [x] SiteGuard i SiteModule
 - [x] Prisma middleware dla ETag
 - [x] Testy jednostkowe i E2E (>80% coverage)
 
 **Akceptacja:**
 
 - Endpointy działają poprawnie
-- Multi‑tenant isolation działa
+- Multi‑org/site isolation działa
 - Wersjonowanie i ETag działają poprawnie
 - Testy przechodzą (>85% coverage)
 
@@ -660,7 +660,7 @@ Kompleksowe testy dla wszystkich funkcjonalności.
 
 - [ ] Testy jednostkowe dla wszystkich services (brakujące scenariusze)
 - [ ] Testy integracyjne dla wszystkich API endpoints (pokrycie edge cases)
-- [ ] Testy bezpieczeństwa (tenant isolation)
+- [ ] Testy bezpieczeństwa (org/site isolation)
 - [ ] Testy wydajnościowe (load testing)
 - [x] Coverage > 80% (egzekwowane w CI)
 
@@ -668,7 +668,7 @@ Kompleksowe testy dla wszystkich funkcjonalności.
 
 - Wszystkie testy przechodzą
 - Coverage > 80%
-- Testy bezpieczeństwa potwierdzają izolację tenantów
+- Testy bezpieczeństwa potwierdzają izolację siteów
 
 **Dependencies:** TNT-009, zadania z Epic 1‑4  
 **Estimated Time:** 3 dni (równolegle)

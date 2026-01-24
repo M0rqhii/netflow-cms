@@ -12,7 +12,7 @@ Przeprowadzono kompleksową optymalizację routingu i struktury aplikacji admin 
 - ✅ Analizę obecnej struktury routingu
 - ✅ Weryfikację zgodności z dokumentacją
 - ✅ Optymalizację struktury folderów
-- ✅ Wprowadzenie layout.tsx dla sekcji tenant
+- ✅ Wprowadzenie layout.tsx dla sekcji site
 - ✅ Refaktoryzację wspólnej logiki token exchange
 
 **Znalezione problemy:** 2 główne obszary optymalizacji  
@@ -23,18 +23,18 @@ Przeprowadzono kompleksową optymalizację routingu i struktury aplikacji admin 
 
 ## 🔍 Zidentyfikowane Problemy
 
-### 1. ❌ Duplikacja Logiki Token Exchange w Każdej Stronie Tenant
+### 1. ❌ Duplikacja Logiki Token Exchange w Każdej Stronie Site
 
 **Problem:**
-- Każda strona w sekcji `/tenant/[slug]/*` powtarzała logikę:
-  - Pobieranie listy tenantów
-  - Sprawdzanie istnienia tenant token
-  - Wymiana global token na tenant token
+- Każda strona w sekcji `/site/[slug]/*` powtarzała logikę:
+  - Pobieranie listy siteów
+  - Sprawdzanie istnienia site token
+  - Wymiana global token na site token
   - Obsługa błędów i loading states
 - Kod był duplikowany w `page.tsx` i potencjalnie w innych miejscach
-- Brak centralizacji logiki autoryzacji dla tenant routes
+- Brak centralizacji logiki autoryzacji dla site routes
 
-**Lokalizacja:** `apps/admin/src/app/tenant/[slug]/page.tsx` i wszystkie podstrony
+**Lokalizacja:** `apps/admin/src/app/site/[slug]/page.tsx` i wszystkie podstrony
 
 **Ryzyko:** 
 - Wysokie - duplikacja kodu, trudność w utrzymaniu
@@ -42,10 +42,10 @@ Przeprowadzono kompleksową optymalizację routingu i struktury aplikacji admin 
 - Trudność w dodawaniu nowych funkcji (np. refresh token)
 
 **Rozwiązanie:**
-- Utworzono `layout.tsx` dla sekcji `/tenant/[slug]`
+- Utworzono `layout.tsx` dla sekcji `/site/[slug]`
 - Przeniesiono całą logikę token exchange do layout
 - Wszystkie podstrony dziedziczą teraz autoryzację z layout
-- Uproszczono kod w `page.tsx` - teraz tylko pobiera informacje o tenant
+- Uproszczono kod w `page.tsx` - teraz tylko pobiera informacje o site
 
 ---
 
@@ -64,21 +64,21 @@ Przeprowadzono kompleksową optymalizację routingu i struktury aplikacji admin 
 **Ryzyko:** Średnie - brak spójności, możliwe błędy w implementacji
 
 **Rozwiązanie:**
-- Wprowadzono layout.tsx dla tenant routes jako centralne miejsce autoryzacji
+- Wprowadzono layout.tsx dla site routes jako centralne miejsce autoryzacji
 - Layout obsługuje wszystkie przypadki: loading, error, success
 - Middleware pozostaje prosty (Next.js middleware nie ma dostępu do localStorage)
-- Wszystkie podstrony tenant automatycznie mają autoryzację
+- Wszystkie podstrony site automatycznie mają autoryzację
 
 ---
 
 ## ✅ Wdrożone Poprawki
 
-### 1. ✅ Utworzenie Layout dla Tenant Routes
+### 1. ✅ Utworzenie Layout dla Site Routes
 
-**Plik:** `apps/admin/src/app/tenant/[slug]/layout.tsx`
+**Plik:** `apps/admin/src/app/site/[slug]/layout.tsx`
 
 **Zmiany:**
-- Utworzono nowy layout component dla wszystkich tras `/tenant/[slug]/*`
+- Utworzono nowy layout component dla wszystkich tras `/site/[slug]/*`
 - Przeniesiono logikę token exchange z `page.tsx` do layout
 - Centralizacja obsługi błędów i loading states
 - Wszystkie podstrony dziedziczą autoryzację automatycznie
@@ -87,7 +87,7 @@ Przeprowadzono kompleksową optymalizację routingu i struktury aplikacji admin 
 ```typescript
 // Każda strona miała własną implementację:
 useEffect(() => {
-  // Pobierz tenantów
+  // Pobierz siteów
   // Sprawdź token
   // Wymień token jeśli potrzeba
   // Obsłuż błędy
@@ -97,7 +97,7 @@ useEffect(() => {
 **Kod po:**
 ```typescript
 // Layout.tsx - centralna logika dla wszystkich podstron
-export default function TenantLayout({ children }) {
+export default function SiteLayout({ children }) {
   // Wszystka logika token exchange tutaj
   // Wszystkie podstrony automatycznie mają autoryzację
   return <>{children}</>;
@@ -112,13 +112,13 @@ export default function TenantLayout({ children }) {
 
 ---
 
-### 2. ✅ Refaktoryzacja Tenant Dashboard Page
+### 2. ✅ Refaktoryzacja Site Dashboard Page
 
-**Plik:** `apps/admin/src/app/tenant/[slug]/page.tsx`
+**Plik:** `apps/admin/src/app/site/[slug]/page.tsx`
 
 **Zmiany:**
 - Usunięto duplikowaną logikę token exchange
-- Uproszczono kod - teraz tylko pobiera informacje o tenant
+- Uproszczono kod - teraz tylko pobiera informacje o site
 - Usunięto niepotrzebne state management (hasToken, error handling)
 - Kod jest teraz bardziej czytelny i łatwiejszy w utrzymaniu
 
@@ -137,7 +137,7 @@ export default function TenantLayout({ children }) {
 
 ### Przed:
 ```
-apps/admin/src/app/tenant/[slug]/
+apps/admin/src/app/site/[slug]/
 ├── page.tsx                    # Pełna logika autoryzacji + UI
 ├── collections/
 │   └── page.tsx                # Potencjalnie też autoryzacja
@@ -148,7 +148,7 @@ apps/admin/src/app/tenant/[slug]/
 
 ### Po:
 ```
-apps/admin/src/app/tenant/[slug]/
+apps/admin/src/app/site/[slug]/
 ├── layout.tsx                  # ✅ Centralna autoryzacja dla wszystkich podstron
 ├── page.tsx                    # ✅ Tylko UI, autoryzacja z layout
 ├── collections/
@@ -166,8 +166,8 @@ apps/admin/src/app/tenant/[slug]/
 
 1. ✅ **Struktura Routingu**
    - Wszystkie trasy są zgodne z dokumentacją
-   - Global routes (`/dashboard`, `/tenants`) działają poprawnie
-   - Tenant routes (`/tenant/[slug]/*`) działają poprawnie
+   - Global routes (`/dashboard`, `/sites`) działają poprawnie
+   - Site routes (`/site/[slug]/*`) działają poprawnie
    - Public routes (`/login`, `/`) działają poprawnie
 
 2. ✅ **Middleware**
@@ -178,11 +178,11 @@ apps/admin/src/app/tenant/[slug]/
 3. ✅ **Layout Hierarchy**
    - Root layout (`app/layout.tsx`) - globalny layout
    - Login layout (`app/login/layout.tsx`) - layout bez nawigacji
-   - Tenant layout (`app/tenant/[slug]/layout.tsx`) - ✅ NOWY - autoryzacja tenant
+   - Site layout (`app/site/[slug]/layout.tsx`) - ✅ NOWY - autoryzacja site
 
 4. ✅ **Token Management**
    - Global token (`authToken`) - dla operacji platformowych
-   - Tenant token (`tenantToken:{tenantId}`) - dla operacji per-tenant
+   - Site token (`siteToken:{siteId}`) - dla operacji per-site
    - Token exchange działa poprawnie w layout
 
 5. ✅ **Error Handling**
@@ -197,7 +197,7 @@ apps/admin/src/app/tenant/[slug]/
 ### Do Wykonania w Przyszłości:
 
 1. **AuthGuard Component:**
-   - Rozważyć użycie `AuthGuard` dla global routes (`/dashboard`, `/tenants`)
+   - Rozważyć użycie `AuthGuard` dla global routes (`/dashboard`, `/sites`)
    - Obecnie każda strona robi własną walidację
    - Można stworzyć wrapper component dla global routes
 
@@ -214,7 +214,7 @@ apps/admin/src/app/tenant/[slug]/
 4. **Route Groups:**
    - Rozważyć użycie route groups `(group)` dla lepszej organizacji
    - Może pomóc w organizacji tras z różnymi layoutami
-   - Przykład: `(platform)/dashboard`, `(tenant)/tenant/[slug]`
+   - Przykład: `(platform)/dashboard`, `(site)/site/[slug]`
 
 ---
 
@@ -243,7 +243,7 @@ apps/admin/src/app/tenant/[slug]/
 
 ## 📊 Podsumowanie
 
-Optymalizacja routingu i struktury została pomyślnie zakończona. Wprowadzono layout dla sekcji tenant, co znacznie poprawiło organizację kodu i eliminuje duplikację. Wszystkie podstrony tenant automatycznie dziedziczą autoryzację z layout, co czyni kod bardziej maintainable i zgodny z best practices Next.js 14 App Router.
+Optymalizacja routingu i struktury została pomyślnie zakończona. Wprowadzono layout dla sekcji site, co znacznie poprawiło organizację kodu i eliminuje duplikację. Wszystkie podstrony site automatycznie dziedziczą autoryzację z layout, co czyni kod bardziej maintainable i zgodny z best practices Next.js 14 App Router.
 
 **Status końcowy:** ✅ **GOTOWE DO PRODUKCJI**
 
@@ -251,7 +251,7 @@ Optymalizacja routingu i struktury została pomyślnie zakończona. Wprowadzono 
 
 ## 🎯 Następne Kroki
 
-1. Przetestować wszystkie trasy tenant po zmianach
+1. Przetestować wszystkie trasy site po zmianach
 2. Sprawdzić czy wszystkie podstrony działają poprawnie
 3. Rozważyć wprowadzenie AuthGuard dla global routes
 4. Rozważyć dodanie Error Boundary dla lepszego error handling

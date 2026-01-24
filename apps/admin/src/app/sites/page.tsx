@@ -88,7 +88,8 @@ export default function SitesPage() {
     return () => {
       isMounted = false;
     };
-  }, [push, t]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [t]); // push is stable, no need to include in dependencies
 
   const filteredSites = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();

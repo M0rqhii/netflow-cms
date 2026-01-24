@@ -12,15 +12,15 @@ Zadanie TNT-015 zostało zaimplementowane zgodnie z propozycją ChatGPT, dostoso
 - ✅ Model `Collection` - kolekcje treści
 - ✅ Model `CollectionItem` - elementy kolekcji z wersjonowaniem
 - ✅ Enum `ItemStatus` (DRAFT, PUBLISHED)
-- ✅ Relacje z Tenant (multi-tenant isolation)
+- ✅ Relacje z Site (org/site isolation)
 - ✅ Indeksy dla wydajności
 
 ### 2. Backend Modules
 
-#### TenantModule (Common)
-- ✅ `TenantGuard` - wymusza X-Tenant-ID header
-- ✅ `TenantService` - walidacja tenantów
-- ✅ `CurrentTenant` decorator - pobiera tenantId z requestu
+#### SiteModule (Common)
+- ✅ `SiteGuard` - wymusza X-Site-ID header
+- ✅ `SiteService` - walidacja siteów
+- ✅ `CurrentSite` decorator - pobiera siteId z requestu
 
 #### CollectionsModule
 - ✅ `CollectionsController` - CRUD dla Collections
@@ -30,7 +30,7 @@ Zadanie TNT-015 zostało zaimplementowane zgodnie z propozycją ChatGPT, dostoso
 - ✅ DTOs z Zod validation
 
 ### 3. Features
-- ✅ Multi-tenant isolation (wymuszane przez TenantGuard)
+- ✅ Org/site isolation (wymuszane przez SiteGuard)
 - ✅ Wersjonowanie items (optimistic locking)
 - ✅ ETag generation (automatyczne w Prisma middleware)
 - ✅ Redis cache (30s TTL dla metadanych kolekcji)
@@ -40,7 +40,7 @@ Zadanie TNT-015 zostało zaimplementowane zgodnie z propozycją ChatGPT, dostoso
 ### 4. Tests
 - ✅ Unit tests (`collections.service.spec.ts`)
 - ✅ E2E tests (`collections.e2e-spec.ts`, `items.e2e-spec.ts`)
-- ✅ Testy dla tenant isolation
+- ✅ Testy dla org/site isolation
 - ✅ Testy dla optimistic locking
 - ✅ Testy dla ETag
 
@@ -57,7 +57,7 @@ Zadanie TNT-015 zostało zaimplementowane zgodnie z propozycją ChatGPT, dostoso
 ### Prisma Schema
 - Dodano modele `Collection` i `CollectionItem`
 - Dodano enum `ItemStatus`
-- Zaktualizowano relacje w modelu `Tenant`
+- Zaktualizowano relacje w modelu `Site`
 
 ### Dependencies
 - Dodano `@nestjs/cache-manager`
@@ -69,14 +69,14 @@ Zadanie TNT-015 zostało zaimplementowane zgodnie z propozycją ChatGPT, dostoso
 ```
 apps/api/src/
 ├── common/
-│   ├── tenant/
-│   │   ├── tenant.guard.ts
-│   │   ├── tenant.service.ts
-│   │   └── tenant.module.ts
+│   ├── site/
+│   │   ├── site.guard.ts
+│   │   ├── site.service.ts
+│   │   └── site.module.ts
 │   ├── prisma/
 │   │   └── prisma.service.ts (zaktualizowany)
 │   └── decorators/
-│       └── current-tenant.decorator.ts
+│       └── current-site.decorator.ts
 └── modules/
     └── collections/
         ├── controllers/
@@ -151,7 +151,7 @@ pnpm dev
 - [x] Controllers zaimplementowane
 - [x] Services zaimplementowane
 - [x] DTOs z Zod validation
-- [x] TenantGuard i TenantModule
+- [x] SiteGuard i SiteModule
 - [x] Prisma middleware dla ETag
 - [x] Testy jednostkowe
 - [x] Testy E2E

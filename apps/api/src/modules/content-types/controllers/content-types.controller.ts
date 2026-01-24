@@ -10,6 +10,7 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
+import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe';
 import { AuthGuard } from '../../../common/auth/guards/auth.guard';
 import { RolesGuard } from '../../../common/auth/guards/roles.guard';
 import { PermissionsGuard } from '../../../common/auth/guards/permissions.guard';
@@ -33,11 +34,11 @@ export class ContentTypesController {
   constructor(private readonly contentTypesService: ContentTypesService) {}
 
   @Post()
-  @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.ORG_ADMIN, Role.SUPER_ADMIN)
   @Permissions(Permission.CONTENT_TYPES_WRITE)
   create(
     @CurrentSite() siteId: string,
-    @Body() body: unknown
+    @Body(new ZodValidationPipe(CreateContentTypeDtoSchema)) body: unknown
   ) {
     const dto = CreateContentTypeDtoSchema.parse(body);
     return this.contentTypesService.create(siteId, dto);
@@ -56,12 +57,12 @@ export class ContentTypesController {
   }
 
   @Patch(':id')
-  @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.ORG_ADMIN, Role.SUPER_ADMIN)
   @Permissions(Permission.CONTENT_TYPES_WRITE)
   update(
     @CurrentSite() siteId: string,
     @Param('id') id: string,
-    @Body() body: unknown
+    @Body(new ZodValidationPipe(UpdateContentTypeDtoSchema)) body: unknown
   ) {
     const dto = UpdateContentTypeDtoSchema.parse(body);
     return this.contentTypesService.update(siteId, id, dto);
@@ -69,12 +70,15 @@ export class ContentTypesController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
-  @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.ORG_ADMIN, Role.SUPER_ADMIN)
   @Permissions(Permission.CONTENT_TYPES_DELETE)
   remove(@CurrentSite() siteId: string, @Param('id') id: string) {
     return this.contentTypesService.remove(siteId, id);
   }
 }
+
+
+
 
 
 

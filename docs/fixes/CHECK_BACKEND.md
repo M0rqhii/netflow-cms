@@ -92,7 +92,7 @@ pnpm --filter api dev
 
 **Windows PowerShell:**
 ```powershell
-Invoke-WebRequest -Uri "http://localhost:4000/api/v1/auth/me/tenants" -Method OPTIONS -Headers @{"Origin"="http://localhost:3000"; "Access-Control-Request-Method"="GET"; "Access-Control-Request-Headers"="authorization"} -UseBasicParsing
+Invoke-WebRequest -Uri "http://localhost:4000/api/v1/auth/me/sites" -Method OPTIONS -Headers @{"Origin"="http://localhost:3000"; "Access-Control-Request-Method"="GET"; "Access-Control-Request-Headers"="authorization"} -UseBasicParsing
 ```
 
 **Oczekiwany wynik:**

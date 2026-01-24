@@ -20,7 +20,7 @@ Wszystkie pliki konfiguracyjne zostały utworzone i skonfigurowane. Projekt jest
 ### ✅ Backend API (apps/api)
 - ✅ NestJS setup z Prisma
 - ✅ Collections Module (TNT-015) zaimplementowany
-- ✅ TenantModule i TenantGuard
+- ✅ SiteModule i SiteGuard
 - ✅ Testy jednostkowe i E2E
 - ✅ `jest.config.js` - Jest configuration
 - ✅ `test/jest-e2e.json` - E2E test config

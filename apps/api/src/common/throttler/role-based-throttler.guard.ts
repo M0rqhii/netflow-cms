@@ -21,6 +21,12 @@ export class RoleBasedThrottlerGuard extends ThrottlerGuard {
   }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    // Skip throttling for OPTIONS requests (CORS preflight)
+    const request = context.switchToHttp().getRequest<Request>();
+    if (request.method === 'OPTIONS') {
+      return true;
+    }
+    
     try {
       const result = await super.canActivate(context);
       return result;
@@ -75,8 +81,8 @@ export class RoleBasedThrottlerGuard extends ThrottlerGuard {
     let limit = 50; // Default limit for unauthenticated users
     if (user?.role === 'super_admin') {
       limit = 1000; // 1000 requests per minute for super admin
-    } else if (user?.role === 'tenant_admin') {
-      limit = 500; // 500 requests per minute for tenant admin
+    } else if (user?.role === 'org_admin') {
+      limit = 500; // 500 requests per minute for org admin (org_admin role)
     } else if (user?.role === 'editor') {
       limit = 200; // 200 requests per minute for editor
     } else if (user?.role === 'viewer') {

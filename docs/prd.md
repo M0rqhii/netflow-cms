@@ -34,22 +34,22 @@ System składa się z dwóch poziomów:
 ### 1.2 Problem do Rozwiązania
 - Organizacje potrzebują elastycznego CMS bez konieczności zarządzania własną infrastrukturą
 - Potrzeba skalowalnego rozwiązania dla wielu klientów
-- Wymagana pełna izolacja danych między tenantami
+- Wymagana pełna izolacja danych między siteami
 - Potrzeba nowoczesnego API-first podejścia do zarządzania treścią
 
 ### 1.3 Cele Biznesowe
 - **Krótkoterminowe (3 miesiące):**
   - MVP z podstawową funkcjonalnością CMS
-  - Obsługa do 10 tenantów
+  - Obsługa do 10 siteów
   - RESTful API dla zarządzania treścią
   
 - **Średnioterminowe (6 miesięcy):**
-  - Obsługa do 100 tenantów
+  - Obsługa do 100 siteów
   - Zaawansowane funkcje CMS (media management, workflow)
   - GraphQL API
   
 - **Długoterminowe (12 miesięcy):**
-  - Obsługa do 1000+ tenantów
+  - Obsługa do 1000+ siteów
   - Marketplace z pluginami
   - White-label rozwiązania
 
@@ -57,7 +57,7 @@ System składa się z dwóch poziomów:
 
 ## 2. User Personas
 
-### 2.1 Tenant Administrator
+### 2.1 Site Administrator
 - **Rola:** Administrator organizacji korzystającej z CMS
 - **Potrzeby:**
   - Zarządzanie użytkownikami w swojej organizacji
@@ -88,9 +88,9 @@ System składa się z dwóch poziomów:
   - Ograniczenia w query
 
 ### 2.4 Platform Administrator
-- **Rola:** Administrator platformy multi-tenant
+- **Rola:** Administrator platformy org/site
 - **Potrzeby:**
-  - Zarządzanie tenantami
+  - Zarządzanie siteami
   - Monitoring i metryki
   - Billing i rozliczenia
 - **Pain Points:**
@@ -101,19 +101,19 @@ System składa się z dwóch poziomów:
 
 ## 3. Funkcjonalne Wymagania
 
-### 3.1 Zarządzanie Tenantami (FR-001)
+### 3.1 Zarządzanie Siteami (FR-001)
 
-#### FR-001.1 Tworzenie Tenantów
-- **Opis:** System musi umożliwiać tworzenie nowych tenantów
+#### FR-001.1 Tworzenie Siteów
+- **Opis:** System musi umożliwiać tworzenie nowych siteów
 - **Akceptacja:**
-  - [ ] Możliwość utworzenia tenantów przez API i UI
+  - [ ] Możliwość utworzenia siteów przez API i UI
   - [ ] Automatyczne tworzenie izolowanej przestrzeni danych
   - [ ] Generowanie unikalnego subdomain (opcjonalnie)
-  - [ ] Konfiguracja domyślnych ustawień tenantów
+  - [ ] Konfiguracja domyślnych ustawień siteów
 
 **Przykład użycia:**
 ```json
-POST /api/v1/tenants
+POST /api/v1/sites
 {
   "name": "Acme Corporation",
   "slug": "acme",
@@ -125,22 +125,22 @@ POST /api/v1/tenants
 }
 ```
 
-#### FR-001.2 Aktualizacja Tenantów
-- **Opis:** Możliwość modyfikacji danych tenantów
+#### FR-001.2 Aktualizacja Siteów
+- **Opis:** Możliwość modyfikacji danych siteów
 - **Akceptacja:**
   - [ ] Aktualizacja podstawowych danych
   - [ ] Zmiana planu subskrypcji
   - [ ] Aktualizacja ustawień
 
-#### FR-001.3 Usuwanie Tenantów
-- **Opis:** Bezpieczne usuwanie tenantów z opcją soft delete
+#### FR-001.3 Usuwanie Siteów
+- **Opis:** Bezpieczne usuwanie siteów z opcją soft delete
 - **Akceptacja:**
   - [ ] Soft delete z możliwością przywrócenia (30 dni)
   - [ ] Hard delete po okresie retencji
   - [ ] Automatyczne czyszczenie powiązanych danych
 
-#### FR-001.4 Listowanie Tenantów
-- **Opis:** Lista wszystkich tenantów z paginacją i filtrowaniem
+#### FR-001.4 Listowanie Siteów
+- **Opis:** Lista wszystkich siteów z paginacją i filtrowaniem
 - **Akceptacja:**
   - [ ] Paginacja (domyślnie 20 na stronę)
   - [ ] Filtrowanie po statusie, planie, dacie utworzenia
@@ -261,11 +261,11 @@ GET /api/v1/content/article?filter[publishedAt][$gte]=2024-01-01&sort=-published
   - [ ] Predefiniowane role (Admin, Editor, Viewer)
   - [ ] Custom role creation
   - [ ] Granularne uprawnienia (CRUD per resource)
-  - [ ] Uprawnienia na poziomie tenantów
+  - [ ] Uprawnienia na poziomie siteów
 
 **Przykład ról:**
 - **Super Admin:** Pełny dostęp do platformy
-- **Tenant Admin:** Pełny dostęp w obrębie tenantów
+- **Site Admin:** Pełny dostęp w obrębie siteów
 - **Editor:** Tworzenie i edycja treści
 - **Viewer:** Tylko odczyt
 
@@ -311,10 +311,10 @@ GET /api/v1/content/article?filter[publishedAt][$gte]=2024-01-01&sort=-published
 - **Horizontal Scaling:** Aplikacja musi być skalowalna horyzontalnie
 - **Database:** Wsparcie dla read replicas
 - **Load Balancing:** Automatyczne load balancing
-- **Tenant Capacity:** Obsługa 1000+ aktywnych tenantów
+- **Site Capacity:** Obsługa 1000+ aktywnych siteów
 
 ### 4.3 Bezpieczeństwo (NFR-003)
-- **Data Isolation:** Pełna izolacja danych między tenantami (row-level security)
+- **Data Isolation:** Pełna izolacja danych między siteami (row-level security)
 - **Encryption:** Encryption at rest i in transit (TLS 1.3)
 - **Authentication:** Secure token handling
 - **Authorization:** Sprawdzanie uprawnień przy każdym request
@@ -347,18 +347,18 @@ GET /api/v1/content/article?filter[publishedAt][$gte]=2024-01-01&sort=-published
 - **Containerization:** Docker, Kubernetes
 
 ### 5.2 Multi-Tenancy Strategy
-**Approach:** Database-per-tenant z shared schema i row-level security
+**Approach:** Database-per-site z shared schema i row-level security
 
 **Uzasadnienie:**
 - Lepsza izolacja danych niż shared database
-- Łatwiejsze backup i restore per tenant
-- Możliwość skalowania per tenant
+- Łatwiejsze backup i restore per site
+- Możliwość skalowania per site
 - Wsparcie dla custom schematów w przyszłości
 
 **Implementacja:**
-- Wszystkie tabele zawierają `tenant_id`
+- Wszystkie tabele zawierają `site_id`
 - Row-level security policies w PostgreSQL
-- Middleware do automatycznego filtrowania po `tenant_id`
+- Middleware do automatycznego filtrowania po `site_id`
 
 ### 5.3 API Design
 - **RESTful:** Zgodne z REST principles
@@ -391,7 +391,7 @@ GET /api/v1/content/article?filter[publishedAt][$gte]=2024-01-01&sort=-published
 ### 6.1 Webhooks
 - **Opis:** Webhooks dla eventów (content created, updated, deleted)
 - **Akceptacja:**
-  - [ ] Konfiguracja webhooków per tenant
+  - [ ] Konfiguracja webhooków per site
   - [ ] Retry mechanism
   - [ ] Signature verification
 
@@ -423,7 +423,7 @@ GET /api/v1/content/article?filter[publishedAt][$gte]=2024-01-01&sort=-published
 ## 8. Metryki Sukcesu
 
 ### 8.1 Business Metrics
-- **Liczba tenantów:** Cel: 100 tenantów w 6 miesięcy
+- **Liczba siteów:** Cel: 100 siteów w 6 miesięcy
 - **Aktywni użytkownicy:** Cel: 1000 aktywnych użytkowników/miesiąc
 - **API Usage:** Cel: 1M requestów/miesiąc
 
@@ -438,7 +438,7 @@ GET /api/v1/content/article?filter[publishedAt][$gte]=2024-01-01&sort=-published
 ## 9. Roadmap
 
 ### Phase 1: MVP (Miesiące 1-3)
-- [ ] Podstawowa funkcjonalność multi-tenant
+- [ ] Podstawowa funkcjonalność org/site
 - [ ] RESTful API
 - [ ] Content management (CRUD)
 - [ ] Authentication i authorization
@@ -470,7 +470,7 @@ GET /api/v1/content/article?filter[publishedAt][$gte]=2024-01-01&sort=-published
 ## 10. Ryzyka i Mitigacja
 
 ### 10.1 Ryzyka Techniczne
-- **Ryzyko:** Problemy z izolacją danych między tenantami
+- **Ryzyko:** Problemy z izolacją danych między siteami
   - **Mitigacja:** Rigorous testing, security audits, row-level security
   
 - **Ryzyko:** Problemy ze skalowalnością
@@ -499,7 +499,7 @@ GET /api/v1/content/article?filter[publishedAt][$gte]=2024-01-01&sort=-published
 ## 12. Appendix
 
 ### 12.1 Glosariusz
-- **Tenant:** Organizacja korzystająca z platformy CMS
+- **Site:** Organizacja korzystająca z platformy CMS
 - **Content Type:** Definicja struktury treści (np. Article, Page)
 - **Entry:** Pojedynczy wpis treści zgodny z content type
 - **Headless CMS:** CMS bez frontendu, tylko API

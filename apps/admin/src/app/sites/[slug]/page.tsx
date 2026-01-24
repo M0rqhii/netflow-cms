@@ -26,7 +26,7 @@ export default function SiteOverviewPage() {
       setLoading(true);
       try {
         const sites = await fetchMySites();
-        const current = sites.find((item) => item.site.slug === slug) || null;
+        const current = sites.find((item) => item?.site?.slug === slug) || null;
 
         if (!current) {
           setNotFound(true);
@@ -111,7 +111,7 @@ export default function SiteOverviewPage() {
         <div className="mb-2 sm:mb-3">
           <div className="flex items-center gap-2 mb-2">
             <Link href="/sites" className="text-[10px] sm:text-xs text-muted hover:text-foreground transition-colors">
-              ← {t('siteOverview.backToSites')}
+              <- {t('siteOverview.backToSites')}
             </Link>
           </div>
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground mb-0.5 sm:mb-1">
@@ -123,9 +123,9 @@ export default function SiteOverviewPage() {
             </p>
             <div className="flex items-center gap-1.5 flex-wrap">
               <Badge className="text-[10px] sm:text-xs">{site.role}</Badge>
-              <span className="text-xs sm:text-sm text-muted">•</span>
+              <span className="text-xs sm:text-sm text-muted">-</span>
               <span className="text-xs sm:text-sm text-muted">{t('siteOverview.plan')}: {planLabel}</span>
-              <span className="text-xs sm:text-sm text-muted">•</span>
+              <span className="text-xs sm:text-sm text-muted">-</span>
               <span className="text-xs sm:text-sm text-muted">
                 {t('siteOverview.status')}: <span className={statusLabel === 'active' ? 'text-green-600 dark:text-green-400' : statusLabel === 'disabled' ? 'text-red-600 dark:text-red-400' : ''}>{statusLabel}</span>
               </span>

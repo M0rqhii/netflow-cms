@@ -133,7 +133,7 @@ export default function NewSitePage() {
               onChange={(e) => handleSlugChange(e.target.value)}
               required
               minLength={3}
-              pattern="[a-z0-9-]+"
+              pattern="[a-z0-9\-]+"
               placeholder={t('sites.slugPlaceholder')}
               helperText={t('newSite.slugHelperText')}
             />

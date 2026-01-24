@@ -4,7 +4,7 @@
 
 **Błąd CORS:**
 ```
-Zablokowano żądanie do zasobu innego pochodzenia: zasady „Same Origin Policy” nie pozwalają wczytywać zdalnych zasobów z „http://localhost:4000/api/v1/auth/me/tenants" (nieudane żądanie CORS).
+Zablokowano żądanie do zasobu innego pochodzenia: zasady „Same Origin Policy” nie pozwalają wczytywać zdalnych zasobów z „http://localhost:4000/api/v1/auth/me/sites" (nieudane żądanie CORS).
 ```
 
 ## Rozwiązanie
@@ -68,9 +68,9 @@ NEXT_PUBLIC_API_URL=http://localhost:4000/api/v1
 
 ### Krok 3: Sprawdź w Przeglądarce
 
-1. Otwórz http://localhost:3000/tenants
+1. Otwórz http://localhost:3000/sites
 2. Otwórz DevTools (F12) → Network tab
-3. Sprawdź request do `/api/v1/auth/me/tenants`
+3. Sprawdź request do `/api/v1/auth/me/sites`
 4. Sprawdź:
    - **Status:** Powinno być 200 OK
    - **Headers:** Powinno mieć `Access-Control-Allow-Origin: http://localhost:3000`

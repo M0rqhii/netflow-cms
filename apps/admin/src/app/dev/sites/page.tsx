@@ -9,7 +9,7 @@ import { decodeAuthToken, getAuthToken, getDevSites } from '@/lib/api';
 import type { SiteInfo } from '@repo/sdk';
 import { DevPanelLayout } from '@/components/dev-panel/DevPanelLayout';
 
-const PRIVILEGED_ROLES = ['super_admin', 'site_admin'];
+const PRIVILEGED_ROLES = ['super_admin', 'org_admin', 'site_admin'];
 const PRIVILEGED_PLATFORM_ROLES = ['platform_admin'];
 
 export default function DevSitesPage() {

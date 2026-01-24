@@ -1,5 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { Prisma, EnvironmentType, PageStatus } from '@prisma/client';
+
+type PageRecord = Prisma.PageGetPayload<{}>;
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { SiteEnvironmentsService } from './site-environments.service';
 import { SitePagesService } from './site-pages.service';
@@ -44,17 +46,17 @@ export class SiteDeploymentsService {
     });
   }
 
-  async publish(tenantId: string, dto: PublishDeploymentDto, userId?: string) {
-    const draftEnv = await this.environments.getByTypeOrCreate(tenantId, EnvironmentType.DRAFT);
+  async publish(siteId: string, dto: PublishDeploymentDto, userId?: string) {
+    const draftEnv = await this.environments.getByTypeOrCreate(siteId, EnvironmentType.DRAFT);
     const productionEnv = await this.environments.getByTypeOrCreate(
-      tenantId,
+      siteId,
       EnvironmentType.PRODUCTION,
     );
 
     try {
       if (dto.pageId) {
         // Publish single page
-        const draftPage = await this.pages.getById(tenantId, dto.pageId);
+        const draftPage = await this.pages.getById(siteId, dto.pageId);
 
         if (draftPage.environmentId !== draftEnv.id) {
           throw new NotFoundException('Page not found in draft environment');
@@ -67,13 +69,13 @@ export class SiteDeploymentsService {
         const productionPage = await this.prisma.page.upsert({
           where: {
             site_env_slug: {
-              siteId: tenantId,
+              siteId: siteId,
               environmentId: productionEnv.id,
               slug: draftPage.slug,
             },
           },
           create: {
-            siteId: tenantId,
+            siteId: siteId,
             environmentId: productionEnv.id,
             slug: draftPage.slug,
             title: draftPage.title,
@@ -99,7 +101,7 @@ export class SiteDeploymentsService {
         });
 
         const deployment = await this.createDeployment(
-          tenantId,
+          siteId,
           'production',
           'publish',
           'success',
@@ -107,7 +109,7 @@ export class SiteDeploymentsService {
         );
 
         await this.logEvent(
-          tenantId,
+          siteId,
           userId,
           'deployment_created',
           `Page "${draftPage.title}" published to production`,
@@ -127,7 +129,7 @@ export class SiteDeploymentsService {
         // Publish all draft pages
         const draftPages = await this.prisma.page.findMany({
           where: {
-            siteId: tenantId,
+            siteId: siteId,
             environmentId: draftEnv.id,
           },
         });
@@ -142,7 +144,7 @@ export class SiteDeploymentsService {
         }
 
         const publishedAt = new Date();
-        const publishedPages = [];
+        const publishedPages: PageRecord[] = [];
 
         for (const draftPage of draftPages) {
           const content = draftPage.content ?? {};
@@ -150,13 +152,13 @@ export class SiteDeploymentsService {
           const productionPage = await this.prisma.page.upsert({
             where: {
               site_env_slug: {
-                siteId: tenantId,
+                siteId: siteId,
                 environmentId: productionEnv.id,
                 slug: draftPage.slug,
               },
             },
             create: {
-              siteId: tenantId,
+              siteId: siteId,
               environmentId: productionEnv.id,
               slug: draftPage.slug,
               title: draftPage.title,
@@ -185,7 +187,7 @@ export class SiteDeploymentsService {
         }
 
         const deployment = await this.createDeployment(
-          tenantId,
+          siteId,
           'production',
           'publish',
           'success',
@@ -193,7 +195,7 @@ export class SiteDeploymentsService {
         );
 
         await this.logEvent(
-          tenantId,
+          siteId,
           userId,
           'deployment_created',
           `Published ${publishedPages.length} page(s) to production`,
@@ -212,7 +214,7 @@ export class SiteDeploymentsService {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       const deployment = await this.createDeployment(
-        tenantId,
+        siteId,
         'production',
         'publish',
         'failed',
@@ -220,7 +222,7 @@ export class SiteDeploymentsService {
       );
 
       await this.logEvent(
-        tenantId,
+        siteId,
         userId,
         'deployment_failed',
         `Publish failed: ${errorMessage}`,
@@ -234,8 +236,8 @@ export class SiteDeploymentsService {
     }
   }
 
-  async list(tenantId: string, query: DeploymentQueryDto) {
-    const where: Prisma.SiteDeploymentWhereInput = { siteId: tenantId };
+  async list(siteId: string, query: DeploymentQueryDto) {
+    const where: Prisma.SiteDeploymentWhereInput = { siteId: siteId };
 
     if (query.env) {
       where.env = query.env;
@@ -258,9 +260,9 @@ export class SiteDeploymentsService {
     });
   }
 
-  async getLatest(tenantId: string, env?: string) {
+  async getLatest(siteId: string, env?: string) {
     const where: Prisma.SiteDeploymentWhereInput = {
-      siteId: tenantId,
+      siteId: siteId,
       env: env || 'production',
     };
 

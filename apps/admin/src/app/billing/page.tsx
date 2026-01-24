@@ -37,7 +37,8 @@ export default function BillingPage() {
     }
 
     fetchBillingData();
-  }, [pushToast, t]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [t]); // pushToast is stable, no need to include in dependencies
 
   if (error) {
     return (

@@ -29,8 +29,8 @@ export const ITEM_STATUS = {
   PUBLISHED: 'PUBLISHED',
 } as const;
 
-// Tenant Plans
-export const TENANT_PLANS = {
+// Organization Plans
+export const ORG_PLANS = {
   FREE: 'free',
   PROFESSIONAL: 'professional',
   ENTERPRISE: 'enterprise',

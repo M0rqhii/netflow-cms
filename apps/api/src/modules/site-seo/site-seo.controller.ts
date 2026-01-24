@@ -23,7 +23,7 @@ export class SiteSeoController {
   }
 
   @Patch()
-  @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.ORG_ADMIN, Role.SUPER_ADMIN)
   @Permissions(Permission.PAGES_WRITE)
   updateSeoSettings(
     @Param('siteId') siteId: string,

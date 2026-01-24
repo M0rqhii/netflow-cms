@@ -20,7 +20,9 @@ import {
   ChannelConnectionQueryDto,
 } from './dto';
 import { GuardrailReasonCode, GuardrailMessages } from '../../common/constants';
-import { EnvironmentType } from '@prisma/client';
+import { EnvironmentType, Prisma } from '@prisma/client';
+
+type DistributionDraftRecord = Prisma.DistributionDraftGetPayload<{}>;
 
 /**
  * MarketingService - Service do zarządzania marketingiem i publikacją omnichannel
@@ -48,7 +50,7 @@ export class MarketingService {
    */
   async createCampaign(orgId: string, dto: CreateCampaignDto, userId: string) {
     // Verify site exists
-    const site = await this.prisma.tenant.findFirst({
+    const site = await this.prisma.site.findFirst({
       where: { id: dto.siteId },
     });
 
@@ -221,7 +223,7 @@ export class MarketingService {
    */
   async createDraft(orgId: string, dto: CreateDistributionDraftDto, userId: string) {
     // Verify site exists
-    const site = await this.prisma.tenant.findFirst({
+    const site = await this.prisma.site.findFirst({
       where: { id: dto.siteId },
     });
 
@@ -472,7 +474,7 @@ export class MarketingService {
     }
 
     // Verify site exists
-    const site = await this.prisma.tenant.findFirst({
+    const site = await this.prisma.site.findFirst({
       where: { id: dto.siteId },
     });
 
@@ -490,7 +492,7 @@ export class MarketingService {
     }
 
     // Verify draft if provided
-    let draft = null;
+    let draft: DistributionDraftRecord | null = null;
     if (dto.draftId) {
       draft = await this.prisma.distributionDraft.findFirst({
         where: {
@@ -647,9 +649,15 @@ export class MarketingService {
     });
 
     // Process publish job asynchronously (stub - w produkcji użyj queue)
-    this.processPublishJob(job.id).catch((error) => {
-      this.logger.error(`Error processing publish job ${job.id}`, error);
-    });
+    if (process.env.NODE_ENV !== 'test') {
+
+      this.processPublishJob(job.id).catch((error) => {
+
+        this.logger.error(`Error processing publish job ${job.id}`, error);
+
+      });
+
+    }
 
     return job;
   }
@@ -842,7 +850,7 @@ export class MarketingService {
     userId: string,
   ) {
     // Verify site exists
-    const site = await this.prisma.tenant.findFirst({
+    const site = await this.prisma.site.findFirst({
       where: { id: dto.siteId },
     });
 

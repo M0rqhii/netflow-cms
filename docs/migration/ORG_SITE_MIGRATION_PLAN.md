@@ -1,4 +1,4 @@
-# Migracja: Tenant → Organization + Site
+# Migracja: Site → Organization + Site
 
 **Status:** 📋 Plan  
 **Data:** 2025-01-16  
@@ -8,7 +8,7 @@
 
 ## Summary
 
-Plan migracji z modelu `Tenant` (organizacja + strona w jednym) do rozdzielonych modeli `Organization` (organizacja) i `Site` (strona). Organizacja może mieć wiele Site, a Site należy do jednej Organization.
+Plan migracji z modelu `Site` (organizacja + strona w jednym) do rozdzielonych modeli `Organization` (organizacja) i `Site` (strona). Organizacja może mieć wiele Site, a Site należy do jednej Organization.
 
 ---
 
@@ -25,7 +25,7 @@ Plan migracji z modelu `Tenant` (organizacja + strona w jednym) do rozdzielonych
 - Ma marketing (Campaign, DistributionDraft, etc.)
 
 ### 1.2 Site
-**Cel:** Strona/tenant należąca do Organization
+**Cel:** Strona/site należąca do Organization
 
 **Relacje:**
 - Należy do jednej Organization
@@ -37,13 +37,13 @@ Plan migracji z modelu `Tenant` (organizacja + strona w jednym) do rozdzielonych
 
 ---
 
-## 2. Mapowanie tenantId → orgId / siteId
+## 2. Mapowanie siteId → orgId / siteId
 
 ### 2.1 Modele → orgId (Organization)
 Te modele będą używać `orgId` (billing, RBAC, marketing):
 
 - ✅ `User` → `orgId`
-- ✅ `UserOrg` (było UserTenant) → `orgId`
+- ✅ `UserOrg` (było UserSite) → `orgId`
 - ✅ `Subscription` → `orgId`
 - ✅ `Invoice` → `orgId`
 - ✅ `Payment` → `orgId`
@@ -88,17 +88,17 @@ Te modele będą używać `siteId` (treści, media, hosting):
 
 ### Faza 1: Przygotowanie (Bez przestojów)
 1. ✅ Utworzyć tabele `organizations` i `sites`
-2. ✅ Skopiować dane z `tenants` do `organizations`
-3. ✅ Dla każdego `tenant` utworzyć `site` z `orgId`
+2. ✅ Skopiować dane z `sites` do `organizations`
+3. ✅ Dla każdego `site` utworzyć `site` z `orgId`
 4. ✅ Dodać kolumny `orgId` i `siteId` do wszystkich tabel (nullable)
 5. ✅ Zaktualizować foreign keys (nullable)
 
 ### Faza 2: Migracja Danych (Bez przestojów)
-1. ✅ Backfill: `organizations` z `tenants`
-2. ✅ Backfill: `sites` z `tenants` (jeden site per org)
+1. ✅ Backfill: `organizations` z `sites`
+2. ✅ Backfill: `sites` z `sites` (jeden site per org)
 3. ✅ Backfill: `orgId` w tabelach billing/RBAC/marketing
 4. ✅ Backfill: `siteId` w tabelach content/hosting
-5. ✅ Backfill: `UserTenant` → `UserOrg` (zmiana nazwy + orgId)
+5. ✅ Backfill: `UserSite` → `UserOrg` (zmiana nazwy + orgId)
 
 ### Faza 3: Weryfikacja
 1. ✅ Sprawdzić czy wszystkie dane są zmigrowane
@@ -108,8 +108,8 @@ Te modele będą używać `siteId` (treści, media, hosting):
 
 ### Faza 4: Finalizacja (Z przestojem - opcjonalne)
 1. ⚠️ Usunąć nullable z kolumn `orgId` / `siteId`
-2. ⚠️ Usunąć stare kolumny `tenantId`
-3. ⚠️ Usunąć tabelę `tenants`
+2. ⚠️ Usunąć stare kolumny `siteId`
+3. ⚠️ Usunąć tabelę `sites`
 4. ⚠️ Zaktualizować aplikację (usunąć backward compatibility)
 
 ---
@@ -151,10 +151,10 @@ CREATE INDEX IF NOT EXISTS idx_organizations_slug ON organizations(slug);
 ### 4.2 Backfill: Organizations i Sites
 
 ```sql
--- Backfill: Skopiuj dane z tenants do organizations
+-- Backfill: Skopiuj dane z sites do organizations
 INSERT INTO organizations (id, name, slug, plan, settings, created_at, updated_at)
 SELECT id, name, slug, plan, settings, "createdAt", "updatedAt"
-FROM tenants
+FROM sites
 ON CONFLICT (id) DO NOTHING;
 
 -- Backfill: Utwórz site dla każdej organizacji (jeden site per org)
@@ -167,7 +167,7 @@ SELECT
   t.settings,
   t."createdAt",
   t."updatedAt"
-FROM tenants t
+FROM sites t
 ON CONFLICT (org_id, slug) DO NOTHING;
 ```
 
@@ -178,9 +178,9 @@ ON CONFLICT (org_id, slug) DO NOTHING;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS org_id TEXT;
 CREATE INDEX IF NOT EXISTS idx_users_org_id ON users(org_id);
 
--- UserTenant → UserOrg (zmiana nazwy + orgId)
-ALTER TABLE user_tenants ADD COLUMN IF NOT EXISTS org_id TEXT;
-CREATE INDEX IF NOT EXISTS idx_user_tenants_org_id ON user_tenants(org_id);
+-- UserSite → UserOrg (zmiana nazwy + orgId)
+ALTER TABLE user_sites ADD COLUMN IF NOT EXISTS org_id TEXT;
+CREATE INDEX IF NOT EXISTS idx_user_sites_org_id ON user_sites(org_id);
 
 -- Content models → siteId
 ALTER TABLE content_types ADD COLUMN IF NOT EXISTS site_id TEXT;
@@ -223,18 +223,18 @@ ALTER TABLE marketing_publish_results ADD COLUMN IF NOT EXISTS org_id TEXT;
 ### 4.4 Backfill: orgId / siteId
 
 ```sql
--- User → orgId (tenantId → orgId)
-UPDATE users SET org_id = "tenantId" WHERE org_id IS NULL;
+-- User → orgId (siteId → orgId)
+UPDATE users SET org_id = "siteId" WHERE org_id IS NULL;
 
--- UserTenant → orgId (tenantId → orgId)
-UPDATE user_tenants SET org_id = tenant_id WHERE org_id IS NULL;
+-- UserSite → orgId (siteId → orgId)
+UPDATE user_sites SET org_id = site_id WHERE org_id IS NULL;
 
 -- Content models → siteId
--- Najpierw musimy znaleźć site_id dla każdego tenantId
+-- Najpierw musimy znaleźć site_id dla każdego siteId
 UPDATE content_types ct
 SET site_id = (
   SELECT s.id FROM sites s
-  WHERE s.org_id = ct."tenantId"
+  WHERE s.org_id = ct."siteId"
   LIMIT 1
 )
 WHERE site_id IS NULL;
@@ -242,7 +242,7 @@ WHERE site_id IS NULL;
 UPDATE content_entries ce
 SET site_id = (
   SELECT s.id FROM sites s
-  WHERE s.org_id = ce."tenantId"
+  WHERE s.org_id = ce."siteId"
   LIMIT 1
 )
 WHERE site_id IS NULL;
@@ -250,7 +250,7 @@ WHERE site_id IS NULL;
 UPDATE collections c
 SET site_id = (
   SELECT s.id FROM sites s
-  WHERE s.org_id = c."tenantId"
+  WHERE s.org_id = c."siteId"
   LIMIT 1
 )
 WHERE site_id IS NULL;
@@ -258,7 +258,7 @@ WHERE site_id IS NULL;
 UPDATE collection_items ci
 SET site_id = (
   SELECT s.id FROM sites s
-  WHERE s.org_id = ci."tenantId"
+  WHERE s.org_id = ci."siteId"
   LIMIT 1
 )
 WHERE site_id IS NULL;
@@ -266,7 +266,7 @@ WHERE site_id IS NULL;
 UPDATE collection_item_versions civ
 SET site_id = (
   SELECT s.id FROM sites s
-  WHERE s.org_id = civ."tenantId"
+  WHERE s.org_id = civ."siteId"
   LIMIT 1
 )
 WHERE site_id IS NULL;
@@ -274,7 +274,7 @@ WHERE site_id IS NULL;
 UPDATE media_files mf
 SET site_id = (
   SELECT s.id FROM sites s
-  WHERE s.org_id = mf."tenantId"
+  WHERE s.org_id = mf."siteId"
   LIMIT 1
 )
 WHERE site_id IS NULL;
@@ -282,7 +282,7 @@ WHERE site_id IS NULL;
 UPDATE content_reviews cr
 SET site_id = (
   SELECT s.id FROM sites s
-  WHERE s.org_id = cr."tenantId"
+  WHERE s.org_id = cr."siteId"
   LIMIT 1
 )
 WHERE site_id IS NULL;
@@ -290,7 +290,7 @@ WHERE site_id IS NULL;
 UPDATE content_comments cc
 SET site_id = (
   SELECT s.id FROM sites s
-  WHERE s.org_id = cc."tenantId"
+  WHERE s.org_id = cc."siteId"
   LIMIT 1
 )
 WHERE site_id IS NULL;
@@ -298,7 +298,7 @@ WHERE site_id IS NULL;
 UPDATE tasks t
 SET site_id = (
   SELECT s.id FROM sites s
-  WHERE s.org_id = t."tenantId"
+  WHERE s.org_id = t."siteId"
   LIMIT 1
 )
 WHERE site_id IS NULL;
@@ -306,7 +306,7 @@ WHERE site_id IS NULL;
 UPDATE collection_roles cr
 SET site_id = (
   SELECT s.id FROM sites s
-  WHERE s.org_id = cr."tenantId"
+  WHERE s.org_id = cr."siteId"
   LIMIT 1
 )
 WHERE site_id IS NULL;
@@ -314,7 +314,7 @@ WHERE site_id IS NULL;
 UPDATE webhooks w
 SET site_id = (
   SELECT s.id FROM sites s
-  WHERE s.org_id = w."tenantId"
+  WHERE s.org_id = w."siteId"
   LIMIT 1
 )
 WHERE site_id IS NULL;
@@ -322,7 +322,7 @@ WHERE site_id IS NULL;
 UPDATE hooks h
 SET site_id = (
   SELECT s.id FROM sites s
-  WHERE s.org_id = h."tenantId"
+  WHERE s.org_id = h."siteId"
   LIMIT 1
 )
 WHERE site_id IS NULL;
@@ -330,7 +330,7 @@ WHERE site_id IS NULL;
 UPDATE webhook_deliveries wd
 SET site_id = (
   SELECT s.id FROM sites s
-  WHERE s.org_id = wd."tenantId"
+  WHERE s.org_id = wd."siteId"
   LIMIT 1
 )
 WHERE site_id IS NULL;
@@ -338,7 +338,7 @@ WHERE site_id IS NULL;
 UPDATE dev_domain_records ddr
 SET site_id = (
   SELECT s.id FROM sites s
-  WHERE s.org_id = ddr."tenantId"
+  WHERE s.org_id = ddr."siteId"
   LIMIT 1
 )
 WHERE site_id IS NULL;
@@ -346,7 +346,7 @@ WHERE site_id IS NULL;
 UPDATE seo_settings ss
 SET site_id = (
   SELECT s.id FROM sites s
-  WHERE s.org_id = ss."tenantId"
+  WHERE s.org_id = ss."siteId"
   LIMIT 1
 )
 WHERE site_id IS NULL;
@@ -354,7 +354,7 @@ WHERE site_id IS NULL;
 UPDATE site_environments se
 SET site_id = (
   SELECT s.id FROM sites s
-  WHERE s.org_id = se."tenantId"
+  WHERE s.org_id = se."siteId"
   LIMIT 1
 )
 WHERE site_id IS NULL;
@@ -362,19 +362,19 @@ WHERE site_id IS NULL;
 UPDATE pages p
 SET site_id = (
   SELECT s.id FROM sites s
-  WHERE s.org_id = p."tenantId"
+  WHERE s.org_id = p."siteId"
   LIMIT 1
 )
 WHERE site_id IS NULL;
 
--- Billing models → orgId (tenantId → orgId)
-UPDATE subscriptions SET org_id = "tenantId" WHERE org_id IS NULL;
-UPDATE invoices SET org_id = "tenantId" WHERE org_id IS NULL;
-UPDATE payments SET org_id = "tenantId" WHERE org_id IS NULL;
-UPDATE usage_tracking SET org_id = "tenantId" WHERE org_id IS NULL;
+-- Billing models → orgId (siteId → orgId)
+UPDATE subscriptions SET org_id = "siteId" WHERE org_id IS NULL;
+UPDATE invoices SET org_id = "siteId" WHERE org_id IS NULL;
+UPDATE payments SET org_id = "siteId" WHERE org_id IS NULL;
+UPDATE usage_tracking SET org_id = "siteId" WHERE org_id IS NULL;
 
 -- RBAC models → orgId
-UPDATE roles SET org_id = "orgId" WHERE org_id IS NULL; -- orgId to było tenantId
+UPDATE roles SET org_id = "orgId" WHERE org_id IS NULL; -- orgId to było siteId
 UPDATE user_roles SET org_id = "orgId" WHERE org_id IS NULL;
 UPDATE org_policies SET org_id = "orgId" WHERE org_id IS NULL;
 
@@ -393,9 +393,9 @@ UPDATE marketing_publish_results SET org_id = "orgId" WHERE org_id IS NULL;
 ALTER TABLE users
   ADD CONSTRAINT fk_users_org FOREIGN KEY (org_id) REFERENCES organizations(id) ON DELETE CASCADE;
 
--- UserTenant → Organization
-ALTER TABLE user_tenants
-  ADD CONSTRAINT fk_user_tenants_org FOREIGN KEY (org_id) REFERENCES organizations(id) ON DELETE CASCADE;
+-- UserSite → Organization
+ALTER TABLE user_sites
+  ADD CONSTRAINT fk_user_sites_org FOREIGN KEY (org_id) REFERENCES organizations(id) ON DELETE CASCADE;
 
 -- Content models → Site
 ALTER TABLE content_types
@@ -496,15 +496,15 @@ ALTER TABLE marketing_publish_results
 ### 5.1 Queries Weryfikacyjne
 
 ```sql
--- Sprawdź czy wszystkie tenants mają organizations
+-- Sprawdź czy wszystkie sites mają organizations
 SELECT COUNT(*) as missing_orgs
-FROM tenants t
+FROM sites t
 LEFT JOIN organizations o ON t.id = o.id
 WHERE o.id IS NULL;
 
--- Sprawdź czy wszystkie tenants mają sites
+-- Sprawdź czy wszystkie sites mają sites
 SELECT COUNT(*) as missing_sites
-FROM tenants t
+FROM sites t
 LEFT JOIN sites s ON t.id = s.org_id
 WHERE s.id IS NULL;
 
@@ -589,14 +589,14 @@ DROP TABLE IF EXISTS organizations CASCADE;
 ### Faza 4: Finalizacja (opcjonalne, później)
 - ⏳ Usunięcie backward compatibility
 - ⏳ Usunięcie starych kolumn
-- ⏳ Usunięcie tabeli tenants
+- ⏳ Usunięcie tabeli sites
 
 ---
 
 ## 8. Acceptance Criteria
 
-- ✅ Wszystkie tenants mają odpowiadające organizations
-- ✅ Wszystkie tenants mają odpowiadające sites
+- ✅ Wszystkie sites mają odpowiadające organizations
+- ✅ Wszystkie sites mają odpowiadające sites
 - ✅ Wszystkie dane są zmigrowane (org_id / site_id wypełnione)
 - ✅ Foreign keys działają poprawnie
 - ✅ Aplikacja działa bez błędów
@@ -624,7 +624,7 @@ DROP TABLE IF EXISTS organizations CASCADE;
 4. **Finalizacja (później):**
    - Zaktualizować aplikację (usunąć backward compatibility)
    - Usunąć stare kolumny
-   - Usunąć tabelę tenants
+   - Usunąć tabelę sites
 
 ---
 

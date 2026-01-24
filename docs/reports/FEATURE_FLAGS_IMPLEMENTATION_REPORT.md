@@ -14,7 +14,7 @@ A complete feature-flag + plan system has been implemented with default features
 ### 2. Plans Configuration (`packages/schemas/feature-flags/plans.ts`)
 - ✅ Plan enum with FREE, BASIC, PROFESSIONAL, PRO, ENTERPRISE
 - ✅ Plan configuration mapping with features and limits
-- ✅ Supports both Tenant plan names ('free', 'professional', 'enterprise') and Subscription plan names ('BASIC', 'PRO')
+- ✅ Supports both Site plan names ('free', 'professional', 'enterprise') and Subscription plan names ('BASIC', 'PRO')
 - ✅ Helper functions: `getPlanConfig`, `getPlanFeatures`, `getPlanLimits`, `isFeatureInPlan`, `isValidPlan`
 
 ### 3. Prisma Model (`apps/api/prisma/schema.prisma`)
@@ -22,7 +22,7 @@ A complete feature-flag + plan system has been implemented with default features
 - ✅ Fields: id, siteId, featureKey, enabled, createdAt
 - ✅ Unique constraint on (siteId, featureKey)
 - ✅ Indexes on siteId and featureKey
-- ✅ Foreign key to Tenant with CASCADE delete
+- ✅ Foreign key to Site with CASCADE delete
 
 ### 4. Database Migration (`apps/api/prisma/migrations/20250118000000_add_site_feature_overrides/migration.sql`)
 - ✅ Migration file created
@@ -43,7 +43,7 @@ A complete feature-flag + plan system has been implemented with default features
 - ✅ **Controller** (`feature-flags.controller.ts`):
   - `GET /sites/:siteId/features` - Get all features for a site
   - `PATCH /sites/:siteId/features/override` - Set feature override (super_admin only)
-  - Proper tenant scope validation
+  - Proper site scope validation
   - Role-based access control
 
 - ✅ **DTOs** (`dto/`):
@@ -69,7 +69,7 @@ A complete feature-flag + plan system has been implemented with default features
 
 ### Feature Resolution Logic
 
-1. **Plan Features**: Base features determined by tenant's plan
+1. **Plan Features**: Base features determined by site's plan
 2. **Overrides**: Per-site feature overrides stored in `SiteFeatureOverride` table
 3. **Effective Features**: Merged result:
    - Start with plan features
@@ -161,7 +161,7 @@ await client.setFeatureOverride(token, siteId, 'snapshots', true);
 - [ ] Test PATCH `/sites/:siteId/features/override` endpoint
 - [ ] Verify SDK functions work correctly
 - [ ] Test feature resolution logic (plan + overrides)
-- [ ] Verify tenant scope validation
+- [ ] Verify site scope validation
 - [ ] Verify role-based access control
 
 ## Files Created/Modified
@@ -189,7 +189,7 @@ await client.setFeatureOverride(token, siteId, 'snapshots', true);
 - All code follows DRY principles
 - Fully typed with TypeScript
 - Uses Zod for validation
-- Properly integrated with NestJS, Prisma, and multi-tenant architecture
+- Properly integrated with NestJS, Prisma, and org/site architecture
 - No admin UI modifications (as requested)
 - No modifications to Page Builder, Content, Media, SEO modules (as requested)
 - Only backend + schemas + SDK implemented

@@ -21,15 +21,18 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
+  const removeRef = useRef(remove);
+  removeRef.current = remove;
+
   const push = useCallback((t: Omit<Toast, 'id'>) => {
     const id = Math.random().toString(36).slice(2);
     const toast: Toast = { id, ...t };
     setToasts((prev) => [...prev, toast]);
     
     // Set timeout and store reference for cleanup
-    const timeoutId = setTimeout(() => remove(id), 3500);
+    const timeoutId = setTimeout(() => removeRef.current(id), 3500);
     timeoutsRef.current.set(id, timeoutId);
-  }, [remove]);
+  }, []);
 
   // Cleanup all timeouts on unmount
   useEffect(() => {

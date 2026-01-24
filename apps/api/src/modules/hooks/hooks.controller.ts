@@ -18,7 +18,7 @@ import { Permission } from '../../common/auth/roles.enum';
 import { CurrentSite } from '../../common/decorators/current-site.decorator';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 
-@Controller('api/v1/hooks')
+@Controller('hooks')
 @UseGuards(AuthGuard, PermissionsGuard)
 export class HooksController {
   constructor(private readonly hooksService: HooksService) {}
@@ -84,4 +84,5 @@ export class HooksController {
     return this.hooksService.remove(siteId, id);
   }
 }
+
 

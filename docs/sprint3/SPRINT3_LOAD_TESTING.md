@@ -49,7 +49,7 @@ scenarios:
           url: "/api/v1/collections"
           headers:
             Authorization: "Bearer {{ token }}"
-            X-Tenant-ID: "{{ tenantId }}"
+            X-Site-ID: "{{ siteId }}"
 ```
 
 ### 2. k6
@@ -94,13 +94,13 @@ export default function () {
   });
 
   const token = loginRes.json('access_token');
-  const tenantId = loginRes.json('user.tenantId');
+  const siteId = loginRes.json('user.siteId');
 
   // Get collections
   const collectionsRes = http.get(`${BASE_URL}/api/v1/collections`, {
     headers: {
       'Authorization': `Bearer ${token}`,
-      'X-Tenant-ID': tenantId,
+      'X-Site-ID': siteId,
     },
   });
 
@@ -116,7 +116,7 @@ export default function () {
 
 **Basic Usage:**
 ```bash
-ab -n 1000 -c 10 -H "Authorization: Bearer TOKEN" -H "X-Tenant-ID: TENANT_ID" http://localhost:3000/api/v1/collections
+ab -n 1000 -c 10 -H "Authorization: Bearer TOKEN" -H "X-Site-ID: TENANT_ID" http://localhost:3000/api/v1/collections
 ```
 
 ---
@@ -190,7 +190,7 @@ ab -n 1000 -c 10 -H "Authorization: Bearer TOKEN" -H "X-Tenant-ID: TENANT_ID" ht
    - Use CDN for static assets
 
 **Cache Keys:**
-- Use tenant-scoped cache keys
+- Use site-scoped cache keys
 - Include version/ETag in cache keys
 - Use consistent key format
 
@@ -206,7 +206,7 @@ ab -n 1000 -c 10 -H "Authorization: Bearer TOKEN" -H "X-Tenant-ID: TENANT_ID" ht
 - Use `skip` and `take` efficiently
 
 **Rate Limiting:**
-- Implement rate limiting per user/tenant
+- Implement rate limiting per user/site
 - Use sliding window algorithm
 - Set appropriate limits
 

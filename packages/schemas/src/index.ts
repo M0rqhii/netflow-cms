@@ -5,8 +5,8 @@
 
 import { z } from 'zod';
 
-// Tenant Schemas
-export const TenantSchema = z.object({
+// Organization Schemas
+export const OrganizationSchema = z.object({
   id: z.string().uuid(),
   name: z.string().min(1).max(255),
   slug: z.string().min(1).max(100).regex(/^[a-z0-9-]+$/),
@@ -16,14 +16,14 @@ export const TenantSchema = z.object({
   updatedAt: z.date(),
 });
 
-export const CreateTenantSchema = z.object({
+export const CreateOrganizationSchema = z.object({
   name: z.string().min(1).max(255),
   slug: z.string().min(1).max(100).regex(/^[a-z0-9-]+$/),
   plan: z.enum(['free', 'professional', 'enterprise']).optional(),
   settings: z.record(z.unknown()).optional(),
 });
 
-export const UpdateTenantSchema = z.object({
+export const UpdateOrganizationSchema = z.object({
   name: z.string().min(1).max(255).optional(),
   plan: z.enum(['free', 'professional', 'enterprise']).optional(),
   settings: z.record(z.unknown()).optional(),
@@ -65,7 +65,7 @@ export const ContentTypeFieldSchema: z.ZodType<ContentTypeFieldType> = z.lazy(()
 
 export const ContentTypeSchema = z.object({
   id: z.string().uuid(),
-  tenantId: z.string().uuid(),
+  siteId: z.string().uuid(),
   name: z.string().min(1).max(255),
   slug: z.string().min(1).max(100).regex(/^[a-z0-9-]+$/),
   schema: z.record(z.unknown()),
@@ -91,7 +91,7 @@ export const UpdateContentTypeSchema = z.object({
 // Content Entry Schemas
 export const ContentEntrySchema = z.object({
   id: z.string().uuid(),
-  tenantId: z.string().uuid(),
+  siteId: z.string().uuid(),
   contentTypeId: z.string().uuid(),
   data: z.record(z.unknown()),
   status: z.enum(['draft', 'review', 'published', 'archived']).default('draft'),
@@ -211,7 +211,7 @@ export type RbacCapability = z.infer<typeof RbacCapabilitySchema>;
 // Collection Schemas
 export const CollectionSchema = z.object({
   id: z.string().uuid(),
-  tenantId: z.string().uuid(),
+  siteId: z.string().uuid(),
   slug: z.string().min(1).max(100).regex(/^[a-z0-9-]+$/),
   name: z.string().min(1).max(255),
   schemaJson: z.record(z.unknown()),
@@ -233,7 +233,7 @@ export const UpdateCollectionSchema = z.object({
 // Collection Item Schemas
 export const CollectionItemSchema = z.object({
   id: z.string().uuid(),
-  tenantId: z.string().uuid(),
+  siteId: z.string().uuid(),
   collectionId: z.string().uuid(),
   data: z.record(z.unknown()),
   status: z.enum(['DRAFT', 'PUBLISHED']).default('DRAFT'),
@@ -259,7 +259,7 @@ export const UpdateCollectionItemSchema = z.object({
 // Media Schemas (MediaFile)
 export const MediaFileSchema = z.object({
   id: z.string().uuid(),
-  tenantId: z.string().uuid(),
+  siteId: z.string().uuid(),
   filename: z.string(),
   url: z.string().url(),
   mimeType: z.string(),
@@ -331,7 +331,7 @@ const PageSlugSchema = z
 
 export const SiteEnvironmentSchema = z.object({
   id: z.string().uuid(),
-  tenantId: z.string().uuid(),
+  siteId: z.string().uuid(),
   type: EnvironmentTypeSchema,
   createdAt: z.date(),
   updatedAt: z.date(),
@@ -343,7 +343,7 @@ export const CreateSiteEnvironmentSchema = z.object({
 
 export const PageSchema = z.object({
   id: z.string().uuid(),
-  tenantId: z.string().uuid(),
+  siteId: z.string().uuid(),
   environmentId: z.string().uuid(),
   slug: PageSlugSchema,
   title: z.string().min(1).max(255),
@@ -409,7 +409,7 @@ export const DeploymentQuerySchema = z.object({
 // Site SEO settings (skeleton)
 export const SeoSettingsSchema = z.object({
   id: z.string().uuid(),
-  tenantId: z.string().uuid(),
+  siteId: z.string().uuid(),
   title: z.string().nullable().optional(),
   description: z.string().nullable().optional(),
   ogTitle: z.string().nullable().optional(),
@@ -434,9 +434,9 @@ export * as MediaSchemas from './media';
 // User Schemas
 export const UserSchema = z.object({
   id: z.string().uuid(),
-  tenantId: z.string().uuid(),
+  orgId: z.string().uuid(),
   email: z.string().email(),
-  role: z.enum(['super_admin', 'tenant_admin', 'editor', 'viewer']).default('viewer'),
+  role: z.enum(['super_admin', 'org_admin', 'editor', 'viewer']).default('viewer'),
   preferredLanguage: z.enum(['pl', 'en']).default('en'),
   createdAt: z.date(),
   updatedAt: z.date(),
@@ -445,41 +445,41 @@ export const UserSchema = z.object({
 export const CreateUserSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8),
-  role: z.enum(['super_admin', 'tenant_admin', 'editor', 'viewer']).optional(),
+  role: z.enum(['super_admin', 'org_admin', 'editor', 'viewer']).optional(),
   preferredLanguage: z.enum(['pl', 'en']).optional(),
 });
 
 export const UpdateUserSchema = z.object({
   email: z.string().email().optional(),
   password: z.string().min(8).optional(),
-  role: z.enum(['super_admin', 'tenant_admin', 'editor', 'viewer']).optional(),
+  role: z.enum(['super_admin', 'org_admin', 'editor', 'viewer']).optional(),
   preferredLanguage: z.enum(['pl', 'en']).optional(),
 });
 
-// UserTenant Schemas (multi-tenant membership)
-export const UserTenantSchema = z.object({
+// UserOrg Schemas (multi-org membership)
+export const UserOrgSchema = z.object({
   id: z.string().uuid(),
   userId: z.string().uuid(),
-  tenantId: z.string().uuid(),
-  role: z.enum(['super_admin', 'tenant_admin', 'editor', 'viewer']).default('viewer'),
+  orgId: z.string().uuid(),
+  role: z.enum(['super_admin', 'org_admin', 'editor', 'viewer']).default('viewer'),
   createdAt: z.date(),
   updatedAt: z.date(),
 });
 
-export const CreateUserTenantSchema = z.object({
+export const CreateUserOrgSchema = z.object({
   userId: z.string().uuid(),
-  tenantId: z.string().uuid(),
-  role: z.enum(['super_admin', 'tenant_admin', 'editor', 'viewer']).optional(),
+  orgId: z.string().uuid(),
+  role: z.enum(['super_admin', 'org_admin', 'editor', 'viewer']).optional(),
 });
 
-export const UpdateUserTenantSchema = z.object({
-  role: z.enum(['super_admin', 'tenant_admin', 'editor', 'viewer']).optional(),
+export const UpdateUserOrgSchema = z.object({
+  role: z.enum(['super_admin', 'org_admin', 'editor', 'viewer']).optional(),
 });
 
 // Webhook Schemas
 export const WebhookSchema = z.object({
   id: z.string().uuid(),
-  tenantId: z.string().uuid(),
+  siteId: z.string().uuid(),
   collectionId: z.string().uuid().nullable().optional(),
   url: z.string().url(),
   events: z.array(z.string()),
@@ -516,7 +516,7 @@ export const UpdateWebhookSchema = z.object({
 export const WebhookDeliverySchema = z.object({
   id: z.string().uuid(),
   webhookId: z.string().uuid(),
-  tenantId: z.string().uuid(),
+  siteId: z.string().uuid(),
   event: z.string(),
   status: z.enum(['success', 'failed', 'pending']),
   statusCode: z.number().int().positive().nullable().optional(),
@@ -531,7 +531,7 @@ export const WebhookDeliverySchema = z.object({
 export const ContentReviewSchema = z.object({
   id: z.string().uuid(),
   contentEntryId: z.string().uuid(),
-  tenantId: z.string().uuid(),
+  siteId: z.string().uuid(),
   reviewerId: z.string().uuid(),
   status: z.enum(['approved', 'rejected', 'changes_requested']),
   comment: z.string().max(5000).nullable().optional(),
@@ -547,7 +547,7 @@ export const CreateContentReviewSchema = z.object({
 export const ContentCommentSchema = z.object({
   id: z.string().uuid(),
   contentEntryId: z.string().uuid(),
-  tenantId: z.string().uuid(),
+  siteId: z.string().uuid(),
   authorId: z.string().uuid(),
   content: z.string().min(1).max(5000),
   resolved: z.boolean().default(false),
@@ -567,7 +567,7 @@ export const UpdateContentCommentSchema = z.object({
 // Task Schemas
 export const TaskSchema = z.object({
   id: z.string().uuid(),
-  tenantId: z.string().uuid(),
+  siteId: z.string().uuid(),
   contentEntryId: z.string().uuid().nullable().optional(),
   collectionItemId: z.string().uuid().nullable().optional(),
   title: z.string().min(1).max(255),
@@ -606,7 +606,7 @@ export const UpdateTaskSchema = z.object({
 // CollectionRole Schemas
 export const CollectionRoleSchema = z.object({
   id: z.string().uuid(),
-  tenantId: z.string().uuid(),
+  siteId: z.string().uuid(),
   collectionId: z.string().uuid(),
   userId: z.string().uuid(),
   role: z.enum(['viewer', 'editor', 'admin']).default('viewer'),
@@ -638,7 +638,7 @@ export const PlanLimitsSchema = z.object({
 
 export const SubscriptionSchema = z.object({
   id: z.string().uuid(),
-  tenantId: z.string().uuid(),
+  orgId: z.string().uuid(),
   plan: z.enum(['free', 'professional', 'enterprise']),
   status: z.enum(['active', 'cancelled', 'past_due', 'trialing']).default('active'),
   currentPeriodStart: z.date(),
@@ -665,7 +665,7 @@ export const UpdateSubscriptionSchema = z.object({
 
 export const InvoiceSchema = z.object({
   id: z.string().uuid(),
-  tenantId: z.string().uuid(),
+  orgId: z.string().uuid(),
   subscriptionId: z.string().uuid().nullable().optional(),
   amount: z.number().nonnegative().multipleOf(0.01), // Decimal(10,2) - 2 decimal places
   currency: z.string().length(3).default('USD'),
@@ -690,7 +690,7 @@ export const CreateInvoiceSchema = z.object({
 
 export const PaymentSchema = z.object({
   id: z.string().uuid(),
-  tenantId: z.string().uuid(),
+  orgId: z.string().uuid(),
   invoiceId: z.string().uuid().nullable().optional(),
   amount: z.number().nonnegative().multipleOf(0.01), // Decimal(10,2) - 2 decimal places
   currency: z.string().length(3).default('USD'),
@@ -714,7 +714,7 @@ export const CreatePaymentSchema = z.object({
 
 export const UsageTrackingSchema = z.object({
   id: z.string().uuid(),
-  tenantId: z.string().uuid(),
+  orgId: z.string().uuid(),
   resourceType: z.enum(['collections', 'contentTypes', 'mediaFiles', 'users', 'storageMB', 'apiRequests']),
   count: z.number().int().nonnegative(),
   period: z.string(), // Format: YYYY-MM
@@ -801,9 +801,9 @@ export const BlockTreeSchema = z.object({
 export type BlockTree = z.infer<typeof BlockTreeSchema>;
 
 // Export types
-export type Tenant = z.infer<typeof TenantSchema>;
-export type CreateTenant = z.infer<typeof CreateTenantSchema>;
-export type UpdateTenant = z.infer<typeof UpdateTenantSchema>;
+export type Organization = z.infer<typeof OrganizationSchema>;
+export type CreateOrganization = z.infer<typeof CreateOrganizationSchema>;
+export type UpdateOrganization = z.infer<typeof UpdateOrganizationSchema>;
 export type ContentType = z.infer<typeof ContentTypeSchema>;
 export type CreateContentType = z.infer<typeof CreateContentTypeSchema>;
 export type UpdateContentType = z.infer<typeof UpdateContentTypeSchema>;
@@ -823,9 +823,9 @@ export type MediaItem = z.infer<typeof MediaItemSchema>; // Legacy alias
 export type User = z.infer<typeof UserSchema>;
 export type CreateUser = z.infer<typeof CreateUserSchema>;
 export type UpdateUser = z.infer<typeof UpdateUserSchema>;
-export type UserTenant = z.infer<typeof UserTenantSchema>;
-export type CreateUserTenant = z.infer<typeof CreateUserTenantSchema>;
-export type UpdateUserTenant = z.infer<typeof UpdateUserTenantSchema>;
+export type UserOrg = z.infer<typeof UserOrgSchema>;
+export type CreateUserOrg = z.infer<typeof CreateUserOrgSchema>;
+export type UpdateUserOrg = z.infer<typeof UpdateUserOrgSchema>;
 export type Webhook = z.infer<typeof WebhookSchema>;
 export type CreateWebhook = z.infer<typeof CreateWebhookSchema>;
 export type UpdateWebhook = z.infer<typeof UpdateWebhookSchema>;

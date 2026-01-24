@@ -27,7 +27,7 @@ Większość błędów to nieużywane importy - można je szybko naprawić:
 - `'Put' is declared but its value is never read` - usuń import
 - `'Delete' is declared but its value is never read` - usuń import
 - `'BadRequestException' is declared but its value is never read` - usuń import
-- `'tenantId' is declared but its value is never read` - usuń parametr lub użyj go
+- `'siteId' is declared but its value is never read` - usuń parametr lub użyj go
 
 ## Podsumowanie
 

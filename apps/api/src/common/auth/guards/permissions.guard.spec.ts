@@ -63,7 +63,7 @@ describe('PermissionsGuard', () => {
 
     it('should allow access if user has any of the required permissions', () => {
       const context = createMockContext(Role.EDITOR, [
-        Permission.ITEMS_READ,
+        Permission.ITEMS_CREATE,
         Permission.USERS_WRITE, // Editor doesn't have this
       ]);
       expect(guard.canActivate(context)).toBe(true);

@@ -7,7 +7,7 @@ import * as crypto from 'crypto';
  * Workflow Service - handles workflow management and execution
  * AI Note: Manages workflow definitions and state transitions
  * 
- * For MVP, workflows are stored in Tenant.settings.workflows
+ * For MVP, workflows are stored in Site.settings.workflows
  * In production, create a dedicated Workflow model in Prisma schema
  */
 @Injectable()
@@ -17,7 +17,7 @@ export class WorkflowService {
   /**
    * Create a workflow
    */
-  async create(tenantId: string, dto: CreateWorkflowDto) {
+  async create(siteId: string, dto: CreateWorkflowDto) {
     // Validate workflow: must have at least one initial state
     const hasInitialState = dto.states.some((s) => s.initial);
     if (!hasInitialState) {
@@ -33,31 +33,31 @@ export class WorkflowService {
       throw new BadRequestException('Transitions reference non-existent states');
     }
 
-    // For MVP, store workflows in Tenant.settings.workflows
-    const tenant = await this.prisma.tenant.findUnique({
-      where: { id: tenantId },
+    // For MVP, store workflows in Site.settings.workflows
+    const site = await this.prisma.site.findUnique({
+      where: { id: siteId },
       select: { settings: true },
     });
 
-    if (!tenant) {
-      throw new NotFoundException(`Tenant with ID ${tenantId} not found`);
+    if (!site) {
+      throw new NotFoundException(`Site with ID ${siteId} not found`);
     }
 
-    const settings = (tenant.settings as any) || {};
+    const settings = (site.settings as any) || {};
     const workflows = settings.workflows || [];
 
     const workflow = {
       id: crypto.randomUUID(),
       ...dto,
-      tenantId,
+      siteId,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
 
     workflows.push(workflow);
 
-    await this.prisma.tenant.update({
-      where: { id: tenantId },
+    await this.prisma.site.update({
+      where: { id: siteId },
       data: {
         settings: {
           ...settings,
@@ -70,27 +70,27 @@ export class WorkflowService {
   }
 
   /**
-   * Get all workflows for a tenant
+   * Get all workflows for a site
    */
-  async findAll(tenantId: string) {
-    const tenant = await this.prisma.tenant.findUnique({
-      where: { id: tenantId },
+  async findAll(siteId: string) {
+    const site = await this.prisma.site.findUnique({
+      where: { id: siteId },
       select: { settings: true },
     });
 
-    if (!tenant) {
-      throw new NotFoundException(`Tenant with ID ${tenantId} not found`);
+    if (!site) {
+      throw new NotFoundException(`Site with ID ${siteId} not found`);
     }
 
-    const settings = (tenant.settings as any) || {};
+    const settings = (site.settings as any) || {};
     return settings.workflows || [];
   }
 
   /**
    * Get a single workflow by ID
    */
-  async findOne(tenantId: string, id: string) {
-    const workflows = await this.findAll(tenantId);
+  async findOne(siteId: string, id: string) {
+    const workflows = await this.findAll(siteId);
     const workflow = workflows.find((w: any) => w.id === id);
 
     if (!workflow) {
@@ -105,14 +105,14 @@ export class WorkflowService {
    * AI Note: Transitions content entry or collection item to new state
    */
   async executeTransition(
-    tenantId: string,
+    siteId: string,
     workflowId: string,
     entityId: string,
     entityType: 'content' | 'collection',
     transitionName: string,
     userId: string,
   ) {
-    const workflow = await this.findOne(tenantId, workflowId);
+    const workflow = await this.findOne(siteId, workflowId);
     const transition = workflow.transitions.find(
       (t: any) => t.from === transitionName || t.label === transitionName,
     );
@@ -125,7 +125,7 @@ export class WorkflowService {
     let currentState: string;
     if (entityType === 'content') {
       const entry = await this.prisma.contentEntry.findFirst({
-        where: { id: entityId, siteId: tenantId },
+        where: { id: entityId, siteId: siteId },
       });
       if (!entry) {
         throw new NotFoundException(`Content entry with ID ${entityId} not found`);
@@ -133,7 +133,7 @@ export class WorkflowService {
       currentState = (entry.data as any)?.workflowState || workflow.states.find((s: any) => s.initial)?.name;
     } else {
       const item = await this.prisma.collectionItem.findFirst({
-        where: { id: entityId, siteId: tenantId },
+        where: { id: entityId, siteId: siteId },
       });
       if (!item) {
         throw new NotFoundException(`Collection item with ID ${entityId} not found`);

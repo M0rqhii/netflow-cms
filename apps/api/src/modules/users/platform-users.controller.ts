@@ -27,7 +27,7 @@ import { BadRequestException, ConflictException, ForbiddenException, NotFoundExc
 const createPlatformUserSchema = z.object({
   email: z.string().email('Invalid email format'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
-  role: z.enum(['super_admin', 'tenant_admin', 'editor', 'viewer']).optional(), // Backward compatibility
+  role: z.enum(['super_admin', 'organization_admin', 'editor', 'viewer']).optional(), // Backward compatibility
   siteRole: z.enum(['viewer', 'editor', 'editor-in-chief', 'marketing', 'admin', 'owner']).optional(),
   platformRole: z.enum(['user', 'editor-in-chief', 'admin', 'owner']).optional(),
   systemRole: z.enum(['super_admin', 'system_admin', 'system_dev', 'system_support']).optional(),
@@ -37,7 +37,7 @@ const createPlatformUserSchema = z.object({
 });
 
 const updatePlatformUserSchema = z.object({
-  role: z.enum(['super_admin', 'tenant_admin', 'editor', 'viewer']).optional(), // Backward compatibility
+  role: z.enum(['super_admin', 'organization_admin', 'editor', 'viewer']).optional(), // Backward compatibility
   siteRole: z.enum(['viewer', 'editor', 'editor-in-chief', 'marketing', 'admin', 'owner']).optional(),
   platformRole: z.enum(['user', 'editor-in-chief', 'admin', 'owner']).optional(),
   systemRole: z.enum(['super_admin', 'system_admin', 'system_dev', 'system_support']).optional(),
@@ -47,7 +47,7 @@ const updatePlatformUserSchema = z.object({
 /**
  * PlatformUsersController - RESTful API for platform-level user management
  * AI Note: All endpoints require platform-level roles (platform_admin)
- * This is for managing users across the entire platform, not tenant-scoped
+ * This is for managing users across the entire platform, not organization-scoped
  */
 @Injectable()
 @UseGuards(AuthGuard, PlatformRolesGuard, PermissionsGuard)
@@ -104,7 +104,7 @@ export class PlatformUsersController {
       if (!mappedSiteRole && user.role) {
         const roleMapping: Record<string, string> = {
           'super_admin': 'owner', // Super admin maps to owner in site context
-          'tenant_admin': 'admin',
+          'organization_admin': 'admin',
           'editor': 'editor',
           'viewer': 'viewer',
         };
@@ -114,7 +114,7 @@ export class PlatformUsersController {
       return {
         ...user,
         siteRole: mappedSiteRole || 'viewer',
-        platformRole: user.platformRole || (user.role === 'super_admin' ? 'admin' : 'user'),
+        platformRole: user.platformRole || (user.role === 'super_admin' || user.role === 'org_admin' ? 'admin' : 'user'),
         systemRole: user.systemRole || (user.role === 'super_admin' ? 'super_admin' : undefined),
         isSuperAdmin: user.isSuperAdmin || user.role === 'super_admin' || user.systemRole === 'super_admin',
       };
@@ -173,7 +173,7 @@ export class PlatformUsersController {
     if (!mappedSiteRole && user.role) {
       const roleMapping: Record<string, string> = {
         'super_admin': 'owner', // Super admin maps to owner in site context
-        'tenant_admin': 'admin',
+        'organization_admin': 'admin',
         'editor': 'editor',
         'viewer': 'viewer',
       };
@@ -183,7 +183,7 @@ export class PlatformUsersController {
     return {
       ...user,
       siteRole: mappedSiteRole || 'viewer',
-      platformRole: user.platformRole || (user.role === 'super_admin' ? 'admin' : 'user'),
+      platformRole: user.platformRole || (user.role === 'super_admin' || user.role === 'org_admin' ? 'admin' : 'user'),
       systemRole: user.systemRole || (user.role === 'super_admin' ? 'super_admin' : undefined),
       isSuperAdmin: user.isSuperAdmin || user.role === 'super_admin' || user.systemRole === 'super_admin',
     };
@@ -209,7 +209,7 @@ export class PlatformUsersController {
       throw new ForbiddenException('Only super_admin can create super_admin users');
     }
 
-    // Check if user already exists (check all tenants)
+    // Check if user already exists (check all organizations)
     const existingUser = await this.prisma.user.findFirst({
       where: { email: dto.email },
     });
@@ -218,15 +218,15 @@ export class PlatformUsersController {
       throw new ConflictException('User with this email already exists');
     }
 
-    // Find or create a default tenant for platform users
-    // For now, we'll use the first tenant or create a default one
-    let tenant = await this.prisma.tenant.findFirst({
+    // Find or create a default organization for platform users
+    // For now, we'll use the first organization or create a default one
+    let organization = await this.prisma.organization.findFirst({
       orderBy: { createdAt: 'asc' },
     });
 
-    if (!tenant) {
-      // Create a default tenant for platform users
-      tenant = await this.prisma.tenant.create({
+    if (!organization) {
+      // Create a default organization for platform users
+      organization = await this.prisma.organization.create({
         data: {
           name: 'Platform Users',
           slug: 'platform-users',
@@ -240,18 +240,21 @@ export class PlatformUsersController {
     const passwordHash = await bcrypt.hash(dto.password, 10);
 
     // Determine roles
-    const siteRole = dto.siteRole || dto.role || 'viewer';
-    const platformRole = dto.platformRole || (dto.role === 'super_admin' ? 'admin' : 'user');
-    const systemRole = dto.systemRole || (dto.role === 'super_admin' ? 'super_admin' : undefined);
-    const isSuperAdmin = dto.systemRole === 'super_admin' || dto.role === 'super_admin';
+    // Normalize legacy role names
+    const normalizedRole = dto.role === 'organization_admin' ? 'org_admin' : dto.role;
+
+    const siteRole = dto.siteRole || normalizedRole || 'viewer';
+    const platformRole = dto.platformRole || (normalizedRole === 'super_admin' || normalizedRole === 'org_admin' ? 'admin' : 'user');
+    const systemRole = dto.systemRole || (normalizedRole === 'super_admin' ? 'super_admin' : undefined);
+    const isSuperAdmin = dto.systemRole === 'super_admin' || normalizedRole === 'super_admin';
 
     // Create user
     const newUser = await this.prisma.user.create({
       data: {
         email: dto.email,
         passwordHash,
-        orgId: tenant.id,
-        role: dto.role || siteRole, // Backward compatibility
+        orgId: organization.id,
+        role: normalizedRole || siteRole, // Backward compatibility
         siteRole,
         platformRole,
         systemRole,
@@ -274,6 +277,12 @@ export class PlatformUsersController {
 
     // TODO: Store granular permissions in a separate table if needed
     // For now, permissions are derived from role
+
+    await this.prisma.userOrg.upsert({
+      where: { userId_orgId: { userId: newUser.id, orgId: organization.id } },
+      update: { role: normalizedRole || siteRole },
+      create: { userId: newUser.id, orgId: organization.id, role: normalizedRole || siteRole },
+    });
 
     return newUser;
   }
@@ -299,6 +308,8 @@ export class PlatformUsersController {
       throw new NotFoundException('User not found');
     }
 
+    const normalizedRole = dto.role === 'organization_admin' ? 'org_admin' : dto.role;
+
     // Security: Only platform admin/owner can assign platform admin/owner role
     if (dto.platformRole && ['admin', 'owner'].includes(dto.platformRole)) {
       const userPlatformRole = user.platformRole as PlatformRole | undefined;
@@ -315,7 +326,7 @@ export class PlatformUsersController {
     }
 
     // Security: Only super_admin can assign super_admin role (backward compatibility)
-    if (dto.role === Role.SUPER_ADMIN && user.role !== Role.SUPER_ADMIN && !user.isSuperAdmin) {
+    if (normalizedRole === Role.SUPER_ADMIN && user.role !== Role.SUPER_ADMIN && !user.isSuperAdmin) {
       throw new ForbiddenException('Only super_admin can assign super_admin role');
     }
 
@@ -339,10 +350,13 @@ export class PlatformUsersController {
 
     // Update user
     const updateData: any = {};
-    if (dto.role) {
-      updateData.role = dto.role; // Backward compatibility
+    if (normalizedRole) {
+      updateData.role = normalizedRole; // Backward compatibility
       if (!dto.siteRole) {
-        updateData.siteRole = dto.role; // Map to siteRole if not explicitly set
+        updateData.siteRole = normalizedRole === 'org_admin' ? 'admin' : normalizedRole;
+      }
+      if (!dto.platformRole) {
+        updateData.platformRole = normalizedRole === 'super_admin' || normalizedRole === 'org_admin' ? 'admin' : 'user';
       }
     }
     if (dto.siteRole) updateData.siteRole = dto.siteRole;

@@ -4,7 +4,7 @@
     "private": true,
     "description": "Backend API - NestJS + Prisma",
     "scripts": {
-        "dev": "sh scripts/dev-with-link.sh",
+        "dev": "node scripts/dev-with-link.js",
         "prebuild": "rm -rf dist 2>/dev/null || true",
         "build": "nest build",
         "postbuild": "cd dist && (ln -sf apps/api/src/main.js main.js 2>/dev/null || ln -sf src/main.js main.js 2>/dev/null || true)",
@@ -27,6 +27,7 @@
         "db:seed": "ts-node prisma/seed.ts",
         "db:seed:demo": "ts-node scripts/seed-demo-org.ts",
         "assign-org-owner": "ts-node scripts/assign-org-owner.ts",
+        "assign-org-owners-all": "ts-node scripts/assign-org-owners-all.ts",
         "create-super-admin": "ts-node scripts/create-super-admin.ts",
         "setup-super-admin": "ts-node scripts/setup-super-admin.ts"
     },
@@ -48,6 +49,7 @@
         "cache-manager-redis-yet": "^5.1.2",
         "class-transformer": "^0.5.1",
         "class-validator": "^0.14.3",
+        "express": "^5.2.1",
         "helmet": "^8.1.0",
         "passport": "^0.7.0",
         "passport-jwt": "^4.0.1",

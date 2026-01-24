@@ -2,7 +2,7 @@
 
 ## Wprowadzenie
 
-Ten dokument definiuje role, odpowiedzialności i protokoły komunikacji dla zespołu AI-agentów wspierających rozwój projektu **Multi-Tenant Headless CMS**.
+Ten dokument definiuje role, odpowiedzialności i protokoły komunikacji dla zespołu AI-agentów wspierających rozwój projektu **Multi-Site Headless CMS**.
 
 ## Architektura Agentów
 
@@ -26,7 +26,7 @@ Ten dokument definiuje role, odpowiedzialności i protokoły komunikacji dla zes
 ```
 "Przeanalizuj PRD i stwórz plan sprintu na najbliższe 2 tygodnie"
 "Zidentyfikuj zależności między zadaniami w plan.md"
-"Przeprowadź code review dla feature branch 'tenant-isolation'"
+"Przeprowadź code review dla feature branch 'site-isolation'"
 ```
 
 ---
@@ -49,9 +49,9 @@ Ten dokument definiuje role, odpowiedzialności i protokoły komunikacji dla zes
 
 **Przykładowe prompty:**
 ```
-"Zaprojektuj architekturę modułu zarządzania tenantami"
+"Zaprojektuj architekturę modułu zarządzania siteami"
 "Oceń zgodność implementacji z architekturą hexagonową"
-"Zaproponuj rozwiązanie dla cache'owania danych multi-tenant"
+"Zaproponuj rozwiązanie dla cache'owania danych org/site"
 ```
 
 ---
@@ -73,9 +73,9 @@ Ten dokument definiuje role, odpowiedzialności i protokoły komunikacji dla zes
 
 **Przykładowe komendy:**
 ```bash
-aicli gen:controller --name TenantController --resource tenant
-aicli gen:service --name TenantService --methods create,update,delete,list
-aicli gen:tests --target TenantService --coverage 80
+aicli gen:controller --name SiteController --resource site
+aicli gen:service --name SiteService --methods create,update,delete,list
+aicli gen:tests --target SiteService --coverage 80
 ```
 
 ---
@@ -98,9 +98,9 @@ aicli gen:tests --target TenantService --coverage 80
 
 **Przykładowe prompty:**
 ```
-"Stwórz testy integracyjne dla API zarządzania tenantami"
+"Stwórz testy integracyjne dla API zarządzania siteami"
 "Przeanalizuj pokrycie testami modułu authentication"
-"Zidentyfikuj potencjalne race conditions w multi-tenant context"
+"Zidentyfikuj potencjalne race conditions w org/site context"
 ```
 
 ---
@@ -124,7 +124,7 @@ aicli gen:tests --target TenantService --coverage 80
 **Przykładowe prompty:**
 ```
 "Stwórz Docker Compose dla środowiska development"
-"Zaprojektuj pipeline CI/CD dla multi-tenant deployment"
+"Zaprojektuj pipeline CI/CD dla org/site deployment"
 "Konfiguruj monitoring dla aplikacji headless CMS"
 ```
 
@@ -148,9 +148,9 @@ aicli gen:tests --target TenantService --coverage 80
 
 **Przykładowe prompty:**
 ```
-"Przeanalizuj bezpieczeństwo implementacji multi-tenant isolation"
+"Przeanalizuj bezpieczeństwo implementacji org/site isolation"
 "Zidentyfikuj potencjalne SQL injection w query builder"
-"Zaimplementuj audit logging dla operacji na danych tenantów"
+"Zaimplementuj audit logging dla operacji na danych siteów"
 ```
 
 ---
@@ -174,7 +174,7 @@ aicli gen:tests --target TenantService --coverage 80
 **Przykładowe prompty:**
 ```
 "Zaktualizuj dokumentację API po dodaniu nowego endpointu"
-"Stwórz diagram sekwencji dla procesu tworzenia tenantów"
+"Stwórz diagram sekwencji dla procesu tworzenia siteów"
 "Wygeneruj changelog dla wersji 1.2.0"
 ```
 
@@ -193,13 +193,13 @@ aicli gen:tests --target TenantService --coverage 80
 #### Request do Agenta
 ```yaml
 agent: Architecture Agent
-task: "Zaprojektuj moduł zarządzania tenantami"
+task: "Zaprojektuj moduł zarządzania siteami"
 context:
-  - prd.md (sekcja: Tenant Management)
+  - prd.md (sekcja: Site Management)
   - plan.md (task: TNT-001)
 requirements:
-  - Multi-tenant isolation
-  - Scalability do 1000+ tenantów
+  - Org/site isolation
+  - Scalability do 1000+ siteów
   - RESTful API
 deadline: "2024-01-15"
 ```
@@ -209,8 +209,8 @@ deadline: "2024-01-15"
 agent: Architecture Agent
 status: completed
 deliverables:
-  - architecture/tenant-module.md
-  - diagrams/tenant-isolation.png
+  - architecture/site-module.md
+  - diagrams/site-isolation.png
 decisions:
   - Database: PostgreSQL z row-level security
   - Pattern: Repository + Service Layer
@@ -236,9 +236,9 @@ next_steps:
 ### Konwencje Nazewnictwa
 
 - **Zadania:** `TNT-001`, `API-042`, `SEC-015` (prefix + numer)
-- **Branche:** `feature/TNT-001-tenant-management`, `fix/API-042-auth-bug`
-- **Commits:** `feat(TNT-001): add tenant creation endpoint`
-- **PR:** `[TNT-001] Tenant Management Module`
+- **Branche:** `feature/TNT-001-site-management`, `fix/API-042-auth-bug`
+- **Commits:** `feat(TNT-001): add site creation endpoint`
+- **PR:** `[TNT-001] Site Management Module`
 
 ## Metryki i Monitoring
 

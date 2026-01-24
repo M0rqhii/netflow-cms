@@ -34,7 +34,7 @@ export class CollectionRolesController {
   constructor(private readonly collectionRolesService: CollectionRolesService) {}
 
   @Post()
-  @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.ORG_ADMIN, Role.SUPER_ADMIN)
   @Permissions(Permission.COLLECTIONS_WRITE)
   assignRole(
     @CurrentSite() siteId: string,
@@ -54,7 +54,7 @@ export class CollectionRolesController {
   }
 
   @Put(':userId')
-  @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.ORG_ADMIN, Role.SUPER_ADMIN)
   @Permissions(Permission.COLLECTIONS_WRITE)
   updateRole(
     @CurrentSite() siteId: string,
@@ -66,7 +66,7 @@ export class CollectionRolesController {
   }
 
   @Delete(':userId')
-  @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.ORG_ADMIN, Role.SUPER_ADMIN)
   @Permissions(Permission.COLLECTIONS_WRITE)
   @HttpCode(HttpStatus.NO_CONTENT)
   removeRole(

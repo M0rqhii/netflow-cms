@@ -9,7 +9,7 @@ export interface UploadFileParams {
   file: Buffer | NodeJS.ReadableStream;
   filename: string;
   contentType: string;
-  tenantId: string;
+  siteId: string;
   folder?: string; // Optional folder/path prefix
   metadata?: Record<string, any>;
   public?: boolean; // Whether file should be publicly accessible
@@ -26,7 +26,7 @@ export interface UploadFileResult {
 
 export interface DeleteFileParams {
   key: string; // Storage key/path
-  tenantId: string;
+  siteId: string;
 }
 
 export interface FileStorage {

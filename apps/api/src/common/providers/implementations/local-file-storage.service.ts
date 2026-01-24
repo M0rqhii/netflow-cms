@@ -35,11 +35,11 @@ export class LocalFileStorage implements FileStorage {
   }
 
   async uploadFile(params: UploadFileParams): Promise<UploadFileResult> {
-    const { file, filename, contentType, tenantId, folder, metadata } = params;
+    const { file, filename, contentType, siteId, folder, metadata } = params;
 
-    // Create tenant-specific folder structure
-    const tenantFolder = path.join(this.uploadDir, tenantId);
-    const finalFolder = folder ? path.join(tenantFolder, folder) : tenantFolder;
+    // Create site-specific folder structure
+    const siteFolder = path.join(this.uploadDir, siteId);
+    const finalFolder = folder ? path.join(siteFolder, folder) : siteFolder;
     
     await fs.mkdir(finalFolder, { recursive: true });
 
@@ -51,7 +51,7 @@ export class LocalFileStorage implements FileStorage {
     const uniqueFilename = `${baseName}_${timestamp}_${randomSuffix}${ext}`;
     
     const filePath = path.join(finalFolder, uniqueFilename);
-    const storageKey = `${tenantId}/${folder ? folder + '/' : ''}${uniqueFilename}`;
+    const storageKey = `${siteId}/${folder ? folder + '/' : ''}${uniqueFilename}`;
 
     // Write file to disk
     const buffer = Buffer.isBuffer(file) ? file : await this.streamToBuffer(file);

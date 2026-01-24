@@ -18,6 +18,7 @@ describe('ContentEntriesService', () => {
       count: jest.fn(),
     },
     $transaction: jest.fn(),
+    $queryRawUnsafe: jest.fn(),
   };
 
   const mockContentTypesService = {
@@ -56,11 +57,11 @@ describe('ContentEntriesService', () => {
   });
 
   describe('create', () => {
-    const tenantId = 'tenant-123';
+    const siteId = 'site-123';
     const contentTypeSlug = 'article';
     const contentType = {
       id: 'content-type-123',
-      tenantId,
+      siteId,
       slug: contentTypeSlug,
       name: 'Article',
       schema: {
@@ -89,30 +90,35 @@ describe('ContentEntriesService', () => {
 
       const createdEntry = {
         id: 'entry-123',
-        tenantId,
+        siteId,
         contentTypeId: contentType.id,
         data: dto.data,
         status: dto.status,
         createdAt: new Date(),
         updatedAt: new Date(),
+        createdById: undefined,
+        updatedById: undefined,
       };
 
       mockPrismaService.contentEntry.create.mockResolvedValue(createdEntry);
 
-      const result = await service.create(tenantId, contentTypeSlug, dto);
+      const result = await service.create(siteId, contentTypeSlug, dto);
 
       expect(result).toEqual(createdEntry);
       expect(mockContentTypesService.getBySlug).toHaveBeenCalledWith(
-        tenantId,
+        siteId,
         contentTypeSlug
       );
       expect(mockPrismaService.contentEntry.create).toHaveBeenCalledWith({
         data: {
-          tenantId,
+          siteId,
           contentTypeId: contentType.id,
           data: dto.data,
           status: dto.status,
+          createdById: undefined,
+          updatedById: undefined,
         },
+        select: expect.any(Object),
       });
     });
 
@@ -126,7 +132,7 @@ describe('ContentEntriesService', () => {
       };
 
       await expect(
-        service.create(tenantId, contentTypeSlug, dto)
+        service.create(siteId, contentTypeSlug, dto)
       ).rejects.toThrow(BadRequestException);
     });
 
@@ -140,7 +146,7 @@ describe('ContentEntriesService', () => {
       };
 
       await expect(
-        service.create(tenantId, contentTypeSlug, dto)
+        service.create(siteId, contentTypeSlug, dto)
       ).rejects.toThrow(BadRequestException);
     });
 
@@ -153,7 +159,7 @@ describe('ContentEntriesService', () => {
 
       mockPrismaService.contentEntry.create.mockResolvedValue({
         id: 'entry-123',
-        tenantId,
+        siteId,
         contentTypeId: contentType.id,
         data: dto.data,
         status: dto.status,
@@ -161,19 +167,19 @@ describe('ContentEntriesService', () => {
         updatedAt: new Date(),
       });
 
-      await service.create(tenantId, contentTypeSlug, dto);
+      await service.create(siteId, contentTypeSlug, dto);
 
-      expect(mockCache.get).toHaveBeenCalledWith(`ct:${tenantId}:${contentTypeSlug}`);
+      expect(mockCache.get).toHaveBeenCalledWith(`ct:${siteId}:${contentTypeSlug}`);
       expect(mockContentTypesService.getBySlug).not.toHaveBeenCalled();
     });
   });
 
   describe('list', () => {
-    const tenantId = 'tenant-123';
+    const siteId = 'site-123';
     const contentTypeSlug = 'article';
     const contentType = {
       id: 'content-type-123',
-      tenantId,
+      siteId,
       slug: contentTypeSlug,
       name: 'Article',
       schema: {
@@ -199,7 +205,7 @@ describe('ContentEntriesService', () => {
       const entries = [
         {
           id: 'entry-1',
-          tenantId,
+          siteId,
           contentTypeId: contentType.id,
           data: { title: 'Article 1' },
           status: 'draft',
@@ -213,10 +219,11 @@ describe('ContentEntriesService', () => {
         },
       ];
 
-      mockPrismaService.contentEntry.findMany.mockResolvedValue(entries);
-      mockPrismaService.contentEntry.count.mockResolvedValue(1);
+      mockPrismaService.$queryRawUnsafe
+        .mockResolvedValueOnce(entries)
+        .mockResolvedValueOnce([{ count: BigInt(1) }]);
 
-      const result = await service.list(tenantId, contentTypeSlug, query);
+      const result = await service.list(siteId, contentTypeSlug, query);
 
       expect(result.total).toBe(1);
       expect(result.page).toBe(1);
@@ -231,18 +238,14 @@ describe('ContentEntriesService', () => {
         status: 'published' as const,
       };
 
-      mockPrismaService.contentEntry.findMany.mockResolvedValue([]);
-      mockPrismaService.contentEntry.count.mockResolvedValue(0);
+      mockPrismaService.$queryRawUnsafe
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([{ count: BigInt(0) }]);
 
-      await service.list(tenantId, contentTypeSlug, query);
+      await service.list(siteId, contentTypeSlug, query);
 
-      expect(mockPrismaService.contentEntry.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({
-            status: 'published',
-          }),
-        })
-      );
+      const [sql] = mockPrismaService.$queryRawUnsafe.mock.calls[0];
+      expect(String(sql)).toContain('ce.status');
     });
 
     it('should sort by createdAt desc by default', async () => {
@@ -251,16 +254,14 @@ describe('ContentEntriesService', () => {
         pageSize: 20,
       };
 
-      mockPrismaService.contentEntry.findMany.mockResolvedValue([]);
-      mockPrismaService.contentEntry.count.mockResolvedValue(0);
+      mockPrismaService.$queryRawUnsafe
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([{ count: BigInt(0) }]);
 
-      await service.list(tenantId, contentTypeSlug, query);
+      await service.list(siteId, contentTypeSlug, query);
 
-      expect(mockPrismaService.contentEntry.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          orderBy: [{ createdAt: 'desc' }],
-        })
-      );
+      const [sql] = mockPrismaService.$queryRawUnsafe.mock.calls[0];
+      expect(String(sql)).toContain('ORDER BY ce."createdAt" DESC');
     });
 
     it('should apply custom sorting', async () => {
@@ -270,19 +271,14 @@ describe('ContentEntriesService', () => {
         sort: '-updatedAt,status',
       };
 
-      mockPrismaService.contentEntry.findMany.mockResolvedValue([]);
-      mockPrismaService.contentEntry.count.mockResolvedValue(0);
+      mockPrismaService.$queryRawUnsafe
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([{ count: BigInt(0) }]);
 
-      await service.list(tenantId, contentTypeSlug, query);
+      await service.list(siteId, contentTypeSlug, query);
 
-      expect(mockPrismaService.contentEntry.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          orderBy: [
-            { updatedAt: 'desc' },
-            { status: 'asc' },
-          ],
-        })
-      );
+      const [sql] = mockPrismaService.$queryRawUnsafe.mock.calls[0];
+      expect(String(sql)).toContain('ORDER BY ce."updatedAt" DESC, ce."status" ASC');
     });
 
     it('should filter by JSON fields', async () => {
@@ -292,32 +288,23 @@ describe('ContentEntriesService', () => {
         filter: { title: 'Test Article' },
       };
 
-      const allEntries = [
+      const filteredEntries = [
         {
           id: 'entry-1',
-          tenantId,
+          siteId,
           contentTypeId: contentType.id,
           data: { title: 'Test Article', content: 'Content 1' },
           status: 'draft',
           createdAt: new Date(),
           updatedAt: new Date(),
         },
-        {
-          id: 'entry-2',
-          tenantId,
-          contentTypeId: contentType.id,
-          data: { title: 'Other Article', content: 'Content 2' },
-          status: 'draft',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
       ];
 
-      mockPrismaService.contentEntry.findMany
-        .mockResolvedValueOnce(allEntries) // First call for filtered results
-        .mockResolvedValueOnce(allEntries); // Second call for count
+      mockPrismaService.$queryRawUnsafe
+        .mockResolvedValueOnce(filteredEntries)
+        .mockResolvedValueOnce([{ count: BigInt(1) }]);
 
-      const result = await service.list(tenantId, contentTypeSlug, query);
+      const result = await service.list(siteId, contentTypeSlug, query);
 
       expect(result.entries.length).toBe(1);
       expect(result.entries[0].data).toMatchObject({ title: 'Test Article' });
@@ -330,32 +317,23 @@ describe('ContentEntriesService', () => {
         search: 'test',
       };
 
-      const allEntries = [
+      const filteredEntries = [
         {
           id: 'entry-1',
-          tenantId,
+          siteId,
           contentTypeId: contentType.id,
           data: { title: 'Test Article', content: 'Content' },
           status: 'draft',
           createdAt: new Date(),
           updatedAt: new Date(),
         },
-        {
-          id: 'entry-2',
-          tenantId,
-          contentTypeId: contentType.id,
-          data: { title: 'Other Article', content: 'Content' },
-          status: 'draft',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
       ];
 
-      mockPrismaService.contentEntry.findMany
-        .mockResolvedValueOnce(allEntries)
-        .mockResolvedValueOnce(allEntries);
+      mockPrismaService.$queryRawUnsafe
+        .mockResolvedValueOnce(filteredEntries)
+        .mockResolvedValueOnce([{ count: BigInt(1) }]);
 
-      const result = await service.list(tenantId, contentTypeSlug, query);
+      const result = await service.list(siteId, contentTypeSlug, query);
 
       expect(result.entries.length).toBe(1);
       expect(result.entries[0].data).toMatchObject({ title: 'Test Article' });
@@ -363,11 +341,11 @@ describe('ContentEntriesService', () => {
   });
 
   describe('get', () => {
-    const tenantId = 'tenant-123';
+    const siteId = 'site-123';
     const contentTypeSlug = 'article';
     const contentType = {
       id: 'content-type-123',
-      tenantId,
+      siteId,
       slug: contentTypeSlug,
       name: 'Article',
       schema: {},
@@ -382,7 +360,7 @@ describe('ContentEntriesService', () => {
       const entryId = 'entry-123';
       const entry = {
         id: entryId,
-        tenantId,
+        siteId,
         contentTypeId: contentType.id,
         data: { title: 'Test' },
         status: 'draft',
@@ -397,16 +375,28 @@ describe('ContentEntriesService', () => {
 
       mockPrismaService.contentEntry.findFirst.mockResolvedValue(entry);
 
-      const result = await service.get(tenantId, contentTypeSlug, entryId);
+      const result = await service.get(siteId, contentTypeSlug, entryId);
 
       expect(result).toEqual(entry);
       expect(mockPrismaService.contentEntry.findFirst).toHaveBeenCalledWith({
         where: {
-          tenantId,
+          siteId,
           contentTypeId: contentType.id,
           id: entryId,
         },
-        include: {
+        select: {
+          id: true,
+          siteId: true,
+          contentTypeId: true,
+          data: true,
+          status: true,
+          createdAt: true,
+          updatedAt: true,
+          publishedAt: true,
+          reviewedAt: true,
+          reviewedById: true,
+          createdById: true,
+          updatedById: true,
           contentType: {
             select: {
               id: true,
@@ -422,17 +412,17 @@ describe('ContentEntriesService', () => {
       mockPrismaService.contentEntry.findFirst.mockResolvedValue(null);
 
       await expect(
-        service.get(tenantId, contentTypeSlug, 'non-existent')
+        service.get(siteId, contentTypeSlug, 'non-existent')
       ).rejects.toThrow(NotFoundException);
     });
   });
 
   describe('update', () => {
-    const tenantId = 'tenant-123';
+    const siteId = 'site-123';
     const contentTypeSlug = 'article';
     const contentType = {
       id: 'content-type-123',
-      tenantId,
+      siteId,
       slug: contentTypeSlug,
       name: 'Article',
       schema: {
@@ -453,7 +443,7 @@ describe('ContentEntriesService', () => {
       const entryId = 'entry-123';
       const currentEntry = {
         id: entryId,
-        tenantId,
+        siteId,
         contentTypeId: contentType.id,
         data: { title: 'Old Title', content: 'Old Content' },
         status: 'draft',
@@ -479,21 +469,13 @@ describe('ContentEntriesService', () => {
       mockPrismaService.contentEntry.findFirst.mockResolvedValue(currentEntry);
       mockPrismaService.contentEntry.update.mockResolvedValue(updatedEntry);
 
-      const result = await service.update(tenantId, contentTypeSlug, entryId, dto);
+      const result = await service.update(siteId, contentTypeSlug, entryId, dto);
 
       expect(result).toEqual(updatedEntry);
       expect(mockPrismaService.contentEntry.update).toHaveBeenCalledWith({
         where: { id: entryId },
         data: { data: dto.data },
-        include: {
-          contentType: {
-            select: {
-              id: true,
-              name: true,
-              slug: true,
-            },
-          },
-        },
+        select: expect.any(Object),
       });
     });
 
@@ -501,7 +483,7 @@ describe('ContentEntriesService', () => {
       const entryId = 'entry-123';
       const currentEntry = {
         id: entryId,
-        tenantId,
+        siteId,
         contentTypeId: contentType.id,
         data: { title: 'Title' },
         status: 'draft',
@@ -519,12 +501,12 @@ describe('ContentEntriesService', () => {
         status: 'published',
       });
 
-      await service.update(tenantId, contentTypeSlug, entryId, dto);
+      await service.update(siteId, contentTypeSlug, entryId, dto);
 
       expect(mockPrismaService.contentEntry.update).toHaveBeenCalledWith({
         where: { id: entryId },
         data: { status: 'published' },
-        include: expect.any(Object),
+        select: expect.any(Object),
       });
     });
 
@@ -532,17 +514,17 @@ describe('ContentEntriesService', () => {
       mockPrismaService.contentEntry.findFirst.mockResolvedValue(null);
 
       await expect(
-        service.update(tenantId, contentTypeSlug, 'non-existent', {})
+        service.update(siteId, contentTypeSlug, 'non-existent', {})
       ).rejects.toThrow(NotFoundException);
     });
   });
 
   describe('remove', () => {
-    const tenantId = 'tenant-123';
+    const siteId = 'site-123';
     const contentTypeSlug = 'article';
     const contentType = {
       id: 'content-type-123',
-      tenantId,
+      siteId,
       slug: contentTypeSlug,
       name: 'Article',
       schema: {},
@@ -557,7 +539,7 @@ describe('ContentEntriesService', () => {
       const entryId = 'entry-123';
       const entry = {
         id: entryId,
-        tenantId,
+        siteId,
         contentTypeId: contentType.id,
         data: {},
         status: 'draft',
@@ -568,7 +550,7 @@ describe('ContentEntriesService', () => {
       mockPrismaService.contentEntry.findFirst.mockResolvedValue(entry);
       mockPrismaService.contentEntry.delete.mockResolvedValue(entry);
 
-      const result = await service.remove(tenantId, contentTypeSlug, entryId);
+      const result = await service.remove(siteId, contentTypeSlug, entryId);
 
       expect(result).toEqual({ ok: true });
       expect(mockPrismaService.contentEntry.delete).toHaveBeenCalledWith({
@@ -580,11 +562,8 @@ describe('ContentEntriesService', () => {
       mockPrismaService.contentEntry.findFirst.mockResolvedValue(null);
 
       await expect(
-        service.remove(tenantId, contentTypeSlug, 'non-existent')
+        service.remove(siteId, contentTypeSlug, 'non-existent')
       ).rejects.toThrow(NotFoundException);
     });
   });
 });
-
-
-

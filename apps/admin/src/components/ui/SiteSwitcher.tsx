@@ -2,36 +2,19 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
-import { fetchMySites } from '@/lib/api';
 import type { SiteInfo } from '@repo/sdk';
 import { useTranslations } from '@/hooks/useTranslations';
 import { usePathname } from 'next/navigation';
 import { useToast } from './Toast';
+import { useSites } from '@/hooks/useSites';
 
 export default function SiteSwitcher() {
   const t = useTranslations();
   const pathname = usePathname();
   const toast = useToast();
-  const [sites, setSites] = useState<SiteInfo[]>([]);
+  const { sites, loading } = useSites();
   const [isOpen, setIsOpen] = useState(false);
-  const [loading, setLoading] = useState(true);
   const dropdownRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const data = await fetchMySites();
-        // Filter out any sites with missing site property to prevent runtime errors
-        const validSites = data.filter(s => s?.site != null);
-        setSites(validSites);
-      } catch (e) {
-        // Error will be handled by error state in parent component
-        // Don't log here to avoid console noise
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -72,7 +55,7 @@ export default function SiteSwitcher() {
         aria-label="Switch site"
       >
         <span className="font-medium truncate max-w-[80px] sm:max-w-none">
-          {currentSite?.site?.name ?? t('navigation.sites')}
+          {currentSite?.site?.name - t('navigation.sites')}
         </span>
         <svg
           className={`w-3 h-3 sm:w-4 sm:h-4 transition-transform flex-shrink-0 ${isOpen ? 'rotate-180' : ''}`}
@@ -104,7 +87,7 @@ export default function SiteSwitcher() {
                       }`}
                     >
                       <div className="font-medium truncate">{site.site.name}</div>
-                      <div className="text-[10px] sm:text-xs text-muted truncate">{site.site.slug} · {site.role}</div>
+                      <div className="text-[10px] sm:text-xs text-muted truncate">{site.site.slug} - {site.role}</div>
                     </button>
                   );
                 })}

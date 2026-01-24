@@ -52,26 +52,27 @@ export class PlanLimitsService {
   }
 
   /**
-   * Check if tenant can create a resource
+   * Check if organization can create a resource
    */
   async canCreateResource(
-    tenantId: string,
+    orgId: string,
     resourceType: 'collection' | 'contentType' | 'mediaFile' | 'user' | 'webhook',
+    siteId?: string,
   ): Promise<{ allowed: boolean; reason?: string }> {
-    const tenant = await this.prisma.tenant.findUnique({
-      where: { id: tenantId },
+    const organization = await this.prisma.organization.findUnique({
+      where: { id: orgId },
       select: { plan: true },
     });
 
-    if (!tenant) {
-      return { allowed: false, reason: 'Tenant not found' };
+    if (!organization) {
+      return { allowed: false, reason: 'Organization not found' };
     }
 
-    const plan = tenant.plan as 'free' | 'professional' | 'enterprise';
+    const plan = organization.plan as 'free' | 'professional' | 'enterprise';
     const limits = this.getLimits(plan);
 
     // Check current usage
-    const counts = await this.getResourceCounts(tenantId);
+    const counts = await this.getResourceCounts(orgId, siteId);
     const limit = limits[this.getLimitKey(resourceType)];
 
     // -1 represents Infinity
@@ -91,22 +92,23 @@ export class PlanLimitsService {
   }
 
   /**
-   * Check if tenant can use storage (in MB)
+   * Check if organization can use storage (in MB)
    */
   async canUseStorage(
-    tenantId: string,
+    orgId: string,
     additionalMB: number,
+    siteId?: string,
   ): Promise<{ allowed: boolean; reason?: string; currentUsage?: number; limit?: number }> {
-    const tenant = await this.prisma.tenant.findUnique({
-      where: { id: tenantId },
+    const organization = await this.prisma.organization.findUnique({
+      where: { id: orgId },
       select: { plan: true },
     });
 
-    if (!tenant) {
-      return { allowed: false, reason: 'Tenant not found' };
+    if (!organization) {
+      return { allowed: false, reason: 'Organization not found' };
     }
 
-    const plan = tenant.plan as 'free' | 'professional' | 'enterprise';
+    const plan = organization.plan as 'free' | 'professional' | 'enterprise';
     const limits = this.getLimits(plan);
     const limit = limits.storageMB;
 
@@ -114,7 +116,7 @@ export class PlanLimitsService {
       return { allowed: true };
     }
 
-    const currentUsage = await this.getStorageUsage(tenantId);
+    const currentUsage = await this.getStorageUsage(orgId, siteId);
     const newUsage = currentUsage + additionalMB;
 
     if (newUsage > limit) {
@@ -133,7 +135,7 @@ export class PlanLimitsService {
    * Track resource usage for billing
    */
   async trackUsage(
-    tenantId: string,
+    orgId: string,
     resourceType: 'collections' | 'contentTypes' | 'mediaFiles' | 'users' | 'storageMB' | 'apiRequests',
     count: number = 1,
   ): Promise<void> {
@@ -142,8 +144,8 @@ export class PlanLimitsService {
     // Note: Prisma Client must be generated with: pnpm --filter api db:generate
     await (this.prisma as any).usageTracking.upsert({
       where: {
-        tenantId_resourceType_period: {
-          tenantId,
+        orgId_resourceType_period: {
+          orgId,
           resourceType,
           period,
         },
@@ -153,7 +155,7 @@ export class PlanLimitsService {
         updatedAt: new Date(),
       },
       create: {
-        tenantId,
+        orgId,
         resourceType,
         count,
         period,
@@ -165,13 +167,13 @@ export class PlanLimitsService {
    * Get usage for a specific period
    */
   async getUsageForPeriod(
-    tenantId: string,
+    orgId: string,
     period: string, // YYYY-MM format
   ): Promise<Record<string, number>> {
     // Note: Prisma Client must be generated with: pnpm --filter api db:generate
     const usageRecords = await (this.prisma as any).usageTracking.findMany({
       where: {
-        tenantId,
+        orgId,
         period,
       },
     });
@@ -186,15 +188,16 @@ export class PlanLimitsService {
   }
 
   /**
-   * Get current resource counts for a tenant
+   * Get current resource counts for an organization
    */
-  async getResourceCounts(tenantId: string) {
+  async getResourceCounts(orgId: string, siteId?: string) {
+    const siteFilter = siteId ? { siteId } : { site: { orgId } };
     const [collections, contentTypes, mediaFiles, users, webhooks] = await Promise.all([
-      this.prisma.collection.count({ where: { siteId: tenantId } }),
-      this.prisma.contentType.count({ where: { siteId: tenantId } }),
-      this.prisma.mediaItem.count({ where: { siteId: tenantId } }),
-      this.prisma.user.count({ where: { orgId: tenantId } }),
-      this.prisma.webhook.count({ where: { siteId: tenantId } }),
+      this.prisma.collection.count({ where: siteFilter }),
+      this.prisma.contentType.count({ where: siteFilter }),
+      this.prisma.mediaItem.count({ where: siteFilter }),
+      this.prisma.user.count({ where: { orgId } }),
+      this.prisma.webhook.count({ where: siteFilter }),
     ]);
 
     return {
@@ -209,9 +212,10 @@ export class PlanLimitsService {
   /**
    * Get current storage usage in MB
    */
-  async getStorageUsage(tenantId: string): Promise<number> {
+  async getStorageUsage(orgId: string, siteId?: string): Promise<number> {
+    const siteFilter = siteId ? { siteId } : { site: { orgId } };
     const result = await this.prisma.mediaItem.aggregate({
-      where: { siteId: tenantId },
+      where: siteFilter,
       _sum: {
         size: true,
       },
@@ -222,34 +226,34 @@ export class PlanLimitsService {
   }
 
   /**
-   * Get subscription status for tenant
+   * Get subscription status for organization
    */
-  async getSubscriptionStatus(tenantId: string): Promise<{
+  async getSubscriptionStatus(orgId: string): Promise<{
     plan: string;
     status: string;
     currentPeriodEnd: Date | null;
     isActive: boolean;
   }> {
-    const tenant = await this.prisma.tenant.findUnique({
-      where: { id: tenantId },
+    const organization = await this.prisma.organization.findUnique({
+      where: { id: orgId },
       select: { plan: true },
     });
 
-    if (!tenant) {
-      throw new Error('Tenant not found');
+    if (!organization) {
+      throw new Error('Organization not found');
     }
 
     // Note: Prisma Client must be generated with: pnpm --filter api db:generate
     const subscription = await (this.prisma as any).subscription.findFirst({
       where: {
-        tenantId,
+        orgId,
         status: { in: ['active', 'trialing'] },
       },
       orderBy: { createdAt: 'desc' },
     });
 
     return {
-      plan: tenant.plan,
+      plan: organization.plan,
       status: subscription?.status || 'inactive',
       currentPeriodEnd: subscription?.currentPeriodEnd || null,
       isActive: subscription?.status === 'active' || subscription?.status === 'trialing',
@@ -257,27 +261,27 @@ export class PlanLimitsService {
   }
 
   /**
-   * Get limits and usage summary for tenant
+   * Get limits and usage summary for organization
    */
-  async getLimitsAndUsage(tenantId: string): Promise<{
+  async getLimitsAndUsage(orgId: string, siteId?: string): Promise<{
     plan: string;
     limits: Record<string, number>;
     usage: Record<string, number>;
     storageUsageMB: number;
   }> {
-    const tenant = await this.prisma.tenant.findUnique({
-      where: { id: tenantId },
+    const organization = await this.prisma.organization.findUnique({
+      where: { id: orgId },
       select: { plan: true },
     });
 
-    if (!tenant) {
-      throw new Error('Tenant not found');
+    if (!organization) {
+      throw new Error('Organization not found');
     }
 
-    const plan = tenant.plan as 'free' | 'professional' | 'enterprise';
+    const plan = organization.plan as 'free' | 'professional' | 'enterprise';
     const limits = this.getLimits(plan);
-    const counts = await this.getResourceCounts(tenantId);
-    const storageUsageMB = await this.getStorageUsage(tenantId);
+    const counts = await this.getResourceCounts(orgId, siteId);
+    const storageUsageMB = await this.getStorageUsage(orgId, siteId);
 
     return {
       plan,

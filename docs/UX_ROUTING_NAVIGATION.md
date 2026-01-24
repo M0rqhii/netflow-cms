@@ -107,7 +107,7 @@
 - Dostep do hub tylko w zakresie przypisan do stron i uprawnien.
 
 ### Privileged only
-- /dev i /dev/* tylko dla super_admin, tenant_admin, platform_admin.
+- /dev i /dev/* tylko dla super_admin, org_admin, platform_admin.
 
 ## Widocznosc per rola (Site Panel)
 - Site Admin / Owner: pelny panel.

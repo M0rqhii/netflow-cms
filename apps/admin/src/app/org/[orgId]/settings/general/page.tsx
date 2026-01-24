@@ -6,8 +6,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@repo/ui';
 import { Button, Input, LoadingSpinner } from '@repo/ui';
 import { Badge } from '@/components/ui/Badge';
 import { useToast } from '@/components/ui/Toast';
-import { getAuthToken, decodeAuthToken } from '@/lib/api';
-import { createApiClient } from '@repo/sdk';
+import { getAuthToken } from '@/lib/api';
 
 type OrganizationData = {
   id: string;
@@ -32,8 +31,6 @@ export default function OrgGeneralSettingsPage() {
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
 
-  const apiClient = createApiClient();
-
   const loadData = useCallback(async () => {
     if (!orgId) {
       setLoading(false);
@@ -48,41 +45,24 @@ export default function OrgGeneralSettingsPage() {
         throw new Error('Missing auth token. Please login.');
       }
 
-      // Try to get organization info from API
-      // For now, we'll infer from orgId and show what we can
-      // TODO: Add proper API endpoint to fetch organization details
       const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
-      
-      try {
-        // Try to fetch organization details if endpoint exists
-        const res = await fetch(`${baseUrl}/organizations/${orgId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        
-        if (res.ok) {
-          const data = await res.json();
-          setOrganization(data);
-          setName(data.name || '');
-          setSlug(data.slug || '');
-        } else {
-          // Fallback: use orgId to show basic info
-          throw new Error('Organization endpoint not available');
-        }
-      } catch (apiError) {
-        // Fallback: show basic info from orgId
-        // In a real scenario, you'd want to fetch this from a proper endpoint
-        setOrganization({
-          id: orgId,
-          name: `Organization ${orgId.substring(0, 8)}`,
-          slug: orgId.substring(0, 8),
-          plan: 'free',
-          settings: {},
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        });
-        setName(`Organization ${orgId.substring(0, 8)}`);
-        setSlug(orgId.substring(0, 8));
+
+      const res = await fetch(`${baseUrl}/organizations/${orgId}`, {
+        headers: {
+          Authorization: `Bearer ${token}` ,
+          'X-Org-ID': orgId,
+        },
+      });
+
+      if (!res.ok) {
+        const errorText = await res.text().catch(() => '');
+        throw new Error(errorText || 'Failed to load organization');
       }
+
+      const data = await res.json();
+      setOrganization(data);
+      setName(data.name || '');
+      setSlug(data.slug || '');
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load organization';
       toast.push({
@@ -110,8 +90,22 @@ export default function OrgGeneralSettingsPage() {
         throw new Error('Missing auth token. Please login.');
       }
 
-      // TODO: Implement update organization API call
-      // For now, just show success message
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+      const res = await fetch(`${baseUrl}/organizations/${orgId}`, {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${token}` ,
+          'Content-Type': 'application/json',
+          'X-Org-ID': orgId,
+        },
+        body: JSON.stringify({ name }),
+      });
+
+      if (!res.ok) {
+        const errorText = await res.text().catch(() => '');
+        throw new Error(errorText || 'Failed to save organization settings');
+      }
+
       toast.push({
         tone: 'success',
         message: 'Organization settings saved successfully',

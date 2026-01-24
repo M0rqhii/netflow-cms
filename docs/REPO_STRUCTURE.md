@@ -1,5 +1,5 @@
 # Struktura Repozytorium - Monorepo
-## Multi-Tenant Headless CMS
+## Multi-Site Headless CMS
 
 Typ: Monorepo (Turborepo)  
 Package Manager: pnpm  
@@ -51,7 +51,7 @@ repo/
 │  │
 │  ├─ schemas/                    # Shared Zod schemas
 │  │  ├─ src/
-│  │  │  ├─ tenant.schema.ts
+│  │  │  ├─ site.schema.ts
 │  │  │  ├─ content.schema.ts
 │  │  │  └─ index.ts
 │  │  ├─ package.json

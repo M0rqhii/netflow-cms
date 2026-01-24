@@ -173,15 +173,22 @@ export class WorkflowConfigService {
     newStatus: string,
   ): { valid: boolean; reason?: string } {
     const stages = config.stages || ['draft', 'review', 'approved', 'published', 'archived'];
-    const oldIndex = stages.indexOf(oldStatus.toLowerCase());
-    const newIndex = stages.indexOf(newStatus.toLowerCase());
+    const oldLower = oldStatus.toLowerCase();
+    const newLower = newStatus.toLowerCase();
+    const oldIndex = stages.indexOf(oldLower);
+    const newIndex = stages.indexOf(newLower);
 
     if (oldIndex === -1 || newIndex === -1) {
       return { valid: false, reason: 'Invalid status' };
     }
 
     // Allow forward transitions and archived from any status
-    if (newStatus.toLowerCase() === 'archived') {
+    if (newLower === 'archived') {
+      return { valid: true };
+    }
+
+    // Allow direct publish for draft items (items only support DRAFT/PUBLISHED)
+    if (oldLower === 'draft' && newLower === 'published') {
       return { valid: true };
     }
 
@@ -205,4 +212,5 @@ export class WorkflowConfigService {
     return { valid: false, reason: 'Invalid status transition' };
   }
 }
+
 

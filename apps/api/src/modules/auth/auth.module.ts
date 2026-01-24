@@ -22,6 +22,10 @@ import { ConfigModule } from '@nestjs/config';
     CacheModule.registerAsync({
       isGlobal: false,
       useFactory: async () => {
+        const disableRedis = process.env.REDIS_DISABLED === '1' || process.env.NODE_ENV === 'test';
+        if (disableRedis) {
+          return { ttl: 60 };
+        }
         const host = process.env.REDIS_HOST ?? 'localhost';
         const port = process.env.REDIS_PORT ?? '6379';
         const url = process.env.REDIS_URL ?? `redis://${host}:${port}`;

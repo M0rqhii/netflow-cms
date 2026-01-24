@@ -195,19 +195,19 @@ User → Frontend (/login)
 
 ```
 User → Frontend (/dashboard)
-     → Backend (GET /api/v1/auth/me/tenants)
-     → Response: TenantInfo[]
-     → Frontend: Display tenants list
+     → Backend (GET /api/v1/auth/me/sites)
+     → Response: SiteInfo[]
+     → Frontend: Display sites list
 ```
 
-### 3. Tenant Switch
+### 3. Site Switch
 
 ```
-User → Frontend (/tenant/[slug])
-     → Backend (POST /api/v1/auth/tenant-token)
+User → Frontend (/site/[slug])
+     → Backend (POST /api/v1/auth/site-token)
      → Response: { access_token }
-     → Frontend: localStorage.setItem(`tenantToken:${tenantId}`, token)
-     → Redirect: /tenant/[slug]/*
+     → Frontend: localStorage.setItem(`siteToken:${siteId}`, token)
+     → Redirect: /site/[slug]/*
 ```
 
 ## 📝 Pliki Konfiguracyjne
@@ -264,7 +264,7 @@ User → Frontend (/tenant/[slug])
 3. **Przetestuj:**
    - Logowanie
    - Dashboard
-   - Tenant switching
+   - Site switching
    - Wszystkie funkcjonalności
 
 4. **Sprawdź Logi:**

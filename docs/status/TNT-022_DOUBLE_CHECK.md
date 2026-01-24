@@ -1,4 +1,4 @@
-# TNT-022: Token wymiany (tenant switch) i lista tenantów - Double Check
+# TNT-022: Token wymiany (site switch) i lista siteów - Double Check
 
 **Data:** 2024-01-09  
 **Status:** ✅ Verification Complete
@@ -13,22 +13,22 @@ Sprawdzono zgodność implementacji z wymaganiami TNT-022 z planu.
 
 ## 2. Weryfikacja wymagań z planu
 
-### ✅ 2.1 GET `/me/tenants` – lista członkostw i ról
+### ✅ 2.1 GET `/me/sites` – lista członkostw i ról
 
 **Wymaganie:**
-- Endpoint GET `/me/tenants`
+- Endpoint GET `/me/sites`
 - Zwraca listę członkostw i ról użytkownika
 
 **Implementacja:**
-- ✅ Endpoint: `GET /api/v1/auth/me/tenants` ✅
+- ✅ Endpoint: `GET /api/v1/auth/me/sites` ✅
 - ✅ Wymaga `AuthGuard` (global token) ✅
 - ✅ Zwraca listę członkostw:
   ```typescript
   [
     {
-      tenantId: string;
-      role: string; // Role w tenant (admin, editor, viewer)
-      tenant: {
+      siteId: string;
+      role: string; // Role w site (admin, editor, viewer)
+      site: {
         id: string;
         name: string;
         slug: string;
@@ -37,61 +37,61 @@ Sprawdzono zgodność implementacji z wymaganiami TNT-022 z planu.
     }
   ]
   ```
-- ✅ Używa `AuthService.getUserTenants()` ✅
-- ✅ Obsługuje UserTenant model ✅
+- ✅ Używa `AuthService.getUserSites()` ✅
+- ✅ Obsługuje UserSite model ✅
 - ✅ Fallback do legacy modelu (backward compatibility) ✅
 - ✅ Rate limiting: 30/min ✅
 
 **Status:** ✅ Zgodne z wymaganiami
 
-### ✅ 2.2 POST `/auth/tenant-token` { tenantId } – walidacja członkostwa → JWT z tenantId
+### ✅ 2.2 POST `/auth/site-token` { siteId } – walidacja członkostwa → JWT z siteId
 
 **Wymaganie:**
-- Endpoint POST `/auth/tenant-token`
-- Body: `{ tenantId }`
+- Endpoint POST `/auth/site-token`
+- Body: `{ siteId }`
 - Walidacja członkostwa
-- Generuje JWT z `tenantId`
+- Generuje JWT z `siteId`
 
 **Implementacja:**
-- ✅ Endpoint: `POST /api/v1/auth/tenant-token` ✅
+- ✅ Endpoint: `POST /api/v1/auth/site-token` ✅
 - ✅ Wymaga `AuthGuard` (global token) ✅
-- ✅ Body: `{ tenantId: string }` (UUID) ✅
-- ✅ Walidacja członkostwa przez `UserTenant` model ✅
-- ✅ Generuje tenant-scoped JWT:
+- ✅ Body: `{ siteId: string }` (UUID) ✅
+- ✅ Walidacja członkostwa przez `UserSite` model ✅
+- ✅ Generuje site-scoped JWT:
   ```typescript
   {
-    access_token: string; // Tenant-scoped JWT (z tenantId)
+    access_token: string; // Site-scoped JWT (z siteId)
     expires_in: number; // 3600 (1 hour)
   }
   ```
-- ✅ Token zawiera `tenantId` w payload ✅
+- ✅ Token zawiera `siteId` w payload ✅
 - ✅ Token ma krótszy czas życia (1h vs 7d) ✅
 - ✅ Fallback do legacy modelu (backward compatibility) ✅
 - ✅ Rate limiting: 10/min ✅
 
 **Status:** ✅ Zgodne z wymaganiami
 
-### ✅ 2.3 Aktualizacja `TenantGuard` – preferuj `tenantId` z JWT, fallback: header
+### ✅ 2.3 Aktualizacja `SiteGuard` – preferuj `siteId` z JWT, fallback: header
 
 **Wymaganie:**
-- TenantGuard preferuje `tenantId` z JWT
-- Fallback: header `X-Tenant-ID`
+- SiteGuard preferuje `siteId` z JWT
+- Fallback: header `X-Site-ID`
 
 **Implementacja:**
-- ✅ Preferuje `tenantId` z JWT (jeśli użytkownik jest zalogowany) ✅
-- ✅ Fallback: `X-Tenant-ID` header lub `tenantId` query parameter ✅
+- ✅ Preferuje `siteId` z JWT (jeśli użytkownik jest zalogowany) ✅
+- ✅ Fallback: `X-Site-ID` header lub `siteId` query parameter ✅
 - ✅ Walidacja UUID format ✅
-- ✅ Ustawia `tenantId` w request object ✅
+- ✅ Ustawia `siteId` w request object ✅
 
 **Kod:**
 ```typescript
-// Prefer tenantId from JWT (if user is authenticated)
+// Prefer siteId from JWT (if user is authenticated)
 const user = req.user;
-let tenantId = user?.tenantId; // Prefer JWT
+let siteId = user?.siteId; // Prefer JWT
 
-// Fallback: X-Tenant-ID header or query parameter
-if (!tenantId) {
-  tenantId = req.headers['x-tenant-id'] || req.query.tenantId;
+// Fallback: X-Site-ID header or query parameter
+if (!siteId) {
+  siteId = req.headers['x-site-id'] || req.query.siteId;
 }
 ```
 
@@ -104,21 +104,21 @@ if (!tenantId) {
 ### ✅ 3.1 Hub może pobrać listę stron i bezpiecznie wejść do CMS konkretnej strony
 
 **Wymaganie:**
-- Hub może pobrać listę tenantów
+- Hub może pobrać listę siteów
 - Hub może bezpiecznie wejść do CMS konkretnej strony
 
 **Implementacja:**
-- ✅ Hub może pobrać listę tenantów przez `GET /api/v1/auth/me/tenants` ✅
-- ✅ Hub może wymienić global token na tenant-scoped token przez `POST /api/v1/auth/tenant-token` ✅
-- ✅ Tenant-scoped token umożliwia bezpieczne wejście do CMS konkretnej strony ✅
-- ✅ TenantGuard preferuje tenantId z JWT, więc nie trzeba wysyłać header dla tenant-scoped tokenów ✅
+- ✅ Hub może pobrać listę siteów przez `GET /api/v1/auth/me/sites` ✅
+- ✅ Hub może wymienić global token na site-scoped token przez `POST /api/v1/auth/site-token` ✅
+- ✅ Site-scoped token umożliwia bezpieczne wejście do CMS konkretnej strony ✅
+- ✅ SiteGuard preferuje siteId z JWT, więc nie trzeba wysyłać header dla site-scoped tokenów ✅
 
 **Przepływ:**
-1. Użytkownik loguje się globalnie → otrzymuje global token (bez tenantId)
-2. Hub wywołuje `GET /api/v1/auth/me/tenants` → otrzymuje listę tenantów
-3. Użytkownik klika "Enter CMS" → Hub wywołuje `POST /api/v1/auth/tenant-token { tenantId }`
-4. Backend weryfikuje członkostwo → generuje tenant-scoped token (z tenantId)
-5. Frontend używa tenant-scoped token → TenantGuard automatycznie używa tenantId z JWT
+1. Użytkownik loguje się globalnie → otrzymuje global token (bez siteId)
+2. Hub wywołuje `GET /api/v1/auth/me/sites` → otrzymuje listę siteów
+3. Użytkownik klika "Enter CMS" → Hub wywołuje `POST /api/v1/auth/site-token { siteId }`
+4. Backend weryfikuje członkostwo → generuje site-scoped token (z siteId)
+5. Frontend używa site-scoped token → SiteGuard automatycznie używa siteId z JWT
 6. Użytkownik może bezpiecznie wejść do CMS konkretnej strony ✅
 
 **Status:** ✅ Zgodne z wymaganiami
@@ -127,31 +127,31 @@ if (!tenantId) {
 
 ## 4. Weryfikacja implementacji technicznej
 
-### ✅ 4.1 GET /api/v1/auth/me/tenants
+### ✅ 4.1 GET /api/v1/auth/me/sites
 
 **Kod:**
 ```typescript
 @UseGuards(AuthGuard)
 @Throttle({ default: { limit: 30, ttl: 60000 } })
-@Get('me/tenants')
-async getMyTenants(@CurrentUser() user: CurrentUserPayload) {
-  return this.authService.getUserTenants(user.id);
+@Get('me/sites')
+async getMySites(@CurrentUser() user: CurrentUserPayload) {
+  return this.authService.getUserSites(user.id);
 }
 ```
 
 **Weryfikacja:**
 - ✅ Wymaga `AuthGuard` (global token) ✅
 - ✅ Rate limiting: 30/min ✅
-- ✅ Używa `AuthService.getUserTenants()` ✅
+- ✅ Używa `AuthService.getUserSites()` ✅
 - ✅ Zwraca listę członkostw z rolami ✅
 
 **Response format:**
 ```typescript
 [
   {
-    tenantId: string;
+    siteId: string;
     role: string;
-    tenant: {
+    site: {
       id: string;
       name: string;
       slug: string;
@@ -163,90 +163,90 @@ async getMyTenants(@CurrentUser() user: CurrentUserPayload) {
 
 **Status:** ✅ Zgodne z wymaganiami
 
-### ✅ 4.2 POST /api/v1/auth/tenant-token
+### ✅ 4.2 POST /api/v1/auth/site-token
 
 **Kod:**
 ```typescript
 @UseGuards(AuthGuard)
 @Throttle({ default: { limit: 10, ttl: 60000 } })
-@Post('tenant-token')
-async issueTenantToken(
+@Post('site-token')
+async issueSiteToken(
   @CurrentUser() user: CurrentUserPayload,
-  @Body(new ZodValidationPipe(z.object({ tenantId: z.string().uuid() })))
-  body: { tenantId: string }
+  @Body(new ZodValidationPipe(z.object({ siteId: z.string().uuid() })))
+  body: { siteId: string }
 ) {
-  return this.authService.issueTenantToken(user.id, body.tenantId);
+  return this.authService.issueSiteToken(user.id, body.siteId);
 }
 ```
 
 **Weryfikacja:**
 - ✅ Wymaga `AuthGuard` (global token) ✅
-- ✅ Body validation: `tenantId` jako UUID ✅
+- ✅ Body validation: `siteId` jako UUID ✅
 - ✅ Rate limiting: 10/min ✅
-- ✅ Używa `AuthService.issueTenantToken()` ✅
-- ✅ Walidacja członkostwa przez UserTenant ✅
-- ✅ Generuje tenant-scoped JWT z `tenantId` ✅
+- ✅ Używa `AuthService.issueSiteToken()` ✅
+- ✅ Walidacja członkostwa przez UserSite ✅
+- ✅ Generuje site-scoped JWT z `siteId` ✅
 - ✅ Token ma krótszy czas życia (1h) ✅
 - ✅ Zwraca `expires_in` ✅
 
 **Request:**
 ```typescript
 {
-  tenantId: string; // UUID
+  siteId: string; // UUID
 }
 ```
 
 **Response:**
 ```typescript
 {
-  access_token: string; // Tenant-scoped JWT (z tenantId)
+  access_token: string; // Site-scoped JWT (z siteId)
   expires_in: number; // 3600 (1 hour)
 }
 ```
 
 **Status:** ✅ Zgodne z wymaganiami
 
-### ✅ 4.3 TenantGuard - preferuj tenantId z JWT
+### ✅ 4.3 SiteGuard - preferuj siteId z JWT
 
 **Kod:**
 ```typescript
 @Injectable()
-export class TenantGuard implements CanActivate {
+export class SiteGuard implements CanActivate {
   canActivate(ctx: ExecutionContext): boolean {
     const req = ctx.switchToHttp().getRequest();
     
-    // Prefer tenantId from JWT (if user is authenticated)
+    // Prefer siteId from JWT (if user is authenticated)
     const user = (req as { user?: CurrentUserPayload }).user;
-    let tenantId: string | undefined = user?.tenantId;
+    let siteId: string | undefined = user?.siteId;
     
-    // Fallback: X-Tenant-ID header or query parameter
-    if (!tenantId) {
-      tenantId = req.headers['x-tenant-id'] || req.query.tenantId;
+    // Fallback: X-Site-ID header or query parameter
+    if (!siteId) {
+      siteId = req.headers['x-site-id'] || req.query.siteId;
     }
     
-    // Validate and set tenantId
-    if (!tenantId || typeof tenantId !== 'string') {
-      throw new BadRequestException('Missing tenant ID...');
+    // Validate and set siteId
+    if (!siteId || typeof siteId !== 'string') {
+      throw new BadRequestException('Missing site ID...');
     }
     
     // Validate UUID format
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(tenantId)) {
-      throw new BadRequestException('Invalid tenant ID (must be UUID)');
+    if (!uuidRegex.test(siteId)) {
+      throw new BadRequestException('Invalid site ID (must be UUID)');
     }
     
-    req.tenantId = tenantId;
+    req.siteId = siteId;
     return true;
   }
 }
 ```
 
 **Weryfikacja:**
-- ✅ Preferuje `tenantId` z JWT (user?.tenantId) ✅
-- ✅ Fallback: `X-Tenant-ID` header ✅
-- ✅ Fallback: `tenantId` query parameter ✅
+- ✅ Preferuje `siteId` z JWT (user?.siteId) ✅
+- ✅ Fallback: `X-Site-ID` header ✅
+- ✅ Fallback: `siteId` query parameter ✅
 - ✅ Walidacja UUID format ✅
-- ✅ Ustawia `tenantId` w request object ✅
+- ✅ Ustawia `siteId` w request object ✅
 - ✅ Importuje `CurrentUserPayload` ✅
 
 **Status:** ✅ Zgodne z wymaganiami
@@ -257,39 +257,39 @@ export class TenantGuard implements CanActivate {
 
 ### ✅ 5.1 Integracja z AuthService
 
-**getUserTenants():**
-- ✅ Używa `prisma.userTenant.findMany()` ✅
+**getUserSites():**
+- ✅ Używa `prisma.userSite.findMany()` ✅
 - ✅ Fallback do legacy modelu ✅
 - ✅ Zwraca listę członkostw z rolami ✅
 
-**issueTenantToken():**
-- ✅ Weryfikuje członkostwo przez `prisma.userTenant.findUnique()` ✅
+**issueSiteToken():**
+- ✅ Weryfikuje członkostwo przez `prisma.userSite.findUnique()` ✅
 - ✅ Fallback do legacy modelu ✅
-- ✅ Generuje tenant-scoped JWT z `tenantId` ✅
+- ✅ Generuje site-scoped JWT z `siteId` ✅
 - ✅ Token ma krótszy czas życia (1h) ✅
 
 **Status:** ✅ Zgodne z wymaganiami
 
-### ✅ 5.2 Integracja z TenantGuard
+### ✅ 5.2 Integracja z SiteGuard
 
 **Użycie w kontrolerach:**
-- ✅ `TenantGuard` jest używany w kontrolerach wymagających tenantId ✅
-- ✅ Przykład: `@UseGuards(AuthGuard, TenantGuard, RolesGuard, PermissionsGuard)` ✅
-- ✅ TenantGuard automatycznie używa tenantId z JWT (jeśli dostępne) ✅
-- ✅ Nie trzeba wysyłać `X-Tenant-ID` header dla tenant-scoped tokenów ✅
+- ✅ `SiteGuard` jest używany w kontrolerach wymagających siteId ✅
+- ✅ Przykład: `@UseGuards(AuthGuard, SiteGuard, RolesGuard, PermissionsGuard)` ✅
+- ✅ SiteGuard automatycznie używa siteId z JWT (jeśli dostępne) ✅
+- ✅ Nie trzeba wysyłać `X-Site-ID` header dla site-scoped tokenów ✅
 
 **Status:** ✅ Zgodne z wymaganiami
 
 ### ✅ 5.3 Integracja z Frontend
 
 **SDK:**
-- ✅ `getMyTenants(token)` - pobiera listę tenantów ✅
-- ✅ `issueTenantToken(token, tenantId)` - wymienia token ✅
+- ✅ `getMySites(token)` - pobiera listę siteów ✅
+- ✅ `issueSiteToken(token, siteId)` - wymienia token ✅
 
 **Frontend API:**
-- ✅ `fetchMyTenants()` - używa SDK ✅
-- ✅ `exchangeTenantToken(tenantId)` - używa SDK ✅
-- ✅ Token zapisywany jako `tenantToken:{tenantId}` ✅
+- ✅ `fetchMySites()` - używa SDK ✅
+- ✅ `exchangeSiteToken(siteId)` - używa SDK ✅
+- ✅ Token zapisywany jako `siteToken:{siteId}` ✅
 
 **Status:** ✅ Zgodne z wymaganiami
 
@@ -303,7 +303,7 @@ export class TenantGuard implements CanActivate {
 
 **Uwagi:**
 - Endpointy były już częściowo zaimplementowane w TNT-020
-- TenantGuard został zaktualizowany zgodnie z wymaganiami
+- SiteGuard został zaktualizowany zgodnie z wymaganiami
 - Wszystkie metody mają backward compatibility z legacy modelem
 - Rate limiting jest skonfigurowany dla obu endpointów
 
@@ -311,46 +311,46 @@ export class TenantGuard implements CanActivate {
 
 ## 7. Testy weryfikacyjne
 
-### ✅ Test 1: GET /api/v1/auth/me/tenants
+### ✅ Test 1: GET /api/v1/auth/me/sites
 - ✅ Endpoint wymaga global token ✅
 - ✅ Zwraca listę członkostw użytkownika ✅
-- ✅ Każde członkostwo ma rolę i dane tenanta ✅
+- ✅ Każde członkostwo ma rolę i dane sitea ✅
 - ✅ Rate limiting działa (30/min) ✅
 
-### ✅ Test 2: POST /api/v1/auth/tenant-token
+### ✅ Test 2: POST /api/v1/auth/site-token
 - ✅ Endpoint wymaga global token ✅
-- ✅ Waliduje członkostwo użytkownika w tenantId ✅
-- ✅ Generuje tenant-scoped JWT z tenantId ✅
+- ✅ Waliduje członkostwo użytkownika w siteId ✅
+- ✅ Generuje site-scoped JWT z siteId ✅
 - ✅ Token ma krótszy czas życia (1h) ✅
 - ✅ Zwraca expires_in ✅
 - ✅ Rate limiting działa (10/min) ✅
 
-### ✅ Test 3: TenantGuard
-- ✅ Preferuje tenantId z JWT (jeśli dostępne) ✅
-- ✅ Fallback do X-Tenant-ID header ✅
-- ✅ Fallback do tenantId query parameter ✅
+### ✅ Test 3: SiteGuard
+- ✅ Preferuje siteId z JWT (jeśli dostępne) ✅
+- ✅ Fallback do X-Site-ID header ✅
+- ✅ Fallback do siteId query parameter ✅
 - ✅ Walidacja UUID format ✅
-- ✅ Ustawia tenantId w request object ✅
+- ✅ Ustawia siteId w request object ✅
 
-### ✅ Test 4: Przepływ Hub → Tenant CMS
-- ✅ Hub może pobrać listę tenantów ✅
-- ✅ Hub może wymienić global token na tenant-scoped token ✅
-- ✅ Tenant-scoped token umożliwia wejście do CMS ✅
-- ✅ TenantGuard automatycznie używa tenantId z JWT ✅
+### ✅ Test 4: Przepływ Hub → Site CMS
+- ✅ Hub może pobrać listę siteów ✅
+- ✅ Hub może wymienić global token na site-scoped token ✅
+- ✅ Site-scoped token umożliwia wejście do CMS ✅
+- ✅ SiteGuard automatycznie używa siteId z JWT ✅
 
 ---
 
 ## 8. Podsumowanie
 
 ### ✅ Zaimplementowane zgodnie z wymaganiami:
-1. ✅ GET `/me/tenants` – lista członkostw i ról
-2. ✅ POST `/auth/tenant-token` { tenantId } – walidacja członkostwa → JWT z tenantId
-3. ✅ Aktualizacja `TenantGuard` – preferuj `tenantId` z JWT, fallback: header
+1. ✅ GET `/me/sites` – lista członkostw i ról
+2. ✅ POST `/auth/site-token` { siteId } – walidacja członkostwa → JWT z siteId
+3. ✅ Aktualizacja `SiteGuard` – preferuj `siteId` z JWT, fallback: header
 4. ✅ Hub może pobrać listę stron i bezpiecznie wejść do CMS konkretnej strony
 
 ### ✅ Wszystkie elementy działają poprawnie:
 - ✅ Endpointy API działają zgodnie z wymaganiami
-- ✅ TenantGuard preferuje tenantId z JWT
+- ✅ SiteGuard preferuje siteId z JWT
 - ✅ Backward compatibility zachowana
 - ✅ Rate limiting skonfigurowany
 - ✅ Integracja z frontend działa
@@ -361,7 +361,7 @@ export class TenantGuard implements CanActivate {
 
 **Status ogólny:** ✅ **Zgodne z wymaganiami**
 
-Wszystkie kluczowe elementy TNT-022 zostały zaimplementowane zgodnie z wymaganiami z planu. Endpointy działają poprawnie, TenantGuard preferuje tenantId z JWT, a przepływ Hub → Tenant CMS działa bez problemów.
+Wszystkie kluczowe elementy TNT-022 zostały zaimplementowane zgodnie z wymaganiami z planu. Endpointy działają poprawnie, SiteGuard preferuje siteId z JWT, a przepływ Hub → Site CMS działa bez problemów.
 
 **Rekomendacje:**
 1. ✅ Implementacja jest gotowa do użycia

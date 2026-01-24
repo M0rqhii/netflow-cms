@@ -87,7 +87,7 @@ this.debugService.info(
 **Endpoint:**
 - ✅ `GET /dev/logs?limit=100` - zwraca logi z DebugService
 - ✅ Wymaga autentykacji (`@UseGuards(AuthGuard)`)
-- ✅ Wymaga uprawnień (super_admin lub tenant_admin)
+- ✅ Wymaga uprawnień (super_admin lub site_admin)
 - ✅ Wyłączony w produkcji
 
 **Kod:**
@@ -162,7 +162,7 @@ export async function getDevLogs(): Promise<any[]> {
 - ✅ Formatowanie timestamp
 - ✅ Kolorowanie według level
 - ✅ Link powrotu do Dev Panel
-- ✅ Sprawdza uprawnienia (super_admin/tenant_admin)
+- ✅ Sprawdza uprawnienia (super_admin/site_admin)
 - ✅ Wyłączony w produkcji
 
 **UI Features:**

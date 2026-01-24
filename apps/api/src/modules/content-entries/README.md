@@ -1,16 +1,16 @@
 # Content Entries Module
 
-Module for managing content entries based on content types in a multi-tenant headless CMS.
+Module for managing content entries based on content types in a org/site headless CMS.
 
 ## Overview
 
-The Content Entries module provides a complete RESTful API for creating, reading, updating, and deleting content entries. Each entry is validated against its content type schema and is isolated per tenant.
+The Content Entries module provides a complete RESTful API for creating, reading, updating, and deleting content entries. Each entry is validated against its content type schema and is isolated per site.
 
 ## Features
 
 - ✅ Full CRUD operations for content entries
 - ✅ Schema-based validation against content types
-- ✅ Multi-tenant isolation
+- ✅ Org/site isolation
 - ✅ Advanced filtering and sorting
 - ✅ Full-text search
 - ✅ Pagination support
@@ -63,8 +63,9 @@ DELETE /api/v1/content/:contentTypeSlug/:id
 ```bash
 curl -X POST http://localhost:4000/api/v1/content/article \
   -H 'Content-Type: application/json' \
-  -H 'X-Tenant-ID: tenant-123' \
   -H 'Authorization: Bearer <token>' \
+  -H 'X-Org-ID: org-123' \
+  -H 'X-Site-ID: site-123' \
   -d '{
     "data": {
       "title": "My Article",
@@ -77,15 +78,17 @@ curl -X POST http://localhost:4000/api/v1/content/article \
 ### List Entries with Filters
 ```bash
 curl "http://localhost:4000/api/v1/content/article?status=published&page=1&pageSize=10&sort=-createdAt" \
-  -H 'X-Tenant-ID: tenant-123' \
-  -H 'Authorization: Bearer <token>'
+  -H 'Authorization: Bearer <token>' \
+  -H 'X-Org-ID: org-123' \
+  -H 'X-Site-ID: site-123'
 ```
 
 ### Search Entries
 ```bash
 curl "http://localhost:4000/api/v1/content/article?search=test" \
-  -H 'X-Tenant-ID: tenant-123' \
-  -H 'Authorization: Bearer <token>'
+  -H 'Authorization: Bearer <token>' \
+  -H 'X-Org-ID: org-123' \
+  -H 'X-Site-ID: site-123'
 ```
 
 ## Validation
@@ -118,7 +121,7 @@ pnpm test:e2e content-entries.e2e-spec.ts
 ## Related Modules
 
 - **ContentTypesModule** - Manages content type definitions
-- **TenantModule** - Provides tenant isolation
+- **OrgSiteModule** - Provides org/site isolation
 - **AuthModule** - Provides authentication and authorization
 
 ## See Also

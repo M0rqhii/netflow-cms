@@ -8,7 +8,7 @@
 
 ## Summary
 
-Konfiguracja i dokumentacja dla horizontal scaling aplikacji multi-tenant headless CMS.
+Konfiguracja i dokumentacja dla horizontal scaling aplikacji org/site headless CMS.
 
 ---
 

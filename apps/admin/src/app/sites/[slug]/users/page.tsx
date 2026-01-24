@@ -22,8 +22,9 @@ export default function SiteUsersPage() {
   const [users, setUsers] = useState<UserSummary[]>([]);
   const [invites, setInvites] = useState<InviteSummary[]>([]);
   const [siteId, setSiteId] = useState<string | null>(null);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [createEmail, setCreateEmail] = useState('');
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [createPassword, setCreatePassword] = useState('');
   const [role, setRole] = useState('editor');
   const [inviteRole, setInviteRole] = useState('editor');
   const [sending, setSending] = useState(false);
@@ -33,6 +34,24 @@ export default function SiteUsersPage() {
   const [query, setQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
   const toast = useToast();
+
+  const normalizeRole = (value: string) => (value === 'site_admin' ? 'org_admin' : value);
+  const roleLabel = (value: string) => {
+    const normalized = normalizeRole(value);
+    switch (normalized) {
+      case 'org_admin':
+        return t('users.admin');
+      case 'super_admin':
+        return t('users.superAdmin');
+      case 'editor':
+        return t('users.editor');
+      case 'viewer':
+        return t('users.viewer');
+      default:
+        return normalized;
+    }
+  };
+
 
   useEffect(() => {
     (async () => {
@@ -96,25 +115,25 @@ export default function SiteUsersPage() {
 
   const filteredUsers = users.filter(u =>
     (!query || u.email.toLowerCase().includes(query.toLowerCase())) &&
-    (!roleFilter || u.role === roleFilter)
+    (!roleFilter || normalizeRole(u.role) === roleFilter)
   );
 
   const onCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!siteId || !email || !password) return;
+    if (!siteId || !createEmail || !createPassword) return;
 
     try {
       setCreating(true);
-      await createUser(siteId, { email, password, role, preferredLanguage: 'en' });
-      setEmail('');
-      setPassword('');
+      await createUser(siteId, { email: createEmail, password: createPassword, role, preferredLanguage: 'en' });
+      setCreateEmail('');
+      setCreatePassword('');
       toast.push({
         tone: 'success',
-        message: `User ${email} created successfully`,
+        message: `${t('users.userCreatedSuccessfully')} ${createEmail}`,
       });
       await refreshData();
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to create user';
+      const message = err instanceof Error ? err.message : t('users.failedToCreateUser');
       toast.push({
         tone: 'error',
         message,
@@ -132,11 +151,11 @@ export default function SiteUsersPage() {
       setEditingUserId(null);
       toast.push({
         tone: 'success',
-        message: 'User role updated successfully',
+        message: t('users.userRoleUpdatedSuccessfully'),
       });
       await refreshData();
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to update user role';
+      const message = err instanceof Error ? err.message : t('users.failedToUpdateUserRole');
       toast.push({
         tone: 'error',
         message,
@@ -146,7 +165,7 @@ export default function SiteUsersPage() {
 
   const startEditRole = (user: UserSummary) => {
     setEditingUserId(user.id);
-    setEditingRole(user.role);
+    setEditingRole(normalizeRole(user.role));
   };
 
   const cancelEditRole = () => {
@@ -156,15 +175,15 @@ export default function SiteUsersPage() {
 
   const onInvite = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!siteId || !email) return;
+    if (!siteId || !inviteEmail) return;
 
     try {
       setSending(true);
-      await inviteUserToSite(email, inviteRole, siteId);
-      setEmail('');
+      await inviteUserToSite(inviteEmail, inviteRole, siteId);
+      setInviteEmail('');
       toast.push({
         tone: 'success',
-        message: `${t('users.inviteSentTo')} ${email}`,
+        message: `${t('users.inviteSentTo')} ${inviteEmail}`,
       });
       await refreshData();
     } catch (err) {
@@ -199,7 +218,7 @@ export default function SiteUsersPage() {
 
   const filteredInvites = invites.filter(iv =>
     (!query || iv.email.toLowerCase().includes(query.toLowerCase())) &&
-    (!roleFilter || iv.role === roleFilter)
+    (!roleFilter || normalizeRole(iv.role) === roleFilter)
   );
 
   return (
@@ -213,7 +232,7 @@ export default function SiteUsersPage() {
                 {t('users.title')}
               </h1>
               <p className="text-[10px] sm:text-xs text-muted">
-                {t('users.manageUsers')} {slug}
+                {t('users.manageUsersAndInvites')} {slug}
               </p>
             </div>
             <Link href={`/sites/${encodeURIComponent(slug)}`}>
@@ -254,7 +273,7 @@ export default function SiteUsersPage() {
                       aria-label={t('users.filterByRole')}
                     >
                       <option value="">{t('users.allRoles')}</option>
-                      <option value="admin">{t('users.admin')}</option>
+                      <option value="org_admin">{t('users.admin')}</option>
                       <option value="editor">{t('users.editor')}</option>
                       <option value="viewer">{t('users.viewer')}</option>
                     </select>
@@ -294,7 +313,7 @@ export default function SiteUsersPage() {
                                       aria-label={`Edit role for ${u.email}`}
                                     >
                                       <option value="super_admin">{t('users.superAdmin')}</option>
-                                      <option value="site_admin">{t('users.admin')}</option>
+                                      <option value="org_admin">{t('users.admin')}</option>
                                       <option value="editor">{t('users.editor')}</option>
                                       <option value="viewer">{t('users.viewer')}</option>
                                     </select>
@@ -319,7 +338,7 @@ export default function SiteUsersPage() {
                                   </div>
                                 ) : (
                                   <div className="flex items-center gap-1.5 flex-wrap">
-                                    <Badge className="text-[9px] sm:text-[10px]">{u.role}</Badge>
+                                    <Badge className="text-[9px] sm:text-[10px]">{roleLabel(u.role)}</Badge>
                                     <Button
                                       variant="outline"
                                       size="sm"
@@ -355,7 +374,7 @@ export default function SiteUsersPage() {
                                   onChange={(e) => setEditingRole(e.target.value)}
                                 >
                                   <option value="super_admin">{t('users.superAdmin')}</option>
-                                  <option value="site_admin">{t('users.admin')}</option>
+                                  <option value="org_admin">{t('users.admin')}</option>
                                   <option value="editor">{t('users.editor')}</option>
                                   <option value="viewer">{t('users.viewer')}</option>
                                 </select>
@@ -380,7 +399,7 @@ export default function SiteUsersPage() {
                               </div>
                             ) : (
                               <div className="flex items-center gap-1.5 flex-wrap">
-                                <Badge className="text-[9px] sm:text-[10px]">{u.role}</Badge>
+                                <Badge className="text-[9px] sm:text-[10px]">{roleLabel(u.role)}</Badge>
                                 <Button
                                   variant="outline"
                                   size="sm"
@@ -416,8 +435,8 @@ export default function SiteUsersPage() {
                 <Input
                   label={t('users.emailAddress')}
                   type="email"
-                  value={email}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
+                  value={createEmail}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCreateEmail(e.target.value)}
                   required
                   placeholder={t('users.emailPlaceholder')}
                   helperText={t('users.emailHelperText')}
@@ -425,8 +444,8 @@ export default function SiteUsersPage() {
                 <Input
                   label={t('auth.password')}
                   type="password"
-                  value={password}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
+                  value={createPassword}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCreatePassword(e.target.value)}
                   required
                   placeholder="••••••••"
                   helperText={t('users.passwordHelperText')}
@@ -446,7 +465,7 @@ export default function SiteUsersPage() {
                     aria-required="true"
                     aria-describedby="create-user-role-hint"
                   >
-                    <option value="site_admin">{t('users.admin')}</option>
+                    <option value="org_admin">{t('users.admin')}</option>
                     <option value="editor">{t('users.editor')}</option>
                     <option value="viewer">{t('users.viewer')}</option>
                   </select>
@@ -457,8 +476,8 @@ export default function SiteUsersPage() {
                     type="button"
                     variant="outline"
                     onClick={() => {
-                      setEmail('');
-                      setPassword('');
+                      setCreateEmail('');
+                      setCreatePassword('');
                     }}
                     className="w-full sm:w-auto text-[10px] sm:text-xs h-7 sm:h-8 px-2 sm:px-3"
                   >
@@ -469,6 +488,136 @@ export default function SiteUsersPage() {
                   </Button>
                 </div>
               </form>
+            </CardContent>
+          </Card>
+
+          {/* Invite User form */}
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="pb-1.5 sm:pb-2 px-3 sm:px-4 pt-2 sm:pt-3">
+              <CardTitle className="text-sm sm:text-base font-semibold">{t('users.inviteUser')}</CardTitle>
+            </CardHeader>
+            <CardContent className="px-3 sm:px-4 pb-2 sm:pb-3">
+              <form onSubmit={onInvite} className="space-y-2 w-full max-w-lg">
+                <Input
+                  label={t('users.emailAddress')}
+                  type="email"
+                  value={inviteEmail}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setInviteEmail(e.target.value)}
+                  required
+                  placeholder={t('users.emailPlaceholder')}
+                  helperText={t('users.inviteEmailHelperText')}
+                />
+                <div>
+                  <label htmlFor="invite-user-role" className="block text-sm font-medium mb-1">
+                    {t('users.role')}
+                    <span className="text-red-500 ml-1" aria-label="required">*</span>
+                  </label>
+                  <select
+                    id="invite-user-role"
+                    className="border rounded-md w-full px-2 sm:px-3 py-1.5 sm:py-2 h-8 sm:h-9 bg-card text-foreground text-[10px] sm:text-xs"
+                    value={inviteRole}
+                    onChange={(e) => setInviteRole(e.target.value)}
+                    required
+                    aria-required="true"
+                    aria-describedby="invite-user-role-hint"
+                  >
+                    <option value="org_admin">{t('users.admin')}</option>
+                    <option value="editor">{t('users.editor')}</option>
+                    <option value="viewer">{t('users.viewer')}</option>
+                  </select>
+                  <p id="invite-user-role-hint" className="text-xs text-muted mt-1">{t('users.inviteRoleHelperText')}</p>
+                </div>
+                <div className="flex flex-col sm:flex-row justify-end gap-1.5">
+                  <Button type="submit" variant="primary" disabled={sending} className="w-full sm:w-auto text-[10px] sm:text-xs h-7 sm:h-8 px-2 sm:px-3">
+                    {sending ? t('users.sending') : t('users.sendInvite')}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+
+          {/* Pending Invites */}
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="pb-1.5 sm:pb-2 px-3 sm:px-4 pt-2 sm:pt-3">
+              <CardTitle className="text-sm sm:text-base font-semibold">{t('users.pendingInvites')}</CardTitle>
+            </CardHeader>
+            <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
+              {loading ? (
+                <div className="py-6">
+                  <Skeleton variant="text" width={180} height={20} className="mb-3" />
+                  <Skeleton variant="rectangular" width="100%" height={160} />
+                </div>
+              ) : filteredInvites.length === 0 ? (
+                <EmptyState
+                  title={t('users.noPendingInvites')}
+                  description={t('users.invitesWillAppear')}
+                />
+              ) : (
+                <>
+                  <div className="hidden md:block overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <caption className="sr-only">{t('users.pendingInvites')} table</caption>
+                      <thead>
+                        <tr className="text-left text-muted border-b border-border">
+                          <th scope="col" className="py-2 px-3 font-semibold text-[10px] sm:text-xs">{t('users.email')}</th>
+                          <th scope="col" className="py-2 px-3 font-semibold text-[10px] sm:text-xs">{t('users.role')}</th>
+                          <th scope="col" className="py-2 px-3 font-semibold text-[10px] sm:text-xs">{t('users.sent')}</th>
+                          <th scope="col" className="py-2 px-3 font-semibold text-[10px] sm:text-xs">{t('common.actions')}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredInvites.map((invite) => (
+                          <tr key={invite.id} className="border-b border-border hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                            <td className="py-2 px-3 text-xs sm:text-sm">{invite.email}</td>
+                            <td className="py-2 px-3">
+                              <Badge className="text-[9px] sm:text-[10px]">{roleLabel(invite.role)}</Badge>
+                            </td>
+                            <td className="py-2 px-3 text-xs sm:text-sm text-muted">{new Date(invite.createdAt).toLocaleDateString()}</td>
+                            <td className="py-2 px-3">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => onRevokeInvite(invite.id)}
+                                className="text-[10px] sm:text-xs h-7 sm:h-8 px-2"
+                              >
+                                {t('users.revoke')}
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="md:hidden space-y-2">
+                    {filteredInvites.map((invite) => (
+                      <div key={invite.id} className="border border-border rounded-lg p-2 sm:p-3 space-y-1.5 sm:space-y-2">
+                        <div>
+                          <div className="text-[10px] text-muted mb-0.5">{t('users.email')}</div>
+                          <div className="font-medium text-xs sm:text-sm">{invite.email}</div>
+                        </div>
+                        <div>
+                          <div className="text-[10px] text-muted mb-0.5">{t('users.role')}</div>
+                          <Badge className="text-[9px] sm:text-[10px]">{roleLabel(invite.role)}</Badge>
+                        </div>
+                        <div>
+                          <div className="text-[10px] text-muted mb-0.5">{t('users.sent')}</div>
+                          <div className="text-xs sm:text-sm">{new Date(invite.createdAt).toLocaleDateString()}</div>
+                        </div>
+                        <div className="flex justify-end">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => onRevokeInvite(invite.id)}
+                            className="text-[10px] sm:text-xs h-7 sm:h-8 px-2"
+                          >
+                            {t('users.revoke')}
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
         </div>

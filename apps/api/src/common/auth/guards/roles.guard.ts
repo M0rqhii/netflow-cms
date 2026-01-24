@@ -6,7 +6,7 @@ import { CurrentUserPayload } from '../decorators/current-user.decorator';
 
 /**
  * RolesGuard - checks if user has required role
- * AI Note: Use with @Roles() decorator: @Roles(Role.TENANT_ADMIN)
+ * AI Note: Use with @Roles() decorator: @Roles(Role.ORG_ADMIN)
  */
 @Injectable()
 export class RolesGuard implements CanActivate {

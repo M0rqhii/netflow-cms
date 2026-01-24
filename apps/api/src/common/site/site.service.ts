@@ -1,5 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 
 /**
  * SiteService - serwis do zarządzania stronami
@@ -88,5 +89,35 @@ export class SiteService {
   async validateSiteBelongsToOrg(siteId: string, orgId: string): Promise<boolean> {
     const site = await this.findById(siteId);
     return site?.orgId === orgId;
+  }
+
+  /**
+   * Create a new site for an organization
+   * Used by Organization level (not Site level)
+   */
+  async create(orgId: string, data: { name: string; slug: string; settings?: Record<string, unknown> }) {
+    // Check if site with same slug already exists in this organization
+    const existing = await this.findBySlug(orgId, data.slug);
+    if (existing) {
+      throw new ConflictException(`Site with slug "${data.slug}" already exists in this organization`);
+    }
+
+    return this.prisma.site.create({
+      data: {
+        orgId,
+        name: data.name,
+        slug: data.slug,
+        settings: (data.settings || {}) as Prisma.InputJsonValue,
+      },
+      select: {
+        id: true,
+        orgId: true,
+        name: true,
+        slug: true,
+        settings: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
   }
 }

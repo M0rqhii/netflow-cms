@@ -6,7 +6,6 @@ import { SearchSyncWorker } from './search-sync.worker';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { PrismaOptimizationService } from '../../common/prisma/prisma-optimization.service';
 import { AuthModule } from '../../common/auth/auth.module';
-import { TenantModule } from '../../common/tenant/tenant.module';
 import { ConfigModule } from '@nestjs/config';
 // Note: @nestjs/schedule is optional - install with: pnpm add @nestjs/schedule
 // import { ScheduleModule } from '@nestjs/schedule';
@@ -21,7 +20,6 @@ import { ConfigModule } from '@nestjs/config';
 @Module({
   imports: [
     AuthModule,
-    TenantModule,
     ConfigModule,
     // ScheduleModule.forRoot(), // Uncomment when @nestjs/schedule is installed
   ],

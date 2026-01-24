@@ -5,7 +5,6 @@ import { GraphQLModule as NestGraphQLModule } from '@nestjs/graphql';
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { join } from 'path';
 import { AuthModule } from '../../common/auth/auth.module';
-import { TenantModule } from '../../common/tenant/tenant.module';
 
 /**
  * GraphQL Module - provides GraphQL API endpoint
@@ -18,14 +17,14 @@ import { TenantModule } from '../../common/tenant/tenant.module';
   imports: [
     NestGraphQLModule.forRootAsync<ApolloDriverConfig>({
       driver: ApolloDriver,
-      imports: [AuthModule, TenantModule],
+      imports: [AuthModule],
       useFactory: () => ({
         autoSchemaFile: join(process.cwd(), 'src/schema.gql'),
         sortSchema: true,
         playground: process.env.NODE_ENV !== 'production',
         introspection: process.env.NODE_ENV !== 'production',
         context: ({ req }: { req: any }) => ({ req }),
-        // Authentication and tenant context are handled in resolvers
+        // Authentication and org/site context are handled in resolvers
       }),
     }),
   ],

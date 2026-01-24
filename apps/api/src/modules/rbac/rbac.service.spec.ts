@@ -1,11 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { RbacService } from './rbac.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
+import { BadRequestException, ConflictException } from '@nestjs/common';
 
 describe('RbacService', () => {
   let service: RbacService;
-  let prisma: PrismaService;
 
   const mockPrismaService = {
     capability: {
@@ -33,9 +32,6 @@ describe('RbacService', () => {
     user: {
       findFirst: jest.fn(),
     },
-    tenant: {
-      findFirst: jest.fn(),
-    },
     orgPolicy: {
       findMany: jest.fn(),
       findUnique: jest.fn(),
@@ -56,7 +52,6 @@ describe('RbacService', () => {
     }).compile();
 
     service = module.get<RbacService>(RbacService);
-    prisma = module.get<PrismaService>(PrismaService);
   });
 
   afterEach(() => {
@@ -296,7 +291,7 @@ describe('RbacService', () => {
       });
       mockPrismaService.user.findFirst.mockResolvedValue({
         id: 'user-1',
-        tenantId: orgId,
+        orgId: orgId,
       });
       mockPrismaService.userRole.findFirst.mockResolvedValue(null);
       mockPrismaService.userRole.create.mockResolvedValue({

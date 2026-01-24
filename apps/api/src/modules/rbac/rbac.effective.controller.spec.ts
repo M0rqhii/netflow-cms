@@ -5,7 +5,6 @@ import { RbacController } from './rbac.controller';
 import { RbacEvaluatorService } from './rbac-evaluator.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuthGuard } from '../../common/auth/guards/auth.guard';
-import { TenantGuard } from '../../common/tenant/tenant.guard';
 import { RbacService } from './rbac.service';
 
 @Injectable()
@@ -16,9 +15,9 @@ class TestAuthGuard implements CanActivate {
       id: 'user-1',
       email: 'user@test.com',
       role: 'tester',
-      tenantId: 'org-1',
+      orgId: 'org-1',
     };
-    request.tenantId = 'org-1';
+    request.orgId = 'org-1';
     return true;
   }
 }
@@ -52,8 +51,7 @@ describe('RbacController effective endpoint', () => {
     })
       .overrideGuard(AuthGuard)
       .useClass(TestAuthGuard)
-      .overrideGuard(TenantGuard)
-      .useClass(TestAuthGuard)
+      
       .compile();
 
     app = moduleRef.createNestApplication();

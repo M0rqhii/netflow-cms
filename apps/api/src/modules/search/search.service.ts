@@ -27,7 +27,7 @@ export class SearchService {
    * Search content entries with advanced filtering and faceting
    * AI Note: Uses Elasticsearch if enabled, otherwise falls back to PostgreSQL tsvector
    */
-  async searchContent(tenantId: string, dto: SearchDto) {
+  async searchContent(siteId: string, dto: SearchDto) {
     // Try Elasticsearch first if enabled
     const elasticsearchEnabled = this.configService.get<string>('ELASTICSEARCH_ENABLED') === 'true';
     if (elasticsearchEnabled && dto.query) {
@@ -36,7 +36,7 @@ export class SearchService {
           'content_entries',
           dto.query,
           {
-            tenantId,
+            siteId,
             status: dto.filters?.status,
             dateRange: dto.filters?.dateRange,
           },
@@ -84,12 +84,12 @@ export class SearchService {
     const skip = (page - 1) * pageSize;
 
     const where: any = {
-      tenantId,
+      siteId,
     };
 
     if (contentTypeSlug) {
       const contentType = await this.prisma.contentType.findFirst({
-        where: { siteId: tenantId, slug: contentTypeSlug },
+        where: { siteId: siteId, slug: contentTypeSlug },
       });
       if (contentType) {
         where.contentTypeId = contentType.id;
@@ -127,7 +127,7 @@ export class SearchService {
     // Use PrismaOptimizationService for optimized select-only query
     const selectFields = {
       id: true,
-      tenantId: true,
+      siteId: true,
       contentTypeId: true,
       data: true,
       status: true,
@@ -157,9 +157,9 @@ export class SearchService {
         const params: any[] = [];
         let paramIndex = 1;
 
-        // Always include tenantId
-        conditions.push(`"tenantId" = $${paramIndex}`);
-        params.push(tenantId);
+        // Always include siteId
+        conditions.push(`"siteId" = $${paramIndex}`);
+        params.push(siteId);
         paramIndex++;
 
         // Add other filters with proper parameter indexing
@@ -214,7 +214,7 @@ export class SearchService {
           this.prisma.$queryRawUnsafe<any[]>(
             `SELECT 
               id,
-              "tenantId",
+              "siteId",
               "contentTypeId",
               data,
               status,
@@ -278,14 +278,14 @@ export class SearchService {
       for (const facetField of facets) {
         if (facetField === 'status') {
           const statusFacet = await this.prisma.$queryRawUnsafe<Array<{ status: string; count: bigint }>>(
-            `SELECT "status", COUNT(*) as count FROM "content_entries" WHERE "tenantId" = $1 GROUP BY "status"`,
-            tenantId,
+            `SELECT "status", COUNT(*) as count FROM "content_entries" WHERE "siteId" = $1 GROUP BY "status"`,
+            siteId,
           );
           facetResults.status = statusFacet.map(f => ({ value: f.status, count: Number(f.count) }));
         } else if (facetField === 'contentType') {
           const contentTypeFacet = await this.prisma.$queryRawUnsafe<Array<{ contentTypeId: string; count: bigint }>>(
-            `SELECT "contentTypeId", COUNT(*) as count FROM "content_entries" WHERE "tenantId" = $1 GROUP BY "contentTypeId"`,
-            tenantId,
+            `SELECT "contentTypeId", COUNT(*) as count FROM "content_entries" WHERE "siteId" = $1 GROUP BY "contentTypeId"`,
+            siteId,
           );
           const contentTypeIds = contentTypeFacet.map(f => f.contentTypeId);
           const contentTypeNames = await this.prisma.contentType.findMany({
@@ -319,18 +319,18 @@ export class SearchService {
    * Search collection items
    * AI Note: Full-text search across collection items
    */
-  async searchCollections(tenantId: string, dto: SearchDto) {
+  async searchCollections(siteId: string, dto: SearchDto) {
     const { query, collectionSlug, page, pageSize, sortBy, sortOrder } = dto;
     const skip = (page - 1) * pageSize;
 
     const where: any = {
-      tenantId,
+      siteId,
       status: 'PUBLISHED', // Only search published items
     };
 
     if (collectionSlug) {
       const collection = await this.prisma.collection.findFirst({
-        where: { siteId: tenantId, slug: collectionSlug },
+        where: { siteId: siteId, slug: collectionSlug },
       });
       if (collection) {
         where.collectionId = collection.id;
@@ -378,10 +378,10 @@ export class SearchService {
    * Unified search
    * AI Note: Search across all content types and collections
    */
-  async search(tenantId: string, dto: SearchDto) {
+  async search(siteId: string, dto: SearchDto) {
     const [contentResults, collectionResults] = await Promise.all([
-      this.searchContent(tenantId, dto),
-      this.searchCollections(tenantId, dto),
+      this.searchContent(siteId, dto),
+      this.searchCollections(siteId, dto),
     ]);
 
     return {
@@ -395,7 +395,7 @@ export class SearchService {
    * Search suggestions
    * AI Note: Provides search suggestions based on query
    */
-  async getSuggestions(_tenantId: string, query: string) {
+  async getSuggestions(_siteId: string, query: string) {
     // For MVP, return empty suggestions
     // In production, use Elasticsearch completion suggester
     return {
@@ -408,7 +408,7 @@ export class SearchService {
    * Index content for search
    * AI Note: Indexes content in Elasticsearch (for production)
    */
-  async indexContent(_tenantId: string, _contentId: string) {
+  async indexContent(_siteId: string, _contentId: string) {
     // For MVP, no indexing
     // In production, index content in Elasticsearch
     return { success: true, indexed: false };
@@ -418,7 +418,7 @@ export class SearchService {
    * Remove content from search index
    * AI Note: Removes content from Elasticsearch index (for production)
    */
-  async removeFromIndex(_tenantId: string, _contentId: string) {
+  async removeFromIndex(_siteId: string, _contentId: string) {
     // For MVP, no indexing
     // In production, remove from Elasticsearch index
     return { success: true, removed: false };

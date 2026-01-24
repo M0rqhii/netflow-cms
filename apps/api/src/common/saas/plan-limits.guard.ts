@@ -6,7 +6,7 @@ import { CurrentUserPayload } from '../auth/decorators/current-user.decorator';
 /**
  * Plan Limits Guard
  * AI Note: Enforces plan-based resource limits
- * Use with @RequirePlan() decorator to check if tenant can perform action
+ * Use with @RequirePlan() decorator to check if organization can perform action
  */
 export const PLAN_LIMITS_KEY = 'plan_limits';
 
@@ -36,8 +36,9 @@ export class PlanLimitsGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const user = request.user as CurrentUserPayload | undefined;
 
-    if (!user || !user.tenantId) {
-      throw new ForbiddenException('Tenant context required');
+    const orgId = request.orgId || user?.orgId;
+    if (!user || !orgId) {
+      throw new ForbiddenException('Organization context required');
     }
 
     const { resourceType, storageMB } = planLimitMetadata;
@@ -47,7 +48,7 @@ export class PlanLimitsGuard implements CanActivate {
         throw new Error('storageMB is required when resourceType is "storage"');
       }
 
-      const canUse = await this.planLimitsService.canUseStorage(user.tenantId, storageMB);
+      const canUse = await this.planLimitsService.canUseStorage(orgId, storageMB, request.siteId);
       if (!canUse.allowed) {
         throw new ForbiddenException({
           message: 'Plan limit exceeded',
@@ -58,7 +59,7 @@ export class PlanLimitsGuard implements CanActivate {
         });
       }
     } else {
-      const canCreate = await this.planLimitsService.canCreateResource(user.tenantId, resourceType);
+      const canCreate = await this.planLimitsService.canCreateResource(orgId, resourceType, request.siteId);
       if (!canCreate.allowed) {
         throw new ForbiddenException({
           message: 'Plan limit exceeded',

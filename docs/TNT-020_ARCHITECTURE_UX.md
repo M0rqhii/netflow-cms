@@ -10,48 +10,48 @@
 
 ## 1. Przegląd
 
-Dokumentacja architektury i UX dla globalnego panelu administracyjnego (Platform Admin Hub) - punktu wejścia po logowaniu, który umożliwia zarządzanie wieloma tenantami, metrykami i operacjami zarządczymi.
+Dokumentacja architektury i UX dla globalnego panelu administracyjnego (Platform Admin Hub) - punktu wejścia po logowaniu, który umożliwia zarządzanie wieloma siteami, metrykami i operacjami zarządczymi.
 
 ### 1.1 Cele
 - Spójny UX z minimalnym tarciem (SSO między poziomami)
 - Zdefiniowane ekrany i scenariusze użytkownika
-- Bezpieczne przełączanie między tenantami bez ponownego logowania
+- Bezpieczne przełączanie między siteami bez ponownego logowania
 - Polityki bezpieczeństwa dla operacji platformowych
 
 ---
 
 ## 2. Architektura przepływów
 
-### 2.1 Przepływ główny: Global Login → Hub → Tenant Switch
+### 2.1 Przepływ główny: Global Login → Hub → Site Switch
 
 ```
 ┌─────────────────┐
 │  Global Login   │
-│  (bez tenantId) │
+│  (bez siteId) │
 └────────┬────────┘
          │
          ▼
 ┌─────────────────┐
 │  Platform Hub   │
 │  (Dashboard)    │
-│  - Lista tenantów│
+│  - Lista siteów│
 │  - Metryki       │
 │  - Operacje      │
 └────────┬────────┘
          │
-         │ [Wybierz tenant]
+         │ [Wybierz site]
          ▼
 ┌─────────────────┐
-│ Tenant Token    │
+│ Site Token    │
 │ Exchange        │
 │ POST /auth/     │
-│ tenant-token    │
+│ site-token    │
 └────────┬────────┘
          │
          ▼
 ┌─────────────────┐
-│  Tenant CMS     │
-│  /tenant/[slug] │
+│  Site CMS     │
+│  /site/[slug] │
 │  (scoped token) │
 └─────────────────┘
 ```
@@ -61,11 +61,11 @@ Dokumentacja architektury i UX dla globalnego panelu administracyjnego (Platform
 #### 2.2.1 Global Login (Poziom Platformy)
 ```
 1. Użytkownik wchodzi na /login
-2. Wypełnia formularz (email, password) - BEZ tenantId
+2. Wypełnia formularz (email, password) - BEZ siteId
 3. POST /api/v1/auth/login { email, password }
 4. Backend weryfikuje użytkownika (globalny token)
 5. JWT zawiera: { sub, email, role, platformRole }
-   - NIE zawiera tenantId (globalny token)
+   - NIE zawiera siteId (globalny token)
 6. Token zapisywany w localStorage jako 'authToken'
 7. Redirect do /dashboard (Platform Hub)
 ```
@@ -73,27 +73,27 @@ Dokumentacja architektury i UX dla globalnego panelu administracyjnego (Platform
 #### 2.2.2 Platform Hub (Dashboard)
 ```
 1. Użytkownik na /dashboard
-2. Aplikacja pobiera listę tenantów: GET /api/v1/me/tenants
+2. Aplikacja pobiera listę siteów: GET /api/v1/me/sites
    - Wymaga globalnego tokenu
-   - Zwraca: [{ tenantId, tenant: { name, slug }, role }]
-3. Wyświetla listę tenantów z akcjami:
-   - "Enter CMS" - przejście do tenant CMS
-   - "Manage" - zarządzanie tenantem (future)
+   - Zwraca: [{ siteId, site: { name, slug }, role }]
+3. Wyświetla listę siteów z akcjami:
+   - "Enter CMS" - przejście do site CMS
+   - "Manage" - zarządzanie siteem (future)
    - "Invite" - zaproszenie użytkownika (future)
 ```
 
-#### 2.2.3 Tenant Switch (Bez ponownego logowania)
+#### 2.2.3 Site Switch (Bez ponownego logowania)
 ```
-1. Użytkownik klika "Enter CMS" dla wybranego tenanta
-2. Aplikacja wywołuje: POST /api/v1/auth/tenant-token { tenantId }
+1. Użytkownik klika "Enter CMS" dla wybranego sitea
+2. Aplikacja wywołuje: POST /api/v1/auth/site-token { siteId }
    - Wymaga globalnego tokenu w headerze
-   - Backend weryfikuje członkostwo użytkownika w tenantId
-3. Backend generuje tenant-scoped JWT:
-   - { sub, email, role, tenantId, exp }
+   - Backend weryfikuje członkostwo użytkownika w siteId
+3. Backend generuje site-scoped JWT:
+   - { sub, email, role, siteId, exp }
    - Krótszy czas życia (np. 1h vs 7d dla globalnego)
-4. Token zapisywany jako `tenantToken:{tenantId}`
-5. Redirect do /tenant/{slug}/*
-6. Wszystkie requesty do tenant API używają tenant-scoped tokenu
+4. Token zapisywany jako `siteToken:{siteId}`
+5. Redirect do /site/{slug}/*
+6. Wszystkie requesty do site API używają site-scoped tokenu
 ```
 
 ### 2.3 Przepływ zaproszeń (Roadmap)
@@ -101,7 +101,7 @@ Dokumentacja architektury i UX dla globalnego panelu administracyjnego (Platform
 ```
 ┌─────────────────┐
 │  Platform Hub   │
-│  - Lista tenantów│
+│  - Lista siteów│
 └────────┬────────┘
          │
          │ [Kliknij "Invite User"]
@@ -110,7 +110,7 @@ Dokumentacja architektury i UX dla globalnego panelu administracyjnego (Platform
 │  Invite Modal   │
 │  - Email         │
 │  - Role          │
-│  - Tenant        │
+│  - Site        │
 └────────┬────────┘
          │
          │ POST /api/v1/invitations
@@ -148,14 +148,14 @@ Dokumentacja architektury i UX dla globalnego panelu administracyjnego (Platform
 │  │ Forgot password?                                 │   │
 │  └─────────────────────────────────────────────────┘   │
 │                                                           │
-│  Note: No tenant ID required - this is global login     │
+│  Note: No site ID required - this is global login     │
 │                                                           │
 └─────────────────────────────────────────────────────────┘
 ```
 
 **Kluczowe elementy:**
 - Prosty formularz (email + password)
-- Brak pola tenantId (globalny login)
+- Brak pola siteId (globalny login)
 - Link "Forgot password?" (future)
 - Checkbox "Remember me" (future)
 
@@ -172,16 +172,16 @@ Dokumentacja architektury i UX dla globalnego panelu administracyjnego (Platform
 │  │  Quick Stats                                                 │   │
 │  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐   │   │
 │  │  │   5      │  │   12     │  │   3      │  │   24     │   │   │
-│  │  │ Tenants  │  │  Users   │  │  Active  │  │  Total   │   │   │
+│  │  │ Sites  │  │  Users   │  │  Active  │  │  Total   │   │   │
 │  │  └──────────┘  └──────────┘  └──────────┘  └──────────┘   │   │
 │  └─────────────────────────────────────────────────────────────┘   │
 │                                                                       │
 │  ┌─────────────────────────────────────────────────────────────┐   │
-│  │  My Tenants                                    [+ New Tenant]│   │
+│  │  My Sites                                    [+ New Site]│   │
 │  ├─────────────────────────────────────────────────────────────┤   │
 │  │                                                               │   │
 │  │  ┌─────────────────────────────────────────────────────┐   │   │
-│  │  │  Acme Corporation                    [Tenant Admin] │   │   │
+│  │  │  Acme Corporation                    [Site Admin] │   │   │
 │  │  │  acme-corp • Last active: 2 hours ago               │   │   │
 │  │  │  ┌──────────────┐  ┌──────────────┐  ┌──────────┐ │   │   │
 │  │  │  │ Enter CMS   │  │  Manage      │  │  Invite   │ │   │   │
@@ -208,7 +208,7 @@ Dokumentacja architektury i UX dla globalnego panelu administracyjnego (Platform
 │                                                                       │
 │  ┌─────────────────────────────────────────────────────────────┐   │
 │  │  Recent Activity (Roadmap)                                  │   │
-│  │  - Tenant "Acme" created 2 days ago                        │   │
+│  │  - Site "Acme" created 2 days ago                        │   │
 │  │  - User "jane@acme.com" invited 1 day ago                  │   │
 │  └─────────────────────────────────────────────────────────────┘   │
 │                                                                       │
@@ -218,15 +218,15 @@ Dokumentacja architektury i UX dla globalnego panelu administracyjnego (Platform
 **Kluczowe elementy:**
 - Header z logo i menu użytkownika
 - Quick stats (metryki platformowe)
-- Lista tenantów z:
+- Lista siteów z:
   - Nazwą i slugiem
-  - Rolą użytkownika w tenant
+  - Rolą użytkownika w site
   - Ostatnią aktywnością
   - Akcjami: Enter CMS, Manage, Invite
-- Przycisk "New Tenant" (dla platform_admin)
+- Przycisk "New Site" (dla platform_admin)
 - Recent Activity (roadmap)
 
-### 3.3 Tenant Switcher (Dropdown - Future Enhancement)
+### 3.3 Site Switcher (Dropdown - Future Enhancement)
 
 ```
 ┌─────────────────────────────────────┐
@@ -236,24 +236,24 @@ Dokumentacja architektury i UX dla globalnego panelu administracyjnego (Platform
 │  • TechStart Inc (Editor)           │
 │  • StartupXYZ (Viewer)              │
 │  ─────────────────────────────────  │
-│  + Switch to another tenant          │
+│  + Switch to another site          │
 │  [Back to Hub]                       │
 └─────────────────────────────────────┘
 ```
 
 **Użycie:**
-- Widoczny w headerze podczas pracy w tenant CMS
-- Szybkie przełączanie między tenantami
+- Widoczny w headerze podczas pracy w site CMS
+- Szybkie przełączanie między siteami
 - Powrót do Hub
 
 ### 3.4 Invite User Modal (Roadmap)
 
 ```
 ┌─────────────────────────────────────────────┐
-│  Invite User to Tenant          [X]         │
+│  Invite User to Site          [X]         │
 ├─────────────────────────────────────────────┤
 │                                             │
-│  Tenant: [Acme Corporation        ▼]       │
+│  Site: [Acme Corporation        ▼]       │
 │                                             │
 │  Email: [________________________]          │
 │                                             │
@@ -272,7 +272,7 @@ Dokumentacja architektury i UX dla globalnego panelu administracyjnego (Platform
 ```
 
 **Kluczowe elementy:**
-- Wybór tenanta (jeśli użytkownik ma wiele tenantów)
+- Wybór sitea (jeśli użytkownik ma wiele siteów)
 - Email użytkownika do zaproszenia
 - Wybór roli
 - Opcjonalna wiadomość
@@ -290,10 +290,10 @@ POST /api/v1/auth/login
 Body: {
   email: string;
   password: string;
-  // NO tenantId - global login
+  // NO siteId - global login
 }
 Response: {
-  access_token: string; // Global JWT (bez tenantId)
+  access_token: string; // Global JWT (bez siteId)
   user: {
     id: string;
     email: string;
@@ -302,38 +302,38 @@ Response: {
 }
 ```
 
-#### 4.1.2 Get My Tenants
+#### 4.1.2 Get My Sites
 ```typescript
-GET /api/v1/me/tenants
+GET /api/v1/me/sites
 Headers: {
   Authorization: "Bearer {global_token}"
 }
 Response: {
-  tenants: Array<{
-    tenantId: string;
-    tenant: {
+  sites: Array<{
+    siteId: string;
+    site: {
       id: string;
       name: string;
       slug: string;
     };
-    role: string; // Role w tenant (admin, editor, viewer)
+    role: string; // Role w site (admin, editor, viewer)
     joinedAt: string;
     lastActiveAt?: string;
   }>
 }
 ```
 
-#### 4.1.3 Tenant Token Exchange
+#### 4.1.3 Site Token Exchange
 ```typescript
-POST /api/v1/auth/tenant-token
+POST /api/v1/auth/site-token
 Headers: {
   Authorization: "Bearer {global_token}"
 }
 Body: {
-  tenantId: string;
+  siteId: string;
 }
 Response: {
-  access_token: string; // Tenant-scoped JWT (z tenantId)
+  access_token: string; // Site-scoped JWT (z siteId)
   expires_in: number; // Krótszy czas życia (np. 3600s)
 }
 ```
@@ -354,12 +354,12 @@ export function middleware(request: NextRequest) {
     }
   }
   
-  // Tenant routes
-  if (path.startsWith('/tenant/')) {
-    const tenantSlug = extractTenantSlug(path);
-    const tenantToken = getTenantToken(tenantId);
+  // Site routes
+  if (path.startsWith('/site/')) {
+    const siteSlug = extractSiteSlug(path);
+    const siteToken = getSiteToken(siteId);
     
-    if (!tenantToken) {
+    if (!siteToken) {
       // Try to exchange token
       // If fails, redirect to /dashboard
     }
@@ -367,14 +367,14 @@ export function middleware(request: NextRequest) {
 }
 ```
 
-#### 4.2.2 Tenant Guard (Backend)
+#### 4.2.2 Site Guard (Backend)
 ```typescript
-// Backend: TenantGuard
-// Preferuje tenantId z JWT, fallback: X-Tenant-ID header
-@UseGuards(TenantGuard)
+// Backend: SiteGuard
+// Preferuje siteId z JWT, fallback: X-Site-ID header
+@UseGuards(SiteGuard)
 @Get('/api/v1/content')
-async getContent(@CurrentTenant() tenantId: string) {
-  // tenantId z JWT lub header
+async getContent(@CurrentSite() siteId: string) {
+  // siteId z JWT lub header
 }
 ```
 
@@ -384,11 +384,11 @@ async getContent(@CurrentTenant() tenantId: string) {
 // Token storage strategy
 localStorage:
   - 'authToken': Global JWT (długi czas życia)
-  - 'tenantToken:{tenantId}': Tenant-scoped JWT (krótki czas życia)
+  - 'siteToken:{siteId}': Site-scoped JWT (krótki czas życia)
 
 // Token refresh strategy
 - Global token: Refresh przed wygaśnięciem (future)
-- Tenant token: Exchange na żądanie (gdy wygaśnie)
+- Site token: Exchange na żądanie (gdy wygaśnie)
 ```
 
 ---
@@ -434,7 +434,7 @@ export class CsrfGuard implements CanActivate {
 // CSRF Token w headerze dla state-changing requests
 const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
 
-fetch('/api/v1/tenants', {
+fetch('/api/v1/sites', {
   method: 'POST',
   headers: {
     'X-CSRF-Token': csrfToken,
@@ -455,10 +455,10 @@ enum PlatformRole {
 }
 ```
 
-#### 5.2.2 Role Per-Tenant
+#### 5.2.2 Role Per-Site
 ```typescript
-enum TenantRole {
-  ADMIN = 'admin',    // Pełny dostęp w tenant
+enum SiteRole {
+  ADMIN = 'admin',    // Pełny dostęp w site
   EDITOR = 'editor',  // Tworzenie/edycja treści
   VIEWER = 'viewer',  // Tylko odczyt
 }
@@ -468,33 +468,33 @@ enum TenantRole {
 
 | Operation | platform_admin | org_owner | user (admin) | user (editor) | user (viewer) |
 |-----------|----------------|-----------|--------------|---------------|---------------|
-| Create tenant | ✅ | ❌ | ❌ | ❌ | ❌ |
-| View all tenants | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Invite to tenant | ✅ | ✅ | ✅ (w swoim tenant) | ❌ | ❌ |
-| Switch to tenant | ✅ | ✅ | ✅ (jeśli członek) | ✅ (jeśli członek) | ✅ (jeśli członek) |
-| View tenant CMS | ✅ | ✅ | ✅ (jeśli członek) | ✅ (jeśli członek) | ✅ (jeśli członek) |
+| Create site | ✅ | ❌ | ❌ | ❌ | ❌ |
+| View all sites | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Invite to site | ✅ | ✅ | ✅ (w swoim site) | ❌ | ❌ |
+| Switch to site | ✅ | ✅ | ✅ (jeśli członek) | ✅ (jeśli członek) | ✅ (jeśli członek) |
+| View site CMS | ✅ | ✅ | ✅ (jeśli członek) | ✅ (jeśli członek) | ✅ (jeśli członek) |
 
 #### 5.2.4 Guards Implementation
 ```typescript
 // Platform Admin Guard
 @UseGuards(PlatformAdminGuard)
-@Post('/api/v1/tenants')
-async createTenant() {
+@Post('/api/v1/sites')
+async createSite() {
   // Tylko platform_admin
 }
 
-// Tenant Member Guard
-@UseGuards(TenantMemberGuard)
+// Site Member Guard
+@UseGuards(SiteMemberGuard)
 @Get('/api/v1/content')
-async getContent(@CurrentTenant() tenantId: string) {
-  // Sprawdza członkostwo w tenantId
+async getContent(@CurrentSite() siteId: string) {
+  // Sprawdza członkostwo w siteId
 }
 
 // Role-based Guard
-@UseGuards(TenantRoleGuard('admin'))
+@UseGuards(SiteRoleGuard('admin'))
 @Delete('/api/v1/content/:id')
 async deleteContent() {
-  // Tylko admin w tenant
+  // Tylko admin w site
 }
 ```
 
@@ -506,13 +506,13 @@ enum AuditEvent {
   // Authentication
   GLOBAL_LOGIN = 'global.login',
   GLOBAL_LOGOUT = 'global.logout',
-  TENANT_TOKEN_EXCHANGE = 'tenant.token.exchange',
+  TENANT_TOKEN_EXCHANGE = 'site.token.exchange',
   
-  // Tenant Operations
-  TENANT_SWITCH = 'tenant.switch',
-  TENANT_CREATE = 'tenant.create',
-  TENANT_UPDATE = 'tenant.update',
-  TENANT_DELETE = 'tenant.delete',
+  // Site Operations
+  TENANT_SWITCH = 'site.switch',
+  TENANT_CREATE = 'site.create',
+  TENANT_UPDATE = 'site.update',
+  TENANT_DELETE = 'site.delete',
   
   // User Management
   USER_INVITE = 'user.invite',
@@ -521,7 +521,7 @@ enum AuditEvent {
   
   // Access
   HUB_ACCESS = 'hub.access',
-  TENANT_CMS_ACCESS = 'tenant.cms.access',
+  TENANT_CMS_ACCESS = 'site.cms.access',
 }
 ```
 
@@ -531,7 +531,7 @@ interface AuditLog {
   id: string;
   event: AuditEvent;
   userId: string;
-  tenantId?: string; // null dla operacji platformowych
+  siteId?: string; // null dla operacji platformowych
   metadata: {
     ip?: string;
     userAgent?: string;
@@ -556,7 +556,7 @@ export class AuditInterceptor implements NestInterceptor {
         this.auditService.log({
           event,
           userId: request.user.id,
-          tenantId: request.user.tenantId,
+          siteId: request.user.siteId,
           metadata: {
             ip: request.ip,
             userAgent: request.headers['user-agent'],
@@ -577,9 +577,9 @@ export class AuditInterceptor implements NestInterceptor {
 // Rate limiting configuration
 {
   '/auth/login': '5/min per IP+email',
-  '/auth/tenant-token': '10/min per user',
-  '/me/tenants': '30/min per user',
-  '/tenants': '10/min per user (create)',
+  '/auth/site-token': '10/min per user',
+  '/me/sites': '30/min per user',
+  '/sites': '10/min per user (create)',
   '/invitations': '5/min per user',
 }
 ```
@@ -587,8 +587,8 @@ export class AuditInterceptor implements NestInterceptor {
 #### 5.4.2 Implementation
 ```typescript
 @Throttle(10, 60) // 10 requests per minute
-@Post('/api/v1/auth/tenant-token')
-async exchangeTenantToken() {
+@Post('/api/v1/auth/site-token')
+async exchangeSiteToken() {
   // ...
 }
 ```
@@ -598,14 +598,14 @@ async exchangeTenantToken() {
 #### 5.5.1 Global Token
 - **Czas życia:** 7 dni (domyślnie)
 - **Claims:** `sub`, `email`, `role` (platform role), `iat`, `exp`
-- **NIE zawiera:** `tenantId`
-- **Użycie:** Dostęp do Hub, lista tenantów, exchange token
+- **NIE zawiera:** `siteId`
+- **Użycie:** Dostęp do Hub, lista siteów, exchange token
 
-#### 5.5.2 Tenant Token
+#### 5.5.2 Site Token
 - **Czas życia:** 1 godzina (krótszy)
-- **Claims:** `sub`, `email`, `role` (tenant role), `tenantId`, `iat`, `exp`
-- **Zawiera:** `tenantId` (wymagane)
-- **Użycie:** Wszystkie operacje w tenant CMS
+- **Claims:** `sub`, `email`, `role` (site role), `siteId`, `iat`, `exp`
+- **Zawiera:** `siteId` (wymagane)
+- **Użycie:** Wszystkie operacje w site CMS
 - **Refresh:** Exchange z global token (bez ponownego logowania)
 
 #### 5.5.3 Token Validation
@@ -613,19 +613,19 @@ async exchangeTenantToken() {
 // Backend: JWT Strategy
 async validate(payload: JwtPayload) {
   // Global token validation
-  if (!payload.tenantId) {
+  if (!payload.siteId) {
     // Global token - check platform role
     return { ...payload, isGlobal: true };
   }
   
-  // Tenant token - verify membership
-  const membership = await this.userTenantService.findMembership(
+  // Site token - verify membership
+  const membership = await this.userSiteService.findMembership(
     payload.sub,
-    payload.tenantId,
+    payload.siteId,
   );
   
   if (!membership) {
-    throw new UnauthorizedException('Invalid tenant membership');
+    throw new UnauthorizedException('Invalid site membership');
   }
   
   return { ...payload, isGlobal: false };
@@ -642,40 +642,40 @@ async validate(payload: JwtPayload) {
 2. Wypełnia email i password
 3. System weryfikuje i zwraca global token
 4. Redirect do /dashboard
-5. System pobiera listę tenantów użytkownika
-6. Wyświetla Hub z listą tenantów
+5. System pobiera listę siteów użytkownika
+6. Wyświetla Hub z listą siteów
 ```
 
-### 6.2 Scenariusz 2: Przełączanie między tenantami
+### 6.2 Scenariusz 2: Przełączanie między siteami
 ```
 1. Użytkownik jest w Hub (/dashboard)
-2. Klika "Enter CMS" dla tenant "Acme"
-3. System wywołuje POST /auth/tenant-token { tenantId: "acme-id" }
-4. System otrzymuje tenant-scoped token
-5. Redirect do /tenant/acme/*
-6. Wszystkie requesty używają tenant tokenu
+2. Klika "Enter CMS" dla site "Acme"
+3. System wywołuje POST /auth/site-token { siteId: "acme-id" }
+4. System otrzymuje site-scoped token
+5. Redirect do /site/acme/*
+6. Wszystkie requesty używają site tokenu
 7. Użytkownik może wrócić do Hub (global token nadal ważny)
 ```
 
-### 6.3 Scenariusz 3: Wygaśnięcie tenant tokenu
+### 6.3 Scenariusz 3: Wygaśnięcie site tokenu
 ```
-1. Użytkownik pracuje w tenant CMS
-2. Tenant token wygasa (po 1h)
+1. Użytkownik pracuje w site CMS
+2. Site token wygasa (po 1h)
 3. Następny request zwraca 401
 4. Frontend automatycznie wywołuje exchange (używając global token)
-5. Nowy tenant token zapisany
+5. Nowy site token zapisany
 6. Request powtórzony z nowym tokenem
 7. Użytkownik nie zauważa przerwy (seamless refresh)
 ```
 
-### 6.4 Scenariusz 4: Platform Admin tworzy tenant
+### 6.4 Scenariusz 4: Platform Admin tworzy site
 ```
 1. Platform admin w Hub
-2. Klika "New Tenant"
+2. Klika "New Site"
 3. Wypełnia formularz (name, slug)
-4. POST /api/v1/tenants
-5. System tworzy tenant i automatycznie dodaje admina jako członka
-6. Tenant pojawia się na liście
+4. POST /api/v1/sites
+5. System tworzy site i automatycznie dodaje admina jako członka
+6. Site pojawia się na liście
 7. Admin może od razu wejść do CMS
 ```
 
@@ -685,14 +685,14 @@ async validate(payload: JwtPayload) {
 
 ### 7.1 Metryki Hub
 - Liczba aktywnych użytkowników w Hub
-- Liczba przełączeń tenantów (per user, per tenant)
-- Czas spędzony w Hub vs Tenant CMS
+- Liczba przełączeń siteów (per user, per site)
+- Czas spędzony w Hub vs Site CMS
 - Liczba zaproszeń wysłanych
-- Liczba nowych tenantów utworzonych
+- Liczba nowych siteów utworzonych
 
 ### 7.2 Metryki bezpieczeństwa
 - Liczba nieudanych prób logowania
-- Liczba prób dostępu do nieautoryzowanych tenantów
+- Liczba prób dostępu do nieautoryzowanych siteów
 - Liczba wygasłych tokenów (refresh rate)
 - Liczba CSRF rejections
 
@@ -702,7 +702,7 @@ async validate(payload: JwtPayload) {
 
 ### 8.1 Phase 2 (Sprint 2)
 - [ ] Refresh token dla global tokenu
-- [ ] Tenant switcher dropdown w headerze
+- [ ] Site switcher dropdown w headerze
 - [ ] Invite user modal i email system
 - [ ] Remember me functionality
 - [ ] Forgot password flow
@@ -726,7 +726,7 @@ async validate(payload: JwtPayload) {
 ### 9.1 Checklist
 - [x] Spójny UX z minimalnym tarciem (SSO między poziomami)
 - [x] Zdefiniowane ekrany i scenariusze
-- [x] Specyfikacja przepływów: global login → Hub → switch do tenant
+- [x] Specyfikacja przepływów: global login → Hub → switch do site
 - [x] Polityki bezpieczeństwa (CSRF, uprawnienia, audyt)
 - [x] Dokumentacja techniczna endpointów
 - [x] Dokumentacja UX mockups/wireframes
@@ -743,8 +743,8 @@ async validate(payload: JwtPayload) {
 ## 10. Dependencies
 
 - **TNT-004 (RBAC):** ✅ Done - Wymagane dla uprawnień platformowych
-- **TNT-021 (User↔Tenant Model):** ⏳ Pending - Wymagane dla członkostwa
-- **TNT-022 (Tenant Token Exchange):** ⏳ Pending - Wymagane dla switch flow
+- **TNT-021 (User↔Site Model):** ⏳ Pending - Wymagane dla członkostwa
+- **TNT-022 (Site Token Exchange):** ⏳ Pending - Wymagane dla switch flow
 
 ---
 

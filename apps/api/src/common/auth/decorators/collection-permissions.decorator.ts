@@ -8,7 +8,7 @@ import { Permission } from '../roles.enum';
  * Example:
  * @CollectionPermissions(Permission.ITEMS_CREATE)
  * 
- * The guard will check both tenant-level and collection-level permissions
+ * The guard will check both site-level and collection-level permissions
  */
 export const COLLECTION_PERMISSIONS_KEY = 'collection_permissions';
 

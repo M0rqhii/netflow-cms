@@ -9,7 +9,7 @@
 
 ## Summary
 
-Zadanie TNT-024 zostało ukończone. Zaimplementowano rozszerzenie RBAC o role platformowe, w tym definicje ról platformowych i ich uprawnień, guardy dla endpointów platformowych oraz mapowanie ról per-tenant. System zapobiega eskalacji uprawnień między tenantami.
+Zadanie TNT-024 zostało ukończone. Zaimplementowano rozszerzenie RBAC o role platformowe, w tym definicje ról platformowych i ich uprawnień, guardy dla endpointów platformowych oraz mapowanie ról per-site. System zapobiega eskalacji uprawnień między siteami.
 
 ---
 
@@ -30,7 +30,7 @@ Zadanie TNT-024 zostało ukończone. Zaimplementowano rozszerzenie RBAC o role p
 ```typescript
 PLATFORM_ROLE_PERMISSIONS = {
   [PlatformRole.PLATFORM_ADMIN]: [
-    // Platform admin has all permissions including tenant management
+    // Platform admin has all permissions including site management
     ...Object.values(Permission),
     Permission.TENANTS_READ,
     Permission.TENANTS_WRITE,
@@ -38,7 +38,7 @@ PLATFORM_ROLE_PERMISSIONS = {
   ],
   
   [PlatformRole.ORG_OWNER]: [
-    // Org owner can manage their own tenants and users
+    // Org owner can manage their own sites and users
     Permission.TENANTS_READ,
     Permission.TENANTS_WRITE,
     Permission.USERS_READ,
@@ -47,7 +47,7 @@ PLATFORM_ROLE_PERMISSIONS = {
   
   [PlatformRole.USER]: [
     // Regular user has no platform-level permissions
-    // They only have tenant-level permissions based on their tenant role
+    // They only have site-level permissions based on their site role
   ],
 }
 ```
@@ -107,7 +107,7 @@ export class PlatformRolesGuard implements CanActivate {
 - ✅ `login()` - ustawia `platformRole` w JWT payload ✅
 - ✅ `register()` - ustawia `platformRole` w JWT payload ✅
 - ✅ `refresh()` - zachowuje `platformRole` z tokenu ✅
-- ✅ `issueTenantToken()` - zachowuje `platformRole` z global token ✅
+- ✅ `issueSiteToken()` - zachowuje `platformRole` z global token ✅
 - ✅ Domyślnie ustawia `platformRole = 'user'` ✅
 
 **Kod:**
@@ -115,7 +115,7 @@ export class PlatformRolesGuard implements CanActivate {
 const payload: JwtPayload = {
   sub: user.id,
   email: user.email,
-  tenantId: finalTenantId,
+  siteId: finalSiteId,
   role: user.role,
   platformRole: 'user', // Default platform role
 };
@@ -124,24 +124,24 @@ const payload: JwtPayload = {
 **Status:** ✅ Zgodne z wymaganiami
 
 ### 4. Użycie PlatformRolesGuard w endpointach platformowych
-**Plik:** `apps/api/src/modules/tenants/tenants.controller.ts`
+**Plik:** `apps/api/src/modules/sites/sites.controller.ts`
 
 **Implementacja:**
-- ✅ Zaktualizowano `TenantsController` aby używał `PlatformRolesGuard` ✅
+- ✅ Zaktualizowano `SitesController` aby używał `PlatformRolesGuard` ✅
 - ✅ Zastąpiono `RolesGuard` przez `PlatformRolesGuard` ✅
 - ✅ Zastąpiono `@Roles()` przez `@PlatformRoles()` ✅
 - ✅ Endpointy platformowe:
-  - `POST /api/v1/tenants` - wymaga `PlatformRole.PLATFORM_ADMIN` ✅
-  - `GET /api/v1/tenants` - wymaga `PlatformRole.PLATFORM_ADMIN` lub `ORG_OWNER` ✅
-  - `GET /api/v1/tenants/:id` - wymaga `PlatformRole.PLATFORM_ADMIN` lub `ORG_OWNER` ✅
-  - `PATCH /api/v1/tenants/:id` - wymaga `PlatformRole.PLATFORM_ADMIN` ✅
-  - `DELETE /api/v1/tenants/:id` - wymaga `PlatformRole.PLATFORM_ADMIN` ✅
+  - `POST /api/v1/sites` - wymaga `PlatformRole.PLATFORM_ADMIN` ✅
+  - `GET /api/v1/sites` - wymaga `PlatformRole.PLATFORM_ADMIN` lub `ORG_OWNER` ✅
+  - `GET /api/v1/sites/:id` - wymaga `PlatformRole.PLATFORM_ADMIN` lub `ORG_OWNER` ✅
+  - `PATCH /api/v1/sites/:id` - wymaga `PlatformRole.PLATFORM_ADMIN` ✅
+  - `DELETE /api/v1/sites/:id` - wymaga `PlatformRole.PLATFORM_ADMIN` ✅
 
 **Kod:**
 ```typescript
 @UseGuards(AuthGuard, PlatformRolesGuard, PermissionsGuard)
-@Controller('tenants')
-export class TenantsController {
+@Controller('sites')
+export class SitesController {
   @Post()
   @PlatformRoles(PlatformRole.PLATFORM_ADMIN)
   @Permissions(Permission.TENANTS_WRITE)
@@ -181,24 +181,24 @@ export class TenantsController {
 - login() - ustawia platformRole w JWT payload
 - register() - ustawia platformRole w JWT payload
 - refresh() - zachowuje platformRole z tokenu
-- issueTenantToken() - zachowuje platformRole z global token
+- issueSiteToken() - zachowuje platformRole z global token
 
 ### ✅ Użycie PlatformRolesGuard w endpointach platformowych
-- TenantsController zaktualizowany
+- SitesController zaktualizowany
 - Wszystkie endpointy platformowe używają PlatformRolesGuard
-- Brak eskalacji uprawnień między tenantami
+- Brak eskalacji uprawnień między siteami
 
 ---
 
 ## Acceptance Criteria
 
-### ✅ Brak eskalacji uprawnień między tenantami
-- ✅ Platform roles są oddzielone od tenant roles ✅
-- ✅ PlatformRolesGuard sprawdza tylko platformRole, nie tenant role ✅
-- ✅ Tenant roles są sprawdzane przez RolesGuard (tenant-scoped) ✅
+### ✅ Brak eskalacji uprawnień między siteami
+- ✅ Platform roles są oddzielone od site roles ✅
+- ✅ PlatformRolesGuard sprawdza tylko platformRole, nie site role ✅
+- ✅ Site roles są sprawdzane przez RolesGuard (site-scoped) ✅
 - ✅ Platform roles są sprawdzane przez PlatformRolesGuard (platform-level) ✅
-- ✅ Użytkownik z wysokim tenant role nie może eskalować do platform admin ✅
-- ✅ Użytkownik z platform admin nie może automatycznie uzyskać dostępu do wszystkich tenantów ✅
+- ✅ Użytkownik z wysokim site role nie może eskalować do platform admin ✅
+- ✅ Użytkownik z platform admin nie może automatycznie uzyskać dostępu do wszystkich siteów ✅
 
 **Status:** ✅ Zgodne z wymaganiami
 
@@ -211,33 +211,33 @@ export class TenantsController {
 ```
 PlatformRole.PLATFORM_ADMIN
   - Full access to platform
-  - Can create/manage tenants
-  - Can manage all users across tenants
+  - Can create/manage sites
+  - Can manage all users across sites
 
 PlatformRole.ORG_OWNER
-  - Can manage their own tenants
-  - Can manage users in their tenants
+  - Can manage their own sites
+  - Can manage users in their sites
 
 PlatformRole.USER
   - No platform-level permissions
-  - Only tenant-level permissions based on tenant role
+  - Only site-level permissions based on site role
 ```
 
 ### Guard Strategy
 
-**Tenant-scoped endpoints:**
+**Site-scoped endpoints:**
 - Use `RolesGuard` + `@Roles()` decorator
-- Checks `user.role` (tenant role: admin, editor, viewer)
+- Checks `user.role` (site role: admin, editor, viewer)
 - Example: Collections, Content Types, Content Entries
 
 **Platform-level endpoints:**
 - Use `PlatformRolesGuard` + `@PlatformRoles()` decorator
 - Checks `user.platformRole` (platform role: platform_admin, org_owner, user)
-- Example: Create tenants, manage users across tenants
+- Example: Create sites, manage users across sites
 
 **Combined endpoints:**
-- Use both guards for endpoints that require both platform and tenant roles
-- Example: Platform admin managing specific tenant content
+- Use both guards for endpoints that require both platform and site roles
+- Example: Platform admin managing specific site content
 
 ### Token Structure
 
@@ -245,8 +245,8 @@ PlatformRole.USER
 JwtPayload {
   sub: string;           // user id
   email: string;
-  tenantId?: string;     // optional for global token
-  role: string;          // tenant role (admin, editor, viewer)
+  siteId?: string;     // optional for global token
+  role: string;          // site role (admin, editor, viewer)
   platformRole?: string; // platform role (platform_admin, org_owner, user)
 }
 ```
@@ -263,7 +263,7 @@ JwtPayload {
 ### Modified
 - `apps/api/src/common/auth/roles.enum.ts` - Dodano PLATFORM_ROLE_PERMISSIONS i helper functions
 - `apps/api/src/modules/auth/auth.service.ts` - Ustawianie platformRole w tokenach
-- `apps/api/src/modules/tenants/tenants.controller.ts` - Użycie PlatformRolesGuard
+- `apps/api/src/modules/sites/sites.controller.ts` - Użycie PlatformRolesGuard
 - `apps/api/src/common/auth/auth.module.ts` - Dodano PlatformRolesGuard do providers/exports
 - `docs/plan.md` - Zaktualizowano status TNT-024 na Done
 
@@ -271,7 +271,7 @@ JwtPayload {
 
 ## Dependencies Status
 
-- ✅ **TNT-021 (User↔Tenant Model):** Done - Wymagane dla platform roles
+- ✅ **TNT-021 (User↔Site Model):** Done - Wymagane dla platform roles
 - ✅ **TNT-022 (Token wymiany):** Done - Wymagane dla platform token handling
 
 ---
@@ -289,8 +289,8 @@ JwtPayload {
 
 - Platform roles są obecnie domyślnie ustawiane na 'user' dla wszystkich użytkowników
 - W przyszłości można dodać platformRole do User model w Prisma schema
-- PlatformRolesGuard zapobiega eskalacji uprawnień między tenantami
-- TenantsController używa PlatformRolesGuard zamiast RolesGuard dla endpointów platformowych
+- PlatformRolesGuard zapobiega eskalacji uprawnień między siteami
+- SitesController używa PlatformRolesGuard zamiast RolesGuard dla endpointów platformowych
 
 ---
 

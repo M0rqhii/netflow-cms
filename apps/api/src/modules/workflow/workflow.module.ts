@@ -4,7 +4,6 @@ import { WorkflowController } from './workflow.controller';
 import { WorkflowConfigService } from './workflow-config.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuthModule } from '../../common/auth/auth.module';
-import { TenantModule } from '../../common/tenant/tenant.module';
 import { TasksModule } from '../tasks/tasks.module';
 
 /**
@@ -12,7 +11,7 @@ import { TasksModule } from '../tasks/tasks.module';
  * AI Note: Provides endpoints for managing workflows and executing state transitions
  */
 @Module({
-  imports: [AuthModule, TenantModule, TasksModule],
+  imports: [AuthModule, TasksModule],
   controllers: [WorkflowController],
   providers: [WorkflowService, WorkflowConfigService, PrismaService],
   exports: [WorkflowService, WorkflowConfigService],

@@ -93,7 +93,7 @@ this.logger.warn(
 
 - ✅ `search.service.ts` - używa parametrów, waliduje `orderBy`, escape single quotes
 - ✅ `content-entries.service.ts` - używa parametrów, waliduje field names
-- ✅ `tenant-context.middleware.ts` - waliduje UUID przed użyciem w SET command
+- ✅ `site-context.middleware.ts` - waliduje UUID przed użyciem w SET command
 - ✅ Wszystkie zapytania używają parametryzowanych queries
 - ✅ Brak podatności na SQL injection
 
@@ -127,9 +127,9 @@ this.logger.warn(
 - ✅ Hasła hashowane bcrypt (10 rund)
 - ✅ JWT tokeny z proper payload
 - ✅ Refresh tokens z rotacją i Redis storage
-- ✅ Tenant isolation przez TenantGuard
+- ✅ Org/site isolation przez SiteGuard
 - ✅ RBAC przez RolesGuard i PermissionsGuard
-- ✅ Platform roles dla multi-tenant access
+- ✅ Platform roles dla org/site access
 
 **Wnioski:** System autentykacji jest bezpieczny i zgodny z best practices.
 

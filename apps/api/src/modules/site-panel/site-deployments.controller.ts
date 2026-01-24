@@ -10,12 +10,12 @@ import {
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { AuthGuard } from '../../common/auth/guards/auth.guard';
-import { TenantGuard } from '../../common/tenant/tenant.guard';
+import { SiteGuard } from '../../common/org-site/site.guard';
 import { RolesGuard } from '../../common/auth/guards/roles.guard';
 import { PermissionsGuard } from '../../common/auth/guards/permissions.guard';
 import { Permissions } from '../../common/auth/decorators/permissions.decorator';
 import { Roles } from '../../common/auth/decorators/roles.decorator';
-import { CurrentTenant } from '../../common/decorators/current-tenant.decorator';
+import { CurrentSite } from '../../common/decorators/current-site.decorator';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 import { Role, Permission } from '../../common/auth/roles.enum';
 import { CurrentUser, CurrentUserPayload } from '../../common/auth/decorators/current-user.decorator';
@@ -25,28 +25,28 @@ import {
   DeploymentQueryDtoSchema,
 } from './dto';
 
-@UseGuards(AuthGuard, TenantGuard, RolesGuard, PermissionsGuard)
+@UseGuards(AuthGuard, SiteGuard, RolesGuard, PermissionsGuard)
 @Controller('site-panel/:siteId/deployments')
 export class SiteDeploymentsController {
   constructor(private readonly deployments: SiteDeploymentsService) {}
 
-  private assertTenantScope(siteId: string, tenantId: string) {
-    if (siteId !== tenantId) {
-      throw new ForbiddenException('Cross-tenant access is not allowed.');
+  private assertSiteScope(routeSiteId: string, currentSiteId: string) {
+    if (routeSiteId !== currentSiteId) {
+      throw new ForbiddenException('Cross-site access is not allowed.');
     }
   }
 
   @Post('publish')
-  @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.ORG_ADMIN, Role.SUPER_ADMIN)
   @Permissions(Permission.PAGES_PUBLISH)
   publish(
     @Param('siteId') siteId: string,
-    @CurrentTenant() tenantId: string,
+    @CurrentSite() currentSiteId: string,
     @CurrentUser() user: CurrentUserPayload,
     @Body(new ZodValidationPipe(PublishDeploymentDtoSchema)) body: unknown,
   ) {
-    this.assertTenantScope(siteId, tenantId);
-    return this.deployments.publish(tenantId, body as any, user?.id);
+    this.assertSiteScope(siteId, currentSiteId);
+    return this.deployments.publish(currentSiteId, body as any, user?.id);
   }
 
   @Get()
@@ -54,11 +54,11 @@ export class SiteDeploymentsController {
   @Permissions(Permission.PAGES_READ)
   list(
     @Param('siteId') siteId: string,
-    @CurrentTenant() tenantId: string,
+    @CurrentSite() currentSiteId: string,
     @Query(new ZodValidationPipe(DeploymentQueryDtoSchema)) query: unknown,
   ) {
-    this.assertTenantScope(siteId, tenantId);
-    return this.deployments.list(tenantId, query as any);
+    this.assertSiteScope(siteId, currentSiteId);
+    return this.deployments.list(currentSiteId, query as any);
   }
 
   @Get('latest')
@@ -66,11 +66,11 @@ export class SiteDeploymentsController {
   @Permissions(Permission.PAGES_READ)
   getLatest(
     @Param('siteId') siteId: string,
-    @CurrentTenant() tenantId: string,
+    @CurrentSite() currentSiteId: string,
     @Query('env') env?: string,
   ) {
-    this.assertTenantScope(siteId, tenantId);
-    return this.deployments.getLatest(tenantId, env);
+    this.assertSiteScope(siteId, currentSiteId);
+    return this.deployments.getLatest(currentSiteId, env);
   }
 }
 

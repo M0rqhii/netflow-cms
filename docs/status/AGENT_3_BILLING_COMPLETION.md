@@ -42,11 +42,11 @@ Wykonanie kompleksowego modułu billing dla backendu zgodnie z wymaganiami AGENT
 - `getInvoice()` - Pobranie faktury po ID
 - `listInvoices()` - Lista faktur z paginacją i filtrowaniem
 - `listPayments()` - Lista płatności z paginacją i filtrowaniem
-- `getSubscriptionStatus()` - Status subskrypcji dla tenant
+- `getSubscriptionStatus()` - Status subskrypcji dla site
 
 **Funkcje:**
 - Proper error handling (NotFoundException, BadRequestException)
-- Automatyczna aktualizacja planu tenant przy zmianie subskrypcji
+- Automatyczna aktualizacja planu site przy zmianie subskrypcji
 - Paginacja dla wszystkich list endpoints
 - Filtrowanie po status, plan, subscriptionId, invoiceId
 
@@ -67,7 +67,7 @@ Wykonanie kompleksowego modułu billing dla backendu zgodnie z wymaganiami AGENT
 - `GET /billing/payments` - Lista płatności
 
 **Funkcje:**
-- Wszystkie endpointy chronione przez AuthGuard i TenantGuard
+- Wszystkie endpointy chronione przez AuthGuard i SiteGuard
 - RBAC przez PermissionsGuard z uprawnieniami BILLING_READ i BILLING_WRITE
 - Walidacja przez ZodValidationPipe
 - Proper HTTP status codes
@@ -172,7 +172,7 @@ apps/api/src/modules/billing/
 ## Security & RBAC
 
 - ✅ Wszystkie endpointy chronione przez AuthGuard
-- ✅ Wszystkie endpointy wymagają TenantGuard (oprócz webhook)
+- ✅ Wszystkie endpointy wymagają SiteGuard (oprócz webhook)
 - ✅ RBAC przez PermissionsGuard z BILLING_READ i BILLING_WRITE
 - ✅ Uprawnienia billing dostępne dla TENANT_ADMIN
 - ✅ Proper error handling (NotFoundException, BadRequestException, ForbiddenException)
@@ -191,7 +191,7 @@ apps/api/src/modules/billing/
 ## Integration
 
 - ✅ Integracja z istniejącym StripeService
-- ✅ Automatyczna synchronizacja planu tenant z subskrypcją
+- ✅ Automatyczna synchronizacja planu site z subskrypcją
 - ✅ Webhook handling dla Stripe events
 - ✅ Proper error handling i logging
 

@@ -12,13 +12,6 @@ export type JsonValue =
   | { [key: string]: JsonValue | undefined }
   | JsonValue[];
 
-// Tenant context type
-export interface TenantContext {
-  id: string;
-  slug: string;
-  name: string;
-}
-
 // Pagination response type
 export interface PaginatedResponse<T> {
   total: number;

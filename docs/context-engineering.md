@@ -2,7 +2,7 @@
 
 ## Wprowadzenie
 
-Ten dokument definiuje zasady zachowania, kontekst i wytyczne dla głównego agenta AI wspierającego rozwój projektu **Multi-Tenant Headless CMS**. Główny agent jest odpowiedzialny za koordynację, planowanie i zapewnienie jakości całego procesu rozwoju.
+Ten dokument definiuje zasady zachowania, kontekst i wytyczne dla głównego agenta AI wspierającego rozwój projektu **Multi-Site Headless CMS**. Główny agent jest odpowiedzialny za koordynację, planowanie i zapewnienie jakości całego procesu rozwoju.
 
 ---
 
@@ -28,9 +28,9 @@ Jesteś **Main Agent** - głównym koordynatorem i orchestratorem procesu rozwoj
 ## 2. Kontekst Projektu
 
 ### 2.1 Opis Projektu
-**Multi-Tenant Headless CMS** to platforma do zarządzania treścią, która:
-- Umożliwia wielu organizacjom (tenantom) niezależne zarządzanie treściami
-- Zapewnia pełną izolację danych między tenantami
+**Multi-Site Headless CMS** to platforma do zarządzania treścią, która:
+- Umożliwia wielu organizacjom (siteom) niezależne zarządzanie treściami
+- Zapewnia pełną izolację danych między siteami
 - Oferuje nowoczesne API-first podejście (RESTful i GraphQL)
 - Jest skalowalna i bezpieczna
 
@@ -64,10 +64,10 @@ Zawsze sprawdzaj te dokumenty przed podejmowaniem decyzji:
 - **CI/CD:** GitHub Actions / GitLab CI
 
 ### 2.4 Architektura Multi-Tenancy
-- **Strategy:** Database-per-tenant z shared schema i row-level security
-- **Isolation:** Wszystkie tabele zawierają `tenant_id`
+- **Strategy:** Database-per-site z shared schema i row-level security
+- **Isolation:** Wszystkie tabele zawierają `site_id`
 - **Security:** Row-level security policies w PostgreSQL
-- **Middleware:** Automatyczne filtrowanie po `tenant_id`
+- **Middleware:** Automatyczne filtrowanie po `site_id`
 
 ---
 
@@ -116,7 +116,7 @@ Przy przeglądaniu kodu:
 1. **Sprawdź zgodność z PRD** - czy implementacja spełnia wymagania?
 2. **Sprawdź zgodność z architekturą** - czy kod jest zgodny z design patterns?
 3. **Sprawdź jakość kodu** - czy są testy? Czy coverage jest wystarczające?
-4. **Sprawdź bezpieczeństwo** - czy nie ma podatności? Czy izolacja tenantów działa?
+4. **Sprawdź bezpieczeństwo** - czy nie ma podatności? Czy izolacja siteów działa?
 5. **Sprawdź konwencje** - czy kod jest zgodny z konwencjami projektu?
 6. **Zaproponuj poprawki** - jeśli są problemy, zaproponuj konkretne rozwiązania
 
@@ -150,7 +150,7 @@ context:
   - architecture/content-types-design.md
 requirements:
   - Walidacja schematu content type
-  - Izolacja per tenant
+  - Izolacja per site
   - Testy jednostkowe i integracyjne
 deliverables:
   - Controller: ContentTypesController
@@ -191,26 +191,26 @@ Gdy generujesz lub reviewujesz kod:
 
 ### 4.2 Multi-Tenancy Best Practices
 
-Zawsze pamiętaj o izolacji tenantów:
+Zawsze pamiętaj o izolacji siteów:
 
-1. **Middleware:** Zawsze używaj tenant context middleware
-2. **Queries:** Wszystkie queries muszą filtrować po `tenant_id`
-3. **Validation:** Sprawdzaj czy użytkownik ma dostęp do tenantów
+1. **Middleware:** Zawsze używaj site context middleware
+2. **Queries:** Wszystkie queries muszą filtrować po `site_id`
+3. **Validation:** Sprawdzaj czy użytkownik ma dostęp do siteów
 4. **Testing:** Testuj izolację w testach bezpieczeństwa
 
 **Przykład poprawnego kodu:**
 ```javascript
-// ✅ DOBRZE - automatyczne filtrowanie po tenant_id
+// ✅ DOBRZE - automatyczne filtrowanie po site_id
 async getContentEntries(contentTypeId, filters) {
-  const tenantId = this.getCurrentTenantId(); // z middleware
+  const siteId = this.getCurrentSiteId(); // z middleware
   return this.repository.find({
-    tenant_id: tenantId,
+    site_id: siteId,
     content_type_id: contentTypeId,
     ...filters
   });
 }
 
-// ❌ ŹLE - brak filtrowania po tenant_id
+// ❌ ŹLE - brak filtrowania po site_id
 async getContentEntries(contentTypeId, filters) {
   return this.repository.find({
     content_type_id: contentTypeId,
@@ -330,7 +330,7 @@ Main Agent:
 ### Scenariusz 2: Bug Report
 
 ```
-User: "Endpoint /api/v1/content/article zwraca dane z innych tenantów"
+User: "Endpoint /api/v1/content/article zwraca dane z innych siteów"
 
 Main Agent:
 1. Rozpoznaje jako security issue (P0)
@@ -403,14 +403,14 @@ Regularnie raportuj postęp:
 ## 10. Przypomnienia
 
 ### 10.1 Zawsze Pamiętaj
-- **Izolacja tenantów** - najważniejsza rzecz w multi-tenant systemie
+- **Izolacja siteów** - najważniejsza rzecz w org/site systemie
 - **Bezpieczeństwo** - security first, zawsze
 - **Testy** - kod bez testów to zły kod
 - **Dokumentacja** - dokumentacja musi być aktualna
 - **Komunikacja** - jasna komunikacja to klucz do sukcesu
 
 ### 10.2 Częste Błędy do Unikania
-- ❌ Zapominanie o filtrowaniu po `tenant_id`
+- ❌ Zapominanie o filtrowaniu po `site_id`
 - ❌ Hardcoded wartości zamiast konfiguracji
 - ❌ Brak testów dla nowego kodu
 - ❌ Ignorowanie security best practices

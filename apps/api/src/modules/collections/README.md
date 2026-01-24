@@ -1,6 +1,6 @@
 # Collections Module
 
-Moduł Collections umożliwia zarządzanie kolekcjami treści z pełną izolacją multi-tenant, wersjonowaniem i cache'owaniem.
+Moduł Collections umożliwia zarządzanie kolekcjami treści z pełną izolacją org/site, wersjonowaniem i cache'owaniem.
 
 ## Funkcjonalności
 
@@ -10,7 +10,7 @@ Moduł Collections umożliwia zarządzanie kolekcjami treści z pełną izolacj�
 - ✅ Status DRAFT/PUBLISHED
 - ✅ ETag support (If-None-Match → 304)
 - ✅ Redis cache dla metadanych
-- ✅ Multi-tenant isolation
+- ✅ Org/site isolation
 
 ## Struktura
 
@@ -38,16 +38,17 @@ collections/
 
 ```typescript
 import { CollectionsService } from './services/collections.service';
-import { CurrentTenant } from '../../../common/decorators/current-tenant.decorator';
+import { AuthGuard } from '../../../common/auth/guards/auth.guard';
+import { CurrentSite } from '../../../common/decorators/current-site.decorator';
 
 @Controller('collections')
-@UseGuards(TenantGuard)
+@UseGuards(AuthGuard)
 export class CollectionsController {
   constructor(private readonly collectionsService: CollectionsService) {}
 
   @Get()
-  list(@CurrentTenant() tenantId: string) {
-    return this.collectionsService.list(tenantId);
+  list(@CurrentSite() siteId: string) {
+    return this.collectionsService.list(siteId);
   }
 }
 ```

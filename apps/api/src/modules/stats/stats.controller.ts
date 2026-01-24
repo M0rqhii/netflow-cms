@@ -12,7 +12,7 @@ import { CurrentOrg } from '../../common/decorators/current-org.decorator';
  */
 @Controller('stats')
 @UseGuards(AuthGuard, RolesGuard)
-@Roles(Role.SUPER_ADMIN, Role.TENANT_ADMIN)
+@Roles(Role.SUPER_ADMIN, Role.ORG_ADMIN)
 export class StatsController {
   constructor(private readonly statsService: StatsService) {}
 
@@ -32,7 +32,7 @@ export class StatsController {
    */
   @Get('org')
   async getOrgStats(@CurrentOrg() orgId: string) {
-    return this.statsService.getTenantStats(orgId); // Method name still uses tenant for backward compatibility
+    return this.statsService.getOrgStats(orgId);
   }
 }
 

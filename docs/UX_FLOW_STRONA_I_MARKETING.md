@@ -152,7 +152,7 @@
 - **Sekcja Szczegóły:**
   - Nazwa
   - Slug
-  - Tenant ID
+  - Site ID
   - Plan
   - Status
   - Data utworzenia

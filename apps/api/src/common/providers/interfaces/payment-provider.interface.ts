@@ -6,7 +6,7 @@
  */
 
 export interface CreateSubscriptionParams {
-  tenantId: string;
+  orgId: string;
   plan: string;
   customerId?: string; // External customer ID (e.g., Stripe customer ID)
   trialDays?: number;

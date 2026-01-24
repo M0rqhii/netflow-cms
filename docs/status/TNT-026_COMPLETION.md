@@ -9,13 +9,13 @@
 
 ## Summary
 
-Zadanie TNT-026 zostało ukończone. Zaimplementowano logi audytowe dla przełączania tenantów, wejść do paneli oraz zmian ról. Utworzono roadmap dla metryk (Prometheus/Grafana).
+Zadanie TNT-026 zostało ukończone. Zaimplementowano logi audytowe dla przełączania siteów, wejść do paneli oraz zmian ról. Utworzono roadmap dla metryk (Prometheus/Grafana).
 
 ---
 
 ## Deliverables
 
-### 1. Audit log dla `/auth/tenant-token` i operacji Hub
+### 1. Audit log dla `/auth/site-token` i operacji Hub
 
 #### 1.1 AuditService
 **Plik:** `apps/api/src/common/audit/audit.service.ts`
@@ -30,9 +30,9 @@ Zadanie TNT-026 zostało ukończone. Zaimplementowano logi audytowe dla przełą
 **Audit Events:**
 - ✅ `GLOBAL_LOGIN` - Global login ✅
 - ✅ `GLOBAL_LOGOUT` - Global logout ✅
-- ✅ `TENANT_TOKEN_EXCHANGE` - Tenant token exchange (tenant switch) ✅
+- ✅ `TENANT_TOKEN_EXCHANGE` - Site token exchange (site switch) ✅
 - ✅ `HUB_ACCESS` - Hub access ✅
-- ✅ `TENANT_CMS_ACCESS` - Tenant CMS access ✅
+- ✅ `TENANT_CMS_ACCESS` - Site CMS access ✅
 - ✅ `TENANT_CREATE`, `TENANT_UPDATE`, `TENANT_DELETE` ✅
 - ✅ `USER_INVITE`, `USER_ROLE_CHANGE`, `USER_REMOVE` ✅
 
@@ -50,10 +50,10 @@ Zadanie TNT-026 zostało ukończone. Zaimplementowano logi audytowe dla przełą
 **Route Mapping:**
 - ✅ `/auth/login` → `GLOBAL_LOGIN` ✅
 - ✅ `/auth/logout` → `GLOBAL_LOGOUT` ✅
-- ✅ `/auth/tenant-token` → `TENANT_TOKEN_EXCHANGE` ✅
-- ✅ `/me/tenants` → `HUB_ACCESS` ✅
-- ✅ `/tenant/*` → `TENANT_CMS_ACCESS` ✅
-- ✅ `/tenants` → `TENANT_CREATE/UPDATE/DELETE` ✅
+- ✅ `/auth/site-token` → `TENANT_TOKEN_EXCHANGE` ✅
+- ✅ `/me/sites` → `HUB_ACCESS` ✅
+- ✅ `/site/*` → `TENANT_CMS_ACCESS` ✅
+- ✅ `/sites` → `TENANT_CREATE/UPDATE/DELETE` ✅
 
 **Status:** ✅ Zaimplementowane
 
@@ -61,9 +61,9 @@ Zadanie TNT-026 zostało ukończone. Zaimplementowano logi audytowe dla przełą
 **Plik:** `apps/api/src/modules/auth/auth.controller.ts`
 
 **Implementacja:**
-- ✅ `getMyTenants()` - loguje `HUB_ACCESS` ✅
-- ✅ `issueTenantToken()` - loguje `TENANT_TOKEN_EXCHANGE` ✅
-- ✅ Loguje IP, user agent, tenant count ✅
+- ✅ `getMySites()` - loguje `HUB_ACCESS` ✅
+- ✅ `issueSiteToken()` - loguje `TENANT_TOKEN_EXCHANGE` ✅
+- ✅ Loguje IP, user agent, site count ✅
 
 **Kod:**
 ```typescript
@@ -71,23 +71,23 @@ Zadanie TNT-026 zostało ukończone. Zaimplementowano logi audytowe dla przełą
 await this.auditService.log({
   event: AuditEvent.HUB_ACCESS,
   userId: user.id,
-  tenantId: null,
+  siteId: null,
   metadata: {
     ip: req.ip || req.headers['x-forwarded-for'] || 'unknown',
     userAgent: req.headers['user-agent'],
-    tenantCount: tenants.length,
+    siteCount: sites.length,
   },
 });
 
-// Tenant token exchange
+// Site token exchange
 await this.auditService.log({
   event: AuditEvent.TENANT_TOKEN_EXCHANGE,
   userId: user.id,
-  tenantId: body.tenantId,
+  siteId: body.siteId,
   metadata: {
     ip: req.ip || req.headers['x-forwarded-for'] || 'unknown',
     userAgent: req.headers['user-agent'],
-    action: 'tenant_switch',
+    action: 'site_switch',
   },
 });
 ```
@@ -108,10 +108,10 @@ await this.auditService.log({
 await this.auditService.log({
   event: AuditEvent.GLOBAL_LOGIN,
   userId: user.id,
-  tenantId: finalTenantId || null,
+  siteId: finalSiteId || null,
   metadata: {
     isGlobalLogin: isGlobalLogin,
-    hasMultipleTenants: isGlobalLogin && !finalTenantId,
+    hasMultipleSites: isGlobalLogin && !finalSiteId,
   },
 });
 
@@ -119,7 +119,7 @@ await this.auditService.log({
 await this.auditService.log({
   event: AuditEvent.USER_INVITE,
   userId: user.id,
-  tenantId: user.tenantId,
+  siteId: user.siteId,
   metadata: {
     role: user.role,
     action: 'register',
@@ -130,7 +130,7 @@ await this.auditService.log({
 await this.auditService.log({
   event: AuditEvent.GLOBAL_LOGOUT,
   userId: sub,
-  tenantId: tenantId || null,
+  siteId: siteId || null,
   metadata: {
     action: 'logout',
   },
@@ -153,8 +153,8 @@ await this.auditService.log({
 
 **Metryki (Roadmap):**
 - ⏳ Authentication metrics (login, logout, token exchange)
-- ⏳ Hub metrics (access, tenants count, active users)
-- ⏳ Tenant switch metrics (switches, duration, CMS access)
+- ⏳ Hub metrics (access, sites count, active users)
+- ⏳ Site switch metrics (switches, duration, CMS access)
 - ⏳ Role change metrics (user role, platform role)
 - ⏳ API metrics (requests, duration, size)
 
@@ -164,10 +164,10 @@ await this.auditService.log({
 
 ## Completed Tasks
 
-### ✅ Audit log dla `/auth/tenant-token` i operacji Hub
+### ✅ Audit log dla `/auth/site-token` i operacji Hub
 - AuditService z console.log (MVP)
 - AuditInterceptor dla automatycznego logowania
-- Manual audit logging w AuthController dla Hub i tenant-token
+- Manual audit logging w AuthController dla Hub i site-token
 - Manual audit logging w AuthService dla login, register, logout
 
 ### ✅ Metryki (np. Prometheus/Grafana – roadmap)
@@ -181,7 +181,7 @@ await this.auditService.log({
 ## Acceptance Criteria
 
 ### ✅ Zdarzenia kluczowe odnotowane i możliwe do prześledzenia
-- ✅ Przełączanie tenantów (`TENANT_TOKEN_EXCHANGE`) ✅
+- ✅ Przełączanie siteów (`TENANT_TOKEN_EXCHANGE`) ✅
 - ✅ Wejścia do paneli (`HUB_ACCESS`, `TENANT_CMS_ACCESS`) ✅
 - ✅ Zmiany ról (`USER_ROLE_CHANGE`) ✅
 - ✅ Logowanie (`GLOBAL_LOGIN`, `GLOBAL_LOGOUT`) ✅
@@ -201,26 +201,26 @@ await this.auditService.log({
 - Loguje IP, user agent, method, path
 
 **Manual Logging:**
-- `AuthController` loguje Hub access i tenant token exchange
+- `AuthController` loguje Hub access i site token exchange
 - `AuthService` loguje login, register, logout
-- Loguje dodatkowe metadata (tenant count, action, etc.)
+- Loguje dodatkowe metadata (site count, action, etc.)
 
 ### Audit Events
 
 **Authentication:**
 - `GLOBAL_LOGIN` - Global login
 - `GLOBAL_LOGOUT` - Global logout
-- `TENANT_TOKEN_EXCHANGE` - Tenant token exchange (tenant switch)
+- `TENANT_TOKEN_EXCHANGE` - Site token exchange (site switch)
 
 **Hub Operations:**
-- `HUB_ACCESS` - Hub access (GET /me/tenants)
-- `TENANT_CMS_ACCESS` - Tenant CMS access
+- `HUB_ACCESS` - Hub access (GET /me/sites)
+- `TENANT_CMS_ACCESS` - Site CMS access
 
-**Tenant Operations:**
-- `TENANT_CREATE` - Create tenant
-- `TENANT_UPDATE` - Update tenant
-- `TENANT_DELETE` - Delete tenant
-- `TENANT_SWITCH` - Switch tenant
+**Site Operations:**
+- `TENANT_CREATE` - Create site
+- `TENANT_UPDATE` - Update site
+- `TENANT_DELETE` - Delete site
+- `TENANT_SWITCH` - Switch site
 
 **User Management:**
 - `USER_INVITE` - Invite user (or register)
@@ -231,15 +231,15 @@ await this.auditService.log({
 
 ```json
 {
-  "event": "tenant.token.exchange",
+  "event": "site.token.exchange",
   "userId": "user-id",
-  "tenantId": "tenant-id",
+  "siteId": "site-id",
   "metadata": {
     "ip": "127.0.0.1",
     "userAgent": "Mozilla/5.0...",
     "method": "POST",
-    "path": "/api/v1/auth/tenant-token",
-    "action": "tenant_switch"
+    "path": "/api/v1/auth/site-token",
+    "action": "site_switch"
   },
   "timestamp": "2024-01-09T12:00:00Z"
 }
@@ -267,7 +267,7 @@ await this.auditService.log({
 
 ## Dependencies Status
 
-- ✅ **TNT-022 (Token wymiany):** Done - Wymagane dla audit logging tenant-token
+- ✅ **TNT-022 (Token wymiany):** Done - Wymagane dla audit logging site-token
 
 ---
 

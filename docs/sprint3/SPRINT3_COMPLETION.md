@@ -28,7 +28,7 @@ Zaimplementowano strategię cache'owania (Redis), optymalizację zapytań do baz
 - ✅ @Cache() decorator dla automatycznego cache'owania ✅
 - ✅ CacheInterceptor dla automatycznego cache'owania metod ✅
 - ✅ Konfiguracja TTL przez environment variables ✅
-- ✅ Tenant-scoped cache keys ✅
+- ✅ Site-scoped cache keys ✅
 
 **Features:**
 - ✅ Redis connection z graceful degradation ✅
@@ -123,7 +123,7 @@ Zaimplementowano strategię cache'owania (Redis), optymalizację zapytań do baz
 - @Cache() decorator
 - CacheInterceptor
 - Redis connection z fallback
-- Tenant-scoped cache keys
+- Site-scoped cache keys
 
 ### ✅ Database query optimization
 - Optimized queries with select

@@ -15,11 +15,11 @@
   - Dodano proper type guards dla sprawdzania `etag` property
   - Dodano null check przed sprawdzaniem properties
 
-### 3. **CurrentTenant Decorator**
+### 3. **CurrentSite Decorator**
 - ❌ **Problem:** Brak type safety i error handling
 - ✅ **Naprawione:**
   - Dodano explicit type dla request
-  - Dodano error handling jeśli tenantId nie istnieje
+  - Dodano error handling jeśli siteId nie istnieje
 
 ---
 
@@ -86,28 +86,28 @@ intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
 }
 ```
 
-### CurrentTenant Decorator
+### CurrentSite Decorator
 **Przed:**
 ```typescript
-export const CurrentTenant = createParamDecorator(
+export const CurrentSite = createParamDecorator(
   (data: unknown, ctx: ExecutionContext): string => {
     const request = ctx.switchToHttp().getRequest();
-    return request.tenantId;
+    return request.siteId;
   }
 );
 ```
 
 **Po:**
 ```typescript
-export const CurrentTenant = createParamDecorator(
+export const CurrentSite = createParamDecorator(
   (data: unknown, ctx: ExecutionContext): string => {
     const request = ctx.switchToHttp().getRequest() as {
-      tenantId?: string;
+      siteId?: string;
     };
-    if (!request.tenantId) {
-      throw new Error('TenantId not found in request');
+    if (!request.siteId) {
+      throw new Error('SiteId not found in request');
     }
-    return request.tenantId;
+    return request.siteId;
   }
 );
 ```

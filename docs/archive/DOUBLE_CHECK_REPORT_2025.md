@@ -22,7 +22,7 @@ Przeprowadzono kompleksowy przegląd kodu źródłowego z naciskiem na:
   - Przekierowują do `/login` przy braku autoryzacji
 
 **Zmienione funkcje:**
-- `fetchTenantTasks()`
+- `fetchSiteTasks()`
 - `createTask()`
 - `updateTask()`
 - `deleteTask()`
@@ -50,7 +50,7 @@ Przeprowadzono kompleksowy przegląd kodu źródłowego z naciskiem na:
   ```typescript
   let token: string | null = null;
   try {
-    token = await ensureTenantToken(tenantId);
+    token = await ensureSiteToken(siteId);
   } catch (error) {
     token = getAuthToken();
   }
@@ -80,10 +80,10 @@ Przeprowadzono kompleksowy przegląd kodu źródłowego z naciskiem na:
 
 **Status:** ⚠️ Wymaga uwagi
 
-**Opis:** Wiele innych funkcji API nadal używa starego wzorca `ensureTenantToken(tenantId).catch(() => getAuthToken())` bez obsługi błędów 401.
+**Opis:** Wiele innych funkcji API nadal używa starego wzorca `ensureSiteToken(siteId).catch(() => getAuthToken())` bez obsługi błędów 401.
 
 **Funkcje wymagające aktualizacji:**
-- `fetchTenantInvites()`
+- `fetchSiteInvites()`
 - `inviteUser()`
 - `revokeInvite()`
 - Wszystkie funkcje związane z Collections, Content Entries, Media, itp.

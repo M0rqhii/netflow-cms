@@ -81,7 +81,7 @@ async function main() {
   console.log('✅ Created organizations:', org1.slug, org2.slug);
   console.log('✅ Created sites:', site1.slug, site2.slug);
 
-  // Create users for tenant1
+  // Create users for org1
   // Note: In production, use bcrypt/argon2 for password hashing
   const passwordHash = hashPassword('password123');
 
@@ -98,7 +98,9 @@ async function main() {
       orgId: org1.id,
       email: 'admin@acme-corp.com',
       passwordHash,
-      role: 'tenant_admin',
+      role: 'org_admin',
+      siteRole: 'admin',
+      platformRole: 'admin',
     },
   });
 
@@ -116,6 +118,8 @@ async function main() {
       email: 'editor@acme-corp.com',
       passwordHash,
       role: 'editor',
+      siteRole: 'editor',
+      platformRole: 'user',
     },
   });
 
@@ -133,12 +137,23 @@ async function main() {
       email: 'viewer@acme-corp.com',
       passwordHash,
       role: 'viewer',
+      siteRole: 'viewer',
+      platformRole: 'user',
     },
   });
 
-  console.log('✅ Created users for tenant1:', adminUser.id, editorUser.id, viewerUser.id);
+  console.log('✅ Created users for org1:', adminUser.id, editorUser.id, viewerUser.id);
+  await prisma.userOrg.createMany({
+    data: [
+      { userId: adminUser.id, orgId: org1.id, role: adminUser.role },
+      { userId: editorUser.id, orgId: org1.id, role: editorUser.role },
+      { userId: viewerUser.id, orgId: org1.id, role: viewerUser.role },
+    ],
+    skipDuplicates: true,
+  });
 
-  // Create content type for tenant1
+
+  // Create content type for org1
   const articleContentType = await prisma.contentType.upsert({
     where: {
       siteId_slug: {
@@ -214,7 +229,7 @@ async function main() {
 
   console.log('✅ Created content entries:', article1.id, article2.id);
 
-  // Create collection for tenant1
+  // Create collection for org1
   const blogCollection = await prisma.collection.upsert({
     where: {
       siteId_slug: {
@@ -273,7 +288,7 @@ async function main() {
       data: {
         title: 'Getting Started with Netflow CMS',
         excerpt: 'Learn how to use Netflow CMS to manage your content.',
-        body: '<p>Netflow CMS is a powerful multi-tenant headless CMS...</p>',
+        body: '<p>Netflow CMS is a powerful multi-org headless CMS...</p>',
         tags: ['tutorial', 'getting-started'],
       },
       etag: 'etag-1',
@@ -303,7 +318,7 @@ async function main() {
 
   console.log('✅ Created collection items:', blogPost1.id, blogPost2.id);
 
-  // Create media files for tenant1
+  // Create media files for org1
   const mediaFile1 = await prisma.mediaItem.upsert({
     where: { id: '00000000-0000-0000-0000-000000000060' },
     update: {},
@@ -344,8 +359,8 @@ async function main() {
 
   console.log('✅ Created media files:', mediaFile1.id, mediaFile2.id);
 
-  // Create user for tenant2
-  const tenant2User = await prisma.user.upsert({
+  // Create user for org2
+  const org2User = await prisma.user.upsert({
     where: {
       orgId_email: {
         orgId: org2.id,
@@ -358,11 +373,20 @@ async function main() {
       orgId: org2.id,
       email: 'user@demo-company.com',
       passwordHash,
-      role: 'tenant_admin',
+      role: 'org_admin',
+      siteRole: 'admin',
+      platformRole: 'admin',
     },
   });
 
-  console.log('✅ Created user for tenant2:', tenant2User.id);
+  console.log('✅ Created user for org2:', org2User.id);
+  await prisma.userOrg.createMany({
+    data: [
+      { userId: org2User.id, orgId: org2.id, role: org2User.role },
+    ],
+    skipDuplicates: true,
+  });
+
 
   // ============================================
   // RBAC SEEDING - Capabilities, Roles, Policies
@@ -465,8 +489,8 @@ async function main() {
     });
   };
 
-  // Seed system roles for tenant1 (Acme Corp)
-  console.log('📋 Creating system roles for tenant1...');
+  // Seed system roles for org1 (Acme Corp)
+  console.log('📋 Creating system roles for org1...');
 
   // ORG scope roles
   const orgOwnerRole = await prisma.role.upsert({
@@ -838,9 +862,9 @@ async function main() {
     })),
   });
 
-  console.log('✅ Created system roles for tenant1');
+  console.log('✅ Created system roles for org1');
 
-  // Seed default OrgPolicy for tenant1
+  // Seed default OrgPolicy for org1
   // Most capabilities enabled by default, but risky ones disabled
   const riskyCapabilities = [
     'builder.rollback',
@@ -867,7 +891,7 @@ async function main() {
     });
   }
 
-  console.log('✅ Created org policies for tenant1');
+  console.log('✅ Created org policies for org1');
 
   // Assign Org Owner role to adminUser
   await prisma.userRole.upsert({
@@ -941,7 +965,7 @@ async function main() {
   console.log(`  - Media Files: 2`);
   console.log(`  - Capabilities: ${capabilities.size}`);
   console.log(`  - System Roles: 12 (3 ORG scope, 9 SITE scope)`);
-  console.log(`  - Org Policies: ${capabilities.size} (for tenant1)`);
+  console.log(`  - Org Policies: ${capabilities.size} (for org1)`);
   console.log('\n🔐 Default password for all users: password123');
   console.log('🔐 Super admin (liwiusz01@gmail.com) password: Liwia2015!');
 }

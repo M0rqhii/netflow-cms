@@ -21,7 +21,7 @@ export class UploadsController {
 
   /**
    * Serve uploaded file
-   * GET /api/v1/uploads/:tenantId/:folder?/:filename
+   * GET /api/v1/uploads/:siteId/:folder?/:filename
    */
   @Get('*')
   async serveFile(@Param('0') filePath: string, @Res() res: Response) {

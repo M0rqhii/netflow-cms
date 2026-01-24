@@ -116,8 +116,8 @@ export class StripeService {
       data: { plan },
     });
 
-    this.auditLogger.logTenantOperation(AuditEventType.TENANT_PLAN_CHANGED, {
-      tenantId: organization.id,
+    this.auditLogger.logOrgOperation(AuditEventType.ORG_PLAN_CHANGED, {
+      orgId: organization.id,
       changes: { plan },
     });
   }
@@ -151,8 +151,8 @@ export class StripeService {
       data: { plan: 'free' },
     });
 
-    this.auditLogger.logTenantOperation(AuditEventType.TENANT_PLAN_CHANGED, {
-      tenantId: subscription.orgId,
+    this.auditLogger.logOrgOperation(AuditEventType.ORG_PLAN_CHANGED, {
+      orgId: subscription.orgId,
       changes: { plan: 'free', reason: 'subscription_cancelled' },
     });
   }
@@ -253,12 +253,12 @@ export class StripeService {
   }
 
   /**
-   * Check if tenant subscription is active
+   * Check if organization subscription is active
    */
-  async isSubscriptionActive(tenantId: string): Promise<boolean> {
+  async isSubscriptionActive(orgId: string): Promise<boolean> {
     const subscription = await this.prisma.subscription.findFirst({
       where: {
-        orgId: tenantId,
+        orgId: orgId,
         status: { in: ['active', 'trialing'] },
       },
     });

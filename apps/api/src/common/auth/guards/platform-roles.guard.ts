@@ -9,8 +9,8 @@ import { PrismaService } from '../../prisma/prisma.service';
  * PlatformRolesGuard - checks if user has required platform role
  * AI Note: Use with @PlatformRoles() decorator: @PlatformRoles(PlatformRole.PLATFORM_ADMIN)
  * 
- * This guard is for platform-level endpoints (create tenants, manage users across tenants)
- * It checks the platformRole field in the JWT token, not the tenant role.
+ * This guard is for platform-level endpoints (create organizations, manage users across organizations)
+ * It checks the platformRole field in the JWT token, not the legacy role.
  * Fallback: If token doesn't have platformRole but user has super_admin role in DB, grant platform_admin access.
  */
 @Injectable()

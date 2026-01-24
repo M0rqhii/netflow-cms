@@ -3,36 +3,168 @@ import { Prisma, EnvironmentType } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { CreateSiteEnvironmentDto } from './dto';
 
+type SiteEnvironmentRow = {
+  id: string;
+  siteId: string;
+  type: EnvironmentType;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+type SiteEnvironmentTableInfo = {
+  table: 'site_environments' | 'site_environment';
+  siteColumn: string;
+  typeColumn: string;
+  createdColumn: string;
+  updatedColumn: string;
+};
+
 @Injectable()
 export class SiteEnvironmentsService {
   constructor(private readonly prisma: PrismaService) {}
+
+  private tableInfo?: SiteEnvironmentTableInfo;
 
   private mapType(type: string): EnvironmentType {
     return type === 'production' ? EnvironmentType.PRODUCTION : EnvironmentType.DRAFT;
   }
 
-  private async ensureDefaults(tenantId: string): Promise<void> {
-    const existing = await this.prisma.siteEnvironment.findMany({
-      where: { siteId: tenantId },
-      select: { type: true },
-    });
+  private quoteIdentifier(value: string): string {
+    return `"${value.replace(/"/g, '""')}"`;
+  }
+
+  private pickColumn(columns: Set<string>, candidates: string[]): string | undefined {
+    return candidates.find((candidate) => columns.has(candidate));
+  }
+
+  private async resolveTableInfo(): Promise<SiteEnvironmentTableInfo> {
+    if (this.tableInfo) return this.tableInfo;
+
+    const [row] = await this.prisma.$queryRaw<{
+      site_environments: string | null;
+      site_environment: string | null;
+    }[]>(
+      Prisma.sql`SELECT to_regclass('public.site_environments') as site_environments, to_regclass('public.site_environment') as site_environment`,
+    );
+
+    const table = row?.site_environments
+      ? 'site_environments'
+      : row?.site_environment
+        ? 'site_environment'
+        : null;
+
+    if (!table) {
+      throw new Error('Site environments table not found');
+    }
+
+    const columns = await this.prisma.$queryRaw<{ column_name: string }[]>(
+      Prisma.sql`SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = ${table}`,
+    );
+    const columnSet = new Set(columns.map((column) => column.column_name));
+
+    const siteColumn = this.pickColumn(
+      columnSet,
+      ['site_id', 'siteId'],
+    );
+    if (!siteColumn) {
+      throw new Error(`Site environment site column not found in ${table}`);
+    }
+    const typeColumn = this.pickColumn(columnSet, ['type', 'env']);
+    if (!typeColumn) {
+      throw new Error(`Site environment type column not found in ${table}`);
+    }
+
+    const createdColumn =
+      this.pickColumn(columnSet, ['created_at', 'createdAt']) || 'id';
+    const updatedColumn =
+      this.pickColumn(columnSet, ['updated_at', 'updatedAt']) || createdColumn;
+
+    this.tableInfo = {
+      table,
+      siteColumn,
+      typeColumn,
+      createdColumn,
+      updatedColumn,
+    };
+    return this.tableInfo;
+  }
+
+  private async listRows(siteId: string): Promise<SiteEnvironmentRow[]> {
+    const info = await this.resolveTableInfo();
+    return this.prisma.$queryRaw<SiteEnvironmentRow[]>(
+      Prisma.sql`
+        SELECT
+          id,
+          ${Prisma.raw(this.quoteIdentifier(info.siteColumn))} as "siteId",
+          ${Prisma.raw(this.quoteIdentifier(info.typeColumn))} as "type",
+          ${Prisma.raw(this.quoteIdentifier(info.createdColumn))} as "createdAt",
+          ${Prisma.raw(this.quoteIdentifier(info.updatedColumn))} as "updatedAt"
+        FROM ${Prisma.raw(this.quoteIdentifier(info.table))}
+        WHERE ${Prisma.raw(this.quoteIdentifier(info.siteColumn))} = ${siteId}
+        ORDER BY ${Prisma.raw(this.quoteIdentifier(info.createdColumn))} ASC
+      `,
+    );
+  }
+
+  private async findByType(
+    siteId: string,
+    type: EnvironmentType,
+  ): Promise<SiteEnvironmentRow | null> {
+    const info = await this.resolveTableInfo();
+    const rows = await this.prisma.$queryRaw<SiteEnvironmentRow[]>(
+      Prisma.sql`
+        SELECT
+          id,
+          ${Prisma.raw(this.quoteIdentifier(info.siteColumn))} as "siteId",
+          ${Prisma.raw(this.quoteIdentifier(info.typeColumn))} as "type",
+          ${Prisma.raw(this.quoteIdentifier(info.createdColumn))} as "createdAt",
+          ${Prisma.raw(this.quoteIdentifier(info.updatedColumn))} as "updatedAt"
+        FROM ${Prisma.raw(this.quoteIdentifier(info.table))}
+        WHERE ${Prisma.raw(this.quoteIdentifier(info.siteColumn))} = ${siteId}
+          AND ${Prisma.raw(this.quoteIdentifier(info.typeColumn))} = ${type}
+        LIMIT 1
+      `,
+    );
+    return rows[0] || null;
+  }
+
+  private async insertRow(
+    siteId: string,
+    type: EnvironmentType,
+  ): Promise<SiteEnvironmentRow> {
+    const info = await this.resolveTableInfo();
+    const rows = await this.prisma.$queryRaw<SiteEnvironmentRow[]>(
+      Prisma.sql`
+        INSERT INTO ${Prisma.raw(this.quoteIdentifier(info.table))} (
+          ${Prisma.raw(this.quoteIdentifier(info.siteColumn))},
+          ${Prisma.raw(this.quoteIdentifier(info.typeColumn))}
+        )
+        VALUES (${siteId}, ${type})
+        RETURNING
+          id,
+          ${Prisma.raw(this.quoteIdentifier(info.siteColumn))} as "siteId",
+          ${Prisma.raw(this.quoteIdentifier(info.typeColumn))} as "type",
+          ${Prisma.raw(this.quoteIdentifier(info.createdColumn))} as "createdAt",
+          ${Prisma.raw(this.quoteIdentifier(info.updatedColumn))} as "updatedAt"
+      `,
+    );
+    if (!rows[0]) {
+      throw new Error('Failed to create site environment');
+    }
+    return rows[0];
+  }
+
+  private async ensureDefaults(siteId: string): Promise<void> {
+    const existing = await this.listRows(siteId);
     const haveDraft = existing.some((env) => env.type === EnvironmentType.DRAFT);
     const haveProduction = existing.some((env) => env.type === EnvironmentType.PRODUCTION);
 
     const createOps: Promise<unknown>[] = [];
     if (!haveDraft) {
-      createOps.push(
-        this.prisma.siteEnvironment.create({
-          data: { siteId: tenantId, type: EnvironmentType.DRAFT },
-        }),
-      );
+      createOps.push(this.insertRow(siteId, EnvironmentType.DRAFT));
     }
     if (!haveProduction) {
-      createOps.push(
-        this.prisma.siteEnvironment.create({
-          data: { siteId: tenantId, type: EnvironmentType.PRODUCTION },
-        }),
-      );
+      createOps.push(this.insertRow(siteId, EnvironmentType.PRODUCTION));
     }
 
     if (createOps.length) {
@@ -40,46 +172,47 @@ export class SiteEnvironmentsService {
     }
   }
 
-  async list(tenantId: string) {
-    await this.ensureDefaults(tenantId);
-    return this.prisma.siteEnvironment.findMany({
-      where: { siteId: tenantId },
-      orderBy: { createdAt: 'asc' },
-    });
+  async list(siteId: string) {
+    await this.ensureDefaults(siteId);
+    return this.listRows(siteId);
   }
 
-  async create(tenantId: string, dto: CreateSiteEnvironmentDto) {
+  async create(siteId: string, dto: CreateSiteEnvironmentDto) {
     const type = this.mapType(dto.type);
-    try {
-      return await this.prisma.siteEnvironment.create({
-        data: { siteId: tenantId, type },
-      });
-    } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-        throw new ConflictException(`Environment '${dto.type}' already exists for this site.`);
-      }
-      throw error;
+    const existing = await this.findByType(siteId, type);
+    if (existing) {
+      throw new ConflictException(`Environment '${dto.type}' already exists for this site.`);
     }
+    return this.insertRow(siteId, type);
   }
 
-  async getById(tenantId: string, environmentId: string) {
-    const env = await this.prisma.siteEnvironment.findFirst({
-      where: { id: environmentId, siteId: tenantId },
-    });
+  async getById(siteId: string, environmentId: string) {
+    const info = await this.resolveTableInfo();
+    const rows = await this.prisma.$queryRaw<SiteEnvironmentRow[]>(
+      Prisma.sql`
+        SELECT
+          id,
+          ${Prisma.raw(this.quoteIdentifier(info.siteColumn))} as "siteId",
+          ${Prisma.raw(this.quoteIdentifier(info.typeColumn))} as "type",
+          ${Prisma.raw(this.quoteIdentifier(info.createdColumn))} as "createdAt",
+          ${Prisma.raw(this.quoteIdentifier(info.updatedColumn))} as "updatedAt"
+        FROM ${Prisma.raw(this.quoteIdentifier(info.table))}
+        WHERE id = ${environmentId}
+          AND ${Prisma.raw(this.quoteIdentifier(info.siteColumn))} = ${siteId}
+        LIMIT 1
+      `,
+    );
+    const env = rows[0];
     if (!env) {
       throw new NotFoundException('Environment not found for this site');
     }
     return env;
   }
 
-  async getByTypeOrCreate(tenantId: string, type: EnvironmentType) {
-    const env = await this.prisma.siteEnvironment.findFirst({
-      where: { siteId: tenantId, type },
-    });
+  async getByTypeOrCreate(siteId: string, type: EnvironmentType) {
+    const env = await this.findByType(siteId, type);
     if (env) return env;
 
-    return this.prisma.siteEnvironment.create({
-      data: { siteId: tenantId, type },
-    });
+    return this.insertRow(siteId, type);
   }
 }

@@ -12,7 +12,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { AuthGuard } from '../../common/auth/guards/auth.guard';
-import { TenantGuard } from '../../common/tenant/tenant.guard';
+import { OrgGuard } from '../../common/org-site/org.guard';
 import { CapabilityGuard } from '../../common/auth/guards/capability.guard';
 import { Capabilities } from '../../common/auth/decorators/capabilities.decorator';
 import { CurrentOrg } from '../../common/decorators/current-org.decorator';
@@ -65,7 +65,7 @@ export class MarketingController {
    * GET /marketing/campaigns
    */
   @Get('campaigns')
-  @UseGuards(AuthGuard, TenantGuard, CapabilityGuard)
+  @UseGuards(AuthGuard, OrgGuard, CapabilityGuard)
   @Capabilities('marketing.view')
   async listCampaigns(
     @CurrentOrg() orgId: string,
@@ -79,7 +79,7 @@ export class MarketingController {
    * GET /marketing/campaigns/:id
    */
   @Get('campaigns/:id')
-  @UseGuards(AuthGuard, TenantGuard, CapabilityGuard)
+  @UseGuards(AuthGuard, OrgGuard, CapabilityGuard)
   @Capabilities('marketing.view')
   async getCampaign(
     @CurrentOrg() orgId: string,
@@ -93,7 +93,7 @@ export class MarketingController {
    * POST /marketing/campaigns
    */
   @Post('campaigns')
-  @UseGuards(AuthGuard, TenantGuard, CapabilityGuard)
+  @UseGuards(AuthGuard, OrgGuard, CapabilityGuard)
   @Capabilities('marketing.campaign.manage')
   async createCampaign(
     @CurrentOrg() orgId: string,
@@ -108,7 +108,7 @@ export class MarketingController {
    * PATCH /marketing/campaigns/:id
    */
   @Patch('campaigns/:id')
-  @UseGuards(AuthGuard, TenantGuard, CapabilityGuard)
+  @UseGuards(AuthGuard, OrgGuard, CapabilityGuard)
   @Capabilities('marketing.campaign.manage')
   async updateCampaign(
     @CurrentOrg() orgId: string,
@@ -123,7 +123,7 @@ export class MarketingController {
    * DELETE /marketing/campaigns/:id
    */
   @Delete('campaigns/:id')
-  @UseGuards(AuthGuard, TenantGuard, CapabilityGuard)
+  @UseGuards(AuthGuard, OrgGuard, CapabilityGuard)
   @Capabilities('marketing.campaign.manage')
   @HttpCode(HttpStatus.OK)
   async deleteCampaign(
@@ -142,7 +142,7 @@ export class MarketingController {
    * GET /marketing/drafts
    */
   @Get('drafts')
-  @UseGuards(AuthGuard, TenantGuard, CapabilityGuard)
+  @UseGuards(AuthGuard, OrgGuard, CapabilityGuard)
   @Capabilities('marketing.view')
   async listDrafts(
     @CurrentOrg() orgId: string,
@@ -156,7 +156,7 @@ export class MarketingController {
    * GET /marketing/drafts/:id
    */
   @Get('drafts/:id')
-  @UseGuards(AuthGuard, TenantGuard, CapabilityGuard)
+  @UseGuards(AuthGuard, OrgGuard, CapabilityGuard)
   @Capabilities('marketing.view')
   async getDraft(
     @CurrentOrg() orgId: string,
@@ -170,7 +170,7 @@ export class MarketingController {
    * POST /marketing/drafts
    */
   @Post('drafts')
-  @UseGuards(AuthGuard, TenantGuard, CapabilityGuard)
+  @UseGuards(AuthGuard, OrgGuard, CapabilityGuard)
   @Capabilities('marketing.content.edit')
   async createDraft(
     @CurrentOrg() orgId: string,
@@ -185,7 +185,7 @@ export class MarketingController {
    * PATCH /marketing/drafts/:id
    */
   @Patch('drafts/:id')
-  @UseGuards(AuthGuard, TenantGuard, CapabilityGuard)
+  @UseGuards(AuthGuard, OrgGuard, CapabilityGuard)
   @Capabilities('marketing.content.edit')
   async updateDraft(
     @CurrentOrg() orgId: string,
@@ -200,7 +200,7 @@ export class MarketingController {
    * DELETE /marketing/drafts/:id
    */
   @Delete('drafts/:id')
-  @UseGuards(AuthGuard, TenantGuard, CapabilityGuard)
+  @UseGuards(AuthGuard, OrgGuard, CapabilityGuard)
   @Capabilities('marketing.content.edit')
   @HttpCode(HttpStatus.OK)
   async deleteDraft(
@@ -224,7 +224,7 @@ export class MarketingController {
    * - site + social + ads: strona + social + ads (jeśli policy włączone)
    */
   @Post('publish')
-  @UseGuards(AuthGuard, TenantGuard, CapabilityGuard)
+  @UseGuards(AuthGuard, OrgGuard, CapabilityGuard)
   @Capabilities('marketing.publish')
   async publish(
     @CurrentOrg() orgId: string,
@@ -239,7 +239,7 @@ export class MarketingController {
    * GET /marketing/jobs
    */
   @Get('jobs')
-  @UseGuards(AuthGuard, TenantGuard, CapabilityGuard)
+  @UseGuards(AuthGuard, OrgGuard, CapabilityGuard)
   @Capabilities('marketing.view')
   async listPublishJobs(
     @CurrentOrg() orgId: string,
@@ -253,7 +253,7 @@ export class MarketingController {
    * GET /marketing/jobs/:id
    */
   @Get('jobs/:id')
-  @UseGuards(AuthGuard, TenantGuard, CapabilityGuard)
+  @UseGuards(AuthGuard, OrgGuard, CapabilityGuard)
   @Capabilities('marketing.view')
   async getPublishJob(
     @CurrentOrg() orgId: string,
@@ -271,7 +271,7 @@ export class MarketingController {
    * GET /marketing/channels
    */
   @Get('channels')
-  @UseGuards(AuthGuard, TenantGuard, CapabilityGuard)
+  @UseGuards(AuthGuard, OrgGuard, CapabilityGuard)
   @Capabilities('marketing.view')
   async listChannelConnections(
     @CurrentOrg() orgId: string,
@@ -285,7 +285,7 @@ export class MarketingController {
    * GET /marketing/channels/:id
    */
   @Get('channels/:id')
-  @UseGuards(AuthGuard, TenantGuard, CapabilityGuard)
+  @UseGuards(AuthGuard, OrgGuard, CapabilityGuard)
   @Capabilities('marketing.view')
   async getChannelConnection(
     @CurrentOrg() orgId: string,
@@ -301,7 +301,7 @@ export class MarketingController {
    * Wymaga: marketing.social.connect (tylko Admin modułu / Owner)
    */
   @Post('channels')
-  @UseGuards(AuthGuard, TenantGuard, CapabilityGuard)
+  @UseGuards(AuthGuard, OrgGuard, CapabilityGuard)
   @Capabilities('marketing.social.connect')
   async createChannelConnection(
     @CurrentOrg() orgId: string,
@@ -316,7 +316,7 @@ export class MarketingController {
    * PATCH /marketing/channels/:id
    */
   @Patch('channels/:id')
-  @UseGuards(AuthGuard, TenantGuard, CapabilityGuard)
+  @UseGuards(AuthGuard, OrgGuard, CapabilityGuard)
   @Capabilities('marketing.social.connect')
   async updateChannelConnection(
     @CurrentOrg() orgId: string,
@@ -331,7 +331,7 @@ export class MarketingController {
    * DELETE /marketing/channels/:id
    */
   @Delete('channels/:id')
-  @UseGuards(AuthGuard, TenantGuard, CapabilityGuard)
+  @UseGuards(AuthGuard, OrgGuard, CapabilityGuard)
   @Capabilities('marketing.social.connect')
   @HttpCode(HttpStatus.OK)
   async deleteChannelConnection(

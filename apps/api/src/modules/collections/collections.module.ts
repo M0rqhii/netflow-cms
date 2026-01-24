@@ -3,7 +3,6 @@ import { CacheModule } from '@nestjs/cache-manager';
 import { redisStore } from 'cache-manager-redis-yet';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { PrismaOptimizationService } from '../../common/prisma/prisma-optimization.service';
-import { TenantModule } from '../../common/tenant/tenant.module';
 import { AuthModule } from '../../common/auth/auth.module';
 import { WorkflowModule } from '../workflow/workflow.module';
 import { ContentVersioningModule } from '../content-versioning/content-versioning.module';
@@ -20,7 +19,6 @@ import { CollectionItemsService } from './services/items.service';
  */
 @Module({
   imports: [
-    TenantModule,
     AuthModule,
     WorkflowModule,
     forwardRef(() => ContentVersioningModule),
@@ -29,6 +27,10 @@ import { CollectionItemsService } from './services/items.service';
     CacheModule.registerAsync({
       isGlobal: false,
       useFactory: async () => {
+        const disableRedis = process.env.REDIS_DISABLED === '1' || process.env.NODE_ENV === 'test';
+        if (disableRedis) {
+          return { ttl: 30 };
+        }
         const host = process.env.REDIS_HOST ?? 'localhost';
         const port = process.env.REDIS_PORT ?? '6379';
         const url = process.env.REDIS_URL ?? `redis://${host}:${port}`;

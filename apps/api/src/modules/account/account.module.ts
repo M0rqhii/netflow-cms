@@ -6,7 +6,7 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 
 /**
  * AccountModule - Account management module
- * AI Note: Provides account endpoints without tenant context
+ * AI Note: Provides account endpoints without org/site context
  */
 @Module({
   imports: [AuthModule],

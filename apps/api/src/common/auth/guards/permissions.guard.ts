@@ -91,8 +91,8 @@ export class PermissionsGuard implements CanActivate {
       return true;
     }
     
-    const hasTenantPermission = hasAnyPermission(userRole, requiredPermissions);
-    if (hasTenantPermission) {
+    const hasLegacyPermission = hasAnyPermission(userRole, requiredPermissions);
+    if (hasLegacyPermission) {
       return true;
     }
 

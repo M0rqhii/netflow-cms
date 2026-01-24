@@ -17,7 +17,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthGuard } from '../../common/auth/guards/auth.guard';
-import { TenantGuard } from '../../common/tenant/tenant.guard';
+import { SiteGuard } from '../../common/org-site/site.guard';
 import { RolesGuard } from '../../common/auth/guards/roles.guard';
 import { PermissionsGuard } from '../../common/auth/guards/permissions.guard';
 import { Roles } from '../../common/auth/decorators/roles.decorator';
@@ -29,11 +29,18 @@ import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 import { uploadMediaSchema, queryMediaSchema } from './dto';
 import { Request } from 'express';
 
+type UploadedFile = {
+  buffer: Buffer;
+  originalname: string;
+  mimetype: string;
+  size: number;
+};
+
 /**
  * Media Controller - RESTful API for media file management
- * AI Note: All endpoints require authentication and tenant context
+ * AI Note: All endpoints require authentication and site context
  */
-@UseGuards(AuthGuard, TenantGuard, RolesGuard, PermissionsGuard)
+@UseGuards(AuthGuard, SiteGuard, RolesGuard, PermissionsGuard)
 @Controller('media')
 export class MediaController {
   constructor(private readonly mediaService: MediaService) {}
@@ -43,7 +50,7 @@ export class MediaController {
    * Upload a media file
    */
   @Post()
-  @Roles(Role.EDITOR, Role.TENANT_ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.EDITOR, Role.ORG_ADMIN, Role.SUPER_ADMIN)
   @Permissions(Permission.MEDIA_WRITE)
   @UseInterceptors(FileInterceptor('file'))
   async upload(
@@ -56,12 +63,12 @@ export class MediaController {
         ],
       }),
     )
-    file: Express.Multer.File,
+    file: UploadedFile,
     @Body(new ZodValidationPipe(uploadMediaSchema))
     body: any,
-    @Req() req: Request & { tenantId: string },
+    @Req() req: Request & { siteId: string },
   ) {
-    return this.mediaService.upload(req.tenantId, user.id, file, body);
+    return this.mediaService.upload(req.siteId, user.id, file, body);
   }
 
   /**
@@ -73,9 +80,9 @@ export class MediaController {
   async findAll(
     @Query(new ZodValidationPipe(queryMediaSchema))
     query: any,
-    @Req() req: Request & { tenantId: string },
+    @Req() req: Request & { siteId: string },
   ) {
-    return this.mediaService.findAll(req.tenantId, query);
+    return this.mediaService.findAll(req.siteId, query);
   }
 
   /**
@@ -84,8 +91,8 @@ export class MediaController {
    */
   @Get('stats')
   @Permissions(Permission.MEDIA_READ)
-  async getStats(@Req() req: Request & { tenantId: string }) {
-    return this.mediaService.getLibraryStats(req.tenantId);
+  async getStats(@Req() req: Request & { siteId: string }) {
+    return this.mediaService.getLibraryStats(req.siteId);
   }
 
   /**
@@ -96,9 +103,9 @@ export class MediaController {
   @Permissions(Permission.MEDIA_READ)
   async findOne(
     @Param('id') id: string,
-    @Req() req: Request & { tenantId: string },
+    @Req() req: Request & { siteId: string },
   ) {
-    return this.mediaService.findOne(req.tenantId, id);
+    return this.mediaService.findOne(req.siteId, id);
   }
 
   /**
@@ -106,14 +113,14 @@ export class MediaController {
    * Update a media file
    */
   @Put(':id')
-  @Roles(Role.EDITOR, Role.TENANT_ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.EDITOR, Role.ORG_ADMIN, Role.SUPER_ADMIN)
   @Permissions(Permission.MEDIA_WRITE)
   async update(
     @Param('id') id: string,
     @Body() body: { filename?: string; alt?: string; metadata?: Record<string, any> },
-    @Req() req: Request & { tenantId: string },
+    @Req() req: Request & { siteId: string },
   ) {
-    return this.mediaService.update(req.tenantId, id, body);
+    return this.mediaService.update(req.siteId, id, body);
   }
 
   /**
@@ -121,13 +128,13 @@ export class MediaController {
    * Delete a media file
    */
   @Delete(':id')
-  @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.ORG_ADMIN, Role.SUPER_ADMIN)
   @Permissions(Permission.MEDIA_DELETE)
   async remove(
     @Param('id') id: string,
-    @Req() req: Request & { tenantId: string },
+    @Req() req: Request & { siteId: string },
     @CurrentUser() user: CurrentUserPayload,
   ) {
-    return this.mediaService.remove(req.tenantId, id, user?.id);
+    return this.mediaService.remove(req.siteId, id, user?.id);
   }
 }

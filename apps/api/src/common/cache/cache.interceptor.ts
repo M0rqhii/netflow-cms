@@ -73,9 +73,9 @@ export class CacheInterceptor implements NestInterceptor {
     const className = controller.name;
     const params = JSON.stringify(request.params || {});
     const query = JSON.stringify(request.query || {});
-    const tenantId = request.tenantId || 'global';
+    const scopeId = request.siteId || request.orgId || 'global';
 
-    return `${className}:${methodName}:${tenantId}:${params}:${query}`;
+    return `${className}:${methodName}:${scopeId}:${params}:${query}`;
   }
 }
 

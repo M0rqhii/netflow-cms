@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ExecutionContext } from '@nestjs/common';
+import { ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { RolesGuard } from './roles.guard';
 import { Role } from '../roles.enum';
@@ -56,15 +56,15 @@ describe('RolesGuard', () => {
 
     it('should allow access if user has super_admin role', () => {
       const context = createMockContext(Role.SUPER_ADMIN, [
-        Role.TENANT_ADMIN,
+        Role.ORG_ADMIN,
         Role.EDITOR,
       ]);
       expect(guard.canActivate(context)).toBe(true);
     });
 
     it('should allow access if user role is in required roles', () => {
-      const context = createMockContext(Role.TENANT_ADMIN, [
-        Role.TENANT_ADMIN,
+      const context = createMockContext(Role.ORG_ADMIN, [
+        Role.ORG_ADMIN,
         Role.EDITOR,
       ]);
       expect(guard.canActivate(context)).toBe(true);
@@ -72,15 +72,15 @@ describe('RolesGuard', () => {
 
     it('should deny access if user role is not in required roles', () => {
       const context = createMockContext(Role.VIEWER, [
-        Role.TENANT_ADMIN,
+        Role.ORG_ADMIN,
         Role.EDITOR,
       ]);
-      expect(guard.canActivate(context)).toBe(false);
+      expect(() => guard.canActivate(context)).toThrow(ForbiddenException);
     });
 
     it('should deny access if user is not authenticated', () => {
-      const context = createMockContext(undefined, [Role.TENANT_ADMIN]);
-      expect(guard.canActivate(context)).toBe(false);
+      const context = createMockContext(undefined, [Role.ORG_ADMIN]);
+      expect(() => guard.canActivate(context)).toThrow(ForbiddenException);
     });
   });
 });

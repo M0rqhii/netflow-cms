@@ -1,31 +1,21 @@
 // TypeScript SDK for API
 // Lightweight browser-friendly API client
 
-export type TenantInfo = {
-  tenantId: string;
+export type OrgInfo = {
+  orgId: string;
   role: string;
-  tenant: { id: string; name: string; slug: string; plan: string };
+  org: { id: string; name: string; slug: string; plan: string };
 };
 
-// Alias for better naming - site instead of tenant
 export type SiteInfo = {
   siteId: string;
   role: string;
   site: { id: string; name: string; slug: string; plan: string };
 };
 
-// Helper function to convert TenantInfo to SiteInfo
-export function toSiteInfo(tenantInfo: TenantInfo): SiteInfo {
-  return {
-    siteId: tenantInfo.tenantId,
-    role: tenantInfo.role,
-    site: tenantInfo.tenant,
-  };
-}
-
 export type MediaItem = {
   id: string;
-  tenantId: string;
+  siteId: string;
   filename: string;
   url: string;
   mimeType: string;
@@ -41,7 +31,7 @@ export type PageStatus = 'draft' | 'published' | 'archived';
 
 export type SiteEnvironment = {
   id: string;
-  tenantId: string;
+  siteId: string;
   type: EnvironmentType;
   createdAt: string;
   updatedAt: string;
@@ -49,7 +39,7 @@ export type SiteEnvironment = {
 
 export type SitePage = {
   id: string;
-  tenantId: string;
+  siteId: string;
   environmentId: string;
   slug: string;
   title: string;
@@ -120,7 +110,7 @@ export class ApiClient {
               if (k) keys.push(k);
             }
             keys.forEach((k) => {
-              if (k === 'authToken' || k.startsWith('tenantToken:')) {
+              if (k === 'authToken' || k.startsWith('siteToken:')) {
                 localStorage.removeItem(k);
               }
             });
@@ -171,35 +161,48 @@ export class ApiClient {
     }
   }
 
-  async getMyTenants(token: string): Promise<TenantInfo[]> {
-    return this.request<TenantInfo[]>(`/auth/me/tenants`, {
+  async getMyOrgs(token: string): Promise<OrgInfo[]> {
+    return this.request<OrgInfo[]>(`/auth/me/orgs`, {
       method: 'GET',
       headers: { Authorization: `Bearer ${token}` },
     });
   }
 
-  // Alias for better naming - site instead of tenant
   async getMySites(token: string): Promise<SiteInfo[]> {
-    return this.getMyTenants(token);
+    // Use new /sites endpoint which returns SiteInfo[] format
+    const sites = await this.request<SiteInfo[]>(`/sites`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return sites;
   }
 
-  async issueTenantToken(token: string, tenantId: string): Promise<{ access_token: string }> {
-    return this.request<{ access_token: string }>(`/auth/tenant-token`, {
+  async issueOrgToken(token: string, orgId: string): Promise<{ access_token: string }> {
+    return this.request<{ access_token: string }>(`/auth/org-token`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ tenantId }),
+      body: JSON.stringify({ orgId }),
     });
   }
 
-  async login(tenantId: string | undefined, email: string, password: string): Promise<{ access_token: string; user: unknown }> {
+  async issueSiteToken(token: string, siteId: string): Promise<{ access_token: string }> {
+    // Use dedicated site-token endpoint for site-scoped tokens
+    return this.request<{ access_token: string }>(`/auth/site-token`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ siteId }),
+    });
+  }
+
+  async login(orgId: string | undefined, email: string, password: string): Promise<{ access_token: string; user: unknown }> {
     return this.request(`/auth/login`, {
       method: 'POST',
-      body: JSON.stringify({ ...(tenantId ? { tenantId } : {}), email, password }),
+      body: JSON.stringify({ ...(orgId ? { orgId } : {}), email, password }),
     });
   }
 
-  async resolveTenant(token: string, slug: string): Promise<{ id: string; name: string; slug: string; plan: string }> {
-    return this.request(`/auth/resolve-tenant/${encodeURIComponent(slug)}`, {
+  async resolveOrg(token: string, slug: string): Promise<{ id: string; name: string; slug: string; plan: string }> {
+    return this.request(`/auth/resolve-org/${encodeURIComponent(slug)}`, {
       method: 'GET',
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -239,19 +242,8 @@ export class ApiClient {
     });
   }
 
-  async getTenantSubscription(token: string, tenantId: string): Promise<any> {
-    return this.request<any>(`/tenants/${encodeURIComponent(tenantId)}/subscription`, {
-      method: 'GET',
-      headers: { Authorization: `Bearer ${token}` },
-    });
-  }
-
-  async getTenantInvoices(token: string, tenantId: string, page?: number, pageSize?: number): Promise<{ invoices: any[]; pagination: any }> {
-    const params = new URLSearchParams();
-    if (page) params.append('page', page.toString());
-    if (pageSize) params.append('pageSize', pageSize.toString());
-    const query = params.toString() ? `?${params.toString()}` : '';
-    return this.request<{ invoices: any[]; pagination: any }>(`/tenants/${encodeURIComponent(tenantId)}/invoices${query}`, {
+  async getSubscriptionStatus(token: string): Promise<{ status: string; plan: string; currentPeriodEnd?: string }> {
+    return this.request(`/billing/subscription/status`, {
       method: 'GET',
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -331,8 +323,8 @@ export class ApiClient {
   async getDevPayments(token: string): Promise<
     Array<{
       id: string;
-      tenantId: string;
-      plan: string;
+      orgId: string;
+      plan?: string;
       status: string;
       currentPeriodStart?: string;
       currentPeriodEnd?: string;
@@ -441,28 +433,28 @@ export class ApiClient {
 
   async getMyBillingInfo(token: string): Promise<{
     userId: string;
-    sites: Array<{
-      siteId: string;
-      siteName: string;
-      siteSlug: string;
+    organizations: Array<{
+      orgId: string;
+      orgName: string;
+      orgSlug: string;
       plan: string;
       status: string;
       renewalDate: string | null;
       role: string;
     }>;
-    totalSites: number;
+    totalOrgs: number;
     subscriptions: Array<{
       id: string;
-      tenantId: string;
+      orgId: string;
       plan: string;
       status: string;
       currentPeriodStart: string | null;
       currentPeriodEnd: string | null;
-      tenant?: { id: string; name: string; slug: string };
+      organization?: { id: string; name: string; slug: string };
     }>;
     invoices: Array<{
       id: string;
-      tenantId: string;
+      orgId: string;
       subscriptionId: string;
       invoiceNumber: string;
       amount: number;
@@ -470,7 +462,7 @@ export class ApiClient {
       status: string;
       createdAt: string;
       paidAt: string | null;
-      tenant?: { id: string; name: string; slug: string };
+      organization?: { id: string; name: string; slug: string };
       subscription?: { id: string; plan: string; status: string };
     }>;
   }> {

@@ -39,12 +39,12 @@ Dokumentacja roadmap dla implementacji metryk używając Prometheus i Grafana. O
 - `auth_login_success_total` - Successful logins (counter)
 - `auth_login_failure_total` - Failed logins (counter)
 - `auth_logout_total` - Total logouts (counter)
-- `auth_token_exchange_total` - Tenant token exchanges (counter)
+- `auth_token_exchange_total` - Site token exchanges (counter)
 
 **Labels:**
-- `tenant_id` (optional)
+- `site_id` (optional)
 - `platform_role`
-- `tenant_role`
+- `site_role`
 
 **Status:** ⏳ Roadmap
 
@@ -52,27 +52,27 @@ Dokumentacja roadmap dla implementacji metryk używając Prometheus i Grafana. O
 
 **Metryki:**
 - `hub_access_total` - Hub access count (counter)
-- `hub_tenants_count` - Average tenants per user (gauge)
+- `hub_sites_count` - Average sites per user (gauge)
 - `hub_active_users` - Active users in Hub (gauge)
 
 **Labels:**
 - `user_id`
-- `tenant_count`
+- `site_count`
 
 **Status:** ⏳ Roadmap
 
-### 2.3 Tenant Switch Metrics
+### 2.3 Site Switch Metrics
 
 **Metryki:**
-- `tenant_switch_total` - Tenant switches (counter)
-- `tenant_switch_duration_seconds` - Time to switch tenant (histogram)
-- `tenant_cms_access_total` - Tenant CMS access (counter)
+- `site_switch_total` - Site switches (counter)
+- `site_switch_duration_seconds` - Time to switch site (histogram)
+- `site_cms_access_total` - Site CMS access (counter)
 
 **Labels:**
-- `tenant_id`
+- `site_id`
 - `user_id`
-- `from_tenant_id` (optional)
-- `to_tenant_id`
+- `from_site_id` (optional)
+- `to_site_id`
 
 **Status:** ⏳ Roadmap
 
@@ -84,7 +84,7 @@ Dokumentacja roadmap dla implementacji metryk używając Prometheus i Grafana. O
 
 **Labels:**
 - `user_id`
-- `tenant_id` (optional)
+- `site_id` (optional)
 - `from_role`
 - `to_role`
 - `changed_by`
@@ -103,7 +103,7 @@ Dokumentacja roadmap dla implementacji metryk używając Prometheus i Grafana. O
 - `method`
 - `route`
 - `status_code`
-- `tenant_id` (optional)
+- `site_id` (optional)
 
 **Status:** ⏳ Roadmap
 
@@ -131,11 +131,11 @@ GET /metrics
 ```
 # HELP auth_login_total Total login attempts
 # TYPE auth_login_total counter
-auth_login_total{tenant_id="...",platform_role="user"} 42
+auth_login_total{site_id="...",platform_role="user"} 42
 
 # HELP hub_access_total Hub access count
 # TYPE hub_access_total counter
-hub_access_total{user_id="...",tenant_count="3"} 10
+hub_access_total{user_id="...",site_count="3"} 10
 ```
 
 **Status:** ⏳ Roadmap
@@ -154,13 +154,13 @@ export class MetricsService {
   private readonly authLoginTotal = new promClient.Counter({
     name: 'auth_login_total',
     help: 'Total login attempts',
-    labelNames: ['tenant_id', 'platform_role'],
+    labelNames: ['site_id', 'platform_role'],
   });
 
   private readonly hubAccessTotal = new promClient.Counter({
     name: 'hub_access_total',
     help: 'Hub access count',
-    labelNames: ['user_id', 'tenant_count'],
+    labelNames: ['user_id', 'site_count'],
   });
 
   // ... more metrics
@@ -187,19 +187,19 @@ export class MetricsService {
 
 **Panels:**
 - Hub access over time
-- Average tenants per user
+- Average sites per user
 - Active users in Hub
-- Tenant distribution
+- Site distribution
 
 **Status:** ⏳ Roadmap
 
-### 4.3 Dashboard: Tenant Operations
+### 4.3 Dashboard: Site Operations
 
 **Panels:**
-- Tenant switches over time
-- Tenant switch duration
-- Tenant CMS access
-- Most active tenants
+- Site switches over time
+- Site switch duration
+- Site CMS access
+- Most active sites
 
 **Status:** ⏳ Roadmap
 

@@ -1,7 +1,6 @@
 import {
   Controller,
   UseGuards,
-  UseInterceptors,
   Get,
   Post,
   Put,
@@ -22,17 +21,14 @@ import { Roles } from '../../../common/auth/decorators/roles.decorator';
 import { Permissions } from '../../../common/auth/decorators/permissions.decorator';
 import { CurrentSite } from '../../../common/decorators/current-site.decorator';
 import { CurrentUser } from '../../../common/auth/decorators/current-user.decorator';
-import { ETagInterceptor } from '../../../common/interceptors/etag.interceptor';
 import { Role, Permission } from '../../../common/auth/roles.enum';
 import { CollectionItemsService } from '../services/items.service';
 import { ItemQueryDtoSchema, UpsertItemDtoSchema } from '../dto';
-
 /**
  * CollectionItemsController - RESTful API dla Collection Items
  * AI Note: Wszystkie endpointy wymagają autentykacji i X-Site-ID header
  */
 @UseGuards(AuthGuard, RolesGuard, PermissionsGuard)
-@UseInterceptors(ETagInterceptor)
 @Controller('collections/:slug/items')
 export class CollectionItemsController {
   constructor(private readonly itemsService: CollectionItemsService) {}
@@ -76,7 +72,8 @@ export class CollectionItemsController {
       return res.status(HttpStatus.NOT_MODIFIED).send();
     }
 
-    return item;
+    res.setHeader('ETag', item.etag);
+    return res.status(HttpStatus.OK).json(item);
   }
 
   @Put(':id')
@@ -94,7 +91,7 @@ export class CollectionItemsController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
-  @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.ORG_ADMIN, Role.SUPER_ADMIN)
   @Permissions(Permission.ITEMS_DELETE)
   remove(
     @CurrentSite() siteId: string,
@@ -104,4 +101,9 @@ export class CollectionItemsController {
     return this.itemsService.remove(siteId, slug, id);
   }
 }
+
+
+
+
+
 

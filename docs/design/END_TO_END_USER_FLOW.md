@@ -49,7 +49,7 @@ Każdy krok zawiera:
 - **Backend:** `POST /api/v1/auth/login`
   - Weryfikacja credentials
   - Sprawdzenie czy użytkownik należy do organizacji
-  - Generowanie JWT token (globalny, bez tenantId jeśli użytkownik ma wiele organizacji)
+  - Generowanie JWT token (globalny, bez siteId jeśli użytkownik ma wiele organizacji)
   - Zwrócenie: `{ access_token, refresh_token, user }`
 - **Frontend:**
   - Zapisanie tokenu w localStorage: `authToken`
@@ -62,7 +62,7 @@ Każdy krok zawiera:
 
 ### Różnice Owner vs Editor
 - **Brak różnic** - logowanie działa identycznie dla wszystkich ról
-- **Owner** może mieć dostęp do wielu organizacji (multi-tenant)
+- **Owner** może mieć dostęp do wielu organizacji (org/site)
 - **Editor** zwykle ma dostęp do jednej organizacji
 
 ### Potencjalne problemy UX
@@ -175,7 +175,7 @@ Każdy krok zawiera:
 ### Efekt
 - **Backend:** `POST /api/v1/orgs/{orgId}/sites`
   - Weryfikacja RBAC: `org.sites.create` (Owner/Org Admin)
-  - Utworzenie nowego Tenant (site) w bazie
+  - Utworzenie nowego Site (site) w bazie
   - Utworzenie domyślnej struktury (jeśli wybrano)
   - Utworzenie domyślnej strony głównej (jeśli wybrano)
   - Przypisanie Owner jako Site Admin dla nowej strony
@@ -244,12 +244,12 @@ Każdy krok zawiera:
   - `builder.view` - wymagane do wejścia do buildera
   - `builder.edit` - wymagane do edycji
 - **Frontend:**
-  - Przekierowanie do `/sites/[slug]/builder` lub `/tenant/[slug]/builder`
+  - Przekierowanie do `/sites/[slug]/builder` lub `/site/[slug]/builder`
   - Załadowanie Page Buildera
   - Załadowanie struktury strony (komponenty, layout)
 
 ### Powrót
-- **Sukces:** Przekierowanie do Page Buildera (`/sites/[slug]/builder` lub `/tenant/[slug]/builder`)
+- **Sukces:** Przekierowanie do Page Buildera (`/sites/[slug]/builder` lub `/site/[slug]/builder`)
 - **Brak uprawnień:** 403 Forbidden, komunikat: "Nie masz uprawnień do edycji tej strony"
 
 ### Różnice Owner vs Editor

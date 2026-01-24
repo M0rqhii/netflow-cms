@@ -414,7 +414,7 @@ export class RbacService {
             },
           },
         },
-        // UserRole doesn't have tenant relation, use orgId from role
+        // UserRole doesn't have organization relation, use orgId from role
       },
       orderBy: { createdAt: 'desc' },
     });

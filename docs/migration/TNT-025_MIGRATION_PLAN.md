@@ -8,29 +8,29 @@
 
 ## Summary
 
-Plan migracji do modelu `UserTenant` bez przestojów. Zapewnia bezpieczne przejście z legacy single-tenant modelu do multi-tenant modelu z zachowaniem pełnej zgodności wstecznej.
+Plan migracji do modelu `UserSite` bez przestojów. Zapewnia bezpieczne przejście z legacy single-site modelu do org/site modelu z zachowaniem pełnej zgodności wstecznej.
 
 ---
 
 ## 1. Migracje i Backfill
 
-### ✅ 1.1 Migration: `20251109000100_user_tenants`
+### ✅ 1.1 Migration: `20251109000100_user_sites`
 
-**Plik:** `apps/api/prisma/migrations/20251109000100_user_tenants/migration.sql`
+**Plik:** `apps/api/prisma/migrations/20251109000100_user_sites/migration.sql`
 
 **Zawartość:**
-- ✅ Utworzenie tabeli `user_tenants` ✅
+- ✅ Utworzenie tabeli `user_sites` ✅
 - ✅ Indeksy dla wydajności ✅
 - ✅ Foreign keys z CASCADE ✅
 - ✅ Backfill memberships z istniejących użytkowników ✅
 
 **Backfill Logic:**
 ```sql
--- Backfill memberships from existing users (legacy single-tenant relation)
-INSERT INTO user_tenants (user_id, tenant_id, role)
-SELECT id, "tenantId", role FROM users
-WHERE "tenantId" IS NOT NULL
-ON CONFLICT (user_id, tenant_id) DO NOTHING;
+-- Backfill memberships from existing users (legacy single-site relation)
+INSERT INTO user_sites (user_id, site_id, role)
+SELECT id, "siteId", role FROM users
+WHERE "siteId" IS NOT NULL
+ON CONFLICT (user_id, site_id) DO NOTHING;
 ```
 
 **Status:** ✅ Zaimplementowane
@@ -38,7 +38,7 @@ ON CONFLICT (user_id, tenant_id) DO NOTHING;
 ### ✅ 1.2 Weryfikacja Migracji
 
 **Kroki weryfikacji:**
-1. ✅ Sprawdź czy tabela `user_tenants` istnieje
+1. ✅ Sprawdź czy tabela `user_sites` istnieje
 2. ✅ Sprawdź czy wszystkie istniejące użytkownicy mają memberships
 3. ✅ Sprawdź czy nie ma duplikatów memberships
 4. ✅ Sprawdź czy foreign keys działają poprawnie
@@ -46,21 +46,21 @@ ON CONFLICT (user_id, tenant_id) DO NOTHING;
 **Query weryfikacyjne:**
 ```sql
 -- Sprawdź czy wszystkie użytkownicy mają memberships
-SELECT u.id, u.email, u."tenantId", ut.tenant_id
+SELECT u.id, u.email, u."siteId", ut.site_id
 FROM users u
-LEFT JOIN user_tenants ut ON u.id = ut.user_id
-WHERE u."tenantId" IS NOT NULL AND ut.user_id IS NULL;
+LEFT JOIN user_sites ut ON u.id = ut.user_id
+WHERE u."siteId" IS NOT NULL AND ut.user_id IS NULL;
 
 -- Sprawdź czy nie ma duplikatów
-SELECT user_id, tenant_id, COUNT(*) as count
-FROM user_tenants
-GROUP BY user_id, tenant_id
+SELECT user_id, site_id, COUNT(*) as count
+FROM user_sites
+GROUP BY user_id, site_id
 HAVING COUNT(*) > 1;
 
 -- Sprawdź czy foreign keys działają
-SELECT COUNT(*) FROM user_tenants ut
+SELECT COUNT(*) FROM user_sites ut
 INNER JOIN users u ON ut.user_id = u.id
-INNER JOIN tenants t ON ut.tenant_id = t.id;
+INNER JOIN sites t ON ut.site_id = t.id;
 ```
 
 **Status:** ✅ Gotowe do wykonania
@@ -75,63 +75,63 @@ INNER JOIN tenants t ON ut.tenant_id = t.id;
 
 **Implementacja:**
 - ✅ `validateUser()` - fallback do legacy modelu ✅
-- ✅ `getUserTenants()` - fallback do legacy modelu ✅
-- ✅ `issueTenantToken()` - fallback do legacy modelu ✅
-- ✅ `resolveTenantForUser()` - fallback do legacy modelu ✅
+- ✅ `getUserSites()` - fallback do legacy modelu ✅
+- ✅ `issueSiteToken()` - fallback do legacy modelu ✅
+- ✅ `resolveSiteForUser()` - fallback do legacy modelu ✅
 
 **Strategy:**
-1. Próbuj użyć `UserTenant` model
-2. Jeśli błąd (tabela nie istnieje), fallback do legacy `User.tenantId`
+1. Próbuj użyć `UserSite` model
+2. Jeśli błąd (tabela nie istnieje), fallback do legacy `User.siteId`
 3. Loguj warning w konsoli
 
 **Kod:**
 ```typescript
 try {
-  const membership = await this.prisma.userTenant.findUnique({
-    where: { userId_tenantId: { userId, tenantId } },
+  const membership = await this.prisma.userSite.findUnique({
+    where: { userId_siteId: { userId, siteId } },
   });
   if (membership) {
     return membership;
   }
 } catch (error) {
-  // If UserTenant table doesn't exist yet, fall back to legacy
-  console.warn('UserTenant table not available, using legacy model', error);
+  // If UserSite table doesn't exist yet, fall back to legacy
+  console.warn('UserSite table not available, using legacy model', error);
 }
 
-// Fallback to legacy single-tenant relation
+// Fallback to legacy single-site relation
 const user = await this.prisma.user.findUnique({
   where: { id: userId },
-  select: { tenantId: true, role: true },
+  select: { siteId: true, role: true },
 });
 ```
 
 **Status:** ✅ Zaimplementowane
 
-### ✅ 2.2 X-Tenant-ID Header Support
+### ✅ 2.2 X-Site-ID Header Support
 
 **Pliki:**
-- `apps/api/src/common/tenant/tenant.guard.ts`
-- `apps/api/src/common/tenant/tenant-context.middleware.ts`
+- `apps/api/src/common/site/site.guard.ts`
+- `apps/api/src/common/site/site-context.middleware.ts`
 
 **Implementacja:**
-- ✅ `TenantGuard` akceptuje `X-Tenant-ID` header jako fallback ✅
-- ✅ `TenantContextMiddleware` akceptuje `X-Tenant-ID` header ✅
-- ✅ Preferuje `tenantId` z JWT, fallback: `X-Tenant-ID` header ✅
+- ✅ `SiteGuard` akceptuje `X-Site-ID` header jako fallback ✅
+- ✅ `SiteContextMiddleware` akceptuje `X-Site-ID` header ✅
+- ✅ Preferuje `siteId` z JWT, fallback: `X-Site-ID` header ✅
 
 **Strategy:**
-1. Preferuj `tenantId` z JWT (jeśli użytkownik jest zalogowany)
-2. Fallback: `X-Tenant-ID` header
-3. Fallback: `tenantId` query parameter
+1. Preferuj `siteId` z JWT (jeśli użytkownik jest zalogowany)
+2. Fallback: `X-Site-ID` header
+3. Fallback: `siteId` query parameter
 
 **Kod:**
 ```typescript
-// Prefer tenantId from JWT (if user is authenticated)
+// Prefer siteId from JWT (if user is authenticated)
 const user = req.user;
-let tenantId = user?.tenantId;
+let siteId = user?.siteId;
 
-// Fallback: X-Tenant-ID header or query parameter
-if (!tenantId) {
-  tenantId = req.headers['x-tenant-id'] || req.query.tenantId;
+// Fallback: X-Site-ID header or query parameter
+if (!siteId) {
+  siteId = req.headers['x-site-id'] || req.query.siteId;
 }
 ```
 
@@ -142,8 +142,8 @@ if (!tenantId) {
 **Plik:** `apps/api/src/modules/auth/auth.service.ts`
 
 **Implementacja:**
-- ✅ `validateUser()` obsługuje legacy tenant-scoped login ✅
-- ✅ `login()` obsługuje legacy `tenantId` w LoginDto ✅
+- ✅ `validateUser()` obsługuje legacy site-scoped login ✅
+- ✅ `login()` obsługuje legacy `siteId` w LoginDto ✅
 - ✅ Backward compatibility zachowana ✅
 
 **Status:** ✅ Zaimplementowane
@@ -161,8 +161,8 @@ if (!tenantId) {
 2. **Przywróć poprzednią wersję kodu** (git revert)
 3. **Rollback migracji** (jeśli to możliwe):
    ```sql
-   -- Opcjonalne: usuń tabelę user_tenants (jeśli nie ma ważnych danych)
-   DROP TABLE IF EXISTS user_tenants CASCADE;
+   -- Opcjonalne: usuń tabelę user_sites (jeśli nie ma ważnych danych)
+   DROP TABLE IF EXISTS user_sites CASCADE;
    ```
 4. **Weryfikacja:**
    - Sprawdź czy wszystkie endpointy działają
@@ -173,28 +173,28 @@ if (!tenantId) {
 
 ### 3.2 Rollback Migration Script
 
-**Plik:** `apps/api/prisma/migrations/rollback_user_tenants.sql`
+**Plik:** `apps/api/prisma/migrations/rollback_user_sites.sql`
 
 **Zawartość:**
 ```sql
--- Rollback migration: Remove user_tenants table
--- WARNING: This will delete all multi-tenant memberships
--- Only use if you need to rollback to legacy single-tenant model
+-- Rollback migration: Remove user_sites table
+-- WARNING: This will delete all org/site memberships
+-- Only use if you need to rollback to legacy single-site model
 
 -- Drop foreign keys first
-ALTER TABLE user_tenants
-  DROP CONSTRAINT IF EXISTS fk_user_tenants_user;
+ALTER TABLE user_sites
+  DROP CONSTRAINT IF EXISTS fk_user_sites_user;
 
-ALTER TABLE user_tenants
-  DROP CONSTRAINT IF EXISTS fk_user_tenants_tenant;
+ALTER TABLE user_sites
+  DROP CONSTRAINT IF EXISTS fk_user_sites_site;
 
 -- Drop indexes
-DROP INDEX IF EXISTS user_tenants_user_tenant_unique;
-DROP INDEX IF EXISTS user_tenants_tenant_idx;
-DROP INDEX IF EXISTS user_tenants_user_idx;
+DROP INDEX IF EXISTS user_sites_user_site_unique;
+DROP INDEX IF EXISTS user_sites_site_idx;
+DROP INDEX IF EXISTS user_sites_user_idx;
 
 -- Drop table
-DROP TABLE IF EXISTS user_tenants;
+DROP TABLE IF EXISTS user_sites;
 ```
 
 **Status:** ✅ Gotowe do użycia w razie potrzeby
@@ -238,33 +238,33 @@ DROP TABLE IF EXISTS user_tenants;
 
 **Test 1: Legacy Login**
 ```bash
-# Legacy tenant-scoped login
+# Legacy site-scoped login
 curl -X POST http://localhost:4000/api/v1/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email": "user@example.com", "password": "password", "tenantId": "tenant-id"}'
+  -d '{"email": "user@example.com", "password": "password", "siteId": "site-id"}'
 ```
 
 **Test 2: Global Login**
 ```bash
-# Global login (bez tenantId)
+# Global login (bez siteId)
 curl -X POST http://localhost:4000/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email": "user@example.com", "password": "password"}'
 ```
 
-**Test 3: X-Tenant-ID Header**
+**Test 3: X-Site-ID Header**
 ```bash
-# Request z X-Tenant-ID header
+# Request z X-Site-ID header
 curl -X GET http://localhost:4000/api/v1/collections \
   -H "Authorization: Bearer token" \
-  -H "X-Tenant-ID: tenant-id"
+  -H "X-Site-ID: site-id"
 ```
 
-**Test 4: Tenant Token**
+**Test 4: Site Token**
 ```bash
-# Request z tenant-scoped token (tenantId w JWT)
+# Request z site-scoped token (siteId w JWT)
 curl -X GET http://localhost:4000/api/v1/collections \
-  -H "Authorization: Bearer tenant-token"
+  -H "Authorization: Bearer site-token"
 ```
 
 **Status:** ✅ Gotowe do wykonania
@@ -298,17 +298,17 @@ curl -X GET http://localhost:4000/api/v1/collections \
 
 - ✅ Liczba użytkowników z memberships
 - ✅ Liczba użytkowników bez memberships (legacy)
-- ✅ Liczba requestów z X-Tenant-ID header
-- ✅ Liczba requestów z tenant-scoped token
-- ✅ Błędy związane z UserTenant model
+- ✅ Liczba requestów z X-Site-ID header
+- ✅ Liczba requestów z site-scoped token
+- ✅ Błędy związane z UserSite model
 
 **Status:** ✅ Gotowe do implementacji
 
 ### 6.2 Alerty
 
 - ⚠️ Alert jeśli > 10% użytkowników nie ma memberships
-- ⚠️ Alert jeśli > 50% requestów używa X-Tenant-ID header (po okresie przejściowym)
-- ⚠️ Alert jeśli wystąpią błędy związane z UserTenant model
+- ⚠️ Alert jeśli > 50% requestów używa X-Site-ID header (po okresie przejściowym)
+- ⚠️ Alert jeśli wystąpią błędy związane z UserSite model
 
 **Status:** ⏳ Do implementacji
 
@@ -320,8 +320,8 @@ curl -X GET http://localhost:4000/api/v1/collections \
 
 - ✅ Backward compatibility strategy
 - ✅ Fallback logic
-- ✅ X-Tenant-ID header support (temporary)
-- ✅ Tenant-scoped token support (preferred)
+- ✅ X-Site-ID header support (temporary)
+- ✅ Site-scoped token support (preferred)
 
 **Status:** ✅ Zaimplementowane
 
@@ -341,10 +341,10 @@ curl -X GET http://localhost:4000/api/v1/collections \
 ### ✅ Wszystkie istniejące konta działają po migracji
 
 **Weryfikacja:**
-- ✅ Legacy login działa (tenant-scoped)
-- ✅ Global login działa (bez tenantId)
-- ✅ X-Tenant-ID header działa (fallback)
-- ✅ Tenant-scoped token działa (preferred)
+- ✅ Legacy login działa (site-scoped)
+- ✅ Global login działa (bez siteId)
+- ✅ X-Site-ID header działa (fallback)
+- ✅ Site-scoped token działa (preferred)
 - ✅ Backward compatibility działa
 
 **Status:** ✅ Zgodne z wymaganiami
@@ -365,8 +365,8 @@ curl -X GET http://localhost:4000/api/v1/collections \
    - Monitoruj metryki
 
 3. **Deprecation (Future):**
-   - Po okresie przejściowym, deprecate X-Tenant-ID header
-   - Wymuś użycie tenant-scoped token
+   - Po okresie przejściowym, deprecate X-Site-ID header
+   - Wymuś użycie site-scoped token
    - Usuń legacy fallback logic
 
 ---

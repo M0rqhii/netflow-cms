@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ContentTypesService } from './content-types.service';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { ConflictException, NotFoundException } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 
 describe('ContentTypesService', () => {
   let service: ContentTypesService;
@@ -19,6 +20,12 @@ describe('ContentTypesService', () => {
     },
   };
 
+  const mockCache = {
+    get: jest.fn(),
+    set: jest.fn(),
+    del: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -26,6 +33,10 @@ describe('ContentTypesService', () => {
         {
           provide: PrismaService,
           useValue: mockPrismaService,
+        },
+        {
+          provide: CACHE_MANAGER,
+          useValue: mockCache,
         },
       ],
     }).compile();
@@ -39,7 +50,7 @@ describe('ContentTypesService', () => {
 
   describe('create', () => {
     it('should create content type with fields', async () => {
-      const tenantId = 'tenant-123';
+      const siteId = 'site-123';
       const dto = {
         name: 'Article',
         slug: 'article',
@@ -60,7 +71,7 @@ describe('ContentTypesService', () => {
 
       mockPrismaService.contentType.create.mockResolvedValue({
         id: '1',
-        tenantId,
+        siteId,
         name: dto.name,
         slug: dto.slug,
         schema: {
@@ -73,28 +84,30 @@ describe('ContentTypesService', () => {
         },
       });
 
-      const result = await service.create(tenantId, dto);
+      const result = await service.create(siteId, dto);
 
       expect(result).toHaveProperty('id');
-      expect(mockPrismaService.contentType.create).toHaveBeenCalledWith({
-        data: {
-          tenantId,
-          name: dto.name,
-          slug: dto.slug,
-          schema: expect.objectContaining({
-            type: 'object',
-            properties: expect.objectContaining({
-              title: expect.any(Object),
-              content: expect.any(Object),
+      expect(mockPrismaService.contentType.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: {
+            siteId,
+            name: dto.name,
+            slug: dto.slug,
+            schema: expect.objectContaining({
+              type: 'object',
+              properties: expect.objectContaining({
+                title: expect.any(Object),
+                content: expect.any(Object),
+              }),
+              required: expect.arrayContaining(['title', 'content']),
             }),
-            required: expect.arrayContaining(['title', 'content']),
-          }),
-        },
-      });
+          },
+        }),
+      );
     });
 
     it('should create content type with schema', async () => {
-      const tenantId = 'tenant-123';
+      const siteId = 'site-123';
       const dto = {
         name: 'Page',
         slug: 'page',
@@ -108,25 +121,27 @@ describe('ContentTypesService', () => {
 
       mockPrismaService.contentType.create.mockResolvedValue({
         id: '1',
-        tenantId,
+        siteId,
         ...dto,
       });
 
-      const result = await service.create(tenantId, dto);
+      const result = await service.create(siteId, dto);
 
       expect(result).toHaveProperty('id');
-      expect(mockPrismaService.contentType.create).toHaveBeenCalledWith({
-        data: {
-          tenantId,
-          name: dto.name,
-          slug: dto.slug,
-          schema: dto.schema,
-        },
-      });
+      expect(mockPrismaService.contentType.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: {
+            siteId,
+            name: dto.name,
+            slug: dto.slug,
+            schema: dto.schema,
+          },
+        }),
+      );
     });
 
     it('should throw ConflictException on duplicate slug', async () => {
-      const tenantId = 'tenant-123';
+      const siteId = 'site-123';
       const dto = {
         name: 'Article',
         slug: 'article',
@@ -137,40 +152,42 @@ describe('ContentTypesService', () => {
         code: 'P2002',
       });
 
-      await expect(service.create(tenantId, dto)).rejects.toThrow(
+      await expect(service.create(siteId, dto)).rejects.toThrow(
         ConflictException
       );
     });
   });
 
   describe('list', () => {
-    it('should return content types filtered by tenantId', async () => {
-      const tenantId = 'tenant-123';
+    it('should return content types filtered by siteId', async () => {
+      const siteId = 'site-123';
       const mockContentTypes = [
-        { id: '1', tenantId, slug: 'article', name: 'Article' },
+        { id: '1', siteId, slug: 'article', name: 'Article' },
       ];
 
       mockPrismaService.contentType.findMany.mockResolvedValue(
         mockContentTypes
       );
 
-      const result = await service.list(tenantId);
+      const result = await service.list(siteId);
 
       expect(result).toEqual(mockContentTypes);
-      expect(mockPrismaService.contentType.findMany).toHaveBeenCalledWith({
-        where: { tenantId },
-        orderBy: { createdAt: 'desc' },
-      });
+      expect(mockPrismaService.contentType.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { siteId },
+          orderBy: { createdAt: 'desc' },
+        }),
+      );
     });
   });
 
   describe('getById', () => {
     it('should return content type by id', async () => {
-      const tenantId = 'tenant-123';
+      const siteId = 'site-123';
       const id = 'content-type-1';
       const mockContentType = {
         id,
-        tenantId,
+        siteId,
         slug: 'article',
         name: 'Article',
       };
@@ -179,21 +196,23 @@ describe('ContentTypesService', () => {
         mockContentType
       );
 
-      const result = await service.getById(tenantId, id);
+      const result = await service.getById(siteId, id);
 
       expect(result).toEqual(mockContentType);
-      expect(mockPrismaService.contentType.findFirst).toHaveBeenCalledWith({
-        where: { tenantId, id },
-      });
+      expect(mockPrismaService.contentType.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { siteId, id },
+        }),
+      );
     });
 
     it('should throw NotFoundException when content type not found', async () => {
-      const tenantId = 'tenant-123';
+      const siteId = 'site-123';
       const id = 'nonexistent';
 
       mockPrismaService.contentType.findFirst.mockResolvedValue(null);
 
-      await expect(service.getById(tenantId, id)).rejects.toThrow(
+      await expect(service.getById(siteId, id)).rejects.toThrow(
         NotFoundException
       );
     });
@@ -201,11 +220,11 @@ describe('ContentTypesService', () => {
 
   describe('getBySlug', () => {
     it('should return content type by slug', async () => {
-      const tenantId = 'tenant-123';
+      const siteId = 'site-123';
       const slug = 'article';
       const mockContentType = {
         id: '1',
-        tenantId,
+        siteId,
         slug,
         name: 'Article',
       };
@@ -214,21 +233,23 @@ describe('ContentTypesService', () => {
         mockContentType
       );
 
-      const result = await service.getBySlug(tenantId, slug);
+      const result = await service.getBySlug(siteId, slug);
 
       expect(result).toEqual(mockContentType);
-      expect(mockPrismaService.contentType.findFirst).toHaveBeenCalledWith({
-        where: { tenantId, slug },
-      });
+      expect(mockPrismaService.contentType.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { siteId, slug },
+        }),
+      );
     });
 
     it('should throw NotFoundException when content type not found', async () => {
-      const tenantId = 'tenant-123';
+      const siteId = 'site-123';
       const slug = 'nonexistent';
 
       mockPrismaService.contentType.findFirst.mockResolvedValue(null);
 
-      await expect(service.getBySlug(tenantId, slug)).rejects.toThrow(
+      await expect(service.getBySlug(siteId, slug)).rejects.toThrow(
         NotFoundException
       );
     });
@@ -236,12 +257,12 @@ describe('ContentTypesService', () => {
 
   describe('update', () => {
     it('should update content type name', async () => {
-      const tenantId = 'tenant-123';
+      const siteId = 'site-123';
       const id = 'content-type-1';
       const dto = { name: 'Updated Article' };
       const mockContentType = {
         id,
-        tenantId,
+        siteId,
         slug: 'article',
         name: 'Article',
       };
@@ -254,17 +275,19 @@ describe('ContentTypesService', () => {
         ...dto,
       });
 
-      const result = await service.update(tenantId, id, dto);
+      const result = await service.update(siteId, id, dto);
 
       expect(result.name).toBe('Updated Article');
-      expect(mockPrismaService.contentType.update).toHaveBeenCalledWith({
-        where: { id },
-        data: { name: dto.name },
-      });
+      expect(mockPrismaService.contentType.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id },
+          data: { name: dto.name },
+        }),
+      );
     });
 
     it('should update content type schema with fields', async () => {
-      const tenantId = 'tenant-123';
+      const siteId = 'site-123';
       const id = 'content-type-1';
       const dto = {
         fields: [
@@ -273,7 +296,7 @@ describe('ContentTypesService', () => {
       };
       const mockContentType = {
         id,
-        tenantId,
+        siteId,
         slug: 'article',
         name: 'Article',
       };
@@ -290,29 +313,31 @@ describe('ContentTypesService', () => {
         },
       });
 
-      const result = await service.update(tenantId, id, dto);
+      const result = await service.update(siteId, id, dto);
 
       expect(result.schema).toHaveProperty('properties.newField');
-      expect(mockPrismaService.contentType.update).toHaveBeenCalledWith({
-        where: { id },
-        data: {
-          schema: expect.objectContaining({
-            type: 'object',
-            properties: expect.objectContaining({
-              newField: expect.any(Object),
+      expect(mockPrismaService.contentType.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id },
+          data: {
+            schema: expect.objectContaining({
+              type: 'object',
+              properties: expect.objectContaining({
+                newField: expect.any(Object),
+              }),
             }),
-          }),
-        },
-      });
+          },
+        }),
+      );
     });
 
     it('should throw ConflictException on duplicate slug', async () => {
-      const tenantId = 'tenant-123';
+      const siteId = 'site-123';
       const id = 'content-type-1';
       const dto = { slug: 'duplicate-slug' };
       const mockContentType = {
         id,
-        tenantId,
+        siteId,
         slug: 'article',
         name: 'Article',
       };
@@ -324,7 +349,7 @@ describe('ContentTypesService', () => {
         code: 'P2002',
       });
 
-      await expect(service.update(tenantId, id, dto)).rejects.toThrow(
+      await expect(service.update(siteId, id, dto)).rejects.toThrow(
         ConflictException
       );
     });
@@ -332,11 +357,11 @@ describe('ContentTypesService', () => {
 
   describe('remove', () => {
     it('should delete content type', async () => {
-      const tenantId = 'tenant-123';
+      const siteId = 'site-123';
       const id = 'content-type-1';
       const mockContentType = {
         id,
-        tenantId,
+        siteId,
         slug: 'article',
       };
 
@@ -346,11 +371,11 @@ describe('ContentTypesService', () => {
       mockPrismaService.contentEntry.count.mockResolvedValue(0);
       mockPrismaService.contentType.delete.mockResolvedValue(mockContentType);
 
-      const result = await service.remove(tenantId, id);
+      const result = await service.remove(siteId, id);
 
       expect(result).toEqual({ ok: true });
       expect(mockPrismaService.contentEntry.count).toHaveBeenCalledWith({
-        where: { tenantId, contentTypeId: id },
+        where: { siteId, contentTypeId: id },
       });
       expect(mockPrismaService.contentType.delete).toHaveBeenCalledWith({
         where: { id },
@@ -358,11 +383,11 @@ describe('ContentTypesService', () => {
     });
 
     it('should throw ConflictException if content type has entries', async () => {
-      const tenantId = 'tenant-123';
+      const siteId = 'site-123';
       const id = 'content-type-1';
       const mockContentType = {
         id,
-        tenantId,
+        siteId,
         slug: 'article',
       };
 
@@ -371,19 +396,19 @@ describe('ContentTypesService', () => {
       );
       mockPrismaService.contentEntry.count.mockResolvedValue(5);
 
-      await expect(service.remove(tenantId, id)).rejects.toThrow(
+      await expect(service.remove(siteId, id)).rejects.toThrow(
         ConflictException
       );
       expect(mockPrismaService.contentType.delete).not.toHaveBeenCalled();
     });
 
     it('should throw NotFoundException when content type not found', async () => {
-      const tenantId = 'tenant-123';
+      const siteId = 'site-123';
       const id = 'nonexistent';
 
       mockPrismaService.contentType.findFirst.mockResolvedValue(null);
 
-      await expect(service.remove(tenantId, id)).rejects.toThrow(
+      await expect(service.remove(siteId, id)).rejects.toThrow(
         NotFoundException
       );
     });
@@ -391,7 +416,7 @@ describe('ContentTypesService', () => {
 
   describe('fieldsToJsonSchema', () => {
     it('should convert text field correctly', async () => {
-      const tenantId = 'tenant-123';
+      const siteId = 'site-123';
       const dto = {
         name: 'Test',
         slug: 'test',
@@ -408,11 +433,11 @@ describe('ContentTypesService', () => {
 
       mockPrismaService.contentType.create.mockResolvedValue({
         id: '1',
-        tenantId,
+        siteId,
         ...dto,
       });
 
-      await service.create(tenantId, dto);
+      await service.create(siteId, dto);
 
       const call = mockPrismaService.contentType.create.mock.calls[0][0];
       expect(call.data.schema.properties.title).toEqual({
@@ -423,7 +448,7 @@ describe('ContentTypesService', () => {
     });
 
     it('should convert number field correctly', async () => {
-      const tenantId = 'tenant-123';
+      const siteId = 'site-123';
       const dto = {
         name: 'Test',
         slug: 'test',
@@ -440,11 +465,11 @@ describe('ContentTypesService', () => {
 
       mockPrismaService.contentType.create.mockResolvedValue({
         id: '1',
-        tenantId,
+        siteId,
         ...dto,
       });
 
-      await service.create(tenantId, dto);
+      await service.create(siteId, dto);
 
       const call = mockPrismaService.contentType.create.mock.calls[0][0];
       expect(call.data.schema.properties.age).toEqual({
@@ -455,7 +480,7 @@ describe('ContentTypesService', () => {
     });
 
     it('should handle optional fields correctly', async () => {
-      const tenantId = 'tenant-123';
+      const siteId = 'site-123';
       const dto = {
         name: 'Test',
         slug: 'test',
@@ -475,11 +500,11 @@ describe('ContentTypesService', () => {
 
       mockPrismaService.contentType.create.mockResolvedValue({
         id: '1',
-        tenantId,
+        siteId,
         ...dto,
       });
 
-      await service.create(tenantId, dto);
+      await service.create(siteId, dto);
 
       const call = mockPrismaService.contentType.create.mock.calls[0][0];
       expect(call.data.schema.required).toEqual(['requiredField']);
@@ -487,34 +512,38 @@ describe('ContentTypesService', () => {
     });
   });
 
-  describe('tenant isolation', () => {
-    it('should only return content types for specific tenant', async () => {
-      const tenantId1 = 'tenant-1';
-      const tenantId2 = 'tenant-2';
+  describe('site isolation', () => {
+    it('should only return content types for specific site', async () => {
+      const siteId1 = 'site-1';
+      const siteId2 = 'site-2';
       const mockContentTypes1 = [
-        { id: '1', tenantId: tenantId1, slug: 'article' },
+        { id: '1', siteId: siteId1, slug: 'article' },
       ];
       const mockContentTypes2 = [
-        { id: '2', tenantId: tenantId2, slug: 'article' },
+        { id: '2', siteId: siteId2, slug: 'article' },
       ];
 
       mockPrismaService.contentType.findMany
         .mockResolvedValueOnce(mockContentTypes1)
         .mockResolvedValueOnce(mockContentTypes2);
 
-      const result1 = await service.list(tenantId1);
-      const result2 = await service.list(tenantId2);
+      const result1 = await service.list(siteId1);
+      const result2 = await service.list(siteId2);
 
       expect(result1).toEqual(mockContentTypes1);
       expect(result2).toEqual(mockContentTypes2);
-      expect(mockPrismaService.contentType.findMany).toHaveBeenCalledWith({
-        where: { tenantId: tenantId1 },
-        orderBy: { createdAt: 'desc' },
-      });
-      expect(mockPrismaService.contentType.findMany).toHaveBeenCalledWith({
-        where: { tenantId: tenantId2 },
-        orderBy: { createdAt: 'desc' },
-      });
+      expect(mockPrismaService.contentType.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { siteId: siteId1 },
+          orderBy: { createdAt: 'desc' },
+        }),
+      );
+      expect(mockPrismaService.contentType.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { siteId: siteId2 },
+          orderBy: { createdAt: 'desc' },
+        }),
+      );
     });
   });
 });

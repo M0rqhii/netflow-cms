@@ -28,6 +28,7 @@ async function bootstrap() {
         },
       },
       crossOriginEmbedderPolicy: false, // Allow embedding for Swagger UI
+      crossOriginResourcePolicy: false, // Allow cross-origin requests for CORS
       hsts: {
         maxAge: 31536000, // 1 year
         includeSubDomains: true,
@@ -40,30 +41,50 @@ async function bootstrap() {
   app.useGlobalFilters(new HttpExceptionFilter());
 
   // CORS configuration - must be before other middleware
-  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+  const normalizeOrigin = (value?: string) =>
+    value ? value.trim().replace(/\/+$/, '') : '';
+  const parseOrigins = (value?: string) =>
+    (value || '')
+      .split(',')
+      .map((origin) => normalizeOrigin(origin))
+      .filter(Boolean);
+
+  const frontendUrl = normalizeOrigin(process.env.FRONTEND_URL || 'http://localhost:3000');
+  const allowedOrigins = new Set<string>([
+    frontendUrl,
+    ...parseOrigins(process.env.CORS_ORIGIN),
+  ]);
   const logger = new Logger('Bootstrap');
   const port = process.env.PORT || 4000;
-  
+  const isDev = process.env.NODE_ENV === 'development';
+  const isLocalhost = (origin: string) =>
+    /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin);
+
   app.enableCors({
-    // In dev, reflect any localhost origin, otherwise allow FRONTEND_URL
     origin: (origin, callback) => {
       if (!origin) return callback(null, true);
-      if (origin === frontendUrl) return callback(null, true);
-      if (process.env.NODE_ENV === 'development' && /^http:\/\/localhost:\d+$/.test(origin)) {
-        return callback(null, true);
-      }
+      const normalizedOrigin = normalizeOrigin(origin);
+      if (allowedOrigins.has(normalizedOrigin)) return callback(null, true);
+      if (isDev && isLocalhost(normalizedOrigin)) return callback(null, true);
       return callback(new Error('Not allowed by CORS'));
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'],
-    // Be permissive with request headers in dev to avoid preflight failures
-    allowedHeaders: ['*', 'Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'X-Tenant-ID'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-Requested-With',
+      'Accept',
+      'Origin',
+      'X-Org-ID',
+      'X-Site-ID',
+    ],
     exposedHeaders: ['Content-Range', 'X-Total-Count'],
     preflightContinue: false,
     optionsSuccessStatus: 204,
   });
-  
-  logger.log(`CORS enabled for origin: ${frontendUrl}`);
+
+  logger.log(`CORS enabled for origins: ${Array.from(allowedOrigins).join(', ')}`);
 
   // Global prefix dla API
   app.setGlobalPrefix(API_PREFIX);
@@ -72,7 +93,7 @@ async function bootstrap() {
   if (process.env.NODE_ENV !== 'production') {
     const config = new DocumentBuilder()
       .setTitle('Netflow CMS API')
-      .setDescription('Multi-Tenant Headless CMS API Documentation')
+      .setDescription('Organization & Site Headless CMS API Documentation')
       .setVersion(process.env.APP_VERSION || '1.0.0')
       .addBearerAuth(
         {
@@ -87,7 +108,8 @@ async function bootstrap() {
       )
       .addTag('auth', 'Authentication endpoints')
       .addTag('users', 'User management')
-      .addTag('tenants', 'Tenant management')
+      .addTag('orgs', 'Organization management')
+      .addTag('sites', 'Site management')
       .addTag('collections', 'Content collections')
       .addTag('content', 'Content management')
       .addTag('media', 'Media management')

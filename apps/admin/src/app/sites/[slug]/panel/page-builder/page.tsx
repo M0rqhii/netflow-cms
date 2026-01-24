@@ -64,7 +64,8 @@ export default function PageBuilderPage() {
       });
       router.push(`/sites/${slug}/panel/pages`);
     }
-  }, [pageId, slug, router, toast]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pageId, slug, router]); // toast.push is stable, no need to include in dependencies
 
   const loadPage = useCallback(async () => {
     if (!slug || !pageId) {

@@ -24,7 +24,7 @@ Sprawdzono zgodność implementacji z wymaganiami Sprint 3: Performance & Scale 
 - ✅ @Cache() decorator dla automatycznego cache'owania ✅
 - ✅ CacheInterceptor dla automatycznego cache'owania metod ✅
 - ✅ Konfiguracja TTL przez environment variables ✅
-- ✅ Tenant-scoped cache keys ✅
+- ✅ Site-scoped cache keys ✅
 
 **Pliki:**
 - ✅ `apps/api/src/common/cache/cache.module.ts` - Global CacheModule ✅
@@ -165,7 +165,7 @@ Sprawdzono zgodność implementacji z wymaganiami Sprint 3: Performance & Scale 
 - ✅ Automatic cache key generation ✅
 - ✅ Custom cache keys support ✅
 - ✅ Configurable TTL ✅
-- ✅ Tenant-scoped cache keys ✅
+- ✅ Site-scoped cache keys ✅
 
 **Integration:**
 - ✅ CacheModule dodany do AppModule ✅
@@ -223,7 +223,7 @@ Sprawdzono zgodność implementacji z wymaganiami Sprint 3: Performance & Scale 
 2. ✅ Fallback to memory store if Redis unavailable ✅
 3. ✅ @Cache() decorator caches method results ✅
 4. ✅ CacheInterceptor caches HTTP responses ✅
-5. ✅ Tenant-scoped cache keys work ✅
+5. ✅ Site-scoped cache keys work ✅
 6. ✅ Configurable TTL works ✅
 7. ✅ Cache invalidation works ✅
 
@@ -326,7 +326,7 @@ Sprawdzono zgodność implementacji z wymaganiami Sprint 3: Performance & Scale 
 - ✅ Fallback to memory store works ✅
 - ✅ @Cache() decorator works ✅
 - ✅ CacheInterceptor works ✅
-- ✅ Tenant-scoped cache keys work ✅
+- ✅ Site-scoped cache keys work ✅
 
 ### ✅ Test 2: Database Query Optimization
 - ✅ Optimized queries work ✅

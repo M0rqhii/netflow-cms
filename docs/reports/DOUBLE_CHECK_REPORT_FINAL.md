@@ -28,11 +28,11 @@ Przeprowadzono kompleksowy przegląd całego kodu źródłowego w celu eliminacj
 ### 2. **Błędne Ścieżki Importów**
 
 **Problem:**
-- `collection-roles.controller.ts` i `tasks.controller.ts` używały błędnej ścieżki do `CurrentTenant` decorator
+- `collection-roles.controller.ts` i `tasks.controller.ts` używały błędnej ścieżki do `CurrentSite` decorator
 - `collection-roles.module.ts` i `tasks.module.ts` używały nieistniejącego `PrismaModule`
 
 **Rozwiązanie:**
-- Poprawiono ścieżki importów z `../../common/tenant/decorators/current-tenant.decorator` na `../../common/decorators/current-tenant.decorator`
+- Poprawiono ścieżki importów z `../../common/site/decorators/current-site.decorator` na `../../common/decorators/current-site.decorator`
 - Zastąpiono `PrismaModule` bezpośrednim użyciem `PrismaService` i `PrismaOptimizationService` w providers
 
 **Naprawione pliki:**
@@ -98,8 +98,8 @@ Przeprowadzono kompleksowy przegląd całego kodu źródłowego w celu eliminacj
    - Raw SQL używa parametrów (`$1`, `$2`, etc.)
    - Walidacja pól przed użyciem w SQL (whitelist)
 
-2. ✅ **Tenant Isolation**
-   - Wszystkie zapytania filtrowane przez `tenantId`
+2. ✅ **Site Isolation**
+   - Wszystkie zapytania filtrowane przez `siteId`
    - Walidacja UUID przed użyciem w SQL
    - Database-level RLS policies
 
@@ -129,7 +129,7 @@ Przeprowadzono kompleksowy przegląd całego kodu źródłowego w celu eliminacj
 
 3. ✅ **Caching Strategy**
    - Redis cache z fallback do memory store
-   - Tenant-scoped cache keys
+   - Site-scoped cache keys
    - Configurable TTL
 
 ## 📝 Rekomendacje

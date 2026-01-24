@@ -1,4 +1,4 @@
-# TNT-021: Model uprawnień i członkostwa (User↔Tenant) - Completion Report
+# TNT-021: Model uprawnień i członkostwa (User↔Site) - Completion Report
 
 **Status:** ✅ Completed  
 **Completed Date:** 2024-01-09  
@@ -9,59 +9,59 @@
 
 ## Summary
 
-Zadanie TNT-021 zostało ukończone. Zaimplementowano model członkostwa User↔Tenant, który umożliwia jednemu użytkownikowi dostęp do wielu tenantów z różnymi rolami per-tenant oraz rolami platformowymi.
+Zadanie TNT-021 zostało ukończone. Zaimplementowano model członkostwa User↔Site, który umożliwia jednemu użytkownikowi dostęp do wielu siteów z różnymi rolami per-site oraz rolami platformowymi.
 
 ---
 
 ## Deliverables
 
-### 1. Model UserTenant
+### 1. Model UserSite
 **Status:** ✅ Już istnieje w schema.prisma i migracji
 
-Model UserTenant został już utworzony w poprzednich zadaniach:
-- Tabela `user_tenants` z polami: `id`, `userId`, `tenantId`, `role`
-- Unique constraint na `[userId, tenantId]`
-- Foreign keys do `users` i `tenants`
-- Migracja backfill: `20251109000100_user_tenants/migration.sql`
+Model UserSite został już utworzony w poprzednich zadaniach:
+- Tabela `user_sites` z polami: `id`, `userId`, `siteId`, `role`
+- Unique constraint na `[userId, siteId]`
+- Foreign keys do `users` i `sites`
+- Migracja backfill: `20251109000100_user_sites/migration.sql`
 
 ### 2. Role Platformowe
 **Plik:** `apps/api/src/common/auth/roles.enum.ts`
 
 Dodano enum `PlatformRole`:
-- `PLATFORM_ADMIN` - Pełny dostęp do platformy (tworzenie tenantów, zarządzanie wszystkimi użytkownikami)
-- `ORG_OWNER` - Właściciel organizacji (może zarządzać swoimi tenantami)
+- `PLATFORM_ADMIN` - Pełny dostęp do platformy (tworzenie siteów, zarządzanie wszystkimi użytkownikami)
+- `ORG_OWNER` - Właściciel organizacji (może zarządzać swoimi siteami)
 - `USER` - Zwykły użytkownik (brak uprawnień platformowych)
 
 ### 3. Refaktoryzacja AuthService
 **Plik:** `apps/api/src/modules/auth/auth.service.ts`
 
-Usunięto workaroundy (`prismaAny`) i zaimplementowano pełną obsługę UserTenant:
-- `getUserTenants()` - używa bezpośrednio `prisma.userTenant.findMany()`
-- `issueTenantToken()` - weryfikuje członkostwo przez `prisma.userTenant.findUnique()`
-- `resolveTenantForUser()` - sprawdza członkostwo przez UserTenant
-- `validateUser()` - global login przez UserTenant memberships
-- `login()` - obsługa multi-tenant memberships
+Usunięto workaroundy (`prismaAny`) i zaimplementowano pełną obsługę UserSite:
+- `getUserSites()` - używa bezpośrednio `prisma.userSite.findMany()`
+- `issueSiteToken()` - weryfikuje członkostwo przez `prisma.userSite.findUnique()`
+- `resolveSiteForUser()` - sprawdza członkostwo przez UserSite
+- `validateUser()` - global login przez UserSite memberships
+- `login()` - obsługa org/site memberships
 
 Wszystkie metody mają fallback do legacy modelu (backward compatibility).
 
-### 4. UserTenants Service
-**Plik:** `apps/api/src/modules/user-tenants/user-tenants.service.ts`
+### 4. UserSites Service
+**Plik:** `apps/api/src/modules/user-sites/user-sites.service.ts`
 
 Utworzono service do zarządzania członkostwami:
 - `createMembership()` - tworzenie nowego członkostwa
 - `getUserMemberships()` - lista członkostw użytkownika
-- `getTenantMemberships()` - lista członków tenanta
+- `getSiteMemberships()` - lista członków sitea
 - `getMembership()` - pobranie konkretnego członkostwa
 - `updateMembership()` - aktualizacja roli w członkostwie
 - `removeMembership()` - usunięcie członkostwa
 - `isMember()` - sprawdzenie członkostwa
-- `getUserRoleInTenant()` - pobranie roli użytkownika w tenant
+- `getUserRoleInSite()` - pobranie roli użytkownika w site
 
-### 5. UserTenants Module
-**Plik:** `apps/api/src/modules/user-tenants/user-tenants.module.ts`
+### 5. UserSites Module
+**Plik:** `apps/api/src/modules/user-sites/user-sites.module.ts`
 
-Utworzono moduł NestJS dla UserTenants:
-- Eksportuje `UserTenantsService`
+Utworzono moduł NestJS dla UserSites:
+- Eksportuje `UserSitesService`
 - Dodany do `AppModule`
 
 ### 6. Aktualizacja JWT Strategy
@@ -69,7 +69,7 @@ Utworzono moduł NestJS dla UserTenants:
 
 Zaktualizowano `JwtPayload` interface:
 - Dodano `platformRole?: string` - rola platformowa
-- `role` - rola w tenant (admin, editor, viewer)
+- `role` - rola w site (admin, editor, viewer)
 
 Zaktualizowano `CurrentUserPayload`:
 - Dodano `platformRole?: string`
@@ -77,26 +77,26 @@ Zaktualizowano `CurrentUserPayload`:
 ### 7. Migracja Backfill
 **Status:** ✅ Już istnieje w migracji
 
-Migracja `20251109000100_user_tenants/migration.sql` zawiera:
-- Utworzenie tabeli `user_tenants`
-- Backfill: `INSERT INTO user_tenants (user_id, tenant_id, role) SELECT id, "tenantId", role FROM users`
+Migracja `20251109000100_user_sites/migration.sql` zawiera:
+- Utworzenie tabeli `user_sites`
+- Backfill: `INSERT INTO user_sites (user_id, site_id, role) SELECT id, "siteId", role FROM users`
 
 ---
 
 ## Completed Tasks
 
-### ✅ Nowy model `UserTenant` (userId, tenantId, role, unique [userId, tenantId])
+### ✅ Nowy model `UserSite` (userId, siteId, role, unique [userId, siteId])
 - Model już istnieje w schema.prisma
 - Migracja już wykonana
-- Unique constraint na `[userId, tenantId]`
-- Foreign keys do `users` i `tenants`
+- Unique constraint na `[userId, siteId]`
+- Foreign keys do `users` i `sites`
 
 ### ✅ Role platformowe: `platform_admin`, `org_owner` (rozszerzenie `Role` lub osobna tabela)
 - Dodano enum `PlatformRole` w `roles.enum.ts`
 - Role: `PLATFORM_ADMIN`, `ORG_OWNER`, `USER`
 - Zintegrowane z JWT payload i CurrentUserPayload
 
-### ✅ Migracja: przeniesienie `User.tenantId` do `UserTenant` (backfill), utrzymanie kompatybilności
+### ✅ Migracja: przeniesienie `User.siteId` do `UserSite` (backfill), utrzymanie kompatybilności
 - Migracja backfill już istnieje
 - Wszystkie metody mają fallback do legacy modelu
 - Backward compatibility zachowana
@@ -105,36 +105,36 @@ Migracja `20251109000100_user_tenants/migration.sql` zawiera:
 
 ## Acceptance Criteria
 
-### ✅ Użytkownik może mieć wiele ról w wielu tenantach
-- `getUserTenants()` zwraca wszystkie członkostwa użytkownika
+### ✅ Użytkownik może mieć wiele ról w wielu siteach
+- `getUserSites()` zwraca wszystkie członkostwa użytkownika
 - Każde członkostwo ma własną rolę (admin, editor, viewer)
-- UserTenantsService umożliwia zarządzanie wieloma członkostwami
+- UserSitesService umożliwia zarządzanie wieloma członkostwami
 
 ### ✅ Stary login nadal działa w trakcie migracji
 - Wszystkie metody mają try-catch z fallback do legacy modelu
-- `validateUser()` sprawdza najpierw UserTenant, potem legacy User.tenantId
-- `getUserTenants()` fallback do legacy jeśli UserTenant nie istnieje
-- `issueTenantToken()` fallback do legacy jeśli UserTenant nie istnieje
+- `validateUser()` sprawdza najpierw UserSite, potem legacy User.siteId
+- `getUserSites()` fallback do legacy jeśli UserSite nie istnieje
+- `issueSiteToken()` fallback do legacy jeśli UserSite nie istnieje
 
 ---
 
 ## Technical Implementation
 
-### UserTenant Model
+### UserSite Model
 ```prisma
-model UserTenant {
+model UserSite {
   id       String @id @default(uuid())
   userId   String
-  tenantId String
+  siteId String
   role     String @default("viewer")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, tenantId])
-  @@index([tenantId])
+  @@unique([userId, siteId])
+  @@index([siteId])
   @@index([userId])
 }
 ```
@@ -153,8 +153,8 @@ export enum PlatformRole {
 export interface JwtPayload {
   sub: string; // user id
   email: string;
-  tenantId?: string; // optional for global token
-  role: string; // tenant role
+  siteId?: string; // optional for global token
+  role: string; // site role
   platformRole?: string; // platform role
 }
 ```
@@ -164,39 +164,39 @@ export interface JwtPayload {
 ## Files Created/Modified
 
 ### Created
-- `apps/api/src/modules/user-tenants/user-tenants.service.ts` - Service do zarządzania członkostwami
-- `apps/api/src/modules/user-tenants/user-tenants.module.ts` - Module dla UserTenants
+- `apps/api/src/modules/user-sites/user-sites.service.ts` - Service do zarządzania członkostwami
+- `apps/api/src/modules/user-sites/user-sites.module.ts` - Module dla UserSites
 - `docs/status/TNT-021_COMPLETION.md` - Ten raport
 
 ### Modified
 - `apps/api/src/common/auth/roles.enum.ts` - Dodano PlatformRole enum
-- `apps/api/src/modules/auth/auth.service.ts` - Refaktoryzacja, pełna obsługa UserTenant
+- `apps/api/src/modules/auth/auth.service.ts` - Refaktoryzacja, pełna obsługa UserSite
 - `apps/api/src/common/auth/strategies/jwt.strategy.ts` - Dodano platformRole do JwtPayload
 - `apps/api/src/common/auth/decorators/current-user.decorator.ts` - Dodano platformRole do CurrentUserPayload
-- `apps/api/src/app.module.ts` - Dodano UserTenantsModule
+- `apps/api/src/app.module.ts` - Dodano UserSitesModule
 - `docs/plan.md` - Zaktualizowano status TNT-021 na Done
 
 ---
 
 ## Dependencies Status
 
-- ✅ **TNT-002 (Database Schema):** Done - Model UserTenant już istnieje
-- ✅ **TNT-004 (RBAC):** Done - Wymagane dla ról per-tenant
+- ✅ **TNT-002 (Database Schema):** Done - Model UserSite już istnieje
+- ✅ **TNT-004 (RBAC):** Done - Wymagane dla ról per-site
 
 ---
 
 ## Next Steps
 
-1. **TNT-022:** Implementacja endpointów tenant token exchange (już częściowo zrobione)
-2. **TNT-023:** Implementacja frontend Hub i przełączania tenantów
+1. **TNT-022:** Implementacja endpointów site token exchange (już częściowo zrobione)
+2. **TNT-023:** Implementacja frontend Hub i przełączania siteów
 3. **TNT-024:** Rozszerzenie RBAC o role platformowe (guards dla platform_admin)
 
 ---
 
 ## Notes
 
-- Wszystkie metody mają backward compatibility z legacy modelem (User.tenantId)
-- UserTenant table może nie istnieć w niektórych środowiskach - kod obsługuje to gracefully
+- Wszystkie metody mają backward compatibility z legacy modelem (User.siteId)
+- UserSite table może nie istnieć w niektórych środowiskach - kod obsługuje to gracefully
 - Platform roles są zdefiniowane, ale jeszcze nie używane w guards (TNT-024)
 - Migracja backfill już została wykonana w poprzednich zadaniach
 

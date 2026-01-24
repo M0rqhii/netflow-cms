@@ -14,7 +14,7 @@ Moduł do zarządzania billingiem, subskrypcjami, fakturami i płatnościami.
 
 ### Subskrypcje
 
-- `GET /billing/subscription/status` - Status subskrypcji dla aktualnego tenant
+- `GET /billing/subscription/status` - Status subskrypcji dla aktualnej organizacji
 - `GET /billing/subscriptions` - Lista subskrypcji z paginacją
 - `GET /billing/subscriptions/:id` - Szczegóły subskrypcji
 - `POST /billing/subscriptions` - Utworzenie nowej subskrypcji
@@ -39,13 +39,13 @@ Moduł do zarządzania billingiem, subskrypcjami, fakturami i płatnościami.
 - `BILLING_READ` - odczyt danych billingowych (subskrypcje, faktury, płatności)
 - `BILLING_WRITE` - zarządzanie subskrypcjami (tworzenie, aktualizacja, anulowanie)
 
-**Domyślnie dostępne dla:** `TENANT_ADMIN` (super_admin ma wszystkie uprawnienia)
+**Domyślnie dostępne dla:** `ORG_ADMIN` (super_admin ma wszystkie uprawnienia)
 
 ## Modele Danych
 
 ### Subscription
 - `id` - UUID subskrypcji
-- `tenantId` - ID tenant
+- `orgId` - ID organizacji
 - `plan` - Plan (free, professional, enterprise)
 - `status` - Status (active, cancelled, past_due, trialing)
 - `currentPeriodStart` - Data rozpoczęcia okresu
@@ -56,7 +56,7 @@ Moduł do zarządzania billingiem, subskrypcjami, fakturami i płatnościami.
 
 ### Invoice
 - `id` - UUID faktury
-- `tenantId` - ID tenant
+- `orgId` - ID organizacji
 - `subscriptionId` - ID subskrypcji (opcjonalne)
 - `amount` - Kwota
 - `currency` - Waluta (USD)
@@ -66,7 +66,7 @@ Moduł do zarządzania billingiem, subskrypcjami, fakturami i płatnościami.
 
 ### Payment
 - `id` - UUID płatności
-- `tenantId` - ID tenant
+- `orgId` - ID organizacji
 - `invoiceId` - ID faktury (opcjonalne)
 - `amount` - Kwota
 - `currency` - Waluta
@@ -107,8 +107,8 @@ GET /billing/invoices?status=paid&page=1&pageSize=20
 ## Uwagi
 
 - Webhook endpoint dla Stripe jest publiczny (bez autentykacji), ale w produkcji powinien weryfikować podpis Stripe
-- Subskrypcje są automatycznie synchronizowane z planem tenant przez StripeService
-- Anulowanie subskrypcji automatycznie downgrade'uje tenant do planu "free"
+- Subskrypcje są automatycznie synchronizowane z planem organizacji przez StripeService
+- Anulowanie subskrypcji automatycznie downgrade'uje organizacj? do planu "free"
 
 
 

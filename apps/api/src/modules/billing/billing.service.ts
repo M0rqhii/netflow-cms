@@ -108,7 +108,7 @@ export class BillingService {
     }
 
     const result = await this.paymentProvider.createSubscription({
-      tenantId: orgId, // PaymentProvider still uses tenantId internally (backward compatibility)
+      orgId: orgId, // PaymentProvider still uses orgId internally (backward compatibility)
       plan: dto.plan,
       customerId: dto.stripeCustomerId,
       trialDays: dto.trialDays,
@@ -291,11 +291,6 @@ export class BillingService {
     });
   }
 
-  // Backward compatibility alias
-  async getTenantSubscription(tenantId: string) {
-    return this.getOrgSubscription(tenantId);
-  }
-
   /**
    * Get invoices for organization with pagination (used by organizations controller)
    */
@@ -322,8 +317,8 @@ export class BillingService {
   }
 
   // Backward compatibility alias
-  async getTenantInvoices(tenantId: string, page = 1, pageSize = 20) {
-    return this.getOrgInvoices(tenantId, page, pageSize);
+  async getTenantInvoices(orgId: string, page = 1, pageSize = 20) {
+    return this.getOrgInvoices(orgId, page, pageSize);
   }
 
   /**
@@ -356,10 +351,10 @@ export class BillingService {
    * Full billing management is at Organization level only
    * GET /billing/site/:id
    */
-  async getSiteSubscription(siteId: string) {
+  async getSiteSubscription(orgId: string, siteId: string) {
     // Get site to find its organization (only orgId, no org data)
-    const site = await this.prisma.site.findUnique({
-      where: { id: siteId },
+    const site = await this.prisma.site.findFirst({
+      where: { id: siteId, orgId },
       select: { orgId: true },
     });
 
@@ -369,7 +364,7 @@ export class BillingService {
 
     // Get subscription for the organization (read-only for site)
     const subscription = await this.prisma.subscription.findFirst({
-      where: { orgId: site.orgId },
+      where: { orgId },
       orderBy: { createdAt: 'desc' },
       select: {
         id: true,
@@ -411,15 +406,13 @@ export class BillingService {
    * Update subscription for site
    * WARNING: This should be called from Organization level, not Site level
    * Sites should NOT be able to modify subscriptions - only Organization can
-   * This method is kept for backward compatibility but should be restricted
+   * This method is kept for backward compatibility and is org-scoped
    * POST /billing/site/:id/update
-   * 
-   * TODO: Consider removing this endpoint or restricting it to org-level only
    */
-  async updateSiteSubscription(siteId: string, dto: UpdateSiteSubscriptionDto) {
+  async updateSiteSubscription(orgId: string, siteId: string, dto: UpdateSiteSubscriptionDto) {
     // Get site to find its organization (only orgId, no org data)
-    const site = await this.prisma.site.findUnique({
-      where: { id: siteId },
+    const site = await this.prisma.site.findFirst({
+      where: { id: siteId, orgId },
       select: { orgId: true },
     });
 
@@ -429,7 +422,7 @@ export class BillingService {
 
     // Find existing subscription or create new one for the organization
     let subscription = await this.prisma.subscription.findFirst({
-      where: { orgId: site.orgId },
+      where: { orgId },
       orderBy: { createdAt: 'desc' },
     });
 
@@ -477,7 +470,7 @@ export class BillingService {
 
       updatedSubscription = await this.prisma.subscription.create({
         data: {
-          orgId: site.orgId,
+          orgId: orgId,
           plan: dto.plan || 'BASIC',
           status: dto.status || 'active',
           currentPeriodStart: now,
@@ -530,96 +523,51 @@ export class BillingService {
     // Try UserOrg model first (multi-org support)
     let userOrgs: Array<{ orgId: string; role: string; organization: any }> = [];
 
-    try {
-      const memberships = await this.prisma.userOrg.findMany({
-        where: { userId },
+    const memberships = await this.prisma.userOrg.findMany({
+      where: { userId },
+      select: {
+        orgId: true,
+        role: true,
+        organization: {
+          include: {
+            subscriptions: {
+              orderBy: { createdAt: 'desc' },
+              take: 1,
+            },
+          },
+        },
+      },
+    });
+
+    if (memberships.length > 0) {
+      userOrgs = memberships.map((m) => ({
+        orgId: m.orgId,
+        role: m.role,
+        organization: m.organization,
+      }));
+    } else {
+      const legacy = await this.prisma.user.findUnique({
+        where: { id: userId },
         include: {
           organization: {
             include: {
               subscriptions: {
                 orderBy: { createdAt: 'desc' },
-                take: 1, // Latest subscription per organization
+                take: 1,
               },
             },
           },
         },
       });
 
-      userOrgs = memberships.map((m) => ({
-        orgId: m.orgId,
-        role: m.role,
-        organization: m.organization,
-      }));
-    } catch (error) {
-      // Fallback to legacy UserTenant
-      try {
-        const legacyMemberships = await this.prisma.userTenant.findMany({
-          where: { userId },
-        });
-        
-        // Fetch tenant and subscription data separately
-        const tenantIds = legacyMemberships.map(m => m.tenantId);
-        const tenants = await this.prisma.tenant.findMany({
-          where: { id: { in: tenantIds } },
-        });
-        
-        const subscriptions = await this.prisma.subscription.findMany({
-          where: { orgId: { in: tenantIds } },
-          orderBy: { createdAt: 'desc' },
-        });
-        
-        // Group subscriptions by orgId
-        const subscriptionsByOrg = new Map<string, any[]>();
-        for (const sub of subscriptions) {
-          if (!subscriptionsByOrg.has(sub.orgId)) {
-            subscriptionsByOrg.set(sub.orgId, []);
-          }
-          subscriptionsByOrg.get(sub.orgId)!.push(sub);
-        }
-        
-        // Attach tenant and subscription data to memberships
-        const membershipsWithData = legacyMemberships.map(m => {
-          const tenant = tenants.find(t => t.id === m.tenantId);
-          const orgSubs = subscriptionsByOrg.get(m.tenantId) || [];
-          return {
-            ...m,
-            tenant: tenant ? {
-              ...tenant,
-              subscriptions: orgSubs.slice(0, 1),
-            } : null,
-          };
-        });
-
-        userOrgs = membershipsWithData.map((m) => ({
-          orgId: m.tenantId,
-          role: m.role,
-          organization: m.tenant,
-        }));
-      } catch (legacyError) {
-        // Fallback to legacy single-org relation (backward compatibility)
-        const legacy = await this.prisma.user.findUnique({
-          where: { id: userId },
-          include: {
-            organization: {
-              include: {
-                subscriptions: {
-                  orderBy: { createdAt: 'desc' },
-                  take: 1,
-                },
-              },
-            },
+      if (legacy?.orgId) {
+        userOrgs = [
+          {
+            orgId: legacy.orgId,
+            role: legacy.role,
+            organization: legacy.organization,
           },
-        });
-
-        if (legacy?.orgId) {
-          userOrgs = [
-            {
-              orgId: legacy.orgId,
-              role: legacy.role,
-              organization: legacy.organization,
-            },
-          ];
-        }
+        ];
       }
     }
 

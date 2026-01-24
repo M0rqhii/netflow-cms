@@ -9,28 +9,28 @@
 
 ## Summary
 
-Zadanie TNT-025 zostało ukończone. Zaimplementowano bezpieczne przejście do modelu `UserTenant` bez przestojów, w tym migracje z backfill, flagi kompatybilności oraz plan rollbacku. System zachowuje pełną zgodność wsteczną z legacy single-tenant modelem.
+Zadanie TNT-025 zostało ukończone. Zaimplementowano bezpieczne przejście do modelu `UserSite` bez przestojów, w tym migracje z backfill, flagi kompatybilności oraz plan rollbacku. System zachowuje pełną zgodność wsteczną z legacy single-site modelem.
 
 ---
 
 ## Deliverables
 
 ### 1. Migracje i Backfill
-**Plik:** `apps/api/prisma/migrations/20251109000100_user_tenants/migration.sql`
+**Plik:** `apps/api/prisma/migrations/20251109000100_user_sites/migration.sql`
 
 **Implementacja:**
-- ✅ Utworzenie tabeli `user_tenants` ✅
+- ✅ Utworzenie tabeli `user_sites` ✅
 - ✅ Indeksy dla wydajności ✅
 - ✅ Foreign keys z CASCADE ✅
 - ✅ Backfill memberships z istniejących użytkowników ✅
 
 **Backfill Logic:**
 ```sql
--- Backfill memberships from existing users (legacy single-tenant relation)
-INSERT INTO user_tenants (user_id, tenant_id, role)
-SELECT id, "tenantId", role FROM users
-WHERE "tenantId" IS NOT NULL
-ON CONFLICT (user_id, tenant_id) DO NOTHING;
+-- Backfill memberships from existing users (legacy single-site relation)
+INSERT INTO user_sites (user_id, site_id, role)
+SELECT id, "siteId", role FROM users
+WHERE "siteId" IS NOT NULL
+ON CONFLICT (user_id, site_id) DO NOTHING;
 ```
 
 **Status:** ✅ Zaimplementowane
@@ -42,31 +42,31 @@ ON CONFLICT (user_id, tenant_id) DO NOTHING;
 
 **Implementacja:**
 - ✅ `validateUser()` - fallback do legacy modelu ✅
-- ✅ `getUserTenants()` - fallback do legacy modelu ✅
-- ✅ `issueTenantToken()` - fallback do legacy modelu ✅
-- ✅ `resolveTenantForUser()` - fallback do legacy modelu ✅
+- ✅ `getUserSites()` - fallback do legacy modelu ✅
+- ✅ `issueSiteToken()` - fallback do legacy modelu ✅
+- ✅ `resolveSiteForUser()` - fallback do legacy modelu ✅
 
 **Strategy:**
-1. Próbuj użyć `UserTenant` model
-2. Jeśli błąd (tabela nie istnieje), fallback do legacy `User.tenantId`
+1. Próbuj użyć `UserSite` model
+2. Jeśli błąd (tabela nie istnieje), fallback do legacy `User.siteId`
 3. Loguj warning w konsoli
 
 **Status:** ✅ Zaimplementowane
 
-#### 2.2 X-Tenant-ID Header Support
+#### 2.2 X-Site-ID Header Support
 **Pliki:**
-- `apps/api/src/common/tenant/tenant.guard.ts`
-- `apps/api/src/common/tenant/tenant-context.middleware.ts`
+- `apps/api/src/common/site/site.guard.ts`
+- `apps/api/src/common/site/site-context.middleware.ts`
 
 **Implementacja:**
-- ✅ `TenantGuard` akceptuje `X-Tenant-ID` header jako fallback ✅
-- ✅ `TenantContextMiddleware` akceptuje `X-Tenant-ID` header ✅
-- ✅ Preferuje `tenantId` z JWT, fallback: `X-Tenant-ID` header ✅
+- ✅ `SiteGuard` akceptuje `X-Site-ID` header jako fallback ✅
+- ✅ `SiteContextMiddleware` akceptuje `X-Site-ID` header ✅
+- ✅ Preferuje `siteId` z JWT, fallback: `X-Site-ID` header ✅
 
 **Strategy:**
-1. Preferuj `tenantId` z JWT (jeśli użytkownik jest zalogowany)
-2. Fallback: `X-Tenant-ID` header
-3. Fallback: `tenantId` query parameter
+1. Preferuj `siteId` z JWT (jeśli użytkownik jest zalogowany)
+2. Fallback: `X-Site-ID` header
+3. Fallback: `siteId` query parameter
 
 **Status:** ✅ Zaimplementowane
 
@@ -74,8 +74,8 @@ ON CONFLICT (user_id, tenant_id) DO NOTHING;
 **Plik:** `apps/api/src/modules/auth/auth.service.ts`
 
 **Implementacja:**
-- ✅ `validateUser()` obsługuje legacy tenant-scoped login ✅
-- ✅ `login()` obsługuje legacy `tenantId` w LoginDto ✅
+- ✅ `validateUser()` obsługuje legacy site-scoped login ✅
+- ✅ `login()` obsługuje legacy `siteId` w LoginDto ✅
 - ✅ Backward compatibility zachowana ✅
 
 **Status:** ✅ Zaimplementowane
@@ -91,7 +91,7 @@ ON CONFLICT (user_id, tenant_id) DO NOTHING;
 - ✅ Weryfikacja po rollbacku ✅
 
 **Rollback Script:**
-- ✅ `apps/api/prisma/migrations/rollback_user_tenants.sql` ✅
+- ✅ `apps/api/prisma/migrations/rollback_user_sites.sql` ✅
 
 **Status:** ✅ Zaimplementowane
 
@@ -114,10 +114,10 @@ ON CONFLICT (user_id, tenant_id) DO NOTHING;
 - Backfill logic zaimplementowany
 - Indeksy i foreign keys zaimplementowane
 
-### ✅ Flagi kompatybilności (czasowe akceptowanie `X-Tenant-ID`)
-- X-Tenant-ID header support w TenantGuard
-- X-Tenant-ID header support w TenantContextMiddleware
-- Preferuje tenantId z JWT, fallback: X-Tenant-ID header
+### ✅ Flagi kompatybilności (czasowe akceptowanie `X-Site-ID`)
+- X-Site-ID header support w SiteGuard
+- X-Site-ID header support w SiteContextMiddleware
+- Preferuje siteId z JWT, fallback: X-Site-ID header
 
 ### ✅ Plan rollbacku
 - Procedura rollbacku udokumentowana
@@ -129,10 +129,10 @@ ON CONFLICT (user_id, tenant_id) DO NOTHING;
 ## Acceptance Criteria
 
 ### ✅ Wszystkie istniejące konta działają po migracji
-- ✅ Legacy login działa (tenant-scoped) ✅
-- ✅ Global login działa (bez tenantId) ✅
-- ✅ X-Tenant-ID header działa (fallback) ✅
-- ✅ Tenant-scoped token działa (preferred) ✅
+- ✅ Legacy login działa (site-scoped) ✅
+- ✅ Global login działa (bez siteId) ✅
+- ✅ X-Site-ID header działa (fallback) ✅
+- ✅ Site-scoped token działa (preferred) ✅
 - ✅ Backward compatibility działa ✅
 
 **Status:** ✅ Zgodne z wymaganiami
@@ -149,41 +149,41 @@ ON CONFLICT (user_id, tenant_id) DO NOTHING;
 - ✅ Backward compatibility zaimplementowana
 
 **Phase 2: Migration**
-- ✅ Utworzenie tabeli `user_tenants`
+- ✅ Utworzenie tabeli `user_sites`
 - ✅ Backfill memberships z istniejących użytkowników
 - ✅ Weryfikacja integrity
 
 **Phase 3: Post-Migration**
 - ✅ Backward compatibility działa
-- ✅ X-Tenant-ID header działa
-- ✅ Tenant-scoped token działa
+- ✅ X-Site-ID header działa
+- ✅ Site-scoped token działa
 
 ### Backward Compatibility Strategy
 
 **AuthService:**
 ```typescript
 try {
-  // Try UserTenant model
-  const membership = await this.prisma.userTenant.findUnique({...});
+  // Try UserSite model
+  const membership = await this.prisma.userSite.findUnique({...});
   if (membership) return membership;
 } catch (error) {
   // Fallback to legacy model
-  console.warn('UserTenant table not available, using legacy model', error);
+  console.warn('UserSite table not available, using legacy model', error);
 }
 
-// Fallback to legacy single-tenant relation
+// Fallback to legacy single-site relation
 const user = await this.prisma.user.findUnique({...});
 ```
 
-**TenantGuard:**
+**SiteGuard:**
 ```typescript
-// Prefer tenantId from JWT (if user is authenticated)
+// Prefer siteId from JWT (if user is authenticated)
 const user = req.user;
-let tenantId = user?.tenantId;
+let siteId = user?.siteId;
 
-// Fallback: X-Tenant-ID header or query parameter
-if (!tenantId) {
-  tenantId = req.headers['x-tenant-id'] || req.query.tenantId;
+// Fallback: X-Site-ID header or query parameter
+if (!siteId) {
+  siteId = req.headers['x-site-id'] || req.query.siteId;
 }
 ```
 
@@ -193,24 +193,24 @@ if (!tenantId) {
 
 ### Created
 - `docs/migration/TNT-025_MIGRATION_PLAN.md` - Migration plan i dokumentacja
-- `apps/api/prisma/migrations/rollback_user_tenants.sql` - Rollback script
+- `apps/api/prisma/migrations/rollback_user_sites.sql` - Rollback script
 - `docs/migration/TNT-025_VERIFICATION_QUERIES.sql` - Verification queries
 - `docs/status/TNT-025_COMPLETION.md` - Ten raport
 
 ### Already Exists (from TNT-021)
-- `apps/api/prisma/migrations/20251109000100_user_tenants/migration.sql` - Migration z backfill
+- `apps/api/prisma/migrations/20251109000100_user_sites/migration.sql` - Migration z backfill
 
 ### Modified
 - `apps/api/src/modules/auth/auth.service.ts` - Backward compatibility logic (już zaimplementowane)
-- `apps/api/src/common/tenant/tenant.guard.ts` - X-Tenant-ID header support (już zaimplementowane)
-- `apps/api/src/common/tenant/tenant-context.middleware.ts` - X-Tenant-ID header support (już zaimplementowane)
+- `apps/api/src/common/site/site.guard.ts` - X-Site-ID header support (już zaimplementowane)
+- `apps/api/src/common/site/site-context.middleware.ts` - X-Site-ID header support (już zaimplementowane)
 - `docs/plan.md` - Zaktualizowano status TNT-025 na Done
 
 ---
 
 ## Dependencies Status
 
-- ✅ **TNT-021 (User↔Tenant Model):** Done - Wymagane dla migracji
+- ✅ **TNT-021 (User↔Site Model):** Done - Wymagane dla migracji
 
 ---
 
@@ -228,8 +228,8 @@ if (!tenantId) {
    - Monitoruj metryki
 
 3. **Deprecation (Future):**
-   - Po okresie przejściowym, deprecate X-Tenant-ID header
-   - Wymuś użycie tenant-scoped token
+   - Po okresie przejściowym, deprecate X-Site-ID header
+   - Wymuś użycie site-scoped token
    - Usuń legacy fallback logic
 
 ---
@@ -238,8 +238,8 @@ if (!tenantId) {
 
 - Migracja jest bezpieczna i nie powoduje przestojów
 - Backward compatibility zapewnia, że wszystkie istniejące konta działają po migracji
-- X-Tenant-ID header jest akceptowany jako fallback (temporary)
-- Tenant-scoped token jest preferowanym sposobem (future)
+- X-Site-ID header jest akceptowany jako fallback (temporary)
+- Site-scoped token jest preferowanym sposobem (future)
 - Rollback plan jest przygotowany na wypadek problemów
 
 ---

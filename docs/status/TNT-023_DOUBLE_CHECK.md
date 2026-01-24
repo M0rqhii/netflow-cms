@@ -1,4 +1,4 @@
-# TNT-023: Admin (Next.js) – Hub i przełączanie tenantów - Double Check
+# TNT-023: Admin (Next.js) – Hub i przełączanie siteów - Double Check
 
 **Data:** 2024-01-09  
 **Status:** ✅ Verification Complete
@@ -13,83 +13,83 @@ Sprawdzono zgodność implementacji z wymaganiami TNT-023 z planu oraz dokumenta
 
 ## 2. Weryfikacja wymagań z planu
 
-### ✅ 2.1 Ekran Hub z listą tenantów i akcjami (wejście, utwórz, zaproś)
+### ✅ 2.1 Ekran Hub z listą siteów i akcjami (wejście, utwórz, zaproś)
 
 **Wymaganie:**
-- Ekran Hub z listą tenantów
+- Ekran Hub z listą siteów
 - Akcje: wejście, utwórz, zaproś
 
 **Implementacja:**
 - ✅ Hub istnieje w `apps/admin/src/app/dashboard/page.tsx` ✅
-- ✅ Lista tenantów użytkownika z rolami ✅
+- ✅ Lista siteów użytkownika z rolami ✅
 - ✅ Akcje: "Enter CMS", "Manage", "Invite" ✅
-- ✅ Przycisk "+ New Tenant" ✅
+- ✅ Przycisk "+ New Site" ✅
 - ✅ Quick Stats (metryki platformowe) ✅
 - ✅ Header z logo i menu użytkownika ✅
 - ✅ Recent Activity (roadmap) ✅
-- ✅ Wyświetla rolę użytkownika w każdym tenant ✅
+- ✅ Wyświetla rolę użytkownika w każdym site ✅
 - ✅ Loading states i error handling ✅
 
 **Zgodność z mockups z TNT-020:**
 - ✅ Header z logo i menu użytkownika ✅
-- ✅ Quick Stats (Tenants, Users, Active, Total) ✅
-- ✅ Lista tenantów z:
+- ✅ Quick Stats (Sites, Users, Active, Total) ✅
+- ✅ Lista siteów z:
   - Nazwą i slugiem ✅
   - Rolą użytkownika ✅
   - Akcjami: Enter CMS, Manage, Invite ✅
-- ✅ Przycisk "New Tenant" ✅
+- ✅ Przycisk "New Site" ✅
 - ✅ Recent Activity (placeholder) ✅
 
 **Status:** ✅ Zgodne z wymaganiami i mockups
 
-### ✅ 2.2 Przełączanie: wywołanie `/auth/tenant-token` i zapis tokenu per-tenant
+### ✅ 2.2 Przełączanie: wywołanie `/auth/site-token` i zapis tokenu per-site
 
 **Wymaganie:**
-- Wywołanie `/auth/tenant-token`
-- Zapis tokenu per-tenant
+- Wywołanie `/auth/site-token`
+- Zapis tokenu per-site
 
 **Implementacja:**
-- ✅ Funkcja `exchangeTenantToken(tenantId)` w `apps/admin/src/lib/api.ts` ✅
-- ✅ Wywołuje `POST /api/v1/auth/tenant-token` ✅
-- ✅ Zapisuje token jako `tenantToken:{tenantId}` w localStorage ✅
-- ✅ Redirect do `/tenant/{slug}` po wymianie tokenu ✅
+- ✅ Funkcja `exchangeSiteToken(siteId)` w `apps/admin/src/lib/api.ts` ✅
+- ✅ Wywołuje `POST /api/v1/auth/site-token` ✅
+- ✅ Zapisuje token jako `siteToken:{siteId}` w localStorage ✅
+- ✅ Redirect do `/site/{slug}` po wymianie tokenu ✅
 - ✅ Error handling ✅
 
 **Kod:**
 ```typescript
 // Dashboard page
-const onEnter = async (tenant: TenantInfo) => {
+const onEnter = async (site: SiteInfo) => {
   try {
-    await exchangeTenantToken(tenant.tenantId);
-    window.location.href = `/tenant/${tenant.tenant.slug}`;
+    await exchangeSiteToken(site.siteId);
+    window.location.href = `/site/${site.site.slug}`;
   } catch (e) {
-    alert(e instanceof Error ? e.message : 'Cannot enter tenant');
+    alert(e instanceof Error ? e.message : 'Cannot enter site');
   }
 };
 
 // API helper
-export async function exchangeTenantToken(tenantId: string): Promise<string> {
+export async function exchangeSiteToken(siteId: string): Promise<string> {
   const token = getAuthToken();
   if (!token) throw new Error('Missing auth token. Please login.');
-  const res = await client.issueTenantToken(token, tenantId);
-  setTenantToken(tenantId, res.access_token);
+  const res = await client.issueSiteToken(token, siteId);
+  setSiteToken(siteId, res.access_token);
   return res.access_token;
 }
 ```
 
 **Status:** ✅ Zgodne z wymaganiami
 
-### ✅ 2.3 Ochrona tras: globalne vs tenantowe (middleware)
+### ✅ 2.3 Ochrona tras: globalne vs siteowe (middleware)
 
 **Wymaganie:**
-- Middleware rozróżnia token globalny i tenant-scoped
-- Ochrona tras: globalne vs tenantowe
+- Middleware rozróżnia token globalny i site-scoped
+- Ochrona tras: globalne vs siteowe
 
 **Implementacja:**
 - ✅ Middleware Next.js utworzony w `apps/admin/src/middleware.ts` ✅
 - ✅ Rozróżnia trasy:
   - Global routes (`/dashboard`) - wymagają global token ✅
-  - Tenant routes (`/tenant/[slug]/*`) - wymagają tenant-scoped token ✅
+  - Site routes (`/site/[slug]/*`) - wymagają site-scoped token ✅
   - Public routes (`/login`, `/`) - dostępne bez tokenu ✅
 - ✅ Config matcher dla wszystkich tras (oprócz API, static files) ✅
 
@@ -109,8 +109,8 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Tenant routes
-  if (path.startsWith('/tenant/')) {
+  // Site routes
+  if (path.startsWith('/site/')) {
     // Sprawdzanie tokenu w komponencie (localStorage)
     return NextResponse.next();
   }
@@ -137,18 +137,18 @@ export function middleware(request: NextRequest) {
 - Wejście do CMS konkretnej strony
 
 **Przepływ:**
-1. ✅ Użytkownik loguje się globalnie (bez tenantId) ✅
-2. ✅ Hub pobiera listę tenantów przez `GET /api/v1/auth/me/tenants` ✅
-3. ✅ Użytkownik klika "Enter CMS" → wywołuje `POST /api/v1/auth/tenant-token` ✅
+1. ✅ Użytkownik loguje się globalnie (bez siteId) ✅
+2. ✅ Hub pobiera listę siteów przez `GET /api/v1/auth/me/sites` ✅
+3. ✅ Użytkownik klika "Enter CMS" → wywołuje `POST /api/v1/auth/site-token` ✅
 4. ✅ Token wymieniany bez ponownego logowania ✅
-5. ✅ Redirect do `/tenant/{slug}` ✅
-6. ✅ Tenant CMS page automatycznie używa tenant token ✅
+5. ✅ Redirect do `/site/{slug}` ✅
+6. ✅ Site CMS page automatycznie używa site token ✅
 
 **Implementacja:**
-- ✅ Global login → global token (bez tenantId) ✅
-- ✅ Hub → lista tenantów ✅
-- ✅ "Enter CMS" → exchange token → tenant-scoped token (z tenantId) ✅
-- ✅ Tenant CMS → używa tenant token ✅
+- ✅ Global login → global token (bez siteId) ✅
+- ✅ Hub → lista siteów ✅
+- ✅ "Enter CMS" → exchange token → site-scoped token (z siteId) ✅
+- ✅ Site CMS → używa site token ✅
 - ✅ Brak potrzeby ponownego logowania ✅
 
 **Status:** ✅ Zgodne z wymaganiami
@@ -160,35 +160,35 @@ export function middleware(request: NextRequest) {
 ### ✅ 4.1 Hub Dashboard
 
 **Implementacja:**
-- ✅ Pobiera listę tenantów przez `fetchMyTenants()` ✅
+- ✅ Pobiera listę siteów przez `fetchMySites()` ✅
 - ✅ Wyświetla listę z rolami ✅
 - ✅ Akcje: "Enter CMS", "Manage", "Invite" ✅
-- ✅ Przycisk "+ New Tenant" ✅
-- ✅ Quick Stats (Tenants count) ✅
+- ✅ Przycisk "+ New Site" ✅
+- ✅ Quick Stats (Sites count) ✅
 - ✅ Header z email użytkownika ✅
 - ✅ Loading states ✅
 - ✅ Error handling z redirect do login ✅
 
 **Status:** ✅ Zgodne z wymaganiami
 
-### ✅ 4.2 Przełączanie Tenantów
+### ✅ 4.2 Przełączanie Siteów
 
 **Implementacja:**
-- ✅ Funkcja `exchangeTenantToken(tenantId)` ✅
-- ✅ Wywołuje `POST /api/v1/auth/tenant-token` ✅
-- ✅ Zapisuje token jako `tenantToken:{tenantId}` ✅
-- ✅ Redirect do `/tenant/{slug}` ✅
+- ✅ Funkcja `exchangeSiteToken(siteId)` ✅
+- ✅ Wywołuje `POST /api/v1/auth/site-token` ✅
+- ✅ Zapisuje token jako `siteToken:{siteId}` ✅
+- ✅ Redirect do `/site/{slug}` ✅
 - ✅ Error handling z alert ✅
 
 **Status:** ✅ Zgodne z wymaganiami
 
-### ✅ 4.3 Tenant CMS Page
+### ✅ 4.3 Site CMS Page
 
 **Implementacja:**
-- ✅ Automatyczne pobieranie tenant info z listy tenantów ✅
-- ✅ Sprawdzanie czy tenant token już istnieje ✅
+- ✅ Automatyczne pobieranie site info z listy siteów ✅
+- ✅ Sprawdzanie czy site token już istnieje ✅
 - ✅ Automatyczna wymiana tokenu jeśli brakuje ✅
-- ✅ Wyświetlanie informacji o tenant (nazwa, rola) ✅
+- ✅ Wyświetlanie informacji o site (nazwa, rola) ✅
 - ✅ Header z linkiem powrotu do Hub ✅
 - ✅ Placeholder cards dla Collections, Content Types, Media ✅
 - ✅ Loading states ✅
@@ -196,12 +196,12 @@ export function middleware(request: NextRequest) {
 
 **Kod:**
 ```typescript
-// Pobierz listę tenantów
-const tenants = await fetchMyTenants();
-const tenant = tenants.find((t) => t.tenant.slug === slug);
+// Pobierz listę siteów
+const sites = await fetchMySites();
+const site = sites.find((t) => t.site.slug === slug);
 
 // Sprawdź czy token już istnieje
-const existingToken = getTenantToken(tenant.tenantId);
+const existingToken = getSiteToken(site.siteId);
 if (existingToken) {
   setHasToken(true);
   return;
@@ -209,8 +209,8 @@ if (existingToken) {
 
 // Automatyczna wymiana tokenu
 const global = getAuthToken();
-const res = await api.issueTenantToken(global, tenant.tenantId);
-setTenantToken(tenant.tenantId, res.access_token);
+const res = await api.issueSiteToken(global, site.siteId);
+setSiteToken(site.siteId, res.access_token);
 ```
 
 **Status:** ✅ Zgodne z wymaganiami
@@ -219,7 +219,7 @@ setTenantToken(tenant.tenantId, res.access_token);
 
 **Implementacja:**
 - ✅ Middleware Next.js utworzony ✅
-- ✅ Rozróżnia trasy globalne i tenantowe ✅
+- ✅ Rozróżnia trasy globalne i siteowe ✅
 - ✅ Public routes dostępne bez tokenu ✅
 - ✅ Config matcher dla wszystkich tras ✅
 
@@ -234,10 +234,10 @@ setTenantToken(tenant.tenantId, res.access_token);
 ### ✅ 4.5 Helper Functions
 
 **Implementacja:**
-- ✅ `getTenantTokenByTenantId(tenantId)` ✅
-- ✅ `getTenantTokenBySlug(slug)` ✅
-- ✅ `exchangeTenantToken(tenantId)` ✅
-- ✅ `fetchMyTenants()` ✅
+- ✅ `getSiteTokenBySiteId(siteId)` ✅
+- ✅ `getSiteTokenBySlug(slug)` ✅
+- ✅ `exchangeSiteToken(siteId)` ✅
+- ✅ `fetchMySites()` ✅
 
 **Status:** ✅ Zgodne z wymaganiami
 
@@ -245,29 +245,29 @@ setTenantToken(tenant.tenantId, res.access_token);
 
 ## 5. Weryfikacja zgodności z dokumentacją TNT-020
 
-### ✅ 5.1 Przepływ Hub → Tenant Switch
+### ✅ 5.1 Przepływ Hub → Site Switch
 
 **Dokumentacja TNT-020:**
 ```
 1. Użytkownik na /dashboard
-2. Aplikacja pobiera listę tenantów: GET /api/v1/me/tenants
-3. Wyświetla listę tenantów z akcjami
+2. Aplikacja pobiera listę siteów: GET /api/v1/me/sites
+3. Wyświetla listę siteów z akcjami
 4. Użytkownik klika "Enter CMS"
-5. POST /api/v1/auth/tenant-token { tenantId }
-6. Backend generuje tenant-scoped JWT
-7. Token zapisywany jako tenantToken:{tenantId}
-8. Redirect do /tenant/{slug}/*
+5. POST /api/v1/auth/site-token { siteId }
+6. Backend generuje site-scoped JWT
+7. Token zapisywany jako siteToken:{siteId}
+8. Redirect do /site/{slug}/*
 ```
 
 **Implementacja:**
 - ✅ Użytkownik na `/dashboard` ✅
-- ✅ Aplikacja pobiera listę tenantów przez `GET /api/v1/auth/me/tenants` ✅
-- ✅ Wyświetla listę tenantów z akcjami ✅
+- ✅ Aplikacja pobiera listę siteów przez `GET /api/v1/auth/me/sites` ✅
+- ✅ Wyświetla listę siteów z akcjami ✅
 - ✅ Użytkownik klika "Enter CMS" ✅
-- ✅ Wywołuje `POST /api/v1/auth/tenant-token { tenantId }` ✅
-- ✅ Backend generuje tenant-scoped JWT ✅
-- ✅ Token zapisywany jako `tenantToken:{tenantId}` ✅
-- ✅ Redirect do `/tenant/{slug}` ✅
+- ✅ Wywołuje `POST /api/v1/auth/site-token { siteId }` ✅
+- ✅ Backend generuje site-scoped JWT ✅
+- ✅ Token zapisywany jako `siteToken:{siteId}` ✅
+- ✅ Redirect do `/site/{slug}` ✅
 
 **Status:** ✅ Zgodne z dokumentacją TNT-020
 
@@ -287,12 +287,12 @@ export function middleware(request: NextRequest) {
     }
   }
   
-  // Tenant routes
-  if (path.startsWith('/tenant/')) {
-    const tenantSlug = extractTenantSlug(path);
-    const tenantToken = getTenantToken(tenantId);
+  // Site routes
+  if (path.startsWith('/site/')) {
+    const siteSlug = extractSiteSlug(path);
+    const siteToken = getSiteToken(siteId);
     
-    if (!tenantToken) {
+    if (!siteToken) {
       // Try to exchange token
       // If fails, redirect to /dashboard
     }
@@ -302,7 +302,7 @@ export function middleware(request: NextRequest) {
 
 **Implementacja:**
 - ✅ Middleware utworzony ✅
-- ✅ Rozróżnia trasy globalne i tenantowe ✅
+- ✅ Rozróżnia trasy globalne i siteowe ✅
 - ⚠️ Sprawdzanie tokenów w komponentach (client-side) zamiast w middleware (server-side)
 
 **Uwaga:**
@@ -331,7 +331,7 @@ export function middleware(request: NextRequest) {
 **Status:** ✅ Działa poprawnie
 
 **Uwaga:**
-- Tenant CMS page automatycznie wymienia token jeśli brakuje
+- Site CMS page automatycznie wymienia token jeśli brakuje
 - To zapewnia seamless experience dla użytkownika
 
 ### ✅ 6.3 Error Handling
@@ -340,46 +340,46 @@ export function middleware(request: NextRequest) {
 **Uwaga:**
 - Wszystkie komponenty mają error handling
 - Redirect do login jeśli brak global token
-- Link do Hub jeśli brak tenant token
+- Link do Hub jeśli brak site token
 
 ---
 
 ## 7. Testy weryfikacyjne
 
 ### ✅ Test 1: Hub Dashboard
-- ✅ Hub wyświetla listę tenantów ✅
+- ✅ Hub wyświetla listę siteów ✅
 - ✅ Akcje: "Enter CMS", "Manage", "Invite" działają ✅
-- ✅ Przycisk "+ New Tenant" widoczny ✅
-- ✅ Quick Stats wyświetla liczbę tenantów ✅
+- ✅ Przycisk "+ New Site" widoczny ✅
+- ✅ Quick Stats wyświetla liczbę siteów ✅
 - ✅ Loading states działają ✅
 - ✅ Error handling działa (redirect do login) ✅
 
-### ✅ Test 2: Przełączanie Tenantów
-- ✅ "Enter CMS" wywołuje `exchangeTenantToken()` ✅
+### ✅ Test 2: Przełączanie Siteów
+- ✅ "Enter CMS" wywołuje `exchangeSiteToken()` ✅
 - ✅ Token wymieniany bez ponownego logowania ✅
-- ✅ Token zapisywany jako `tenantToken:{tenantId}` ✅
-- ✅ Redirect do `/tenant/{slug}` działa ✅
+- ✅ Token zapisywany jako `siteToken:{siteId}` ✅
+- ✅ Redirect do `/site/{slug}` działa ✅
 - ✅ Error handling działa (alert) ✅
 
-### ✅ Test 3: Tenant CMS Page
-- ✅ Automatyczne pobieranie tenant info ✅
+### ✅ Test 3: Site CMS Page
+- ✅ Automatyczne pobieranie site info ✅
 - ✅ Sprawdzanie czy token już istnieje ✅
 - ✅ Automatyczna wymiana tokenu jeśli brakuje ✅
-- ✅ Wyświetlanie informacji o tenant ✅
+- ✅ Wyświetlanie informacji o site ✅
 - ✅ Header z linkiem powrotu do Hub ✅
 - ✅ Loading states działają ✅
 - ✅ Error handling działa (link do Hub) ✅
 
 ### ✅ Test 4: Middleware
-- ✅ Middleware rozróżnia trasy globalne i tenantowe ✅
+- ✅ Middleware rozróżnia trasy globalne i siteowe ✅
 - ✅ Public routes dostępne bez tokenu ✅
 - ✅ Config matcher działa poprawnie ✅
 
 ### ✅ Test 5: Przepływ End-to-End
 - ✅ Global login → global token ✅
-- ✅ Hub → lista tenantów ✅
-- ✅ "Enter CMS" → exchange token → tenant-scoped token ✅
-- ✅ Tenant CMS → używa tenant token ✅
+- ✅ Hub → lista siteów ✅
+- ✅ "Enter CMS" → exchange token → site-scoped token ✅
+- ✅ Site CMS → używa site token ✅
 - ✅ Brak potrzeby ponownego logowania ✅
 
 ---
@@ -387,16 +387,16 @@ export function middleware(request: NextRequest) {
 ## 8. Podsumowanie
 
 ### ✅ Zaimplementowane zgodnie z wymaganiami:
-1. ✅ Ekran Hub z listą tenantów i akcjami (wejście, utwórz, zaproś)
-2. ✅ Przełączanie: wywołanie `/auth/tenant-token` i zapis tokenu per-tenant
-3. ✅ Ochrona tras: globalne vs tenantowe (middleware)
+1. ✅ Ekran Hub z listą siteów i akcjami (wejście, utwórz, zaproś)
+2. ✅ Przełączanie: wywołanie `/auth/site-token` i zapis tokenu per-site
+3. ✅ Ochrona tras: globalne vs siteowe (middleware)
 4. ✅ Bez drugiego logowania – wejście do CMS konkretnej strony
 
 ### ✅ Wszystkie elementy działają poprawnie:
 - ✅ Hub Dashboard działa zgodnie z mockups
 - ✅ Przełączanie działa bez ponownego logowania
-- ✅ Middleware rozróżnia trasy globalne i tenantowe
-- ✅ Tenant CMS page automatycznie wymienia token
+- ✅ Middleware rozróżnia trasy globalne i siteowe
+- ✅ Site CMS page automatycznie wymienia token
 - ✅ Wszystkie komponenty mają loading states i error handling
 
 ### ⚠️ Opcjonalne/Brakujące (roadmap):
@@ -408,7 +408,7 @@ export function middleware(request: NextRequest) {
 
 **Status ogólny:** ✅ **Zgodne z wymaganiami**
 
-Wszystkie kluczowe elementy TNT-023 zostały zaimplementowane zgodnie z wymaganiami z planu i dokumentacją TNT-020. Hub działa poprawnie, przełączanie między tenantami działa bez ponownego logowania, a middleware rozróżnia trasy globalne i tenantowe.
+Wszystkie kluczowe elementy TNT-023 zostały zaimplementowane zgodnie z wymaganiami z planu i dokumentacją TNT-020. Hub działa poprawnie, przełączanie między siteami działa bez ponownego logowania, a middleware rozróżnia trasy globalne i siteowe.
 
 **Rekomendacje:**
 1. ✅ Implementacja jest gotowa do użycia

@@ -79,8 +79,8 @@ Projekt jest w trakcie implementacji **Platform Panel** - głównego panelu zarz
 
 ### Implementacja Backend (Core)
 - Collections Module (TNT-015)
-- TenantModule i TenantGuard
-- Multi-tenant isolation
+- SiteModule i SiteGuard
+- Org/site isolation
 - ETag support
 - Redis caching
 - Testy jednostkowe i E2E

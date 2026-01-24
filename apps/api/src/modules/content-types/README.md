@@ -1,13 +1,13 @@
 # Content Types Module
 
-Moduł Content Types umożliwia definiowanie i zarządzanie schematami treści (content types) z pełną izolacją multi-tenant.
+Moduł Content Types umożliwia definiowanie i zarządzanie schematami treści (content types) z pełną izolacją org/site.
 
 ## Funkcjonalności
 
 - ✅ CRUD dla Content Types
 - ✅ Konwersja fields array → JSON Schema
 - ✅ Walidacja schematów
-- ✅ Multi-tenant isolation
+- ✅ Org/site isolation
 - ✅ Ochrona przed usuwaniem content types z istniejącymi entries
 
 ## Struktura
@@ -33,17 +33,22 @@ content-types/
 
 ```typescript
 import { ContentTypesService } from './services/content-types.service';
-import { CurrentTenant } from '../../../common/decorators/current-tenant.decorator';
+import { AuthGuard } from '../../../common/auth/guards/auth.guard';
+import { RolesGuard } from '../../../common/auth/guards/roles.guard';
+import { PermissionsGuard } from '../../../common/auth/guards/permissions.guard';
+import { Permissions } from '../../../common/auth/decorators/permissions.decorator';
+import { Permission } from '../../../common/auth/roles.enum';
+import { CurrentSite } from '../../../common/decorators/current-site.decorator';
 
 @Controller('content-types')
-@UseGuards(AuthGuard, TenantGuard, RolesGuard, PermissionsGuard)
+@UseGuards(AuthGuard, RolesGuard, PermissionsGuard)
 export class ContentTypesController {
   constructor(private readonly contentTypesService: ContentTypesService) {}
 
   @Get()
   @Permissions(Permission.CONTENT_TYPES_READ)
-  list(@CurrentTenant() tenantId: string) {
-    return this.contentTypesService.list(tenantId);
+  list(@CurrentSite() siteId: string) {
+    return this.contentTypesService.list(siteId);
   }
 }
 ```
@@ -133,9 +138,9 @@ pnpm --filter api test:e2e content-types.e2e-spec.ts
 - `content_types:write` - Tworzenie/edycja content types
 - `content_types:delete` - Usuwanie content types
 
-## Multi-Tenant Isolation
+## Org/site isolation
 
-Wszystkie operacje są automatycznie filtrowane po `tenantId`. Content types są izolowane per tenant - każdy tenant widzi tylko swoje content types.
+Wszystkie operacje są automatycznie filtrowane po `siteId`. Content types są izolowane per site - każdy site widzi tylko swoje content types.
 
 
 

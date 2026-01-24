@@ -12,52 +12,48 @@ export class DatabaseHelper {
    */
   async truncateAll() {
     // Delete in correct order to respect foreign key constraints
+    await this.prisma.userInvite.deleteMany({});
     await this.prisma.contentEntry.deleteMany({});
     await this.prisma.collection.deleteMany({});
     await this.prisma.contentType.deleteMany({});
+    await this.prisma.site.deleteMany({});
     await this.prisma.user.deleteMany({});
-    await this.prisma.tenant.deleteMany({});
+    await this.prisma.organization.deleteMany({});
   }
 
   /**
-   * Clean up specific tenant data
+   * Clean up specific site data
    */
-  async cleanupTenant(tenantId: string) {
-    await this.prisma.contentEntry.deleteMany({
-      where: { tenantId },
-    });
-    await this.prisma.collection.deleteMany({
-      where: { tenantId },
-    });
-    await this.prisma.contentType.deleteMany({
-      where: { tenantId },
-    });
-    await this.prisma.user.deleteMany({
-      where: { tenantId },
-    });
-    await this.prisma.tenant.delete({
-      where: { id: tenantId },
+  async cleanupSite(siteId: string) {
+    await this.prisma.site.delete({
+      where: { id: siteId },
     });
   }
 
   /**
-   * Clean up multiple tenants
+   * Clean up specific organization data
    */
-  async cleanupTenants(tenantIds: string[]) {
-    await this.prisma.contentEntry.deleteMany({
-      where: { tenantId: { in: tenantIds } },
+  async cleanupOrganization(orgId: string) {
+    await this.prisma.organization.delete({
+      where: { id: orgId },
     });
-    await this.prisma.collection.deleteMany({
-      where: { tenantId: { in: tenantIds } },
+  }
+
+  /**
+   * Clean up multiple sites
+   */
+  async cleanupSites(siteIds: string[]) {
+    await this.prisma.site.deleteMany({
+      where: { id: { in: siteIds } },
     });
-    await this.prisma.contentType.deleteMany({
-      where: { tenantId: { in: tenantIds } },
-    });
-    await this.prisma.user.deleteMany({
-      where: { tenantId: { in: tenantIds } },
-    });
-    await this.prisma.tenant.deleteMany({
-      where: { id: { in: tenantIds } },
+  }
+
+  /**
+   * Clean up multiple organizations
+   */
+  async cleanupOrganizations(orgIds: string[]) {
+    await this.prisma.organization.deleteMany({
+      where: { id: { in: orgIds } },
     });
   }
 
@@ -80,5 +76,3 @@ export class DatabaseHelper {
     return this.prisma.$queryRawUnsafe(query);
   }
 }
-
-

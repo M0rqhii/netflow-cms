@@ -71,7 +71,7 @@ export class MyService {
 Logs are stored in memory (max 1000 entries) and can be viewed via:
 
 1. **API Endpoint**: `GET /api/v1/dev/logs?limit=100`
-2. **UI Page**: `/dev/logs` (requires super_admin or tenant_admin role)
+2. **UI Page**: `/dev/logs` (requires super_admin or site_admin role)
 
 ### Log Structure
 
@@ -236,13 +236,13 @@ The system uses "dev providers" for external services in development mode. These
 
 - **Emails**: `/dev/emails` - View all emails sent via DevMailer
 - **Payments**: `/dev/payments` - View subscription/payment records
-- **Sites**: `/dev/sites` - View all tenants/sites
+- **Sites**: `/dev/sites` - View all sites/sites
 
 ## Dev UI Pages
 
 All dev UI pages are located under `/dev/*` and require:
 - Non-production environment (`APP_PROFILE !== 'production'`)
-- Privileged user role (`super_admin` or `tenant_admin`)
+- Privileged user role (`super_admin` or `site_admin`)
 
 ### Available Pages
 
@@ -250,7 +250,7 @@ All dev UI pages are located under `/dev/*` and require:
 - `/dev/logs` - View debug logs
 - `/dev/emails` - View dev email logs
 - `/dev/payments` - View payment/subscription records
-- `/dev/sites` - View all sites/tenants
+- `/dev/sites` - View all sites/sites
 
 ## Best Practices
 

@@ -1,4 +1,4 @@
-# TNT-021: Model uprawnień i członkostwa (User↔Tenant) - Double Check
+# TNT-021: Model uprawnień i członkostwa (User↔Site) - Double Check
 
 **Data:** 2024-01-09  
 **Status:** ✅ Verification Complete
@@ -13,33 +13,33 @@ Sprawdzono zgodność implementacji z wymaganiami TNT-021 z planu.
 
 ## 2. Weryfikacja wymagań z planu
 
-### ✅ 2.1 Nowy model `UserTenant` (userId, tenantId, role, unique [userId, tenantId])
+### ✅ 2.1 Nowy model `UserSite` (userId, siteId, role, unique [userId, siteId])
 
 **Wymaganie:**
-- Model UserTenant z polami: userId, tenantId, role
-- Unique constraint na [userId, tenantId]
+- Model UserSite z polami: userId, siteId, role
+- Unique constraint na [userId, siteId]
 
 **Implementacja:**
-- ✅ Model UserTenant istnieje w `schema.prisma`:
+- ✅ Model UserSite istnieje w `schema.prisma`:
   ```prisma
-  model UserTenant {
+  model UserSite {
     id       String @id @default(uuid())
     userId   String @map("user_id")
-    tenantId String @map("tenant_id")
+    siteId String @map("site_id")
     role     String @default("viewer")
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
     
     user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-    tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+    site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
     
-    @@unique([userId, tenantId])
-    @@index([tenantId])
+    @@unique([userId, siteId])
+    @@index([siteId])
     @@index([userId])
   }
   ```
-- ✅ Unique constraint na `[userId, tenantId]` ✅
-- ✅ Foreign keys do `users` i `tenants` ✅
+- ✅ Unique constraint na `[userId, siteId]` ✅
+- ✅ Foreign keys do `users` i `sites` ✅
 - ✅ Indexes dla wydajności ✅
 - ✅ Cascade delete ✅
 
@@ -66,22 +66,22 @@ Sprawdzono zgodność implementacji z wymaganiami TNT-021 z planu.
 
 **Status:** ✅ Zgodne z wymaganiami
 
-### ✅ 2.3 Migracja: przeniesienie `User.tenantId` do `UserTenant` (backfill)
+### ✅ 2.3 Migracja: przeniesienie `User.siteId` do `UserSite` (backfill)
 
 **Wymaganie:**
-- Migracja backfill: przeniesienie `User.tenantId` do `UserTenant`
+- Migracja backfill: przeniesienie `User.siteId` do `UserSite`
 - Utrzymanie kompatybilności
 
 **Implementacja:**
-- ✅ Migracja `20251109000100_user_tenants/migration.sql` zawiera:
+- ✅ Migracja `20251109000100_user_sites/migration.sql` zawiera:
   ```sql
-  -- Backfill memberships from existing users (legacy single-tenant relation)
-  INSERT INTO user_tenants (user_id, tenant_id, role)
-  SELECT id, "tenantId", role FROM users
-  WHERE "tenantId" IS NOT NULL
-  ON CONFLICT (user_id, tenant_id) DO NOTHING;
+  -- Backfill memberships from existing users (legacy single-site relation)
+  INSERT INTO user_sites (user_id, site_id, role)
+  SELECT id, "siteId", role FROM users
+  WHERE "siteId" IS NOT NULL
+  ON CONFLICT (user_id, site_id) DO NOTHING;
   ```
-- ✅ Backfill przenosi dane z `User.tenantId` do `UserTenant` ✅
+- ✅ Backfill przenosi dane z `User.siteId` do `UserSite` ✅
 - ✅ `ON CONFLICT DO NOTHING` - bezpieczne ✅
 - ✅ Wszystkie metody mają fallback do legacy modelu ✅
 
@@ -91,22 +91,22 @@ Sprawdzono zgodność implementacji z wymaganiami TNT-021 z planu.
 
 ## 3. Weryfikacja akceptacji
 
-### ✅ 3.1 Użytkownik może mieć wiele ról w wielu tenantach
+### ✅ 3.1 Użytkownik może mieć wiele ról w wielu siteach
 
 **Wymaganie:**
-- Użytkownik może mieć wiele członkostw w różnych tenantach
+- Użytkownik może mieć wiele członkostw w różnych siteach
 - Każde członkostwo ma własną rolę
 
 **Implementacja:**
-- ✅ `getUserTenants()` zwraca wszystkie członkostwa użytkownika:
+- ✅ `getUserSites()` zwraca wszystkie członkostwa użytkownika:
   ```typescript
-  const memberships = await this.prisma.userTenant.findMany({
+  const memberships = await this.prisma.userSite.findMany({
     where: { userId },
-    select: { tenantId, role, tenant: {...} },
+    select: { siteId, role, site: {...} },
   });
   ```
 - ✅ Każde członkostwo ma własną rolę (admin, editor, viewer) ✅
-- ✅ `UserTenantsService` umożliwia zarządzanie wieloma członkostwami:
+- ✅ `UserSitesService` umożliwia zarządzanie wieloma członkostwami:
   - `createMembership()` - tworzenie nowego członkostwa ✅
   - `getUserMemberships()` - lista wszystkich członkostw użytkownika ✅
   - `updateMembership()` - aktualizacja roli w członkostwie ✅
@@ -118,52 +118,52 @@ Sprawdzono zgodność implementacji z wymaganiami TNT-021 z planu.
 ### ✅ 3.2 Stary login nadal działa w trakcie migracji
 
 **Wymaganie:**
-- Backward compatibility z legacy modelem (User.tenantId)
-- Stary login (z tenantId) nadal działa
+- Backward compatibility z legacy modelem (User.siteId)
+- Stary login (z siteId) nadal działa
 
 **Implementacja:**
 - ✅ `validateUser()` - fallback do legacy:
   ```typescript
   try {
-    // Try UserTenant first
-    const membership = await this.prisma.userTenant.findFirst({...});
+    // Try UserSite first
+    const membership = await this.prisma.userSite.findFirst({...});
     user = membership?.user || null;
   } catch (error) {
     // Fallback to legacy
-    console.warn('UserTenant table not available, using legacy model', error);
+    console.warn('UserSite table not available, using legacy model', error);
   }
   if (!user) {
-    // Fallback: find by email in User table (legacy single-tenant)
+    // Fallback: find by email in User table (legacy single-site)
     const users = await this.prisma.user.findMany({ where: { email }, take: 1 });
     user = users[0] || null;
   }
   ```
-- ✅ `getUserTenants()` - fallback do legacy:
+- ✅ `getUserSites()` - fallback do legacy:
   ```typescript
   try {
-    const memberships = await this.prisma.userTenant.findMany({...});
+    const memberships = await this.prisma.userSite.findMany({...});
     if (memberships.length > 0) return memberships;
   } catch (error) {
-    console.warn('UserTenant table not available, using legacy model', error);
+    console.warn('UserSite table not available, using legacy model', error);
   }
-  // Fallback to legacy single-tenant relation
+  // Fallback to legacy single-site relation
   const legacy = await this.prisma.user.findUnique({...});
   ```
-- ✅ `issueTenantToken()` - fallback do legacy:
+- ✅ `issueSiteToken()` - fallback do legacy:
   ```typescript
   try {
-    const membership = await this.prisma.userTenant.findUnique({...});
+    const membership = await this.prisma.userSite.findUnique({...});
     if (membership) role = membership.role;
   } catch (error) {
-    console.warn('UserTenant table not available, using legacy model', error);
+    console.warn('UserSite table not available, using legacy model', error);
   }
   if (!role) {
-    // Fallback: allow if user's legacy tenantId matches
+    // Fallback: allow if user's legacy siteId matches
     const user = await this.prisma.user.findUnique({...});
-    if (user && user.tenantId === tenantId) role = user.role;
+    if (user && user.siteId === siteId) role = user.role;
   }
   ```
-- ✅ `resolveTenantForUser()` - fallback do legacy ✅
+- ✅ `resolveSiteForUser()` - fallback do legacy ✅
 - ✅ Wszystkie metody mają try-catch z fallback ✅
 
 **Status:** ✅ Zgodne z wymaganiami
@@ -172,25 +172,25 @@ Sprawdzono zgodność implementacji z wymaganiami TNT-021 z planu.
 
 ## 4. Weryfikacja implementacji technicznej
 
-### ✅ 4.1 UserTenants Service
+### ✅ 4.1 UserSites Service
 
 **Implementacja:**
 - ✅ `createMembership()` - tworzenie członkostwa z walidacją ✅
 - ✅ `getUserMemberships()` - lista członkostw użytkownika ✅
-- ✅ `getTenantMemberships()` - lista członków tenanta ✅
+- ✅ `getSiteMemberships()` - lista członków sitea ✅
 - ✅ `getMembership()` - pobranie konkretnego członkostwa ✅
 - ✅ `updateMembership()` - aktualizacja roli ✅
 - ✅ `removeMembership()` - usunięcie członkostwa ✅
 - ✅ `isMember()` - sprawdzenie członkostwa ✅
-- ✅ `getUserRoleInTenant()` - pobranie roli użytkownika w tenant ✅
+- ✅ `getUserRoleInSite()` - pobranie roli użytkownika w site ✅
 
 **Status:** ✅ Kompletna implementacja
 
-### ✅ 4.2 UserTenants Module
+### ✅ 4.2 UserSites Module
 
 **Implementacja:**
-- ✅ `UserTenantsModule` utworzony ✅
-- ✅ Eksportuje `UserTenantsService` ✅
+- ✅ `UserSitesModule` utworzony ✅
+- ✅ Eksportuje `UserSitesService` ✅
 - ✅ Dodany do `AppModule` ✅
 
 **Status:** ✅ Zgodne z wymaganiami
@@ -199,12 +199,12 @@ Sprawdzono zgodność implementacji z wymaganiami TNT-021 z planu.
 
 **Implementacja:**
 - ✅ Usunięto workaroundy (`prismaAny`) ✅
-- ✅ Pełna obsługa UserTenant:
-  - `getUserTenants()` - używa `prisma.userTenant.findMany()` ✅
-  - `issueTenantToken()` - używa `prisma.userTenant.findUnique()` ✅
-  - `resolveTenantForUser()` - używa `prisma.userTenant.findUnique()` ✅
-  - `validateUser()` - używa `prisma.userTenant.findFirst()` ✅
-  - `login()` - używa `prisma.userTenant.count()` i `findFirst()` ✅
+- ✅ Pełna obsługa UserSite:
+  - `getUserSites()` - używa `prisma.userSite.findMany()` ✅
+  - `issueSiteToken()` - używa `prisma.userSite.findUnique()` ✅
+  - `resolveSiteForUser()` - używa `prisma.userSite.findUnique()` ✅
+  - `validateUser()` - używa `prisma.userSite.findFirst()` ✅
+  - `login()` - używa `prisma.userSite.count()` i `findFirst()` ✅
 - ✅ Wszystkie metody mają fallback do legacy ✅
 
 **Status:** ✅ Zgodne z wymaganiami
@@ -217,8 +217,8 @@ Sprawdzono zgodność implementacji z wymaganiami TNT-021 z planu.
   export interface JwtPayload {
     sub: string;
     email: string;
-    tenantId?: string; // optional for global token
-    role: string; // tenant role
+    siteId?: string; // optional for global token
+    role: string; // site role
     platformRole?: string; // platform role
   }
   ```
@@ -227,8 +227,8 @@ Sprawdzono zgodność implementacji z wymaganiami TNT-021 z planu.
   export interface CurrentUserPayload {
     id: string;
     email: string;
-    role: string; // tenant role
-    tenantId: string;
+    role: string; // site role
+    siteId: string;
     platformRole?: string; // platform role
   }
   ```
@@ -240,15 +240,15 @@ Sprawdzono zgodność implementacji z wymaganiami TNT-021 z planu.
 
 ## 5. Weryfikacja migracji
 
-### ✅ 5.1 Migracja UserTenant
+### ✅ 5.1 Migracja UserSite
 
 **Implementacja:**
-- ✅ Tabela `user_tenants` utworzona ✅
-- ✅ Pola: `id`, `user_id`, `tenant_id`, `role`, `created_at`, `updated_at` ✅
-- ✅ Unique constraint na `[user_id, tenant_id]` ✅
-- ✅ Indexes: `user_tenants_tenant_idx`, `user_tenants_user_idx` ✅
+- ✅ Tabela `user_sites` utworzona ✅
+- ✅ Pola: `id`, `user_id`, `site_id`, `role`, `created_at`, `updated_at` ✅
+- ✅ Unique constraint na `[user_id, site_id]` ✅
+- ✅ Indexes: `user_sites_site_idx`, `user_sites_user_idx` ✅
 - ✅ Foreign keys z `ON DELETE CASCADE` ✅
-- ✅ Backfill: `INSERT INTO user_tenants SELECT ... FROM users` ✅
+- ✅ Backfill: `INSERT INTO user_sites SELECT ... FROM users` ✅
 
 **Status:** ✅ Zgodne z wymaganiami
 
@@ -273,19 +273,19 @@ Sprawdzono zgodność implementacji z wymaganiami TNT-021 z planu.
 ### ✅ 6.3 Backward Compatibility
 **Status:** ✅ Wszystkie metody mają fallback do legacy modelu
 
-**Uwaga:** Kod obsługuje gracefully sytuację, gdy UserTenant table nie istnieje (np. w środowiskach bez migracji).
+**Uwaga:** Kod obsługuje gracefully sytuację, gdy UserSite table nie istnieje (np. w środowiskach bez migracji).
 
 ---
 
 ## 7. Podsumowanie
 
 ### ✅ Zaimplementowane zgodnie z wymaganiami:
-1. ✅ Model UserTenant (userId, tenantId, role, unique [userId, tenantId])
+1. ✅ Model UserSite (userId, siteId, role, unique [userId, siteId])
 2. ✅ Role platformowe (platform_admin, org_owner, user)
-3. ✅ Migracja backfill (przeniesienie User.tenantId do UserTenant)
+3. ✅ Migracja backfill (przeniesienie User.siteId do UserSite)
 4. ✅ Backward compatibility (stary login działa)
-5. ✅ UserTenantsService (pełna obsługa członkostw)
-6. ✅ UserTenantsModule (dodany do AppModule)
+5. ✅ UserSitesService (pełna obsługa członkostw)
+6. ✅ UserSitesModule (dodany do AppModule)
 7. ✅ Refaktoryzacja AuthService (usunięcie workaroundów)
 8. ✅ Aktualizacja JWT Strategy (obsługa platformRole)
 
@@ -299,7 +299,7 @@ Sprawdzono zgodność implementacji z wymaganiami TNT-021 z planu.
 
 **Status ogólny:** ✅ **Zgodne z wymaganiami**
 
-Wszystkie kluczowe elementy TNT-021 zostały zaimplementowane zgodnie z wymaganiami z planu. Model UserTenant działa poprawnie, backward compatibility jest zachowana, a platform roles są zdefiniowane (choć jeszcze nie używane w guards).
+Wszystkie kluczowe elementy TNT-021 zostały zaimplementowane zgodnie z wymaganiami z planu. Model UserSite działa poprawnie, backward compatibility jest zachowana, a platform roles są zdefiniowane (choć jeszcze nie używane w guards).
 
 **Rekomendacje:**
 1. ✅ Implementacja jest gotowa do użycia
@@ -310,19 +310,19 @@ Wszystkie kluczowe elementy TNT-021 zostały zaimplementowane zgodnie z wymagani
 
 ## 9. Testy weryfikacyjne
 
-### ✅ Test 1: Multi-tenant memberships
+### ✅ Test 1: Org/site memberships
 - Użytkownik może mieć wiele członkostw ✅
 - Każde członkostwo ma własną rolę ✅
-- `getUserTenants()` zwraca wszystkie członkostwa ✅
+- `getUserSites()` zwraca wszystkie członkostwa ✅
 
 ### ✅ Test 2: Backward compatibility
-- Stary login (z tenantId) działa ✅
+- Stary login (z siteId) działa ✅
 - Fallback do legacy modelu działa ✅
-- Kod obsługuje gracefully brak UserTenant table ✅
+- Kod obsługuje gracefully brak UserSite table ✅
 
-### ✅ Test 3: UserTenantsService
+### ✅ Test 3: UserSitesService
 - Wszystkie metody działają poprawnie ✅
-- Walidacja działa (user/tenant exists, no duplicates) ✅
+- Walidacja działa (user/site exists, no duplicates) ✅
 - Error handling działa ✅
 
 ---

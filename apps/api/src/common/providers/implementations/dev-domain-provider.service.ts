@@ -20,7 +20,7 @@ export class DevDomainProvider implements DomainProvider {
   constructor(private readonly prisma: PrismaService) {}
 
   async configureDomain(params: ConfigureDomainParams): Promise<DomainConfigurationResult> {
-    this.logger.log(`[DEV] Configuring domain: ${params.domain} for tenant: ${params.tenantId}`);
+    this.logger.log(`[DEV] Configuring domain: ${params.domain} for site: ${params.siteId}`);
 
     // Store domain record in DevDomainRecord table for observability
     try {
@@ -28,7 +28,7 @@ export class DevDomainProvider implements DomainProvider {
         where: {
           domain_siteId: {
             domain: params.domain,
-            siteId: params.tenantId,
+            siteId: params.siteId,
           },
         },
         update: {
@@ -39,7 +39,7 @@ export class DevDomainProvider implements DomainProvider {
         },
         create: {
           domain: params.domain,
-          siteId: params.tenantId,
+          siteId: params.siteId,
           targetUrl: params.targetUrl || null,
           status: 'configured',
           sslStatus: 'active',
@@ -65,7 +65,7 @@ export class DevDomainProvider implements DomainProvider {
     } catch (error) {
       // If DevDomainRecord table doesn't exist yet, just log to console
       this.logger.warn(`[DEV] DevDomainRecord table not available, logging to console only`);
-      this.logger.log(`[DEV DOMAIN] Domain: ${params.domain}, Tenant: ${params.tenantId}, Target: ${params.targetUrl || 'N/A'}`);
+      this.logger.log(`[DEV DOMAIN] Domain: ${params.domain}, Site: ${params.siteId}, Target: ${params.targetUrl || 'N/A'}`);
 
       return {
         domain: params.domain,
@@ -91,7 +91,7 @@ export class DevDomainProvider implements DomainProvider {
         where: {
           domain_siteId: {
             domain: params.domain,
-            siteId: params.tenantId,
+            siteId: params.siteId,
           },
         },
       });
@@ -101,7 +101,7 @@ export class DevDomainProvider implements DomainProvider {
           where: {
             domain_siteId: {
               domain: params.domain,
-              siteId: params.tenantId,
+              siteId: params.siteId,
             },
           },
           data: {
@@ -119,15 +119,15 @@ export class DevDomainProvider implements DomainProvider {
     }
   }
 
-  async removeDomain(domain: string, tenantId: string): Promise<void> {
-    this.logger.log(`[DEV] Removing domain: ${domain} for tenant: ${tenantId}`);
+  async removeDomain(domain: string, siteId: string): Promise<void> {
+    this.logger.log(`[DEV] Removing domain: ${domain} for site: ${siteId}`);
 
     try {
       await this.prisma.devDomainRecord.delete({
         where: {
           domain_siteId: {
             domain,
-            siteId: tenantId,
+            siteId: siteId,
           },
         },
       });
@@ -142,13 +142,13 @@ export class DevDomainProvider implements DomainProvider {
     }
   }
 
-  async getDomainStatus(domain: string, tenantId: string): Promise<DomainConfigurationResult | null> {
+  async getDomainStatus(domain: string, siteId: string): Promise<DomainConfigurationResult | null> {
     try {
       const domainRecord = await this.prisma.devDomainRecord.findUnique({
         where: {
           domain_siteId: {
             domain,
-            siteId: tenantId,
+            siteId: siteId,
           },
         },
       });

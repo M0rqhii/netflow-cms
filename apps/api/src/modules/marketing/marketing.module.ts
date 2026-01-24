@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { TenantModule } from '../../common/tenant/tenant.module';
 import { AuthModule } from '../../common/auth/auth.module';
 import { RbacModule } from '../rbac/rbac.module';
 import { MarketingController } from './marketing.controller';
@@ -15,7 +14,7 @@ import { MarketingService } from './marketing.service';
  * 3. Marketing Manager lub Publisher publikuje (strona / social / ads)
  */
 @Module({
-  imports: [TenantModule, AuthModule, RbacModule],
+  imports: [AuthModule, RbacModule],
   controllers: [MarketingController],
   providers: [MarketingService, PrismaService],
   exports: [MarketingService],

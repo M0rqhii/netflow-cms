@@ -83,7 +83,7 @@ export class SitePagesController {
   }
 
   @Post(':pageId/publish')
-  @Roles(Role.TENANT_ADMIN, Role.SUPER_ADMIN)
+  @Roles(Role.ORG_ADMIN, Role.SUPER_ADMIN)
   @Permissions(Permission.PAGES_PUBLISH)
   publish(
     @Param('siteId') siteId: string,
