@@ -592,7 +592,7 @@ async function main() {
     },
     update: {},
     create: {
-      siteId: site1.id,
+      orgId: org1.id,
       name: 'Site Admin',
       description: 'Full access to site builder, content, and site settings',
       type: 'SYSTEM',
@@ -630,7 +630,6 @@ async function main() {
     update: {},
     create: {
       orgId: org1.id,
-      siteId: site1.id,
       name: 'Editor-in-Chief',
       description: 'Can edit, save drafts, publish, and rollback',
       type: 'SYSTEM',
@@ -663,7 +662,6 @@ async function main() {
     update: {},
     create: {
       orgId: org1.id,
-      siteId: site1.id,
       name: 'Editor',
       description: 'Can edit and save drafts, but cannot publish',
       type: 'SYSTEM',
@@ -694,7 +692,6 @@ async function main() {
     update: {},
     create: {
       orgId: org1.id,
-      siteId: site1.id,
       name: 'Publisher',
       description: 'Can publish and rollback, but cannot edit',
       type: 'SYSTEM',
@@ -724,7 +721,7 @@ async function main() {
     },
     update: {},
     create: {
-      siteId: site1.id,
+      orgId: org1.id,
       name: 'Viewer',
       description: 'Read-only access to builder, content, and analytics',
       type: 'SYSTEM',
@@ -747,14 +744,14 @@ async function main() {
   const marketingManagerRole = await prisma.role.upsert({
     where: {
       orgId_name_scope: {
-      siteId: site1.id,
+        orgId: org1.id,
         name: 'Marketing Manager',
         scope: 'SITE',
       },
     },
     update: {},
     create: {
-      siteId: site1.id,
+      orgId: org1.id,
       name: 'Marketing Manager',
       description: 'Full marketing access including campaigns and ads',
       type: 'SYSTEM',
@@ -778,14 +775,14 @@ async function main() {
   const marketingEditorRole = await prisma.role.upsert({
     where: {
       orgId_name_scope: {
-      siteId: site1.id,
+        orgId: org1.id,
         name: 'Marketing Editor',
         scope: 'SITE',
       },
     },
     update: {},
     create: {
-      siteId: site1.id,
+      orgId: org1.id,
       name: 'Marketing Editor',
       description: 'Can edit marketing content',
       type: 'SYSTEM',
@@ -807,14 +804,14 @@ async function main() {
   const marketingPublisherRole = await prisma.role.upsert({
     where: {
       orgId_name_scope: {
-      siteId: site1.id,
+        orgId: org1.id,
         name: 'Marketing Publisher',
         scope: 'SITE',
       },
     },
     update: {},
     create: {
-      siteId: site1.id,
+      orgId: org1.id,
       name: 'Marketing Publisher',
       description: 'Can publish marketing content',
       type: 'SYSTEM',
@@ -836,14 +833,14 @@ async function main() {
   const marketingViewerRole = await prisma.role.upsert({
     where: {
       orgId_name_scope: {
-      siteId: site1.id,
+        orgId: org1.id,
         name: 'Marketing Viewer',
         scope: 'SITE',
       },
     },
     update: {},
     create: {
-      siteId: site1.id,
+      orgId: org1.id,
       name: 'Marketing Viewer',
       description: 'Read-only access to marketing',
       type: 'SYSTEM',
@@ -877,13 +874,13 @@ async function main() {
     await prisma.orgPolicy.upsert({
       where: {
         orgId_capabilityKey: {
-        siteId: site1.id,
+          orgId: org1.id,
           capabilityKey: capData.key,
         },
       },
       update: { enabled },
       create: {
-      siteId: site1.id,
+        orgId: org1.id,
         capabilityKey: capData.key,
         enabled,
         createdByUserId: adminUser.id,
