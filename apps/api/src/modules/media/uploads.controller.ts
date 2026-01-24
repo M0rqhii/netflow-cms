@@ -23,8 +23,8 @@ export class UploadsController {
    * Serve uploaded file
    * GET /api/v1/uploads/:siteId/:folder?/:filename
    */
-  @Get('*')
-  async serveFile(@Param('0') filePath: string, @Res() res: Response) {
+  @Get('*path')
+  async serveFile(@Param('path') filePath: string, @Res() res: Response) {
     try {
       const fullPath = path.join(this.uploadDir, filePath);
       

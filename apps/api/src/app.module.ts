@@ -110,6 +110,7 @@ const isProductionProfile = (process.env.APP_PROFILE || process.env.NODE_ENV || 
     RbacModule,
     MarketingModule,
     OrgDashboardModule,
+    OrganizationsModule,
     SitesModule,
     ...(isProductionProfile ? [] : [DevModule]),
     // Add feature modules here

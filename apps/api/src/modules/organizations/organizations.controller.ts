@@ -14,6 +14,7 @@ import { Permission } from '../../common/auth/roles.enum';
 import { OrgGuard } from '../../common/org-site/org.guard';
 import { CurrentOrg } from '../../common/decorators/current-org.decorator';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 import { z } from 'zod';
 
@@ -75,7 +76,7 @@ export class OrganizationsController {
       where: { id: orgId },
       data: {
         name: dto.name,
-        settings: dto.settings,
+        settings: dto.settings as Prisma.InputJsonValue | undefined,
       },
       select: {
         id: true,
