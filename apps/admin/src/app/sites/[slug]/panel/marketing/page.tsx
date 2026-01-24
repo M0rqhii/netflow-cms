@@ -4,13 +4,11 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { SitePanelLayout } from '@/components/site-panel/SitePanelLayout';
 import { SectionHeader } from '@/components/site-panel/SectionHeader';
-import { Card, CardHeader, CardTitle, CardContent, Button, Badge } from '@repo/ui';
-import { EmptyState } from '@repo/ui';
+import { Card, CardHeader, CardTitle, CardContent, Button, EmptyState } from '@repo/ui';
+import { Badge } from '@/components/ui/Badge';
 import { useToast } from '@/components/ui/Toast';
 import {
   fetchMySites,
-  getSiteToken,
-  exchangeSiteToken,
   fetchMarketingCampaigns,
   fetchDistributionDrafts,
   fetchPublishJobs,
@@ -18,6 +16,8 @@ import {
   createMarketingCampaign,
   createDistributionDraft,
   publishMarketingContent,
+  getAuthToken,
+  decodeAuthToken,
   type MarketingCampaign,
   type DistributionDraft,
   type PublishJob,
@@ -35,6 +35,7 @@ export default function MarketingPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<Tab>('campaigns');
   const [siteId, setSiteId] = useState<string | null>(null);
+  const [orgId, setOrgId] = useState<string | null>(null);
   const [campaigns, setCampaigns] = useState<MarketingCampaign[]>([]);
   const [drafts, setDrafts] = useState<DistributionDraft[]>([]);
   const [jobs, setJobs] = useState<PublishJob[]>([]);
@@ -71,15 +72,18 @@ export default function MarketingPage() {
       const id = site.siteId;
       setSiteId(id);
 
-      let token = getSiteToken(id);
-      if (!token) {
-        token = await exchangeSiteToken(id);
+      const token = getAuthToken();
+      const payload = token ? decodeAuthToken(token) : null;
+      const resolvedOrgId = payload?.orgId;
+      if (!resolvedOrgId) {
+        throw new Error('Missing organization ID. Please login again.');
       }
+      setOrgId(resolvedOrgId);
 
       const [campaignsData, draftsData, jobsData] = await Promise.all([
-        fetchMarketingCampaigns(id, { siteId: id }).catch(() => ({ campaigns: [], pagination: { total: 0, page: 1, pageSize: 20 } })),
-        fetchDistributionDrafts(id, { siteId: id }).catch(() => ({ drafts: [], pagination: { total: 0, page: 1, pageSize: 20 } })),
-        fetchPublishJobs(id, { siteId: id }).catch(() => ({ jobs: [], pagination: { total: 0, page: 1, pageSize: 20 } })),
+        fetchMarketingCampaigns(resolvedOrgId, { siteId: id }).catch(() => ({ campaigns: [], pagination: { total: 0, page: 1, pageSize: 20 } })),
+        fetchDistributionDrafts(resolvedOrgId, { siteId: id }).catch(() => ({ drafts: [], pagination: { total: 0, page: 1, pageSize: 20 } })),
+        fetchPublishJobs(resolvedOrgId, { siteId: id }).catch(() => ({ jobs: [], pagination: { total: 0, page: 1, pageSize: 20 } })),
       ]);
 
       setCampaigns(campaignsData.campaigns || []);
@@ -102,10 +106,10 @@ export default function MarketingPage() {
 
   const handleCreateCampaign = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!siteId || !campaignName.trim()) return;
+    if (!siteId || !orgId || !campaignName.trim()) return;
 
     try {
-      await createMarketingCampaign(siteId, {
+      await createMarketingCampaign(orgId, {
         siteId: siteId,
         name: campaignName,
         description: campaignDescription || undefined,
@@ -131,7 +135,7 @@ export default function MarketingPage() {
 
   const handleCreateDraft = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!siteId) return;
+    if (!siteId || !orgId) return;
 
     // GUARDRAIL 1: Walidacja tytułu
     if (!draftTitle || draftTitle.trim().length === 0) {
@@ -152,7 +156,7 @@ export default function MarketingPage() {
     }
 
     try {
-      await createDistributionDraft(siteId, {
+      await createDistributionDraft(orgId, {
         siteId: siteId,
         title: draftTitle,
         content: draftContent,
@@ -180,7 +184,7 @@ export default function MarketingPage() {
 
   const handlePublish = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!siteId) return;
+    if (!siteId || !orgId) return;
 
     // GUARDRAIL 1: Sprawdź czy wybrano kanały
     if (!selectedChannels || selectedChannels.length === 0) {
@@ -204,7 +208,7 @@ export default function MarketingPage() {
     }
 
     try {
-      await publishMarketingContent(siteId, {
+      await publishMarketingContent(orgId, {
         siteId: siteId,
         draftId: selectedDraftId || undefined,
         channels: selectedChannels,
@@ -440,9 +444,9 @@ export default function MarketingPage() {
                     key={job.id}
                     className="cursor-pointer hover:shadow-md transition-shadow"
                     onClick={async () => {
-                      if (!siteId) return;
+                      if (!siteId || !orgId) return;
                       try {
-                        const jobDetails = await getPublishJob(siteId, job.id);
+                        const jobDetails = await getPublishJob(orgId, job.id);
                         setSelectedJob(jobDetails);
                         setSelectedJobId(job.id);
                       } catch (err) {

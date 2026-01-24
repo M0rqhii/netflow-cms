@@ -3,6 +3,10 @@ import { ThrottlerGuard } from '@nestjs/throttler';
 import { Request } from 'express';
 import { Reflector } from '@nestjs/core';
 
+const THROTTLER_LIMIT = 'THROTTLER:LIMIT';
+const THROTTLER_TTL = 'THROTTLER:TTL';
+const THROTTLER_SKIP = 'THROTTLER:SKIP';
+
 /**
  * Role-based Throttler Guard
  * AI Note: Provides different rate limits based on user role
@@ -26,13 +30,39 @@ export class RoleBasedThrottlerGuard extends ThrottlerGuard {
     if (request.method === 'OPTIONS') {
       return true;
     }
-    
-    try {
-      const result = await super.canActivate(context);
-      return result;
-    } catch (error: any) {
-      throw error;
+
+    const handler = context.getHandler();
+    const classRef = context.getClass();
+    if (
+      this.reflector.getAllAndOverride<boolean>(THROTTLER_SKIP, [handler, classRef]) ||
+      this.options.skipIf?.(context)
+    ) {
+      return true;
     }
+
+    const profile = process.env.APP_PROFILE || process.env.NODE_ENV || 'development';
+    const isDevelopment = profile !== 'production';
+    const routeOrClassLimit = this.reflector.getAllAndOverride<number>(THROTTLER_LIMIT, [
+      handler,
+      classRef,
+    ]);
+    const routeOrClassTtl = this.reflector.getAllAndOverride<number>(THROTTLER_TTL, [
+      handler,
+      classRef,
+    ]);
+
+    const limit = routeOrClassLimit
+      ? isDevelopment
+        ? 999999
+        : routeOrClassLimit
+      : this.getLimit(context);
+
+    if (isDevelopment && routeOrClassLimit && process.env.DEBUG_THROTTLER === 'true') {
+      this.logger.debug(`Using decorator limit: ${limit} (dev mode)`);
+    }
+
+    const ttl = routeOrClassTtl ?? this.options.ttl ?? 60000;
+    return this.handleRequest(context, limit, ttl);
   }
 
   protected getTracker(req: Record<string, any>): string {
@@ -49,21 +79,6 @@ export class RoleBasedThrottlerGuard extends ThrottlerGuard {
     // Default to development if neither APP_PROFILE nor NODE_ENV is set
     const profile = process.env.APP_PROFILE || process.env.NODE_ENV || 'development';
     const isDevelopment = profile !== 'production';
-    
-    // First check if @Throttle decorator is set - if so, use that limit
-    const handler = context.getHandler();
-    const classRef = context.getClass();
-    const throttlerMetadata = this.reflector.getAllAndOverride<number[]>('THROTTLER', [handler, classRef]);
-    
-    if (throttlerMetadata && throttlerMetadata.length >= 1) {
-      // @Throttle decorator limit takes precedence
-      // In development, set to very high limit (effectively unlimited)
-      const limit = isDevelopment ? 999999 : throttlerMetadata[0];
-      if (isDevelopment && process.env.DEBUG_THROTTLER === 'true') {
-        this.logger.debug(`Using decorator limit: ${limit} (dev mode)`);
-      }
-      return limit;
-    }
 
     // Otherwise, use role-based limits
     const request = context.switchToHttp().getRequest<Request>();
@@ -77,7 +92,7 @@ export class RoleBasedThrottlerGuard extends ThrottlerGuard {
       }
       return 999999; // Effectively unlimited in development
     }
-    
+
     let limit = 50; // Default limit for unauthenticated users
     if (user?.role === 'super_admin') {
       limit = 1000; // 1000 requests per minute for super admin
@@ -92,4 +107,3 @@ export class RoleBasedThrottlerGuard extends ThrottlerGuard {
     return limit;
   }
 }
-

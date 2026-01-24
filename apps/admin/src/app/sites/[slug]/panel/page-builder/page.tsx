@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, Suspense } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
 import dynamic from 'next/dynamic';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { DndContext, DragOverlay, KeyboardSensor, PointerSensor, useSensor, useSensors, DragStartEvent, DragEndEvent } from '@dnd-kit/core';
@@ -49,7 +49,7 @@ export default function PageBuilderPage() {
   const [showPublishModal, setShowPublishModal] = useState(false);
   const [siteId, setSiteId] = useState<string | null>(null);
 
-  const apiClient = createApiClient();
+  const apiClient = useMemo(() => createApiClient(), []);
 
   useEffect(() => {
     trackOnboardingSuccess('editor_opened');
@@ -498,3 +498,5 @@ function PageBuilderWithSave({
     </div>
   );
 }
+
+

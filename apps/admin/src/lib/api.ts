@@ -88,6 +88,16 @@ export function getSiteToken(siteId: string): string | null {
   return localStorage.getItem(`siteToken:${siteId}`);
 }
 
+export function setOrgToken(orgId: string, token: string) {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(`orgToken:${orgId}`, token);
+}
+
+export function getOrgToken(orgId: string): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem(`orgToken:${orgId}`);
+}
+
 // Legacy aliases moved to end of file for consistency
 
 /**
@@ -103,7 +113,7 @@ export function clearAuthTokens(): void {
       if (k) keys.push(k);
     }
     keys.forEach((k) => {
-      if (k === 'authToken' || k.startsWith('siteToken:')) {
+      if (k === 'authToken' || k.startsWith('siteToken:') || k.startsWith('orgToken:')) {
         localStorage.removeItem(k);
       }
     });
@@ -165,10 +175,24 @@ export async function exchangeSiteToken(siteId: string): Promise<string> {
   return res.access_token;
 }
 
+export async function exchangeOrgToken(orgId: string): Promise<string> {
+  const token = getAuthToken();
+  if (!token) throw new Error('Missing auth token. Please login.');
+  const res = await client.issueOrgToken(token, orgId);
+  setOrgToken(orgId, res.access_token);
+  return res.access_token;
+}
+
 async function ensureSiteToken(siteId: string): Promise<string> {
   const cached = getSiteToken(siteId);
   if (cached) return cached;
   return exchangeSiteToken(siteId);
+}
+
+async function ensureOrgToken(orgId: string): Promise<string> {
+  const cached = getOrgToken(orgId);
+  if (cached) return cached;
+  return exchangeOrgToken(orgId);
 }
 
 
@@ -1706,7 +1730,7 @@ export type EffectivePermission = {
 async function getOrgAuthToken(orgId: string): Promise<string> {
   let token: string | null = null;
   try {
-    token = await ensureSiteToken(orgId);
+    token = await ensureOrgToken(orgId);
   } catch (error) {
     token = getAuthToken();
   }

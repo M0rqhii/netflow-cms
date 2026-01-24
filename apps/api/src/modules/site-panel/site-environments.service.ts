@@ -1,5 +1,6 @@
 import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
 import { Prisma, EnvironmentType } from '@prisma/client';
+import { randomUUID } from 'crypto';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { CreateSiteEnvironmentDto } from './dto';
 
@@ -15,6 +16,7 @@ type SiteEnvironmentTableInfo = {
   table: 'site_environments' | 'site_environment';
   siteColumn: string;
   typeColumn: string;
+  typeEnumName?: string;
   createdColumn: string;
   updatedColumn: string;
 };
@@ -33,6 +35,13 @@ export class SiteEnvironmentsService {
     return `"${value.replace(/"/g, '""')}"`;
   }
 
+  private renderTypeValue(type: EnvironmentType, info: SiteEnvironmentTableInfo) {
+    if (info.typeEnumName) {
+      return Prisma.sql`${type}::${Prisma.raw(this.quoteIdentifier(info.typeEnumName))}`;
+    }
+    return Prisma.sql`${type}`;
+  }
+
   private pickColumn(columns: Set<string>, candidates: string[]): string | undefined {
     return candidates.find((candidate) => columns.has(candidate));
   }
@@ -44,7 +53,7 @@ export class SiteEnvironmentsService {
       site_environments: string | null;
       site_environment: string | null;
     }[]>(
-      Prisma.sql`SELECT to_regclass('public.site_environments') as site_environments, to_regclass('public.site_environment') as site_environment`,
+      Prisma.sql`SELECT to_regclass('public.site_environments')::text as site_environments, to_regclass('public.site_environment')::text as site_environment`,
     );
 
     const table = row?.site_environments
@@ -57,8 +66,8 @@ export class SiteEnvironmentsService {
       throw new Error('Site environments table not found');
     }
 
-    const columns = await this.prisma.$queryRaw<{ column_name: string }[]>(
-      Prisma.sql`SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = ${table}`,
+    const columns = await this.prisma.$queryRaw<{ column_name: string; data_type: string; udt_name: string }[]>(
+      Prisma.sql`SELECT column_name, data_type, udt_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = ${table}`,
     );
     const columnSet = new Set(columns.map((column) => column.column_name));
 
@@ -74,6 +83,12 @@ export class SiteEnvironmentsService {
       throw new Error(`Site environment type column not found in ${table}`);
     }
 
+    const typeColumnInfo = columns.find((column) => column.column_name === typeColumn);
+    const typeEnumName =
+      typeColumnInfo?.data_type === 'USER-DEFINED' && typeColumnInfo.udt_name
+        ? typeColumnInfo.udt_name
+        : undefined;
+
     const createdColumn =
       this.pickColumn(columnSet, ['created_at', 'createdAt']) || 'id';
     const updatedColumn =
@@ -83,6 +98,7 @@ export class SiteEnvironmentsService {
       table,
       siteColumn,
       typeColumn,
+      typeEnumName,
       createdColumn,
       updatedColumn,
     };
@@ -111,6 +127,7 @@ export class SiteEnvironmentsService {
     type: EnvironmentType,
   ): Promise<SiteEnvironmentRow | null> {
     const info = await this.resolveTableInfo();
+    const typeValue = this.renderTypeValue(type, info);
     const rows = await this.prisma.$queryRaw<SiteEnvironmentRow[]>(
       Prisma.sql`
         SELECT
@@ -121,7 +138,7 @@ export class SiteEnvironmentsService {
           ${Prisma.raw(this.quoteIdentifier(info.updatedColumn))} as "updatedAt"
         FROM ${Prisma.raw(this.quoteIdentifier(info.table))}
         WHERE ${Prisma.raw(this.quoteIdentifier(info.siteColumn))} = ${siteId}
-          AND ${Prisma.raw(this.quoteIdentifier(info.typeColumn))} = ${type}
+          AND ${Prisma.raw(this.quoteIdentifier(info.typeColumn))} = ${typeValue}
         LIMIT 1
       `,
     );
@@ -133,13 +150,18 @@ export class SiteEnvironmentsService {
     type: EnvironmentType,
   ): Promise<SiteEnvironmentRow> {
     const info = await this.resolveTableInfo();
+    const typeValue = this.renderTypeValue(type, info);
+    const id = randomUUID();
+    const updatedAt = new Date();
     const rows = await this.prisma.$queryRaw<SiteEnvironmentRow[]>(
       Prisma.sql`
         INSERT INTO ${Prisma.raw(this.quoteIdentifier(info.table))} (
+          id,
           ${Prisma.raw(this.quoteIdentifier(info.siteColumn))},
-          ${Prisma.raw(this.quoteIdentifier(info.typeColumn))}
+          ${Prisma.raw(this.quoteIdentifier(info.typeColumn))},
+          ${Prisma.raw(this.quoteIdentifier(info.updatedColumn))}
         )
-        VALUES (${siteId}, ${type})
+        VALUES (${id}, ${siteId}, ${typeValue}, ${updatedAt})
         RETURNING
           id,
           ${Prisma.raw(this.quoteIdentifier(info.siteColumn))} as "siteId",

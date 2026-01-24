@@ -111,7 +111,7 @@ export default function SiteOverviewPage() {
         <div className="mb-2 sm:mb-3">
           <div className="flex items-center gap-2 mb-2">
             <Link href="/sites" className="text-[10px] sm:text-xs text-muted hover:text-foreground transition-colors">
-              <- {t('siteOverview.backToSites')}
+              {'<- '} {t('siteOverview.backToSites')}
             </Link>
           </div>
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground mb-0.5 sm:mb-1">
@@ -241,3 +241,4 @@ export default function SiteOverviewPage() {
     </div>
   );
 }
+

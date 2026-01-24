@@ -35,15 +35,23 @@ export class OrgSiteContextMiddleware implements NestMiddleware {
     // Extract org ID from various sources
     const orgId =
       req.headers['x-org-id'] ||
-      (req.query.orgId as string);
+      req.headers['x-tenant-id'] ||
+      (req.query.orgId as string) ||
+      (req.params?.orgId as string);
 
     // Extract site ID from various sources
     const siteId =
       req.headers['x-site-id'] ||
-      (req.query.siteId as string);
+      (req.query.siteId as string) ||
+      (req.params?.siteId as string);
+
+    // Fallback: extract IDs from URL path (params may be unavailable in middleware)
+    const requestPath = req.originalUrl || req.url || '';
+    const orgIdFromPath = requestPath.match(/\/orgs\/([0-9a-f-]{36})/i)?.[1];
+    const siteIdFromPath = requestPath.match(/\/site-panel\/([0-9a-f-]{36})/i)?.[1];
 
     // If no orgId provided explicitly, try to derive from authenticated user (JWT)
-    let resolvedOrgId = typeof orgId === 'string' ? orgId : undefined;
+    let resolvedOrgId = typeof orgId === 'string' ? orgId : orgIdFromPath || undefined;
     const user = (req as { user?: CurrentUserPayload }).user;
     if (!resolvedOrgId && user?.orgId) {
       resolvedOrgId = user.orgId;
@@ -53,7 +61,7 @@ export class OrgSiteContextMiddleware implements NestMiddleware {
     const uuidRegex =
       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-    let resolvedSiteId: string | undefined = typeof siteId === 'string' ? siteId : undefined;
+    let resolvedSiteId: string | undefined = typeof siteId === 'string' ? siteId : siteIdFromPath || undefined;
     if (resolvedSiteId && !uuidRegex.test(resolvedSiteId)) {
       throw new BadRequestException('Invalid site ID format (must be UUID)');
     }

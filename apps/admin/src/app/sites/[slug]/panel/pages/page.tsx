@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { SitePanelLayout } from '@/components/site-panel/SitePanelLayout';
 import { SectionHeader } from '@/components/site-panel/SectionHeader';
@@ -43,7 +43,7 @@ export default function PagesPage() {
   const [editTitle, setEditTitle] = useState('');
   const [editSlug, setEditSlug] = useState('');
 
-  const apiClient = createApiClient();
+  const apiClient = useMemo(() => createApiClient(), []);
 
   useEffect(() => {
     trackOnboardingSuccess('editor_opened');
@@ -528,3 +528,5 @@ export default function PagesPage() {
     </SitePanelLayout>
   );
 }
+
+

@@ -93,6 +93,13 @@ export default function DashboardPage() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null); // null = all sites
 
+  const userInfo = useMemo(() => {
+    const token = getAuthToken();
+    return token ? decodeAuthToken(token) : null;
+  }, []);
+  const userEmail = userInfo?.email || 'user@example.com';
+  const userOrgId = userInfo?.orgId || null;
+
   useEffect(() => {
     const checkOnboarding = () => {
       const shouldShow = shouldShowOnboarding();
@@ -128,10 +135,9 @@ export default function DashboardPage() {
           const validSites = sitesData.value.filter(s => s?.site != null);
           setSites(validSites);
           
-          // Fetch activity for the first organization (if available)
-          // Note: siteId in SiteInfo is actually orgId (from backward compatibility mapping)
-          const firstOrgId = validSites.length > 0 ? validSites[0].siteId : undefined;
-          await loadActivity(firstOrgId, selectedSiteId);
+          // Fetch activity for the current org (if available)
+          const resolvedOrgId = userOrgId || undefined;
+          await loadActivity(resolvedOrgId, selectedSiteId);
         } else {
           setSitesError(sitesData.reason instanceof Error ? sitesData.reason.message : t('dashboard.failedToLoad'));
           setSites([]);
@@ -159,13 +165,13 @@ export default function DashboardPage() {
   }, [t]);
 
   // Load activity when selectedSiteId changes
+
   useEffect(() => {
-    if (sites.length > 0) {
-      const firstOrgId = sites[0].siteId; // This is actually orgId
-      loadActivity(firstOrgId, selectedSiteId);
+    if (userOrgId) {
+      loadActivity(userOrgId, selectedSiteId);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedSiteId]);
+  }, [selectedSiteId, userOrgId]);
 
   const loadActivity = async (orgId: string | undefined, siteId: string | null) => {
     if (!orgId) return;
@@ -214,11 +220,6 @@ export default function DashboardPage() {
     }, {} as Record<string, typeof filteredSites>);
   }, [filteredSites, groupBy]);
 
-  const userEmail = useMemo(() => {
-    const token = getAuthToken();
-    const payload = token ? decodeAuthToken(token) : null;
-    return payload?.email || 'user@example.com';
-  }, []);
 
   const statCards = [
     { key: 'sites', label: t('dashboard.totalSites'), value: stats.sites, icon: 'sites', color: 'from-blue-500 to-cyan-500', bgColor: 'bg-blue-50 dark:bg-blue-950/20' },
@@ -506,8 +507,8 @@ export default function DashboardPage() {
                     </Link>
                   </Tooltip>
                   
-                  {sites.length > 0 && sites[0]?.siteId && (
-                    <Link href={`/org/${sites[0].siteId}/settings/general`} className="block">
+                  {userOrgId && (
+                    <Link href={`/org/${userOrgId}/settings/general`} className="block">
                       <Button variant="outline" className="w-full justify-start text-[10px] sm:text-xs h-7 sm:h-8 px-2">
                         <svg className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />

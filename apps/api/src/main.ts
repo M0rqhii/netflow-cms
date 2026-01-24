@@ -78,6 +78,8 @@ async function bootstrap() {
       'Origin',
       'X-Org-ID',
       'X-Site-ID',
+      'X-Tenant-ID',
+      'X-Tenant-Id',
     ],
     exposedHeaders: ['Content-Range', 'X-Total-Count'],
     preflightContinue: false,
@@ -140,3 +142,4 @@ bootstrap();
 // - ValidationPipe używa Zod schemas z @repo/schemas
 // - CORS jest skonfigurowany dla frontend
 // - Global prefix: /api/v1
+
