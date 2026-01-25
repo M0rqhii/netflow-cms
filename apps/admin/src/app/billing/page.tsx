@@ -66,7 +66,7 @@ export default function BillingPage() {
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground mb-0.5 sm:mb-1">
             {t('billing.title')}
           </h1>
-          <p className="text-[10px] sm:text-xs text-muted">
+          <p className="text-xs sm:text-sm text-muted">
             Zarządzaj subskrypcjami i historią płatności
           </p>
         </div>
@@ -92,10 +92,10 @@ export default function BillingPage() {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="text-left text-muted border-b border-border">
-                        <th className="py-2 px-3 font-semibold text-[10px] sm:text-xs">{t('billing.site')}</th>
-                        <th className="py-2 px-3 font-semibold text-[10px] sm:text-xs">{t('billing.plan')}</th>
-                        <th className="py-2 px-3 font-semibold text-[10px] sm:text-xs">{t('billing.status')}</th>
-                        <th className="py-2 px-3 font-semibold text-[10px] sm:text-xs">{t('billing.nextRenewal')}</th>
+                        <th className="py-2 px-3 font-semibold text-xs sm:text-sm">{t('billing.site')}</th>
+                        <th className="py-2 px-3 font-semibold text-xs sm:text-sm">{t('billing.plan')}</th>
+                        <th className="py-2 px-3 font-semibold text-xs sm:text-sm">{t('billing.status')}</th>
+                        <th className="py-2 px-3 font-semibold text-xs sm:text-sm">{t('billing.nextRenewal')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -104,7 +104,7 @@ export default function BillingPage() {
                           <td className="py-2 px-3 text-xs sm:text-sm">{sub.site?.name || '-'}</td>
                           <td className="py-2 px-3 text-xs sm:text-sm">{sub.plan}</td>
                           <td className="py-2 px-3">
-                            <Badge tone={sub.status === 'active' ? 'success' : 'default'} className="text-[9px] sm:text-[10px]">
+                            <Badge tone={sub.status === 'active' ? 'success' : 'default'} className="text-xs sm:text-xs">
                               {sub.status}
                             </Badge>
                           </td>
@@ -140,10 +140,10 @@ export default function BillingPage() {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="text-left text-muted border-b border-border">
-                        <th className="py-2 px-3 font-semibold text-[10px] sm:text-xs">{t('billing.site')}</th>
-                        <th className="py-2 px-3 font-semibold text-[10px] sm:text-xs">{t('billing.date')}</th>
-                        <th className="py-2 px-3 font-semibold text-[10px] sm:text-xs">{t('billing.amount')}</th>
-                        <th className="py-2 px-3 font-semibold text-[10px] sm:text-xs">{t('billing.status')}</th>
+                        <th className="py-2 px-3 font-semibold text-xs sm:text-sm">{t('billing.site')}</th>
+                        <th className="py-2 px-3 font-semibold text-xs sm:text-sm">{t('billing.date')}</th>
+                        <th className="py-2 px-3 font-semibold text-xs sm:text-sm">{t('billing.amount')}</th>
+                        <th className="py-2 px-3 font-semibold text-xs sm:text-sm">{t('billing.status')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -155,7 +155,7 @@ export default function BillingPage() {
                             {inv.amount} {inv.currency}
                           </td>
                           <td className="py-2 px-3">
-                            <Badge tone={inv.status === 'paid' ? 'success' : 'default'} className="text-[9px] sm:text-[10px]">
+                            <Badge tone={inv.status === 'paid' ? 'success' : 'default'} className="text-xs sm:text-xs">
                               {inv.status}
                             </Badge>
                           </td>

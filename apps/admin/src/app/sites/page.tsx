@@ -33,10 +33,11 @@ async function loadSites(): Promise<SiteInfo[]> {
   if (!sitesPromise) {
     sitesPromise = fetchMySites()
       .then((data) => {
-        // Debug: log all sites to see what we're getting
-        console.log('[SitesPage] All sites from API:', data);
-        console.log('[SitesPage] Sites with site property:', data.filter(s => s?.site != null));
-        console.log('[SitesPage] Sites without site property:', data.filter(s => !s?.site || s?.site == null));
+        if (process.env.NODE_ENV !== 'production') {
+          console.log('[SitesPage] All sites from API:', data);
+          console.log('[SitesPage] Sites with site property:', data.filter(s => s?.site != null));
+          console.log('[SitesPage] Sites without site property:', data.filter(s => !s?.site || s?.site == null));
+        }
         
         // Filter out any sites with missing site property to prevent runtime errors
         const validSites = data.filter(s => s?.site != null);
@@ -70,7 +71,9 @@ export default function SitesPage() {
         if (!isMounted) return;
         // Double-check: filter out any sites with missing site property
         const validSites = data.filter(s => s?.site != null);
-        console.log('[SitesPage] Setting sites:', validSites);
+        if (process.env.NODE_ENV !== 'production') {
+          console.log('[SitesPage] Setting sites:', validSites);
+        }
         setSites(validSites);
       })
       .catch((error) => {
@@ -139,12 +142,12 @@ export default function SitesPage() {
               <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground mb-0.5 sm:mb-1">
                 {t('sitesList.title')}
               </h1>
-              <p className="text-[10px] sm:text-xs text-muted">
+              <p className="text-xs sm:text-sm text-muted">
                 {t('sitesList.manageAllSites')}
               </p>
             </div>
             <Link href="/sites/new">
-              <Button variant="primary" className="w-full sm:w-auto text-[10px] sm:text-xs h-7 sm:h-8 px-2 sm:px-3">
+              <Button variant="primary" className="w-full sm:w-auto text-xs sm:text-sm h-7 sm:h-8 px-2 sm:px-3">
                 + {t('sitesList.newSite')}
               </Button>
             </Link>
@@ -160,10 +163,10 @@ export default function SitesPage() {
                   placeholder={t('sitesList.searchSitesByNameOrSlug')}
                   value={searchQuery}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
-                  className="flex-1 w-full sm:min-w-[180px] text-[10px] sm:text-xs h-8 sm:h-9"
+                  className="flex-1 w-full sm:min-w-[180px] text-xs sm:text-sm h-8 sm:h-9"
                 />
                 <select
-                  className="border rounded-md px-2 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-xs h-8 sm:h-9 bg-card text-foreground w-full sm:w-auto"
+                  className="border rounded-md px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm h-8 sm:h-9 bg-card text-foreground w-full sm:w-auto"
                   value={planFilter}
                   onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setPlanFilter(e.target.value)}
                 >
@@ -215,11 +218,11 @@ export default function SitesPage() {
                       <caption className="sr-only">{t('sitesList.sitesTable')}</caption>
                       <thead>
                         <tr className="text-left text-muted border-b border-border">
-                          <th scope="col" className="py-2 px-3 font-semibold text-[10px] sm:text-xs">{t('sitesList.name')}</th>
-                          <th scope="col" className="py-2 px-3 font-semibold text-[10px] sm:text-xs">{t('sitesList.slug')}</th>
-                          <th scope="col" className="py-2 px-3 font-semibold text-[10px] sm:text-xs">{t('sitesList.plan')}</th>
-                          <th scope="col" className="py-2 px-3 font-semibold text-[10px] sm:text-xs">{t('sitesList.yourRole')}</th>
-                          <th scope="col" className="text-right py-2 px-3 font-semibold text-[10px] sm:text-xs">{t('sitesList.actions')}</th>
+                          <th scope="col" className="py-2 px-3 font-semibold text-xs sm:text-sm">{t('sitesList.name')}</th>
+                          <th scope="col" className="py-2 px-3 font-semibold text-xs sm:text-sm">{t('sitesList.slug')}</th>
+                          <th scope="col" className="py-2 px-3 font-semibold text-xs sm:text-sm">{t('sitesList.plan')}</th>
+                          <th scope="col" className="py-2 px-3 font-semibold text-xs sm:text-sm">{t('sitesList.yourRole')}</th>
+                          <th scope="col" className="text-right py-2 px-3 font-semibold text-xs sm:text-sm">{t('sitesList.actions')}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -231,26 +234,26 @@ export default function SitesPage() {
                                 <div className="font-semibold text-xs sm:text-sm">{site.site.name}</div>
                               </td>
                               <td className="py-2 px-3">
-                                <code className="text-[10px] sm:text-xs bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded">{site.site.slug}</code>
+                                <code className="text-xs sm:text-sm bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded">{site.site.slug}</code>
                               </td>
                               <td className="py-2 px-3">
-                                <Badge color={getPlanBadgeColor(site.site.plan)} className="text-[9px] sm:text-[10px]">
+                                <Badge color={getPlanBadgeColor(site.site.plan)} className="text-xs sm:text-xs">
                                   {site.site.plan || 'free'}
                                 </Badge>
                               </td>
                               <td className="py-2 px-3">
-                                <Badge className="text-[9px] sm:text-[10px]">{site.role}</Badge>
+                                <Badge className="text-xs sm:text-xs">{site.role}</Badge>
                               </td>
                               <td className="py-2 px-3">
                                 <div className="flex items-center justify-end gap-1 flex-wrap">
                                   <Link href={`/sites/${site.site.slug}`}>
-                                    <Button variant="primary" size="sm" className="text-[10px] sm:text-xs h-7 sm:h-8 px-2">{t('sitesList.view')}</Button>
+                                    <Button variant="primary" size="sm" className="text-xs sm:text-sm h-7 sm:h-8 px-2">{t('sitesList.view')}</Button>
                                   </Link>
                                   <Link href={`/sites/${site.site.slug}/users`}>
-                                    <Button variant="outline" size="sm" className="text-[10px] sm:text-xs h-7 sm:h-8 px-2">{t('sitesList.users')}</Button>
+                                    <Button variant="outline" size="sm" className="text-xs sm:text-sm h-7 sm:h-8 px-2">{t('sitesList.users')}</Button>
                                   </Link>
                                   <Link href={`/sites/${site.site.slug}/billing`}>
-                                    <Button variant="outline" size="sm" className="text-[10px] sm:text-xs h-7 sm:h-8 px-2">{t('sitesList.billing')}</Button>
+                                    <Button variant="outline" size="sm" className="text-xs sm:text-sm h-7 sm:h-8 px-2">{t('sitesList.billing')}</Button>
                                   </Link>
                                 </div>
                               </td>
@@ -272,23 +275,23 @@ export default function SitesPage() {
                         >
                           <div className="space-y-1.5 sm:space-y-2">
                             <div>
-                              <div className="text-[10px] text-muted mb-0.5">{t('sitesList.name')}</div>
+                              <div className="text-xs text-muted mb-0.5">{t('sitesList.name')}</div>
                               <div className="font-semibold text-xs sm:text-sm">{site.site.name}</div>
                             </div>
                             <div>
-                              <div className="text-[10px] text-muted mb-0.5">{t('sitesList.slug')}</div>
-                              <code className="text-[10px] sm:text-xs bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded">{site.site.slug}</code>
+                              <div className="text-xs text-muted mb-0.5">{t('sitesList.slug')}</div>
+                              <code className="text-xs sm:text-sm bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded">{site.site.slug}</code>
                             </div>
                             <div className="flex items-center gap-2 flex-wrap">
                               <div>
-                                <div className="text-[10px] text-muted mb-0.5">{t('sitesList.plan')}</div>
-                                <Badge color={getPlanBadgeColor(site.site.plan)} className="text-[9px] sm:text-[10px]">
+                                <div className="text-xs text-muted mb-0.5">{t('sitesList.plan')}</div>
+                                <Badge color={getPlanBadgeColor(site.site.plan)} className="text-xs sm:text-xs">
                                   {site.site.plan || 'free'}
                                 </Badge>
                               </div>
                               <div>
-                                <div className="text-[10px] text-muted mb-0.5">{t('sitesList.yourRole')}</div>
-                                <Badge className="text-[9px] sm:text-[10px]">{site.role}</Badge>
+                                <div className="text-xs text-muted mb-0.5">{t('sitesList.yourRole')}</div>
+                                <Badge className="text-xs sm:text-xs">{site.role}</Badge>
                               </div>
                             </div>
                           </div>

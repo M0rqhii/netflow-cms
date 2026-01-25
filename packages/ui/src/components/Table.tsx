@@ -26,7 +26,7 @@ export interface TableHeaderProps extends React.HTMLAttributes<HTMLTableSectionE
 export const TableHeader = React.forwardRef<HTMLTableSectionElement, TableHeaderProps>(
   ({ className, children, ...props }, ref) => {
     return (
-      <thead ref={ref} className={clsx('[&_tr]:border-b', className)} {...props}>
+      <thead ref={ref} className={clsx('[&_tr]:border-b [&_tr]:border-border', className)} {...props}>
         {children}
       </thead>
     );
@@ -60,7 +60,7 @@ export const TableRow = React.forwardRef<HTMLTableRowElement, TableRowProps>(
     return (
       <tr
         ref={ref}
-        className={clsx('border-b border-gray-200 transition-colors hover:bg-gray-50/50', className)}
+        className={clsx('border-b border-border transition-colors hover:bg-surface/60', className)}
         {...props}
       >
         {children}
@@ -81,7 +81,7 @@ export const TableHead = React.forwardRef<HTMLTableCellElement, TableHeadProps>(
       <th
         ref={ref}
         className={clsx(
-          'h-12 px-4 text-left align-middle font-medium text-gray-500 [&:has([role=checkbox])]:pr-0',
+          'h-11 px-4 text-left align-middle text-xs font-semibold text-muted [&:has([role=checkbox])]:pr-0',
           className
         )}
         {...props}
@@ -101,7 +101,7 @@ export interface TableCellProps extends React.TdHTMLAttributes<HTMLTableCellElem
 export const TableCell = React.forwardRef<HTMLTableCellElement, TableCellProps>(
   ({ className, children, ...props }, ref) => {
     return (
-      <td ref={ref} className={clsx('p-4 align-middle [&:has([role=checkbox])]:pr-0', className)} {...props}>
+      <td ref={ref} className={clsx('px-4 py-3 align-middle [&:has([role=checkbox])]:pr-0', className)} {...props}>
         {children}
       </td>
     );

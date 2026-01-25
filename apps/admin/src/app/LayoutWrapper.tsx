@@ -10,6 +10,7 @@ import LanguageToggle from '@/components/ui/LanguageToggle';
 import CollapseToggle from '@/components/ui/CollapseToggle';
 import MobileMenuToggle from '@/components/ui/MobileMenuToggle';
 import HelpMenu from '@/components/ui/HelpMenu';
+import CommandPalette from '@/components/ui/CommandPalette';
 import UserBar from '@/components/layout/UserBar';
 import SiteSwitcher from '@/components/ui/SiteSwitcher';
 import { ToastProvider } from '@/components/ui/Toast';
@@ -53,6 +54,7 @@ export default function LayoutWrapper({
         >
           Skip to main content
         </a>
+        <CommandPalette />
         <Topbar right={topbarRight} />
         <MobileMenu />
         <div className="flex overflow-x-hidden" style={{ height: 'calc(100vh - 58px)' }}>

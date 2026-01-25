@@ -101,12 +101,12 @@ export default function NewSitePage() {
               <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground mb-0.5 sm:mb-1">
                 {t('newSite.title')}
               </h1>
-              <p className="text-[10px] sm:text-xs text-muted">
+              <p className="text-xs sm:text-sm text-muted">
                 Utwórz nową stronę w systemie
               </p>
             </div>
             <Link href="/sites">
-              <Button variant="outline" className="w-full sm:w-auto text-[10px] sm:text-xs h-7 sm:h-8 px-2 sm:px-3">{t('common.cancel')}</Button>
+              <Button variant="outline" className="w-full sm:w-auto text-xs sm:text-sm h-7 sm:h-8 px-2 sm:px-3">{t('common.cancel')}</Button>
             </Link>
           </div>
         </div>

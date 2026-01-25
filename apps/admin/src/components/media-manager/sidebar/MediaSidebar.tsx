@@ -38,7 +38,7 @@ export function MediaSidebar({ activeFilter, onFilterSelect }: MediaSidebarProps
             >
               <div className="flex items-center justify-between gap-2">
                 <span>{section.label}</span>
-                {section.hint && <span className="text-[10px] uppercase tracking-wide text-muted">{section.hint}</span>}
+                {section.hint && <span className="text-xs uppercase tracking-wide text-muted">{section.hint}</span>}
               </div>
             </button>
           );

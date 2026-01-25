@@ -22,6 +22,7 @@ export default function ThemeToggle() {
     setTheme(initial);
     if (typeof document !== 'undefined') {
       document.documentElement.setAttribute('data-theme', initial);
+      document.documentElement.classList.toggle('dark', initial === 'dark');
     }
   }, []);
 
@@ -31,6 +32,7 @@ export default function ThemeToggle() {
     setTheme(next);
     if (typeof document !== 'undefined') {
       document.documentElement.setAttribute('data-theme', next);
+      document.documentElement.classList.toggle('dark', next === 'dark');
     }
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem(THEME_KEY, next);

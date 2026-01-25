@@ -215,7 +215,7 @@ export default function LoginPage() {
               <button type="submit" className="btn btn-primary w-full text-xs sm:text-sm" disabled={loading} aria-busy={loading}>
                 {loading ? t('auth.loggingIn') : t('auth.login')}
               </button>
-              <p className="text-[10px] sm:text-xs text-muted text-center mt-3 sm:mt-4">
+              <p className="text-xs sm:text-sm text-muted text-center mt-3 sm:mt-4">
                 {t('auth.loginNote')}
               </p>
             </form>

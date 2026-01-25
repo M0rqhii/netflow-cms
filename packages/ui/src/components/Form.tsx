@@ -129,10 +129,10 @@ export const Form: React.FC<FormProps> = ({
               id={field.name}
               checked={Boolean(value)}
               onChange={(e) => handleChange(field.name, e.target.checked)}
-              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              className="h-4 w-4 rounded border-border text-primary focus:ring-ring"
               {...commonProps}
             />
-            <label htmlFor={field.name} className="text-sm font-medium text-gray-700">
+            <label htmlFor={field.name} className="text-sm font-medium text-foreground">
               {field.label}
               {field.required && <span className="text-red-500 ml-1">*</span>}
             </label>
@@ -183,7 +183,7 @@ export const Form: React.FC<FormProps> = ({
               className={error ? 'border-red-500' : ''}
             />
             {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
-            {field.helperText && !error && <p className="mt-1 text-sm text-gray-500">{field.helperText}</p>}
+            {field.helperText && !error && <p className="mt-1 text-sm text-muted">{field.helperText}</p>}
           </div>
         );
       

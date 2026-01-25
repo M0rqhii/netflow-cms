@@ -70,7 +70,7 @@ export const VersionHistory: React.FC<VersionHistoryProps> = ({
                   <div
                     key={version.id}
                     className={`p-3 border rounded-lg ${
-                      isCurrent ? 'bg-blue-50 border-blue-200' : 'bg-white border-gray-200'
+                      isCurrent ? 'bg-primary/10 border-primary/40' : 'bg-card border-border'
                     }`}
                   >
                     <div className="flex items-start justify-between">
@@ -87,7 +87,7 @@ export const VersionHistory: React.FC<VersionHistoryProps> = ({
                               Published
                             </span>
                           )}
-                          <span className="px-2 py-0.5 text-xs bg-gray-200 rounded">
+                          <span className="px-2 py-0.5 text-xs bg-surface rounded">
                             {version.status}
                           </span>
                         </div>

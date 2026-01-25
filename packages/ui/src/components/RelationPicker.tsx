@@ -82,7 +82,7 @@ export const RelationPicker: React.FC<RelationPickerProps> = ({
     return (
       <div className={className}>
         {label && (
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-muted mb-1">
             {label}
             {required && <span className="text-red-500 ml-1">*</span>}
           </label>
@@ -105,7 +105,7 @@ export const RelationPicker: React.FC<RelationPickerProps> = ({
   return (
     <div className={className}>
       {label && (
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium text-muted mb-1">
           {label}
           {required && <span className="text-red-500 ml-1">*</span>}
         </label>
@@ -147,7 +147,7 @@ export const RelationPicker: React.FC<RelationPickerProps> = ({
       </Button>
 
       {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
-      {helperText && !error && <p className="mt-1 text-sm text-gray-500">{helperText}</p>}
+      {helperText && !error && <p className="mt-1 text-sm text-muted">{helperText}</p>}
 
       {/* Relation Picker Modal */}
       <Modal isOpen={isOpen} onClose={() => setIsOpen(false)} title="Select Relation" size="lg">

@@ -75,7 +75,26 @@ export function Sidebar() {
   const [hasOrgAdminRole, setHasOrgAdminRole] = React.useState<boolean | null>(null);
   const appProfile = process.env.NEXT_PUBLIC_APP_PROFILE || process.env.NODE_ENV || 'development';
   const isDev = appProfile !== 'production';
-  const token = getAuthToken();
+
+  const token = (() => {
+    const authToken = getAuthToken();
+    if (authToken) return authToken;
+    if (typeof window === 'undefined') return null;
+    try {
+      for (let i = 0; i < localStorage.length; i += 1) {
+        const key = localStorage.key(i);
+        if (!key) continue;
+        if (key.startsWith('siteToken:') || key.startsWith('orgToken:')) {
+          const value = localStorage.getItem(key);
+          if (value) return value;
+        }
+      }
+    } catch {
+      return null;
+    }
+    return null;
+  })();
+
   const payload = decodeAuthToken(token);
   const userId = payload?.sub;
   
@@ -84,6 +103,13 @@ export function Sidebar() {
   const role = String(payload?.role ?? '').toLowerCase();
   const systemRole = String(payload?.systemRole ?? '').toLowerCase();
   const roleMarker = platformRole || role || systemRole;
+  const isSuperFromToken = Boolean(payload?.isSuperAdmin) || systemRole === 'super_admin' || role === 'super_admin';
+  const isPrivileged = Boolean(
+    isSuperFromToken ||
+      ['org_admin', 'site_admin', 'platform_admin'].includes(role) ||
+      ['admin', 'owner'].includes(platformRole) ||
+      systemRole === 'system_admin'
+  );
   
   // Check roles from JWT token (fallback if RBAC not loaded yet)
   const isOwnerFromToken = 
@@ -115,22 +141,12 @@ export function Sidebar() {
   
   // Owners, admins, and site admins can access org settings (view at least)
   const canAccessOrgSettings = isOwner || isAdmin || isSiteAdmin;
-  const isPrivileged = Boolean(
-    payload?.isSuperAdmin ||
-      roleMarker === 'super_admin' ||
-      roleMarker === 'org_admin' ||
-      roleMarker === 'site_admin' ||
-      roleMarker === 'platform_admin' ||
-      String(payload?.systemRole ?? '').toLowerCase() === 'super_admin',
-  );
   
   React.useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
         // First, try to get orgId from JWT token
-        const token = getAuthToken();
-        const payload = decodeAuthToken(token);
         let orgIdFromToken = payload?.orgId;
         
         // If orgId not in token, try to get it from profile API
@@ -164,8 +180,6 @@ export function Sidebar() {
         if (!cancelled) {
           setSiteCount(null);
           // Don't clear orgId if we got it from token
-          const token = getAuthToken();
-          const payload = decodeAuthToken(token);
           const orgIdFromToken = payload?.orgId;
           if (!orgIdFromToken) {
             setOrgId(null);
@@ -224,7 +238,7 @@ export function Sidebar() {
 
   // Debug: log user role for troubleshooting
   React.useEffect(() => {
-    if (token && payload) {
+    if (process.env.NODE_ENV !== 'production' && token && payload) {
       const debugInfo = {
         platformRole: payload.platformRole,
         role: payload.role,
@@ -243,7 +257,6 @@ export function Sidebar() {
         email: payload.email,
       };
       console.log('[Sidebar] User role info:', debugInfo);
-      // Also store in window for easy access from console
       (window as any).__sidebarDebugInfo = debugInfo;
     }
   }, [token, payload, roleMarker, hasOrgOwnerRole, hasOrgAdminRole, isOwnerFromToken, isAdminFromToken, isOwner, isAdmin, isSiteAdmin, canAccessOrgSettings, orgId, userId]);

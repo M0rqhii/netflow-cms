@@ -147,7 +147,7 @@ export default function AccountPage() {
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground mb-0.5 sm:mb-1">
             {t('account.title')}
           </h1>
-          <p className="text-[10px] sm:text-xs text-muted">
+          <p className="text-xs sm:text-sm text-muted">
             Zarządzaj ustawieniami konta i preferencjami
           </p>
         </div>
@@ -172,7 +172,7 @@ export default function AccountPage() {
                 <label htmlFor="preferred-language" className="block text-sm font-medium mb-1">{t('account.preferredLanguage')}</label>
                 <select
                   id="preferred-language"
-                  className="border rounded-md w-full px-2 sm:px-3 py-1.5 sm:py-2 h-8 sm:h-9 bg-card text-foreground text-[10px] sm:text-xs"
+                  className="border rounded-md w-full px-2 sm:px-3 py-1.5 sm:py-2 h-8 sm:h-9 bg-card text-foreground text-xs sm:text-sm"
                   value={preferredLanguage}
                   onChange={(e) => setPreferredLanguage(e.target.value as 'pl' | 'en')}
                   disabled={saving}
@@ -184,7 +184,7 @@ export default function AccountPage() {
                 <p id="preferred-language-hint" className="text-xs text-muted mt-1">{t('account.selectPreferredLanguage')}</p>
               </div>
               <div className="flex justify-end">
-                <Button type="submit" variant="primary" disabled={saving} className="w-full sm:w-auto text-[10px] sm:text-xs h-7 sm:h-8 px-2 sm:px-3">
+                <Button type="submit" variant="primary" disabled={saving} className="w-full sm:w-auto text-xs sm:text-sm h-7 sm:h-8 px-2 sm:px-3">
                   {saving ? t('account.saving') : t('account.saveChanges')}
                 </Button>
               </div>
@@ -229,7 +229,7 @@ export default function AccountPage() {
                 disabled={saving}
               />
               <div className="flex justify-end">
-                <Button type="submit" variant="primary" disabled={saving} className="w-full sm:w-auto text-[10px] sm:text-xs h-7 sm:h-8 px-2 sm:px-3">
+                <Button type="submit" variant="primary" disabled={saving} className="w-full sm:w-auto text-xs sm:text-sm h-7 sm:h-8 px-2 sm:px-3">
                   {saving ? t('account.changing') : t('account.changePasswordButton')}
                 </Button>
               </div>
@@ -262,7 +262,7 @@ export default function AccountPage() {
               <div>
                 <label className="block text-sm font-medium mb-1">{t('account.address')}</label>
                 <textarea
-                  className="border rounded-md w-full px-2 sm:px-3 py-1.5 sm:py-2 min-h-[80px] sm:min-h-[100px] bg-card text-foreground text-[10px] sm:text-xs"
+                  className="border rounded-md w-full px-2 sm:px-3 py-1.5 sm:py-2 min-h-[80px] sm:min-h-[100px] bg-card text-foreground text-xs sm:text-sm"
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
                   placeholder={t('account.enterBillingAddress')}
@@ -272,7 +272,7 @@ export default function AccountPage() {
                 <p className="text-xs text-muted mt-1">{t('account.enterCompanyBillingAddress')}</p>
               </div>
               <div className="flex justify-end">
-                <Button type="submit" variant="primary" disabled={saving} className="w-full sm:w-auto text-[10px] sm:text-xs h-7 sm:h-8 px-2 sm:px-3">
+                <Button type="submit" variant="primary" disabled={saving} className="w-full sm:w-auto text-xs sm:text-sm h-7 sm:h-8 px-2 sm:px-3">
                   {saving ? t('account.savingBilling') : t('account.saveBillingInfo')}
                 </Button>
               </div>

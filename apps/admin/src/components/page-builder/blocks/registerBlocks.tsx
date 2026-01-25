@@ -415,7 +415,9 @@ export function registerAllBlocks(): void {
   registered = true;
   
   if (process.env.NODE_ENV === 'development') {
+    if (process.env.NODE_ENV !== 'production') {
     console.log('[PageBuilder] Registered blocks:', blockRegistry.getAllBlocks().map(b => b.type));
+  }
   }
 }
 

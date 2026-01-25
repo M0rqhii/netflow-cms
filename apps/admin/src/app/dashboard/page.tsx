@@ -238,7 +238,7 @@ export default function DashboardPage() {
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground mb-0.5">
             {t('dashboard.title')}
           </h1>
-          <p className="text-muted text-[10px] sm:text-xs">
+          <p className="text-muted text-xs sm:text-sm">
             {t('dashboard.welcomeBack')}, {userEmail}
           </p>
         </div>
@@ -251,17 +251,17 @@ export default function DashboardPage() {
                 <h3 className="text-xs font-semibold text-blue-900 dark:text-blue-100 mb-0.5">
                   Szybki start
                 </h3>
-                <p className="text-[10px] sm:text-xs text-blue-700 dark:text-blue-300">
+                <p className="text-xs sm:text-sm text-blue-700 dark:text-blue-300">
                   To centrum dowodzenia stronami. Utwórz stronę lub wejdź do panelu, aby zacząć.
                 </p>
               </div>
               <div className="flex items-center gap-1.5 flex-shrink-0">
                 <Link href="/sites/new" className="flex-1 sm:flex-none">
-                  <Button variant="primary" size="sm" className="w-full sm:w-auto text-[10px] sm:text-xs h-7 sm:h-8 px-2 sm:px-3">Utwórz stronę</Button>
+                  <Button variant="primary" size="sm" className="w-full sm:w-auto text-xs sm:text-sm h-7 sm:h-8 px-2 sm:px-3">Utwórz stronę</Button>
                 </Link>
                 {sites.length > 0 && sites[0]?.site?.slug && (
                   <Link href={`/sites/${encodeURIComponent(sites[0].site.slug)}/panel`} className="hidden sm:block">
-                    <Button variant="outline" size="sm" className="text-[10px] sm:text-xs h-7 sm:h-8 px-2 sm:px-3">Wejdź do panelu</Button>
+                    <Button variant="outline" size="sm" className="text-xs sm:text-sm h-7 sm:h-8 px-2 sm:px-3">Wejdź do panelu</Button>
                   </Link>
                 )}
                 <button
@@ -300,7 +300,7 @@ export default function DashboardPage() {
             </div>
           ) : statsError ? (
             <Card>
-              <CardContent className="p-2 sm:p-3 text-center text-red-600 dark:text-red-400 text-[10px] sm:text-xs">
+              <CardContent className="p-2 sm:p-3 text-center text-red-600 dark:text-red-400 text-xs sm:text-sm">
                 {statsError}
               </CardContent>
             </Card>
@@ -319,7 +319,7 @@ export default function DashboardPage() {
                         {stat.value.toLocaleString()}
                       </div>
                     </div>
-                    <div className="text-[9px] sm:text-[10px] text-muted font-medium leading-tight whitespace-nowrap overflow-hidden text-ellipsis">
+                    <div className="text-xs sm:text-xs text-muted font-medium leading-tight whitespace-nowrap overflow-hidden text-ellipsis">
                       {stat.label}
                     </div>
                   </CardContent>
@@ -338,14 +338,14 @@ export default function DashboardPage() {
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
                   <div className="min-w-0">
                     <CardTitle className="text-sm sm:text-base font-semibold">{t('dashboard.sitesOverview')}</CardTitle>
-                    <p className="text-[9px] sm:text-[10px] text-muted mt-0.5">Zarządzaj wszystkimi swoimi stronami</p>
+                    <p className="text-xs sm:text-xs text-muted mt-0.5">Zarządzaj wszystkimi swoimi stronami</p>
                   </div>
                   <div className="flex gap-1.5 flex-shrink-0">
                     <Link href="/sites/new" className="flex-1 sm:flex-none">
-                      <Button variant="primary" size="sm" className="w-full sm:w-auto text-[10px] sm:text-xs h-7 sm:h-8 px-2 sm:px-3">+ {t('dashboard.new')}</Button>
+                      <Button variant="primary" size="sm" className="w-full sm:w-auto text-xs sm:text-sm h-7 sm:h-8 px-2 sm:px-3">+ {t('dashboard.new')}</Button>
                     </Link>
                     <Link href="/sites" className="flex-1 sm:flex-none">
-                      <Button variant="outline" size="sm" className="w-full sm:w-auto text-[10px] sm:text-xs h-7 sm:h-8 px-2 sm:px-3">{t('dashboard.viewAll')}</Button>
+                      <Button variant="outline" size="sm" className="w-full sm:w-auto text-xs sm:text-sm h-7 sm:h-8 px-2 sm:px-3">{t('dashboard.viewAll')}</Button>
                     </Link>
                   </div>
                 </div>
@@ -357,10 +357,10 @@ export default function DashboardPage() {
                     placeholder={t('dashboard.searchSites')}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="flex-1 w-full sm:min-w-[180px] text-[10px] sm:text-xs h-8 sm:h-9"
+                    className="flex-1 w-full sm:min-w-[180px] text-xs sm:text-sm h-8 sm:h-9"
                   />
                   <select
-                    className="border rounded-md px-2 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-xs h-8 sm:h-9 bg-card text-foreground w-full sm:w-auto"
+                    className="border rounded-md px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm h-8 sm:h-9 bg-card text-foreground w-full sm:w-auto"
                     value={planFilter}
                     onChange={(e) => setPlanFilter(e.target.value)}
                   >
@@ -370,7 +370,7 @@ export default function DashboardPage() {
                     <option value="enterprise">{t('dashboard.enterprise')}</option>
                   </select>
                   <select
-                    className="border rounded-md px-2 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-xs h-8 sm:h-9 bg-card text-foreground w-full sm:w-auto"
+                    className="border rounded-md px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm h-8 sm:h-9 bg-card text-foreground w-full sm:w-auto"
                     value={groupBy}
                     onChange={(e) => setGroupBy(e.target.value as 'none' | 'plan')}
                   >
@@ -406,7 +406,7 @@ export default function DashboardPage() {
                   <div className="space-y-3">
                     {Object.entries(groupedSites).map(([plan, sites]) => (
                       <div key={plan}>
-                        <h3 className="text-[10px] sm:text-xs font-semibold mb-1.5 sm:mb-2 capitalize text-foreground">{plan} ({sites.length})</h3>
+                        <h3 className="text-xs sm:text-sm font-semibold mb-1.5 sm:mb-2 capitalize text-foreground">{plan} ({sites.length})</h3>
                         <div className="space-y-1.5 sm:space-y-2">
                           {sites.slice(0, 3).map((site) => {
                             if (!site?.site?.slug) return null;
@@ -421,13 +421,13 @@ export default function DashboardPage() {
                                     <div className="font-semibold text-xs sm:text-sm text-foreground group-hover:text-primary transition-colors truncate">
                                       {site.site.name}
                                     </div>
-                                    <div className="text-[10px] sm:text-xs text-muted mt-0.5 truncate">{site.site.slug}</div>
+                                    <div className="text-xs sm:text-sm text-muted mt-0.5 truncate">{site.site.slug}</div>
                                     <div className="mt-1 sm:mt-1.5 flex items-center gap-1.5">
-                                      <Badge className="text-[9px] sm:text-[10px]">{t('sites.plan')}: {site.site.plan || 'free'}</Badge>
+                                      <Badge className="text-xs sm:text-xs">{t('sites.plan')}: {site.site.plan || 'free'}</Badge>
                                     </div>
                                   </div>
                                   <div className="flex items-center gap-1.5 sm:flex-shrink-0">
-                                    <Button variant="outline" size="sm" className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity text-[10px] sm:text-xs h-7 sm:h-8 px-2 w-full sm:w-auto">
+                                    <Button variant="outline" size="sm" className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity text-xs sm:text-sm h-7 sm:h-8 px-2 w-full sm:w-auto">
                                       {t('common.view')}
                                     </Button>
                                   </div>
@@ -454,13 +454,13 @@ export default function DashboardPage() {
                               <div className="font-semibold text-xs sm:text-sm text-foreground group-hover:text-primary transition-colors truncate">
                                 {site.site.name}
                               </div>
-                              <div className="text-[10px] sm:text-xs text-muted mt-0.5 truncate">{site.site.slug}</div>
+                              <div className="text-xs sm:text-sm text-muted mt-0.5 truncate">{site.site.slug}</div>
                               <div className="mt-1 sm:mt-1.5 flex items-center gap-1.5">
-                                <Badge className="text-[9px] sm:text-[10px]">{t('sites.plan')}: {site.site.plan || 'free'}</Badge>
+                                <Badge className="text-xs sm:text-xs">{t('sites.plan')}: {site.site.plan || 'free'}</Badge>
                               </div>
                             </div>
                             <div className="flex items-center gap-1.5 sm:flex-shrink-0">
-                              <Button variant="outline" size="sm" className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity text-[10px] sm:text-xs h-7 sm:h-8 px-2 w-full sm:w-auto">
+                              <Button variant="outline" size="sm" className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity text-xs sm:text-sm h-7 sm:h-8 px-2 w-full sm:w-auto">
                                 {t('common.view')}
                               </Button>
                             </div>
@@ -479,12 +479,12 @@ export default function DashboardPage() {
             <Card className="border-0 shadow-sm w-full flex flex-col">
               <CardHeader className="pb-2 sm:pb-3 px-3 sm:px-4 pt-3 sm:pt-4">
                 <CardTitle className="text-sm sm:text-base font-semibold">{t('dashboard.quickActions')}</CardTitle>
-                <p className="text-[9px] sm:text-[10px] text-muted mt-0.5">Szybki dostęp do najczęstszych akcji</p>
+                <p className="text-xs sm:text-xs text-muted mt-0.5">Szybki dostęp do najczęstszych akcji</p>
               </CardHeader>
               <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4 flex-1 flex flex-col">
                 <div className="space-y-1.5 flex-1">
                   <Link href="/sites/new" className="block">
-                    <Button variant="primary" className="w-full justify-start text-[10px] sm:text-xs h-7 sm:h-8 px-2">
+                    <Button variant="primary" className="w-full justify-start text-xs sm:text-sm h-7 sm:h-8 px-2">
                       <svg className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                       </svg>
@@ -496,7 +496,7 @@ export default function DashboardPage() {
                     <Link href="/sites" className={sites.length === 0 ? "pointer-events-none block" : "block"}>
                       <Button 
                         variant="outline" 
-                        className="w-full justify-start text-[10px] sm:text-xs h-7 sm:h-8 px-2" 
+                        className="w-full justify-start text-xs sm:text-sm h-7 sm:h-8 px-2" 
                         disabled={sites.length === 0}
                       >
                         <svg className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -509,7 +509,7 @@ export default function DashboardPage() {
                   
                   {userOrgId && (
                     <Link href={`/org/${userOrgId}/settings/general`} className="block">
-                      <Button variant="outline" className="w-full justify-start text-[10px] sm:text-xs h-7 sm:h-8 px-2">
+                      <Button variant="outline" className="w-full justify-start text-xs sm:text-sm h-7 sm:h-8 px-2">
                         <svg className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -523,7 +523,7 @@ export default function DashboardPage() {
                     <Link href="/billing" className={sites.length === 0 ? "pointer-events-none block" : "block"}>
                       <Button 
                         variant="outline" 
-                        className="w-full justify-start text-[10px] sm:text-xs h-7 sm:h-8 px-2" 
+                        className="w-full justify-start text-xs sm:text-sm h-7 sm:h-8 px-2" 
                         disabled={sites.length === 0}
                       >
                         <svg className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -535,7 +535,7 @@ export default function DashboardPage() {
                   </Tooltip>
                   
                   <Link href="/account" className="block">
-                    <Button variant="outline" className="w-full justify-start text-[10px] sm:text-xs h-7 sm:h-8 px-2">
+                    <Button variant="outline" className="w-full justify-start text-xs sm:text-sm h-7 sm:h-8 px-2">
                       <svg className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                       </svg>
@@ -554,11 +554,11 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between gap-2">
               <div className="min-w-0">
                 <CardTitle className="text-sm sm:text-base font-semibold">{t('dashboard.recentActivity')}</CardTitle>
-                <p className="text-[9px] sm:text-[10px] text-muted mt-0.5">Ostatnie działania w systemie</p>
+                <p className="text-xs sm:text-xs text-muted mt-0.5">Ostatnie działania w systemie</p>
               </div>
               {sites.length > 1 && (
                 <select
-                  className="border rounded-md px-2 sm:px-3 py-1.5 sm:py-2 text-[10px] sm:text-xs h-8 sm:h-9 bg-card text-foreground flex-shrink-0"
+                  className="border rounded-md px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm h-8 sm:h-9 bg-card text-foreground flex-shrink-0"
                   value={selectedSiteId || 'all'}
                   onChange={(e) => setSelectedSiteId(e.target.value === 'all' ? null : e.target.value)}
                 >
@@ -586,7 +586,7 @@ export default function DashboardPage() {
                 ))}
               </ul>
             ) : activityError ? (
-              <div className="text-center py-3 text-red-600 dark:text-red-400 text-[10px] sm:text-xs">
+              <div className="text-center py-3 text-red-600 dark:text-red-400 text-xs sm:text-sm">
                 {activityError}
               </div>
             ) : activity.length === 0 ? (
@@ -606,9 +606,9 @@ export default function DashboardPage() {
                         <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-primary/10 flex items-center justify-center text-primary flex-shrink-0">
                           <ActivityIcon type={activityType} />
                         </div>
-                        <span className="text-[10px] sm:text-xs text-foreground truncate">{item.message}</span>
+                        <span className="text-xs sm:text-sm text-foreground truncate">{item.message}</span>
                       </div>
-                      <span className="text-[9px] sm:text-[10px] text-muted whitespace-nowrap flex-shrink-0">
+                      <span className="text-xs sm:text-xs text-muted whitespace-nowrap flex-shrink-0">
                         {new Date(item.createdAt).toLocaleString('pl-PL', {
                           day: 'numeric',
                           month: 'short',

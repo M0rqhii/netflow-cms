@@ -43,7 +43,7 @@ export const UpgradePlanBanner: React.FC<UpgradePlanBannerProps> = ({
           <h3 className="font-semibold text-sm">
             {isAtLimit ? 'Plan Limit Reached' : 'Approaching Plan Limit'}
           </h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+          <p className="text-sm text-muted mt-1">
             You've used {currentUsage} of {limit === Infinity ? 'unlimited' : limit} {limitType}
             {isAtLimit && '. Upgrade to continue.'}
           </p>
@@ -54,7 +54,7 @@ export const UpgradePlanBanner: React.FC<UpgradePlanBannerProps> = ({
           </Button>
         )}
       </div>
-      <div className="mt-3 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+      <div className="mt-3 w-full bg-surface rounded-full h-2">
         <div
           className={`h-2 rounded-full transition-all ${
             isAtLimit ? 'bg-red-500' : 'bg-yellow-500'

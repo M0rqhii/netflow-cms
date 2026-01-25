@@ -22,7 +22,7 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
     <div className={clsx('flex flex-col items-center justify-center gap-2', className)}>
       <div
         className={clsx(
-          'animate-spin rounded-full border-2 border-gray-300 border-t-blue-600',
+          'animate-spin rounded-full border-2 border-border border-t-primary',
           sizeClasses[size]
         )}
         role="status"

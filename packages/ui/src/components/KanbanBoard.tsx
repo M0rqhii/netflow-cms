@@ -74,7 +74,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
       case 'LOW':
         return 'bg-blue-100 text-blue-800 border-blue-300';
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-300';
+        return 'bg-surface text-foreground border-border';
     }
   };
 
@@ -103,7 +103,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
         >
           <div className="mb-2 flex items-center justify-between">
             <h3 className="font-semibold text-lg">{column.title}</h3>
-            <span className="text-sm text-muted bg-gray-100 px-2 py-1 rounded">
+            <span className="text-sm text-muted bg-surface px-2 py-1 rounded">
               {column.tasks.length}
             </span>
           </div>

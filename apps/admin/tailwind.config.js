@@ -1,5 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  darkMode: 'class',
   content: [
     './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',
@@ -24,6 +25,7 @@ module.exports = {
         foreground: 'rgb(var(--foreground))',
         muted: 'rgb(var(--muted))',
         border: 'rgb(var(--border))',
+        surface: 'rgb(var(--surface))',
         card: 'rgb(var(--card))',
         ring: 'var(--ring)',
         primary: {
@@ -36,7 +38,8 @@ module.exports = {
         },
       },
       boxShadow: {
-        card: '0 1px 2px rgba(16, 24, 40, 0.06), 0 1px 3px rgba(16, 24, 40, 0.10)',
+        card: '0 1px 2px rgba(16, 24, 40, 0.06), 0 2px 6px rgba(16, 24, 40, 0.08)',
+        'card-hover': '0 6px 18px rgba(16, 24, 40, 0.14), 0 2px 8px rgba(16, 24, 40, 0.10)',
       },
       borderRadius: {
         xl: '12px',

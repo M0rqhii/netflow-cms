@@ -82,7 +82,7 @@ export const MediaPicker: React.FC<MediaPickerProps> = ({
   return (
     <div className={className}>
       {label && (
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium text-muted mb-1">
           {label}
           {required && <span className="text-red-500 ml-1">*</span>}
         </label>
@@ -95,7 +95,7 @@ export const MediaPicker: React.FC<MediaPickerProps> = ({
             const isImage = /^image\//i.test(media.mime);
             return (
               <div key={media.id} className="relative group">
-                <div className="w-20 h-20 border rounded overflow-hidden bg-gray-100">
+                <div className="w-20 h-20 border rounded overflow-hidden bg-surface">
                   {isImage ? (
                     <img
                       src={media.thumbnailUrl || media.url}
@@ -134,7 +134,7 @@ export const MediaPicker: React.FC<MediaPickerProps> = ({
       </Button>
 
       {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
-      {helperText && !error && <p className="mt-1 text-sm text-gray-500">{helperText}</p>}
+      {helperText && !error && <p className="mt-1 text-sm text-muted">{helperText}</p>}
 
       {/* Media Picker Modal */}
       <Modal isOpen={isOpen} onClose={() => setIsOpen(false)} title="Select Media" size="xl">
@@ -169,7 +169,7 @@ export const MediaPicker: React.FC<MediaPickerProps> = ({
                     )}
                     onClick={() => handleSelect(media.id)}
                   >
-                    <div className="aspect-square w-full bg-gray-100 flex items-center justify-center">
+                    <div className="aspect-square w-full bg-surface flex items-center justify-center">
                       {isImage ? (
                         <img
                           src={media.thumbnailUrl || media.url}

@@ -87,7 +87,7 @@ export default function SiteSwitcher() {
                       }`}
                     >
                       <div className="font-medium truncate">{site.site.name}</div>
-                      <div className="text-[10px] sm:text-xs text-muted truncate">{site.site.slug} - {site.role}</div>
+                      <div className="text-xs sm:text-sm text-muted truncate">{site.site.slug} - {site.role}</div>
                     </button>
                   );
                 })}

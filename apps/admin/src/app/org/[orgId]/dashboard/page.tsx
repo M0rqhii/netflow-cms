@@ -194,7 +194,7 @@ export default function OrgDashboardPage() {
                       <span>Storage</span>
                       <span>{data.business.usage.storage.percent}%</span>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div className="w-full bg-surface rounded-full h-2">
                       <div
                         className="bg-blue-600 h-2 rounded-full"
                         style={{ width: `${Math.min(data.business.usage.storage.percent, 100)}%` }}
@@ -209,7 +209,7 @@ export default function OrgDashboardPage() {
                       <span>API Requests</span>
                       <span>{data.business.usage.apiRequests.percent}%</span>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div className="w-full bg-surface rounded-full h-2">
                       <div
                         className="bg-blue-600 h-2 rounded-full"
                         style={{ width: `${Math.min(data.business.usage.apiRequests.percent, 100)}%` }}

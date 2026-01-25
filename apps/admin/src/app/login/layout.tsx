@@ -33,6 +33,7 @@ export default function LoginLayout({
                   var saved = localStorage.getItem(key);
                   var theme = saved || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
                   document.documentElement.setAttribute('data-theme', theme);
+                  document.documentElement.classList.toggle('dark', theme === 'dark');
                 } catch (e) {}
               })();
             `,

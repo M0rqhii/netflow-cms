@@ -65,7 +65,7 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
 
   return (
     <div className={className}>
-      <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+      <div className="mb-4 p-3 bg-surface rounded-lg">
         <div className="grid grid-cols-2 gap-4">
           <div>
             <div className="text-sm font-semibold">Version {oldVersion.version}</div>
@@ -94,7 +94,7 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
 
             return (
               <div key={line.key} className="border rounded-lg overflow-hidden">
-                <div className="px-3 py-2 bg-gray-100 font-semibold text-sm">
+                <div className="px-3 py-2 bg-surface font-semibold text-sm">
                   {line.key}
                 </div>
                 <div className="grid grid-cols-2">

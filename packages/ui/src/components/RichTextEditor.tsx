@@ -37,11 +37,11 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
   };
 
   return (
-    <div className={clsx('border border-gray-300 rounded-md', className)}>
-      <div className="flex items-center gap-1 p-2 border-b border-gray-200 bg-gray-50">
+    <div className={clsx('border border-border rounded-md bg-card', className)}>
+      <div className="flex items-center gap-1 p-2 border-b border-border bg-surface">
         <button
           type="button"
-          className="p-1 hover:bg-gray-200 rounded"
+          className="p-1 hover:bg-border/60 rounded"
           onClick={() => execCommand('bold')}
           title="Bold"
           disabled={disabled}
@@ -50,7 +50,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         </button>
         <button
           type="button"
-          className="p-1 hover:bg-gray-200 rounded"
+          className="p-1 hover:bg-border/60 rounded"
           onClick={() => execCommand('italic')}
           title="Italic"
           disabled={disabled}
@@ -59,17 +59,17 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         </button>
         <button
           type="button"
-          className="p-1 hover:bg-gray-200 rounded"
+          className="p-1 hover:bg-border/60 rounded"
           onClick={() => execCommand('underline')}
           title="Underline"
           disabled={disabled}
         >
           <u>U</u>
         </button>
-        <div className="w-px h-6 bg-gray-300 mx-1" />
+        <div className="w-px h-6 bg-border mx-1" />
         <button
           type="button"
-          className="p-1 hover:bg-gray-200 rounded"
+          className="p-1 hover:bg-border/60 rounded"
           onClick={() => execCommand('formatBlock', 'h2')}
           title="Heading"
           disabled={disabled}
@@ -78,7 +78,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         </button>
         <button
           type="button"
-          className="p-1 hover:bg-gray-200 rounded"
+          className="p-1 hover:bg-border/60 rounded"
           onClick={() => execCommand('insertUnorderedList')}
           title="Bullet List"
           disabled={disabled}
@@ -87,17 +87,17 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         </button>
         <button
           type="button"
-          className="p-1 hover:bg-gray-200 rounded"
+          className="p-1 hover:bg-border/60 rounded"
           onClick={() => execCommand('insertOrderedList')}
           title="Numbered List"
           disabled={disabled}
         >
           1.
         </button>
-        <div className="w-px h-6 bg-gray-300 mx-1" />
+        <div className="w-px h-6 bg-border mx-1" />
         <button
           type="button"
-          className="p-1 hover:bg-gray-200 rounded"
+          className="p-1 hover:bg-border/60 rounded"
           onClick={() => execCommand('createLink', prompt('Enter URL:') || undefined)}
           title="Link"
           disabled={disabled}
@@ -109,7 +109,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         ref={editorRef}
         contentEditable={!disabled}
         onInput={handleInput}
-        className="min-h-[150px] p-3 focus:outline-none"
+        className="min-h-[150px] p-3 focus:outline-none text-foreground"
         style={{ whiteSpace: 'pre-wrap' }}
         data-placeholder={placeholder}
         suppressContentEditableWarning
@@ -117,7 +117,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
       <style jsx>{`
         [contenteditable][data-placeholder]:empty:before {
           content: attr(data-placeholder);
-          color: #9ca3af;
+          color: rgb(148, 163, 184);
           cursor: text;
         }
       `}</style>

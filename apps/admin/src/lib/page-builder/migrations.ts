@@ -84,7 +84,9 @@ export function migrateContent(content: PageContent): PageContent {
   for (const migration of migrationPath) {
     try {
       migratedContent = migration.migrate(migratedContent);
-      console.log(`[Migrations] Migrated from ${migration.fromVersion} to ${migration.toVersion}`);
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`[Migrations] Migrated from ${migration.fromVersion} to ${migration.toVersion}`);
+      }
     } catch (error) {
       console.error(`[Migrations] Failed to migrate from ${migration.fromVersion}:`, error);
       throw new Error(`Migration failed: ${migration.fromVersion} → ${migration.toVersion}`);
