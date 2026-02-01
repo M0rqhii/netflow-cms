@@ -38,7 +38,7 @@ export function fieldDefinitionToZod(field: FieldDefinition): z.ZodTypeAny {
   return zodType;
 }
 
-export function fieldsToZodSchema(fields: FieldDefinition[]): z.ZodObject<any> {
+export function fieldsToZodSchema(fields: FieldDefinition[]): z.ZodObject<Record<string, z.ZodTypeAny>> {
   const shape: Record<string, z.ZodTypeAny> = {};
   fields.forEach((field) => {
     shape[field.name] = fieldDefinitionToZod(field);

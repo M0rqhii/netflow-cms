@@ -48,9 +48,7 @@ export const RelationPicker: React.FC<RelationPickerProps> = ({
     }
   }, [isOpen, fetchOptions]);
 
-  const selectedIds = multiple
-    ? (Array.isArray(value) ? value : value ? [value] : [])
-    : (value ? [value] : []);
+  const selectedIds: string[] = Array.isArray(value) ? value : value ? [value] : [];
 
   const handleSelect = (optionId: string) => {
     if (multiple) {

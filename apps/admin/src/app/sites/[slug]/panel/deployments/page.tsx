@@ -2,12 +2,11 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
-import Link from 'next/link';
 import { SitePanelLayout } from '@/components/site-panel/SitePanelLayout';
 import { SectionHeader } from '@/components/site-panel/SectionHeader';
 import { Card, CardContent } from '@repo/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@repo/ui';
-import { EmptyState, Button } from '@repo/ui';
+import { EmptyState } from '@repo/ui';
 import { Badge } from '@/components/ui/Badge';
 import { useToast } from '@/components/ui/Toast';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
@@ -22,7 +21,6 @@ export default function DeploymentsPage() {
 
   const [loading, setLoading] = useState(true);
   const [deployments, setDeployments] = useState<SiteDeployment[]>([]);
-  const [siteId, setSiteId] = useState<string | null>(null);
 
   const apiClient = createApiClient();
 
@@ -39,11 +37,10 @@ export default function DeploymentsPage() {
       const site = sites.find((s: SiteInfo) => s.site.slug === slug);
 
       if (!site) {
-        throw new Error(`Site with slug "${slug}" not found`);
+        throw new Error(`Nie znaleziono strony o slug: "${slug}"`);
       }
 
       const id = site.siteId;
-      setSiteId(id);
 
       let token = getSiteToken(id);
       if (!token) {
@@ -53,7 +50,7 @@ export default function DeploymentsPage() {
       const deploymentsData = await apiClient.listDeployments(token, id, { limit: 100 });
       setDeployments(deploymentsData);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to load deployments';
+      const message = err instanceof Error ? err.message : 'Nie udało się pobrać wdrożeń';
       toast.push({
         tone: 'error',
         message,
@@ -68,7 +65,7 @@ export default function DeploymentsPage() {
   }, [loadData]);
 
   const formatDate = (date: string | Date) => {
-    return new Date(date).toLocaleDateString('en-US', {
+    return new Date(date).toLocaleString('pl-PL', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -80,7 +77,7 @@ export default function DeploymentsPage() {
   const getStatusBadge = (status: string) => {
     return (
       <Badge tone={status === 'success' ? 'success' : 'error'}>
-        {status === 'success' ? 'Success' : 'Failed'}
+        {status === 'success' ? 'Sukces' : 'Błąd'}
       </Badge>
     );
   };
@@ -90,12 +87,12 @@ export default function DeploymentsPage() {
       <SitePanelLayout>
         <div className="space-y-6">
           <SectionHeader
-            title="Deployments"
-            description="History of publish and deployment operations."
+            title="Wdrożenia"
+            description="Historia publikacji i wdrożeń na produkcję."
           />
           <Card>
             <CardContent className="pt-6">
-              <div className="text-center py-12">Loading...</div>
+              <div className="text-center py-12">Wczytywanie...</div>
             </CardContent>
           </Card>
         </div>
@@ -108,29 +105,29 @@ export default function DeploymentsPage() {
       <div className="space-y-6">
         <Breadcrumbs
           items={[
-            { label: 'Sites', href: '/sites' },
+            { label: 'Strony', href: '/sites' },
             { label: slug, href: `/sites/${encodeURIComponent(slug)}` },
             { label: 'Panel', href: `/sites/${encodeURIComponent(slug)}/panel` },
-            { label: 'Deployments' },
+            { label: 'Wdrożenia' },
           ]}
         />
         <SectionHeader
           title={
             <div className="flex items-center gap-2">
-              Deployments
+              Wdrożenia
               <span
                 className="text-sm text-muted cursor-help"
-                title="Deployments are automatic processes that publish your changes to hosting. Each publish action creates a deployment record showing success or failure."
+                title="Publikacja tworzy rekord wdrożenia. Status pokazuje czy zmiany zostały poprawnie wdrożone."
               >
-                ℹ️
+                (i)
               </span>
             </div>
           }
           description={
             <div>
-              <p className="mb-2">History of publish and deployment operations.</p>
+              <p className="mb-2">Historia publikacji i wdrożeń na produkcję.</p>
               <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-2 text-xs text-blue-900 dark:text-blue-100">
-                <strong>How it works:</strong> When you publish a page, a deployment is automatically created. Successful deployments make your changes live, failed ones need attention. Check the status and message columns for details.
+                <strong>Jak to działa:</strong> Każda publikacja tworzy nowe wdrożenie. Udane wdrożenie oznacza, że zmiany są widoczne publicznie.
               </div>
             </div>
           }
@@ -141,8 +138,8 @@ export default function DeploymentsPage() {
             {deployments.length === 0 ? (
               <div className="py-12">
                 <EmptyState
-                  title="No deployments yet"
-                  description="Deployments will appear here after you publish pages."
+                  title="Brak wdrożeń"
+                  description="Wdrożenia pojawią się po pierwszej publikacji."
                   icon={
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-8 w-8">
                       <path d="M5 4.5h14a1 1 0 011 1v13a1 1 0 01-1 1H5a1 1 0 01-1-1v-13a1 1 0 011-1z" />
@@ -156,11 +153,11 @@ export default function DeploymentsPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Timestamp</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Environment</TableHead>
+                      <TableHead>Data</TableHead>
+                      <TableHead>Typ</TableHead>
+                      <TableHead>Środowisko</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Message</TableHead>
+                      <TableHead>Komunikat</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -191,8 +188,3 @@ export default function DeploymentsPage() {
     </SitePanelLayout>
   );
 }
-
-
-
-
-

@@ -1,7 +1,7 @@
 'use client';
 
 import { ApiClient, createApiClient, SiteInfo } from '@repo/sdk';
-import type { CapabilityKey, CapabilityModule, CreateSite, RbacCapability } from '@repo/schemas';
+import type { CapabilityKey, CapabilityModule, RbacCapability } from '@repo/schemas';
 
 const client: ApiClient = createApiClient();
 
@@ -16,6 +16,14 @@ type JwtPayload = {
   siteId?: string;
   orgId?: string; // organization id
   [key: string]: unknown;
+};
+
+
+type CreateSitePayload = {
+  name: string;
+  slug: string;
+  plan?: string;
+  settings?: Record<string, unknown>;
 };
 
 function decodeJwtPayload(token: string | null): JwtPayload | null {
@@ -198,6 +206,23 @@ async function ensureOrgToken(orgId: string): Promise<string> {
 
 // Activity & Stats
 export type ActivityItem = { id: string; type?: string; message: string; description?: string; createdAt: string };
+
+type ActivityApiItem = {
+  id?: string;
+  _id?: string;
+  type?: string;
+  createdAt?: string;
+  timestamp?: string;
+  description?: string;
+  message?: string;
+};
+
+type Pagination = {
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages?: number;
+};
 export type QuickStats = { sites: number; collections: number; media: number; users: number; active?: number; total?: number };
 
 export async function fetchActivity(limit?: number, orgId?: string, siteId?: string): Promise<ActivityItem[]> {
@@ -218,7 +243,7 @@ export async function fetchActivity(limit?: number, orgId?: string, siteId?: str
   }
   const data = await res.json().catch(() => []);
   if (!Array.isArray(data)) return [];
-  return data.map((item: any, index: number): ActivityItem => ({
+  return data.map((item: ActivityApiItem, index: number): ActivityItem => ({
     id: String(item?.id ?? item?._id ?? index),
     type: item?.type,
     createdAt: item?.createdAt ?? item?.timestamp ?? new Date().toISOString(),
@@ -238,7 +263,7 @@ export async function fetchQuickStats(): Promise<QuickStats> {
     const text = await res.text().catch(() => '');
     throw new Error(`Failed to fetch stats: ${res.status} ${res.statusText}${text ? ` - ${text}` : ''}`);
   }
-  const raw: any = await res.json().catch(() => ({}));
+  const raw = (await res.json().catch(() => ({}))) as Partial<QuickStats> & Record<string, unknown>;
   const stats: QuickStats = {
     sites: raw?.sites ?? 0,
     collections: raw?.collections ?? 0,
@@ -265,7 +290,7 @@ export async function fetchSiteStats(siteId: string): Promise<{ collections: num
 }
 
 // Sites
-export async function createSite(payload: Pick<CreateSite, 'name' | 'slug'> & Partial<CreateSite>): Promise<any> {
+export async function createSite(payload: CreateSitePayload): Promise<{ slug?: string; site?: { slug?: string } }> {
   const token = getAuthToken();
   if (!token) throw new Error('Missing auth token. Please login.');
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
@@ -283,6 +308,7 @@ export async function createSite(payload: Pick<CreateSite, 'name' | 'slug'> & Pa
 
 // Collections
 export type CollectionSummary = { id: string; slug: string; name: string; createdAt: string; updatedAt: string };
+export type CollectionDetails = CollectionSummary & { schemaJson?: Record<string, unknown> };
 export async function fetchSiteCollections(siteId: string): Promise<CollectionSummary[]> {
   const token = await ensureSiteToken(siteId).catch(() => getAuthToken());
   if (!token) throw new Error('Missing auth token. Please login.');
@@ -297,7 +323,7 @@ export async function fetchSiteCollections(siteId: string): Promise<CollectionSu
   return res.json();
 }
 
-export async function getCollection(siteId: string, slug: string): Promise<any> {
+export async function getCollection(siteId: string, slug: string): Promise<CollectionDetails> {
   const token = await ensureSiteToken(siteId).catch(() => getAuthToken());
   if (!token) throw new Error('Missing auth token. Please login.');
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
@@ -462,7 +488,7 @@ export async function fetchSiteTypes(siteId: string): Promise<TypeSummary[]> {
   return res.json();
 }
 
-export async function getContentType(siteId: string, id: string): Promise<any> {
+export async function getContentType(siteId: string, id: string): Promise<Record<string, unknown>> {
   const token = await ensureSiteToken(siteId).catch(() => getAuthToken());
   if (!token) throw new Error('Missing auth token. Please login.');
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
@@ -524,6 +550,8 @@ export async function updateType(siteId: string, id: string, payload: { name?: s
 
 // Content Entries
 export type ContentEntry = { id: string; siteId: string; contentTypeId: string; data: Record<string, unknown>; status: string; createdAt: string; updatedAt: string };
+export type ContentReviewEntry = { id: string; status: string; comment?: string; createdAt: string };
+export type ContentComment = { id: string; content: string; createdAt: string; resolved?: boolean };
 export async function fetchContentEntries(siteId: string, contentTypeSlug: string, query?: { page?: number; pageSize?: number; status?: string; search?: string }): Promise<{ entries: ContentEntry[]; total: number; page: number; pageSize: number }> {
   const token = await ensureSiteToken(siteId).catch(() => getAuthToken());
   if (!token) throw new Error('Missing auth token. Please login.');
@@ -606,7 +634,7 @@ export async function deleteContentEntry(siteId: string, contentTypeSlug: string
 }
 
 // Content Workflow (Review & Comments)
-export async function submitContentForReview(siteId: string, contentTypeSlug: string, entryId: string): Promise<any> {
+export async function submitContentForReview(siteId: string, contentTypeSlug: string, entryId: string): Promise<Record<string, unknown>> {
   const token = await ensureSiteToken(siteId).catch(() => getAuthToken());
   if (!token) throw new Error('Missing auth token. Please login.');
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
@@ -621,7 +649,7 @@ export async function submitContentForReview(siteId: string, contentTypeSlug: st
   return res.json();
 }
 
-export async function reviewContent(siteId: string, contentTypeSlug: string, entryId: string, status: 'approved' | 'rejected' | 'changes_requested', comment?: string): Promise<any> {
+export async function reviewContent(siteId: string, contentTypeSlug: string, entryId: string, status: 'approved' | 'rejected' | 'changes_requested', comment?: string): Promise<Record<string, unknown>> {
   const token = await ensureSiteToken(siteId).catch(() => getAuthToken());
   if (!token) throw new Error('Missing auth token. Please login.');
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
@@ -637,7 +665,7 @@ export async function reviewContent(siteId: string, contentTypeSlug: string, ent
   return res.json();
 }
 
-export async function getContentReviewHistory(siteId: string, contentTypeSlug: string, entryId: string): Promise<any[]> {
+export async function getContentReviewHistory(siteId: string, contentTypeSlug: string, entryId: string): Promise<ContentReviewEntry[]> {
   const token = await ensureSiteToken(siteId).catch(() => getAuthToken());
   if (!token) throw new Error('Missing auth token. Please login.');
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
@@ -651,7 +679,7 @@ export async function getContentReviewHistory(siteId: string, contentTypeSlug: s
   return res.json();
 }
 
-export async function createContentComment(siteId: string, contentTypeSlug: string, entryId: string, content: string): Promise<any> {
+export async function createContentComment(siteId: string, contentTypeSlug: string, entryId: string, content: string): Promise<ContentComment> {
   const token = await ensureSiteToken(siteId).catch(() => getAuthToken());
   if (!token) throw new Error('Missing auth token. Please login.');
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
@@ -667,7 +695,7 @@ export async function createContentComment(siteId: string, contentTypeSlug: stri
   return res.json();
 }
 
-export async function getContentComments(siteId: string, contentTypeSlug: string, entryId: string, includeResolved: boolean = false): Promise<any[]> {
+export async function getContentComments(siteId: string, contentTypeSlug: string, entryId: string, includeResolved: boolean = false): Promise<ContentComment[]> {
   const token = await ensureSiteToken(siteId).catch(() => getAuthToken());
   if (!token) throw new Error('Missing auth token. Please login.');
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
@@ -681,7 +709,7 @@ export async function getContentComments(siteId: string, contentTypeSlug: string
   return res.json();
 }
 
-export async function updateContentComment(siteId: string, contentTypeSlug: string, entryId: string, commentId: string, updates: { content?: string; resolved?: boolean }): Promise<any> {
+export async function updateContentComment(siteId: string, contentTypeSlug: string, entryId: string, commentId: string, updates: { content?: string; resolved?: boolean }): Promise<ContentComment> {
   const token = await ensureSiteToken(siteId).catch(() => getAuthToken());
   if (!token) throw new Error('Missing auth token. Please login.');
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
@@ -728,7 +756,7 @@ export async function fetchSiteMedia(siteId: string): Promise<MediaItem[]> {
   // API returns { items: MediaItem[], pagination: {...} }
   const items = Array.isArray(data.items) ? data.items : (Array.isArray(data) ? data : []);
   // Map API fields to MediaItem type (mimeType -> mime, createdAt -> uploadedAt)
-  return items.map((item: any) => ({
+  return items.map((item: MediaItem & { filename?: string; name?: string; mimeType?: string; createdAt?: string; uploadedAt?: string }) => ({
     ...item,
     fileName: item.fileName || item.filename || item.name || '',
     path: item.path,
@@ -1418,18 +1446,42 @@ export type Invoice = {
   currency: string;
   status: string;
   createdAt: string;
-  paidAt?: string;
+  paidAt?: string | null;
   site?: { id: string; name: string; slug: string };
   subscription?: { id: string; plan: string; status: string };
 };
 
-export async function getSubscriptions(): Promise<{ subscriptions: Subscription[]; pagination: any }> {
+export type GlobalSubscription = {
+  id: string;
+  orgId: string;
+  plan: string;
+  status: string;
+  currentPeriodStart: string | null;
+  currentPeriodEnd: string | null;
+  organization?: { id: string; name: string; slug: string };
+};
+
+export type GlobalInvoice = {
+  id: string;
+  orgId: string;
+  subscriptionId: string;
+  invoiceNumber: string;
+  amount: number;
+  currency: string;
+  status: string;
+  createdAt: string;
+  paidAt?: string | null;
+  organization?: { id: string; name: string; slug: string };
+  subscription?: { id: string; plan: string; status: string };
+};
+
+export async function getSubscriptions(): Promise<{ subscriptions: Subscription[]; pagination: Pagination }> {
   const token = getAuthToken();
   if (!token) throw new Error('Missing auth token. Please login.');
   return client.getSubscriptions(token);
 }
 
-export async function getInvoices(page?: number, pageSize?: number): Promise<{ invoices: Invoice[]; pagination: any }> {
+export async function getInvoices(page?: number, pageSize?: number): Promise<{ invoices: Invoice[]; pagination: Pagination }> {
   const token = getAuthToken();
   if (!token) throw new Error('Missing auth token. Please login.');
   return client.getInvoices(token, page, pageSize);
@@ -1448,7 +1500,7 @@ export async function getSiteSubscription(siteId: string): Promise<Subscription 
   }
 }
 
-export async function getSiteInvoices(siteId: string, page?: number, pageSize?: number): Promise<{ invoices: Invoice[]; pagination: any }> {
+export async function getSiteInvoices(siteId: string, page?: number, pageSize?: number): Promise<{ invoices: Invoice[]; pagination: Pagination }> {
   const token = getAuthToken();
   if (!token) throw new Error('Missing auth token. Please login.');
   return client.getSiteInvoices(token, siteId, page, pageSize);
@@ -1588,13 +1640,13 @@ export async function getProfile(): Promise<{ id: string; email: string; role: s
   return res.json();
 }
 
-export async function updateAccount(data: { name?: string; preferredLanguage?: 'pl' | 'en' }): Promise<any> {
+export async function updateAccount(data: { name?: string; preferredLanguage?: 'pl' | 'en' }): Promise<AccountInfo> {
   const token = getAuthToken();
   if (!token) throw new Error('Missing auth token. Please login.');
   return client.updateAccount(token, data);
 }
 
-export async function changePassword(data: { oldPassword: string; newPassword: string }): Promise<any> {
+export async function changePassword(data: { oldPassword: string; newPassword: string }): Promise<Record<string, unknown>> {
   const token = getAuthToken();
   if (!token) throw new Error('Missing auth token. Please login.');
   return client.changePassword(token, data);
@@ -1606,7 +1658,7 @@ export async function getBillingInfo(): Promise<{ companyName: string | null; ni
   return client.getBillingInfo(token);
 }
 
-export async function updateBillingInfo(data: { companyName?: string; nip?: string; address?: string }): Promise<any> {
+export async function updateBillingInfo(data: { companyName?: string; nip?: string; address?: string }): Promise<{ companyName: string | null; nip: string | null; address: string | null }> {
   const token = getAuthToken();
   if (!token) throw new Error('Missing auth token. Please login.');
   return client.updateBillingInfo(token, data);
@@ -1638,14 +1690,14 @@ export async function getDevEmails(): Promise<Array<{ id: string; to: string; su
 }
 
 export async function getDevPayments(): Promise<
-  Array<{ id: string; siteId: string; plan: string; status: string; currentPeriodStart?: string; currentPeriodEnd?: string; createdAt?: string }>
+  Array<{ id: string; orgId: string; plan?: string; status: string; currentPeriodStart?: string; currentPeriodEnd?: string; createdAt?: string }>
 > {
   const token = getAuthToken();
   if (!token) throw new Error('Missing auth token. Please login.');
   return client.getDevPayments(token);
 }
 
-export async function getDevLogs(): Promise<any[]> {
+export async function getDevLogs(): Promise<Array<{ id: string; timestamp: string; level: string; module: string; message: string; metadata?: Record<string, unknown> }>> {
   const token = getAuthToken();
   if (!token) throw new Error('Missing auth token. Please login.');
   return client.getDevLogs(token);
@@ -1657,24 +1709,24 @@ export async function getCurrentUser(): Promise<AccountInfo> {
 }
 
 // Alias for updateAccountPreferences (as requested)
-export async function updateAccountPreferences(data: { preferredLanguage?: 'pl' | 'en' }): Promise<any> {
+export async function updateAccountPreferences(data: { preferredLanguage?: 'pl' | 'en' }): Promise<AccountInfo> {
   return updateAccount(data);
 }
 
 export type GlobalBillingInfo = {
   userId: string;
-  sites: Array<{
-    siteId: string;
-    siteName: string;
-    siteSlug: string;
+  organizations: Array<{
+    orgId: string;
+    orgName: string;
+    orgSlug: string;
     plan: string;
     status: string;
     renewalDate: string | null;
     role: string;
   }>;
-  totalSites: number;
-  subscriptions: Subscription[];
-  invoices: Invoice[];
+  totalOrgs: number;
+  subscriptions: GlobalSubscription[];
+  invoices: GlobalInvoice[];
 };
 
 export async function getGlobalBillingInfo(): Promise<GlobalBillingInfo> {
@@ -2079,7 +2131,7 @@ export type DistributionDraft = {
   campaignId?: string | null;
   contentId?: string | null;
   title: string;
-  content: Record<string, any>;
+  content: Record<string, unknown>;
   channels: string[];
   status: 'draft' | 'ready' | 'published' | 'archived';
   scheduledAt?: string | null;
@@ -2285,7 +2337,7 @@ export async function createDistributionDraft(
     campaignId?: string;
     contentId?: string;
     title: string;
-    content: Record<string, any>;
+    content: Record<string, unknown>;
     channels: string[];
     scheduledAt?: string;
   }
@@ -2310,7 +2362,7 @@ export async function updateDistributionDraft(
   draftId: string,
   payload: {
     title?: string;
-    content?: Record<string, any>;
+    content?: Record<string, unknown>;
     channels?: string[];
     status?: string;
     scheduledAt?: string | null;
@@ -2354,7 +2406,7 @@ export async function publishMarketingContent(
     campaignId?: string;
     draftId?: string;
     channels: string[];
-    content?: Record<string, any>;
+    content?: Record<string, unknown>;
     title?: string;
   }
 ): Promise<PublishJob> {
@@ -2440,8 +2492,8 @@ export async function createChannelConnection(
     channel: 'facebook' | 'twitter' | 'linkedin' | 'instagram' | 'ads';
     channelId?: string;
     channelName?: string;
-    credentials?: Record<string, any>;
-    metadata?: Record<string, any>;
+    credentials?: Record<string, unknown>;
+    metadata?: Record<string, unknown>;
   }
 ): Promise<ChannelConnection> {
   const token = await getMarketingToken(orgId);
@@ -2458,5 +2510,6 @@ export async function createChannelConnection(
   }
   return res.json();
 }
+
 
 

@@ -18,7 +18,7 @@ import { ContentEntriesService } from '../../content-entries/services/content-en
 @Injectable()
 export class ContentResolver {
   constructor(
-    // @ts-ignore - Reserved for future use
+    // @ts-expect-error - Reserved for future use
     private _contentEntriesService: ContentEntriesService
   ) {}
 
@@ -29,4 +29,5 @@ export class ContentResolver {
   // @Roles(Role.VIEWER, Role.EDITOR, Role.ORG_ADMIN, Role.SUPER_ADMIN)
   // async findAll(...) { ... }
 }
+
 

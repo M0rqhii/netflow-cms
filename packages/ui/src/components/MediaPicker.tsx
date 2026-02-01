@@ -49,9 +49,7 @@ export const MediaPicker: React.FC<MediaPickerProps> = ({
     }
   }, [isOpen, fetchMedia]);
 
-  const selectedIds = multiple
-    ? (Array.isArray(value) ? value : value ? [value] : [])
-    : (value ? [value] : []);
+  const selectedIds: string[] = Array.isArray(value) ? value : value ? [value] : [];
 
   const handleSelect = (mediaId: string) => {
     if (multiple) {

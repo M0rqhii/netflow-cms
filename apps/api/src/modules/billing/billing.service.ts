@@ -421,12 +421,12 @@ export class BillingService {
     }
 
     // Find existing subscription or create new one for the organization
-    let subscription = await this.prisma.subscription.findFirst({
+    const subscription = await this.prisma.subscription.findFirst({
       where: { orgId },
       orderBy: { createdAt: 'desc' },
     });
 
-    const updateData: any = {};
+    const updateData: { plan?: string; status?: string; currentPeriodEnd?: Date } = {};
 
     if (dto.plan !== undefined) {
       updateData.plan = dto.plan;

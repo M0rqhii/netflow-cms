@@ -30,7 +30,7 @@ export default function SnapshotsPage() {
       const sites = await fetchMySites();
       const site = sites.find((s: SiteInfo) => s.site.slug === slug);
       if (!site) {
-        throw new Error(`Site with slug "${slug}" not found`);
+        throw new Error(`Nie znaleziono strony o slug: "${slug}"`);
       }
       setSiteId(site.siteId);
       let token = getSiteToken(site.siteId);
@@ -40,7 +40,7 @@ export default function SnapshotsPage() {
       const list = await apiClient.listSnapshots(token, site.siteId);
       setSnapshots(list);
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to load snapshots';
+      const message = error instanceof Error ? error.message : 'Nie uda?o si? wczyta? snapshot?w';
       toast.push({ tone: 'error', message });
     } finally {
       setLoading(false);
@@ -61,10 +61,10 @@ export default function SnapshotsPage() {
       }
       await apiClient.createSnapshot(token, siteId, label.trim() || undefined);
       setLabel('');
-      toast.push({ tone: 'success', message: 'Snapshot created' });
+      toast.push({ tone: 'success', message: 'Snapshot utworzony' });
       await loadSnapshots();
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to create snapshot';
+      const message = error instanceof Error ? error.message : 'Nie uda?o si? utworzy? snapshota';
       toast.push({ tone: 'error', message });
     } finally {
       setCreating(false);
@@ -74,7 +74,7 @@ export default function SnapshotsPage() {
   const handleRestore = async (snapshotId: string) => {
     if (!siteId) return;
     const confirmed = typeof window !== 'undefined'
-      ? window.confirm('This will revert your pages and SEO to the snapshot state. Continue?')
+      ? window.confirm('To przywr?ci strony i SEO do stanu z wybranego snapshota. Kontynuowa??')
       : true;
     if (!confirmed) return;
 
@@ -85,10 +85,10 @@ export default function SnapshotsPage() {
         token = await exchangeSiteToken(siteId);
       }
       await apiClient.restoreSnapshot(token, siteId, snapshotId);
-      toast.push({ tone: 'success', message: 'Snapshot restored' });
+      toast.push({ tone: 'success', message: 'Snapshot przywr?cony' });
       await loadSnapshots();
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to restore snapshot';
+      const message = error instanceof Error ? error.message : 'Nie uda?o si? przywr?ci? snapshota';
       toast.push({ tone: 'error', message });
     } finally {
       setRestoringId(null);
@@ -99,29 +99,29 @@ export default function SnapshotsPage() {
     <SitePanelLayout>
       <div className="space-y-6">
         <SectionHeader
-          title="Snapshots"
-          description="Create JSON backups of your site pages, SEO, and feature flags. Restore to rewind changes."
-          action={{ label: 'Create snapshot', onClick: handleCreate, disabled: creating || !siteId }}
+          title="Snapshoty"
+          description="Tw?rz kopie konfiguracji strony (strony, SEO, flagi) i przywracaj stan jednym klikni?ciem."
+          action={{ label: 'Utw?rz snapshot', onClick: handleCreate, disabled: creating || !siteId }}
         />
 
         <Card>
           <CardContent className="space-y-3">
             <div className="flex flex-col gap-2 md:flex-row md:items-end md:gap-3">
               <div className="flex-1">
-                <label className="block text-sm text-muted mb-1">Label (optional)</label>
+                <label className="block text-sm text-muted mb-1">Etykieta (opcjonalnie)</label>
                 <Input
-                  placeholder="e.g. Before homepage redesign"
+                  placeholder="np. Przed redesignem strony g??wnej"
                   value={label}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLabel(e.target.value)}
                   disabled={creating || loading}
                 />
               </div>
               <Button onClick={handleCreate} disabled={creating || !siteId}>
-                {creating ? 'Saving�' : 'Create snapshot'}
+                {creating ? 'Zapisywanie...' : 'Utw?rz snapshot'}
               </Button>
             </div>
             <p className="text-xs text-muted">
-              Snapshots capture all pages (draft + production), SEO settings, and feature overrides for this site.
+              Snapshoty obejmuj? wszystkie strony (draft + produkcja), SEO oraz ustawienia funkcji dla tej strony.
             </p>
           </CardContent>
         </Card>

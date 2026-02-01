@@ -6,9 +6,10 @@ import { SitePanelLayout } from '@/components/site-panel/SitePanelLayout';
 import { SectionHeader } from '@/components/site-panel/SectionHeader';
 import { Card, CardContent } from '@repo/ui';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@repo/ui';
-import { EmptyState, Button, Input } from '@repo/ui';
+import { EmptyState, Button, Input, Modal } from '@repo/ui';
 import { Badge } from '@/components/ui/Badge';
 import { useToast } from '@/components/ui/Toast';
+import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import { useTranslations } from '@/hooks/useTranslations';
 import { fetchMySites, exchangeSiteToken, getSiteToken } from '@/lib/api';
 import { trackOnboardingSuccess } from '@/lib/onboarding';
@@ -103,7 +104,7 @@ export default function PagesPage() {
     } finally {
       setLoading(false);
     }
-  }, [slug, apiClient, toast, t]);
+  }, [slug, apiClient, toast, t, createEnvironmentId]);
 
   useEffect(() => {
     loadData();
@@ -255,7 +256,7 @@ export default function PagesPage() {
       archived: 'warning',
     };
     return (
-      <Badge variant={variants[status] || 'default'}>
+      <Badge tone={variants[status] || 'default'}>
         {status.charAt(0).toUpperCase() + status.slice(1)}
       </Badge>
     );
@@ -328,7 +329,7 @@ export default function PagesPage() {
                         <TableCell>{getStatusBadge(page.status)}</TableCell>
                         <TableCell>
                           <Badge variant="outline">
-                            {page.environment?.type === 'production' ? t('pages.production') : t('pages.draft')}
+                            {(page.environment?.type || '').toLowerCase() === 'production' ? t('pages.production') : t('pages.draft')}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-muted text-sm">
@@ -350,7 +351,7 @@ export default function PagesPage() {
                             >
                               {t('pages.openInBuilder')}
                             </Button>
-                            {page.environment?.type === 'draft' && (
+                            {(page.environment?.type || '').toLowerCase() === 'draft' && (
                               <Button
                                 variant="primary"
                                 size="sm"
@@ -399,130 +400,130 @@ export default function PagesPage() {
 
         {/* Create Modal */}
         {showCreateModal && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-              <h2 className="text-xl font-semibold mb-4">{t('pages.createNewPage')}</h2>
-              <form onSubmit={handleCreate} className="space-y-4">
-                <Input
-                  label={t('pages.titleLabel')}
-                  placeholder={t('pages.titlePlaceholder')}
-                  value={createTitle}
-                  onChange={(e) => setCreateTitle(e.target.value)}
+          <Modal
+            isOpen={showCreateModal}
+            onClose={() => {
+              setShowCreateModal(false);
+              setCreateTitle('');
+              setCreateSlug('');
+            }}
+            title={t('pages.createNewPage')}
+            size="sm"
+          >
+            <form onSubmit={handleCreate} className="space-y-4">
+              <Input
+                label={t('pages.titleLabel')}
+                placeholder={t('pages.titlePlaceholder')}
+                value={createTitle}
+                onChange={(e) => setCreateTitle(e.target.value)}
+                required
+              />
+              <Input
+                label={t('pages.slugLabel')}
+                placeholder={t('pages.slugPlaceholder')}
+                value={createSlug}
+                onChange={(e) => setCreateSlug(e.target.value)}
+                helperText={createSlug || createTitle ? `${t('pages.willBe')}: ${createSlug || createTitle.toLowerCase().replace(/\s+/g, '-')}` : undefined}
+              />
+              <div>
+                <label htmlFor="create-page-environment" className="block text-sm font-medium mb-1">
+                  {t('pages.environment')}
+                  <span className="text-red-500 ml-1" aria-label="required">*</span>
+                </label>
+                <select
+                  id="create-page-environment"
+                  className="w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={createEnvironmentId}
+                  onChange={(e) => setCreateEnvironmentId(e.target.value)}
                   required
-                />
-                <Input
-                  label={t('pages.slugLabel')}
-                  placeholder={t('pages.slugPlaceholder')}
-                  value={createSlug}
-                  onChange={(e) => setCreateSlug(e.target.value)}
-                  hint={createSlug || createTitle ? `${t('pages.willBe')}: ${createSlug || createTitle.toLowerCase().replace(/\s+/g, '-')}` : undefined}
-                />
-                <div>
-                  <label htmlFor="create-page-environment" className="block text-sm font-medium mb-1">
-                    {t('pages.environment')}
-                    <span className="text-red-500 ml-1" aria-label="required">*</span>
-                  </label>
-                  <select
-                    id="create-page-environment"
-                    className="w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    value={createEnvironmentId}
-                    onChange={(e) => setCreateEnvironmentId(e.target.value)}
-                    required
-                    aria-required="true"
-                  >
-                    {environments.map((env) => (
-                      <option key={env.id} value={env.id}>
-                        {env.type === 'production' ? t('pages.production') : t('pages.draft')}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="flex gap-2 justify-end">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      setShowCreateModal(false);
-                      setCreateTitle('');
-                      setCreateSlug('');
-                    }}
-                  >
-                    {t('pages.cancel')}
-                  </Button>
-                  <Button type="submit" variant="primary">
-                    {t('pages.create')}
-                  </Button>
-                </div>
-              </form>
-            </div>
-          </div>
+                  aria-required="true"
+                >
+                  {environments.map((env) => (
+                    <option key={env.id} value={env.id}>
+                      {env.type === 'production' ? t('pages.production') : t('pages.draft')}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex gap-2 justify-end pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setShowCreateModal(false);
+                    setCreateTitle('');
+                    setCreateSlug('');
+                  }}
+                >
+                  {t('pages.cancel')}
+                </Button>
+                <Button type="submit" variant="primary">
+                  {t('pages.create')}
+                </Button>
+              </div>
+            </form>
+          </Modal>
         )}
 
         {/* Edit Modal */}
         {editingPage && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-              <h2 className="text-xl font-semibold mb-4">{t('pages.edit')} {t('pages.title')}</h2>
-              <form onSubmit={handleEdit} className="space-y-4">
-                <Input
-                  label={t('pages.titleLabel')}
-                  placeholder={t('pages.titlePlaceholder')}
-                  value={editTitle}
-                  onChange={(e) => setEditTitle(e.target.value)}
-                  required
-                />
-                <Input
-                  label={t('pages.slugLabel')}
-                  placeholder={t('pages.slugPlaceholder')}
-                  value={editSlug}
-                  onChange={(e) => setEditSlug(e.target.value)}
-                  required
-                />
-                <div className="flex gap-2 justify-end">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      setEditingPage(null);
-                      setEditTitle('');
-                      setEditSlug('');
-                    }}
-                  >
-                    {t('pages.cancel')}
-                  </Button>
-                  <Button type="submit" variant="primary">
-                    {t('pages.save')}
-                  </Button>
-                </div>
-              </form>
-            </div>
-          </div>
+          <Modal
+            isOpen={!!editingPage}
+            onClose={() => {
+              setEditingPage(null);
+              setEditTitle('');
+              setEditSlug('');
+            }}
+            title={`${t('pages.edit')} ${t('pages.title')}`}
+            size="sm"
+          >
+            <form onSubmit={handleEdit} className="space-y-4">
+              <Input
+                label={t('pages.titleLabel')}
+                placeholder={t('pages.titlePlaceholder')}
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+                required
+              />
+              <Input
+                label={t('pages.slugLabel')}
+                placeholder={t('pages.slugPlaceholder')}
+                value={editSlug}
+                onChange={(e) => setEditSlug(e.target.value)}
+                required
+              />
+              <div className="flex gap-2 justify-end pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setEditingPage(null);
+                    setEditTitle('');
+                    setEditSlug('');
+                  }}
+                >
+                  {t('pages.cancel')}
+                </Button>
+                <Button type="submit" variant="primary">
+                  {t('pages.save')}
+                </Button>
+              </div>
+            </form>
+          </Modal>
         )}
 
         {/* Delete Confirmation Modal */}
         {deletingPageId && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-              <h2 className="text-xl font-semibold mb-4">{t('pages.delete')} {t('pages.title')}</h2>
-              <p className="text-muted mb-6">
-                {t('pages.areYouSureDeletePage')}
-              </p>
-              <div className="flex gap-2 justify-end">
-                <Button
-                  variant="outline"
-                  onClick={() => setDeletingPageId(null)}
-                >
-                  {t('pages.cancel')}
-                </Button>
-                <Button
-                  variant="primary"
-                  onClick={() => handleDelete(deletingPageId)}
-                >
-                  {t('pages.delete')}
-                </Button>
-              </div>
-            </div>
-          </div>
+          <ConfirmDialog
+            open={Boolean(deletingPageId)}
+            onClose={() => setDeletingPageId(null)}
+            onConfirm={() => deletingPageId && handleDelete(deletingPageId)}
+            title={`${t('pages.delete')} ${t('pages.title')}`}
+            message={t('pages.areYouSureDeletePage')}
+            confirmLabel={t('pages.delete')}
+            cancelLabel={t('pages.cancel')}
+            variant="danger"
+          />
         )}
       </div>
     </SitePanelLayout>

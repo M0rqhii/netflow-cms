@@ -5,6 +5,7 @@
  */
 
 import React from 'react';
+import Image from 'next/image';
 import { FiImage } from 'react-icons/fi';
 import { isValidLink } from '@/lib/page-builder/sanitize';
 import type { BlockComponentProps } from '@/lib/page-builder/types';
@@ -12,7 +13,7 @@ import { mergeStyles } from '@/lib/page-builder/style-utils';
 import { useCurrentBreakpoint } from '@/stores/page-builder-store';
 import styles from './ImageBlock.module.css';
 
-export const ImageBlock: React.FC<BlockComponentProps> = ({ node, isPreview }) => {
+export const ImageBlock: React.FC<BlockComponentProps> = ({ node, isPreview, isStructure }) => {
   const currentBreakpoint = useCurrentBreakpoint();
   
   const { content, style } = node.props;
@@ -33,6 +34,16 @@ export const ImageBlock: React.FC<BlockComponentProps> = ({ node, isPreview }) =
     padding: mergedStyles.padding as string,
     margin: mergedStyles.margin as string,
   };
+
+  if (isStructure) {
+    return (
+      <div className={styles.placeholder} style={containerStyle}>
+        <FiImage className={styles.placeholderIcon} />
+        <span className={styles.placeholderText}>[Image]</span>
+      </div>
+    );
+  }
+
   
   const imageStyle: React.CSSProperties = {
     maxWidth: mergedStyles.maxWidth as string || '100%',
@@ -69,12 +80,16 @@ export const ImageBlock: React.FC<BlockComponentProps> = ({ node, isPreview }) =
   }
   
   const imageElement = (
-    <img
+    <Image
       src={validSrc}
       alt={alt}
+      width={1}
+      height={1}
+      sizes="100vw"
       style={imageStyle}
       className={styles.image}
-      loading="lazy"
+      unoptimized
+      priority={false}
     />
   );
   

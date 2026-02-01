@@ -5,8 +5,7 @@
  * Łączy wszystkie elementy: Toolbar, BlockBrowser, Canvas, PropertiesPanel.
  */
 
-import React, { useEffect, useCallback, useMemo } from 'react';
-import { DndContext } from '@dnd-kit/core';
+import React, { useEffect, useCallback } from 'react';
 import { usePageBuilderStore } from '@/stores/page-builder-store';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { Toolbar } from './toolbar';

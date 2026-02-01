@@ -38,7 +38,7 @@ export class ContentTypesController {
   @Permissions(Permission.CONTENT_TYPES_WRITE)
   create(
     @CurrentSite() siteId: string,
-    @Body(new ZodValidationPipe(CreateContentTypeDtoSchema)) body: unknown
+    @Body(new ZodValidationPipe(CreateContentTypeDtoSchema)) body: any
   ) {
     const dto = CreateContentTypeDtoSchema.parse(body);
     return this.contentTypesService.create(siteId, dto);
@@ -62,7 +62,7 @@ export class ContentTypesController {
   update(
     @CurrentSite() siteId: string,
     @Param('id') id: string,
-    @Body(new ZodValidationPipe(UpdateContentTypeDtoSchema)) body: unknown
+    @Body(new ZodValidationPipe(UpdateContentTypeDtoSchema)) body: any
   ) {
     const dto = UpdateContentTypeDtoSchema.parse(body);
     return this.contentTypesService.update(siteId, id, dto);

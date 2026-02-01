@@ -7,11 +7,15 @@ import { DndContext, DragOverlay, KeyboardSensor, PointerSensor, useSensor, useS
 import { fetchMySites, exchangeSiteToken, getSiteToken } from '@/lib/api';
 import { trackOnboardingSuccess } from '@/lib/onboarding';
 import { createApiClient } from '@repo/sdk';
+import { useSiteFeatures } from '@/lib/site-features';
+import { validatePublish } from '@/lib/page-builder/publish-validation';
+import type { PageContent } from '@/lib/page-builder/types';
 import type { SiteInfo, SitePage, SiteEnvironment } from '@repo/sdk';
 import { useToast } from '@/components/ui/Toast';
 import { Badge } from '@/components/ui/Badge';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { Button, LoadingSpinner } from '@repo/ui';
+import { FiMonitor, FiTablet, FiSmartphone, FiEye, FiEdit3, FiGrid } from 'react-icons/fi';
 import { PageBuilderProvider } from '@/components/page-builder/PageBuilderContext';
 import { usePageBuilderStore } from '@/stores/page-builder-store';
 import { registerAllBlocks } from '@/components/page-builder/blocks/registerBlocks';
@@ -29,6 +33,16 @@ const PageBuilderCanvas = dynamic(
 
 const PropertiesPanel = dynamic(
   () => import('@/components/page-builder/sidebar-right/PropertiesPanel').then(mod => ({ default: mod.PropertiesPanel })),
+  { ssr: false }
+);
+
+const LayersPanel = dynamic(
+  () => import('@/components/page-builder/sidebar-left/LayersPanel').then(mod => ({ default: mod.LayersPanel })),
+  { ssr: false }
+);
+
+const AssetsPanel = dynamic(
+  () => import('@/components/page-builder/sidebar-left/AssetsPanel').then(mod => ({ default: mod.AssetsPanel })),
   { ssr: false }
 );
 
@@ -50,6 +64,7 @@ export default function PageBuilderPage() {
   const [siteId, setSiteId] = useState<string | null>(null);
 
   const apiClient = useMemo(() => createApiClient(), []);
+  const { features } = useSiteFeatures(siteId);
 
   useEffect(() => {
     trackOnboardingSuccess('editor_opened');
@@ -235,6 +250,33 @@ export default function PageBuilderPage() {
       return;
     }
 
+    // Publish validation: module gating + required fields
+    const enabledModules = features?.effective || [];
+    const validation = validatePublish(content as PageContent, enabledModules);
+    if (!validation.valid) {
+      const missingAlt = validation.errors.filter((e) => e.type === 'missing_alt');
+      const disabledModules = validation.errors.filter((e) => e.type === 'module_disabled');
+
+      if (missingAlt.length > 0) {
+        toast.push({
+          tone: 'error',
+          message: `Dodaj ALT do obrazów (brak: ${missingAlt.length}).`,
+        });
+      }
+
+      if (disabledModules.length > 0) {
+        const modules = Array.from(new Set(disabledModules.map((e) => e.moduleKey).filter(Boolean)));
+        toast.push({
+          tone: 'error',
+          message: `Wyłączone moduły: ${modules.join(', ')}. Włącz je w ustawieniach modułów.`,
+        });
+      }
+
+      setShowPublishModal(false);
+      return;
+    }
+
+
     setShowPublishModal(false);
 
     try {
@@ -266,15 +308,17 @@ export default function PageBuilderPage() {
     }
   };
 
+  const environmentType = (environment?.type || '').toLowerCase();
+
   return (
-    <PageBuilderProvider siteId={siteId!} siteSlug={slug}>
+    <PageBuilderProvider siteId={siteId!} siteSlug={slug} enabledModules={features?.effective ?? []}>
       <PageBuilderWithSave
         pageName={page.title}
-        environment={environment?.type === 'production' ? 'production' : 'draft'}
+        environment={environmentType === 'production' ? 'production' : 'draft'}
         content={content}
         onContentChange={setContent}
         onSave={handleSave}
-        onPublish={environment?.type === 'draft' ? handlePublishClick : undefined}
+        onPublish={environmentType === 'draft' ? handlePublishClick : undefined}
         saving={saving}
         lastSaved={lastSaved}
       />
@@ -328,12 +372,20 @@ function PageBuilderWithSave({
 }: PageBuilderWithSaveProps) {
   const [initialContent] = useState(content);
   const [activeDrag, setActiveDrag] = useState<DragData | null>(null);
+  const [copyMode, setCopyMode] = useState(false);
+  const [leftTab, setLeftTab] = useState<'library' | 'layers' | 'assets'>('library');
   const hasUnsavedChanges = JSON.stringify(content) !== JSON.stringify(initialContent);
   
   // Store actions
   const storeContent = usePageBuilderStore((s) => s.content);
   const addBlock = usePageBuilderStore((s) => s.addBlock);
+  const currentBreakpoint = usePageBuilderStore((s) => s.currentBreakpoint);
+  const setBreakpoint = usePageBuilderStore((s) => s.setBreakpoint);
+  const editorMode = usePageBuilderStore((s) => s.mode);
+  const setMode = usePageBuilderStore((s) => s.setMode);
   const moveBlock = usePageBuilderStore((s) => s.moveBlock);
+  const copyBlock = usePageBuilderStore((s) => s.copyBlock);
+  const pasteBlock = usePageBuilderStore((s) => s.pasteBlock);
   const commit = usePageBuilderStore((s) => s.commit);
   const selectBlock = usePageBuilderStore((s) => s.selectBlock);
   
@@ -354,6 +406,9 @@ function PageBuilderWithSave({
   const handleDragStart = useCallback((event: DragStartEvent) => {
     const data = event.active.data.current as DragData;
     setActiveDrag(data);
+    const activator = event.activatorEvent as (PointerEvent | KeyboardEvent | null);
+    const shouldCopy = Boolean(activator && 'altKey' in activator && activator.altKey);
+    setCopyMode(shouldCopy);
     selectBlock(null);
   }, [selectBlock]);
   
@@ -362,6 +417,7 @@ function PageBuilderWithSave({
     const { active, over } = event;
     
     setActiveDrag(null);
+    setCopyMode(false);
     
     if (!over) return;
     
@@ -389,11 +445,17 @@ function PageBuilderWithSave({
     if (isNewBlockDrag(dragData)) {
       addBlock(targetParentId, blockType, targetIndex);
     } else if (dragData.dragType === 'existing-node' && dragData.nodeId) {
-      moveBlock(dragData.nodeId, targetParentId, targetIndex);
+      if (copyMode) {
+        copyBlock(dragData.nodeId);
+        pasteBlock(targetParentId, targetIndex);
+        commit('paste');
+      } else {
+        moveBlock(dragData.nodeId, targetParentId, targetIndex);
+        commit('dnd');
+      }
     }
     
-    commit('dnd');
-  }, [storeContent, addBlock, moveBlock, commit]);
+  }, [storeContent, addBlock, moveBlock, copyBlock, pasteBlock, commit, copyMode]);
 
   const handlePublishWithCheck = () => {
     if (hasUnsavedChanges && onPublish) {
@@ -435,6 +497,63 @@ function PageBuilderWithSave({
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 rounded-md border border-gray-200 bg-gray-50 px-1 py-1">
+              <button
+                type="button"
+                onClick={() => setBreakpoint('desktop')}
+                className={`p-1 rounded ${currentBreakpoint === 'desktop' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500'}`}
+                title="Desktop"
+              >
+                <FiMonitor />
+              </button>
+              <button
+                type="button"
+                onClick={() => setBreakpoint('tablet')}
+                className={`p-1 rounded ${currentBreakpoint === 'tablet' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500'}`}
+                title="Tablet"
+              >
+                <FiTablet />
+              </button>
+              <button
+                type="button"
+                onClick={() => setBreakpoint('mobile')}
+                className={`p-1 rounded ${currentBreakpoint === 'mobile' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500'}`}
+                title="Mobile"
+              >
+                <FiSmartphone />
+              </button>
+            </div>
+            <div className="flex items-center gap-1 rounded-md border border-gray-200 bg-gray-50 px-1 py-1">
+              <button
+                type="button"
+                onClick={() => setMode('edit')}
+                className={`px-2 py-1 text-xs rounded ${editorMode === 'edit' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500'}`}
+                title="Edit"
+              >
+                <FiEdit3 className="inline mr-1" />
+                Edit
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode('preview')}
+                className={`px-2 py-1 text-xs rounded ${editorMode === 'preview' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500'}`}
+                title="Preview"
+              >
+                <FiEye className="inline mr-1" />
+                Preview
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode('structure')}
+                className={`px-2 py-1 text-xs rounded ${editorMode === 'structure' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500'}`}
+                title="Structure"
+              >
+                <FiGrid className="inline mr-1" />
+                Structure
+              </button>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
             <Button
               variant="outline"
               onClick={onSave}
@@ -464,11 +583,32 @@ function PageBuilderWithSave({
         onDragEnd={handleDragEnd}
       >
         <div className="flex-1 flex overflow-hidden">
-          {/* Left Sidebar - Block Browser */}
-          <div className="w-64 border-r border-gray-200 bg-white flex-shrink-0">
-            <Suspense fallback={<div className="p-4"><LoadingSpinner /></div>}>
-              <BlockBrowser />
-            </Suspense>
+          {/* Left Sidebar - Library/Layers/Assets */}
+          <div className="w-64 border-r border-gray-200 bg-white flex-shrink-0 flex flex-col">
+            <div className="flex border-b border-gray-200">
+              {([
+                { id: 'library', label: 'Library' },
+                { id: 'layers', label: 'Layers' },
+                { id: 'assets', label: 'Assets' },
+              ] as const).map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setLeftTab(tab.id)}
+                  className={`flex-1 px-3 py-2 text-xs font-medium ${
+                    leftTab === tab.id ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+            <div className="flex-1 overflow-hidden">
+              <Suspense fallback={<div className="p-4"><LoadingSpinner /></div>}>
+                {leftTab === 'library' && <BlockBrowser />}
+                {leftTab === 'layers' && <LayersPanel />}
+                {leftTab === 'assets' && <AssetsPanel />}
+              </Suspense>
+            </div>
           </div>
 
           {/* Canvas Area */}

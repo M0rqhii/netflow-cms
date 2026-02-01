@@ -5,19 +5,17 @@
  */
 
 import React from 'react';
-import type { BlockNode, BlockProps, PropFieldSchema } from '@/lib/page-builder/types';
+import type { BlockProps, PropFieldSchema } from '@/lib/page-builder/types';
 import { FieldRenderer } from './FieldRenderer';
 import styles from './Editors.module.css';
 
 type ContentEditorProps = {
-  node: BlockNode;
   props: BlockProps;
   schema?: Record<string, PropFieldSchema>;
   onChange: (key: string, value: unknown) => void;
 };
 
 export const ContentEditor: React.FC<ContentEditorProps> = ({
-  node,
   props,
   schema,
   onChange,

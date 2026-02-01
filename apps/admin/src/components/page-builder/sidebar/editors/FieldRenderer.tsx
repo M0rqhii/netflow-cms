@@ -4,7 +4,8 @@
  * Renderuje odpowiedni input na podstawie typu pola.
  */
 
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
+import Image from 'next/image';
 import { FiLink, FiCheck, FiImage, FiX } from 'react-icons/fi';
 import type { PropFieldSchema } from '@/lib/page-builder/types';
 import { MediaPickerDialog } from './MediaPickerDialog';
@@ -253,6 +254,11 @@ const ImageInput: React.FC<{
   onChange: (value: unknown) => void;
 }> = ({ value, onChange }) => {
   const [isPickerOpen, setIsPickerOpen] = useState(false);
+  const [previewError, setPreviewError] = useState(false);
+
+  useEffect(() => {
+    setPreviewError(false);
+  }, [value]);
 
   const handleSelect = useCallback((url: string) => {
     onChange(url);
@@ -265,16 +271,17 @@ const ImageInput: React.FC<{
   return (
     <div className={styles.imageInput}>
       {/* Thumbnail preview */}
-      {value && (
+      {value && !previewError && (
         <div className={styles.imagePreview}>
-          <img 
-            src={value} 
-            alt="Preview" 
+          <Image
+            src={value}
+            alt="Preview"
+            width={64}
+            height={64}
+            sizes="64px"
             className={styles.imageThumbnail}
-            onError={(e) => {
-              // Hide broken images
-              (e.target as HTMLImageElement).style.display = 'none';
-            }}
+            unoptimized
+            onError={() => setPreviewError(true)}
           />
           <button
             type="button"

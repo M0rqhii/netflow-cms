@@ -114,7 +114,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         data-placeholder={placeholder}
         suppressContentEditableWarning
       />
-      <style jsx>{`
+      <style>{`
         [contenteditable][data-placeholder]:empty:before {
           content: attr(data-placeholder);
           color: rgb(148, 163, 184);

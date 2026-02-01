@@ -42,7 +42,7 @@ export class TasksController {
   create(
     @CurrentSite() siteId: string,
     @CurrentUser() user: CurrentUserPayload,
-    @Body(new ZodValidationPipe(createTaskSchema)) dto: unknown,
+    @Body(new ZodValidationPipe(createTaskSchema)) dto: any,
   ) {
     return this.tasksService.create(siteId, user.id, dto as any);
   }
@@ -51,7 +51,7 @@ export class TasksController {
   @Permissions(Permission.CONTENT_READ)
   list(
     @CurrentSite() siteId: string,
-    @Query(new ZodValidationPipe(taskQuerySchema)) query: unknown,
+    @Query(new ZodValidationPipe(taskQuerySchema)) query: any,
   ) {
     return this.tasksService.list(siteId, query as any);
   }
@@ -70,7 +70,7 @@ export class TasksController {
   update(
     @CurrentSite() siteId: string,
     @Param('id') id: string,
-    @Body(new ZodValidationPipe(updateTaskSchema)) dto: unknown,
+    @Body(new ZodValidationPipe(updateTaskSchema)) dto: any,
   ) {
     return this.tasksService.update(siteId, id, dto as any);
   }

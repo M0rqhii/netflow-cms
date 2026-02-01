@@ -21,6 +21,18 @@ import type { SiteInfo } from '@repo/sdk';
 const PRIVILEGED_ROLES = ['super_admin', 'org_admin', 'site_admin'];
 const PRIVILEGED_PLATFORM_ROLES = ['platform_admin'];
 
+type DevSiteRow = {
+  id: string;
+  name: string;
+  slug: string;
+  plan?: string;
+  createdAt?: string;
+};
+
+const isSiteInfo = (value: unknown): value is SiteInfo => {
+  return Boolean(value && typeof value === 'object' && 'site' in value && 'siteId' in value);
+};
+
 export default function DevPanelPage() {
   const appProfile = process.env.NEXT_PUBLIC_APP_PROFILE || process.env.NODE_ENV || 'development';
   const isProd = appProfile === 'production';
@@ -55,7 +67,7 @@ export default function DevPanelPage() {
   const [devSummary, setDevSummary] = useState<{ sites: number; users: number; emails: number; subscriptions: number } | null>(null);
   const [emailLog, setEmailLog] = useState<Array<{ id: string; to: string; subject: string; status: string; sentAt?: string; createdAt?: string }>>([]);
   const [paymentEvents, setPaymentEvents] = useState<
-    Array<{ id: string; siteId: string; plan: string; status: string; currentPeriodStart?: string; currentPeriodEnd?: string; createdAt?: string }>
+    Array<{ id: string; orgId: string; plan?: string; status: string; currentPeriodStart?: string; currentPeriodEnd?: string; createdAt?: string }>
   >([]);
   
   // Check access via API if token doesn't have role (for old tokens)
@@ -120,19 +132,20 @@ export default function DevPanelPage() {
       getDevPayments().catch(() => []),
     ])
       .then(([siteData, summary, emails, payments]) => {
-        const normalizedSites: SiteInfo[] = (siteData as any[]).map((s: any) => {
-          if (s?.site) return s as SiteInfo;
+        const normalizedSites: SiteInfo[] = (Array.isArray(siteData) ? siteData : []).map((item) => {
+          if (isSiteInfo(item)) return item;
+          const fallback = item as DevSiteRow;
           return {
-            siteId: s.id,
+            siteId: fallback.id,
             role: 'admin',
             site: {
-              id: s.id,
-              name: s.name,
-              slug: s.slug,
-              plan: s.plan,
-              createdAt: s.createdAt,
+              id: fallback.id,
+              name: fallback.name,
+              slug: fallback.slug,
+              plan: fallback.plan ?? 'free',
+              createdAt: fallback.createdAt,
             },
-          } as SiteInfo;
+          };
         });
         setSites(normalizedSites);
         setDevSummary(summary ? { sites: summary.sites, users: summary.users, emails: summary.emails, subscriptions: summary.subscriptions } : null);
@@ -151,7 +164,7 @@ export default function DevPanelPage() {
       sites.map((site) => fetchSiteUsers(site.siteId).then((list) => list.length).catch(() => null))
     )
       .then((results) => {
-        const total = results.reduce((acc, val) => (val === null ? acc : acc + val), 0);
+        const total = results.reduce<number>((acc, val) => (val === null ? acc : acc + val), 0);
         setUsersCount(total);
         if (results.some((v) => v === null)) {
           setUsersError('Some user lists failed to load.');
@@ -366,7 +379,7 @@ export default function DevPanelPage() {
                   {paymentEvents.map((evt) => (
                     <tr key={evt.id} className="border-b border-gray-200 hover:bg-gray-50">
                       <td className="py-3 px-4 font-mono text-xs">{evt.plan}</td>
-                      <td className="py-3 px-4 font-mono text-xs">{evt.siteId}</td>
+                      <td className="py-3 px-4 font-mono text-xs">{evt.orgId}</td>
                       <td className="py-3 px-4">
                         <Badge tone={evt.status === 'active' ? 'success' : 'warning'}>{evt.status}</Badge>
                       </td>

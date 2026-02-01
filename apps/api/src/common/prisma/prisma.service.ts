@@ -34,7 +34,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     // Automatic ETag computation for CollectionItem without recursive updates
     this.$use(async (params: any, next: (params: any) => Promise<any>) => {
       // Helper to compute a stable ETag string
-      const computeEtag = (data: unknown, version: number | undefined) =>
+      const computeEtag = (data: any, version: number | undefined) =>
         crypto
           .createHash('sha1')
           .update(
@@ -48,7 +48,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
       if (params.model === 'CollectionItem') {
         if (params.action === 'create') {
           const incoming = (params.args?.data ?? {}) as {
-            data?: unknown;
+            data?: any;
             version?: number;
             etag?: string;
           };
@@ -57,12 +57,12 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
         } else if (params.action === 'update') {
           const where = (params.args?.where ?? {}) as { id?: string };
           const patch = (params.args?.data ?? {}) as {
-            data?: unknown;
+            data?: any;
             version?: number;
             etag?: string;
           };
 
-          let baseData: unknown | undefined = undefined;
+          let baseData: any | undefined = undefined;
           let baseVersion: number | undefined = undefined;
 
           if (where.id) {
@@ -70,8 +70,8 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
               where: { id: where.id },
             });
             if (existing) {
-              baseData = (existing as unknown as { data?: unknown }).data;
-              baseVersion = (existing as unknown as { version?: number }).version;
+              baseData = (existing as any as { data?: any }).data;
+              baseVersion = (existing as any as { version?: number }).version;
             }
           }
 
@@ -82,12 +82,12 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
         } else if (params.action === 'upsert') {
           const upWhere = (params.args?.where ?? {}) as { id?: string };
           const create = (params.args?.create ?? {}) as {
-            data?: unknown;
+            data?: any;
             version?: number;
             etag?: string;
           };
           const update = (params.args?.update ?? {}) as {
-            data?: unknown;
+            data?: any;
             version?: number;
             etag?: string;
           };
@@ -97,15 +97,15 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
           params.args.create = { ...create, etag: createEtag };
 
           // Prepare update etag using existing state if needed
-          let baseData: unknown | undefined = undefined;
+          let baseData: any | undefined = undefined;
           let baseVersion: number | undefined = undefined;
           if (upWhere.id) {
             const existing = await this.collectionItem.findUnique({
               where: { id: upWhere.id },
             });
             if (existing) {
-              baseData = (existing as unknown as { data?: unknown }).data;
-              baseVersion = (existing as unknown as { version?: number }).version;
+              baseData = (existing as any as { data?: any }).data;
+              baseVersion = (existing as any as { version?: number }).version;
             }
           }
           const upNextData = update.data ?? baseData;

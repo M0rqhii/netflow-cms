@@ -1,0 +1,20 @@
+node:internal/modules/esm/resolve:1006
+    throw error;
+    ^
+
+Error [ERR_UNSUPPORTED_DIR_IMPORT]: Directory import 'C:\Users\Admin\Documents\GitHub\netflow-cms\packages\schemas\src\permissions' is not supported resolving ES modules imported from C:\Users\Admin\Documents\GitHub\netflow-cms\packages\schemas\src\index.ts
+    at finalizeResolution (node:internal/modules/esm/resolve:262:11)
+    at moduleResolve (node:internal/modules/esm/resolve:864:10)
+    at defaultResolve (node:internal/modules/esm/resolve:990:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:737:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:773:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:796:52)
+    at #cachedResolveSync (node:internal/modules/esm/loader:756:25)
+    at ModuleLoader.getModuleJobForRequire (node:internal/modules/esm/loader:450:50)
+    at #link (node:internal/modules/esm/module_job:447:34)
+    at new ModuleJobSync (node:internal/modules/esm/module_job:420:17) {
+  code: 'ERR_UNSUPPORTED_DIR_IMPORT',
+  url: 'file:///C:/Users/Admin/Documents/GitHub/netflow-cms/packages/schemas/src/permissions'
+}
+
+Node.js v24.11.1

@@ -1,4 +1,5 @@
 import React from 'react';
+import Image from 'next/image';
 import { clsx } from 'clsx';
 import { MediaItem } from '../types';
 
@@ -22,7 +23,7 @@ export function MediaGridItem({ item, selected }: MediaGridItemProps) {
       <div className="aspect-square w-full overflow-hidden rounded-md border border-gray-100 bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
         {showImage ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={item.url} alt={item.fileName} className="h-full w-full object-cover" />
+          <Image src={item.url} alt={item.fileName} className="h-full w-full object-cover" width={160} height={160} sizes="160px" unoptimized />
         ) : (
           <div className="text-[11px] font-semibold uppercase tracking-wide text-muted">
             {item.extension}

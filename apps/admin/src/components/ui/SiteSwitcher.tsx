@@ -5,13 +5,11 @@ import Link from 'next/link';
 import type { SiteInfo } from '@repo/sdk';
 import { useTranslations } from '@/hooks/useTranslations';
 import { usePathname } from 'next/navigation';
-import { useToast } from './Toast';
 import { useSites } from '@/hooks/useSites';
 
 export default function SiteSwitcher() {
   const t = useTranslations();
   const pathname = usePathname();
-  const toast = useToast();
   const { sites, loading } = useSites();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -55,7 +53,7 @@ export default function SiteSwitcher() {
         aria-label="Switch site"
       >
         <span className="font-medium truncate max-w-[80px] sm:max-w-none">
-          {currentSite?.site?.name - t('navigation.sites')}
+          {currentSite?.site?.name || t('navigation.sites') }
         </span>
         <svg
           className={`w-3 h-3 sm:w-4 sm:h-4 transition-transform flex-shrink-0 ${isOpen ? 'rotate-180' : ''}`}

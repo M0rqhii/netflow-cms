@@ -15,7 +15,7 @@ export class ZodValidationPipe implements PipeTransform {
     // This allows for lazy evaluation and better error messages
   }
 
-  transform(value: unknown, _metadata: ArgumentMetadata) {
+  transform(value: any, _metadata: ArgumentMetadata) {
     // Double-check schema is available
     if (!this.schema || typeof this.schema.parse !== 'function') {
       this.logger.error(`ZodValidationPipe: schema is ${this.schema === undefined ? 'undefined' : typeof this.schema}. Metadata: ${JSON.stringify(_metadata)}`);

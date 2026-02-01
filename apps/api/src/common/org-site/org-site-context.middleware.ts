@@ -61,7 +61,7 @@ export class OrgSiteContextMiddleware implements NestMiddleware {
     const uuidRegex =
       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-    let resolvedSiteId: string | undefined = typeof siteId === 'string' ? siteId : siteIdFromPath || undefined;
+    const resolvedSiteId: string | undefined = typeof siteId === 'string' ? siteId : siteIdFromPath || undefined;
     if (resolvedSiteId && !uuidRegex.test(resolvedSiteId)) {
       throw new BadRequestException('Invalid site ID format (must be UUID)');
     }
@@ -120,9 +120,9 @@ export class OrgSiteContextMiddleware implements NestMiddleware {
     }
 
     // Set org/site IDs in request for use in controllers/decorators
-    (req as unknown as { orgId: string; siteId?: string }).orgId = resolvedOrgId;
+    (req as any as { orgId: string; siteId?: string }).orgId = resolvedOrgId;
     if (resolvedSiteId) {
-      (req as unknown as { siteId: string }).siteId = resolvedSiteId;
+      (req as any as { siteId: string }).siteId = resolvedSiteId;
     }
 
     // Set PostgreSQL session variables for Row-Level Security

@@ -1,11 +1,13 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { Prisma, EnvironmentType, PageStatus } from '@prisma/client';
 
-type PageRecord = Prisma.PageGetPayload<{}>;
+type PageRecord = Prisma.PageGetPayload<Prisma.PageDefaultArgs>;
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { SiteEnvironmentsService } from './site-environments.service';
 import { SitePagesService } from './site-pages.service';
 import { SiteEventsService } from '../site-events/site-events.service';
+import { FeatureFlagsService } from '../feature-flags/feature-flags.service';
+import { validatePageBuilderContent } from '../../common/page-builder/publish-validation';
 import { PublishDeploymentDto, DeploymentQueryDto } from './dto';
 import { GuardrailReasonCode, GuardrailMessages } from '../../common/constants';
 
@@ -16,6 +18,7 @@ export class SiteDeploymentsService {
     private readonly environments: SiteEnvironmentsService,
     private readonly pages: SitePagesService,
     private readonly siteEvents: SiteEventsService,
+    private readonly featureFlags: FeatureFlagsService,
   ) {}
 
   private async logEvent(
@@ -64,6 +67,19 @@ export class SiteDeploymentsService {
 
         const publishedAt = new Date();
         const content = draftPage.content ?? {};
+
+        const enabledModules = await this.featureFlags.getEffectiveFeatures(siteId);
+        const validation = validatePageBuilderContent(draftPage.content as any, enabledModules);
+        if (!validation.valid) {
+          const hasModuleErrors = validation.errors.some((e) => e.type === 'module_disabled');
+          throw new BadRequestException({
+            message: GuardrailMessages[
+              hasModuleErrors ? GuardrailReasonCode.MODULE_DISABLED : GuardrailReasonCode.MISSING_ALT
+            ],
+            reason: hasModuleErrors ? GuardrailReasonCode.MODULE_DISABLED : GuardrailReasonCode.MISSING_ALT,
+            details: validation.errors,
+          });
+        }
 
         // Upsert production page
         const productionPage = await this.prisma.page.upsert({
@@ -146,7 +162,20 @@ export class SiteDeploymentsService {
         const publishedAt = new Date();
         const publishedPages: PageRecord[] = [];
 
+        const enabledModules = await this.featureFlags.getEffectiveFeatures(siteId);
+
         for (const draftPage of draftPages) {
+          const validation = validatePageBuilderContent(draftPage.content as any, enabledModules);
+          if (!validation.valid) {
+            const hasModuleErrors = validation.errors.some((e) => e.type === 'module_disabled');
+            throw new BadRequestException({
+              message: GuardrailMessages[
+                hasModuleErrors ? GuardrailReasonCode.MODULE_DISABLED : GuardrailReasonCode.MISSING_ALT
+              ],
+              reason: hasModuleErrors ? GuardrailReasonCode.MODULE_DISABLED : GuardrailReasonCode.MISSING_ALT,
+              details: validation.errors,
+            });
+          }
           const content = draftPage.content ?? {};
 
           const productionPage = await this.prisma.page.upsert({
@@ -272,4 +301,5 @@ export class SiteDeploymentsService {
     });
   }
 }
+
 

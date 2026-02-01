@@ -15,7 +15,7 @@ export interface UpgradePlanBannerProps {
  * AI Note: Displays plan limit warnings and upgrade prompts
  */
 export const UpgradePlanBanner: React.FC<UpgradePlanBannerProps> = ({
-  currentPlan,
+  currentPlan: _currentPlan,
   limitType,
   currentUsage,
   limit,

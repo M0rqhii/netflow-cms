@@ -17,6 +17,173 @@ import { CreateRoleDto, UpdateRoleDto, CreateAssignmentDto, UpdatePolicyDto } fr
 export class RbacService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private async ensureSystemRoles(orgId: string) {
+    const existingSystemRoles = await this.prisma.role.findMany({
+      where: { orgId, type: 'SYSTEM' },
+      select: { name: true, scope: true },
+    });
+    const existingSystemSet = new Set(existingSystemRoles.map((role) => `${role.name}:${role.scope}`));
+
+    const capabilities = await this.prisma.capability.findMany({
+      select: { id: true, key: true },
+    });
+    const capMap = new Map(capabilities.map((cap) => [cap.key, cap.id]));
+    const allCapabilityKeys = capabilities.map((cap) => cap.key);
+
+    const roleDefinitions: Array<{
+      name: string;
+      description: string;
+      scope: 'ORG' | 'SITE';
+      capabilityKeys: string[];
+    }> = [
+      {
+        name: 'Org Owner',
+        description: 'Full access to organization including billing and role management',
+        scope: 'ORG',
+        capabilityKeys: allCapabilityKeys,
+      },
+      {
+        name: 'Org Admin',
+        description: 'Full technical access except billing and role management',
+        scope: 'ORG',
+        capabilityKeys: allCapabilityKeys.filter((key) => !key.startsWith('billing.') && key !== 'org.roles.manage'),
+      },
+      {
+        name: 'Org Member',
+        description: 'Basic organization member with minimal permissions',
+        scope: 'ORG',
+        capabilityKeys: ['org.view_dashboard', 'sites.view'],
+      },
+      {
+        name: 'Site Admin',
+        description: 'Full access to site builder, content, and site settings',
+        scope: 'SITE',
+        capabilityKeys: [
+          'builder.view', 'builder.edit', 'builder.draft.save', 'builder.publish',
+          'builder.rollback', 'builder.history.view', 'builder.assets.upload',
+          'builder.assets.delete', 'builder.custom_code', 'builder.site_roles.manage',
+          'content.view', 'content.create', 'content.edit', 'content.delete', 'content.publish',
+          'content.media.manage', 'sites.settings.view', 'sites.settings.manage',
+          'marketing.view', 'marketing.content.edit', 'marketing.publish',
+          'marketing.campaign.manage', 'marketing.stats.view',
+        ],
+      },
+      {
+        name: 'Editor-in-Chief',
+        description: 'Can edit, save drafts, publish, and rollback',
+        scope: 'SITE',
+        capabilityKeys: [
+          'builder.view', 'builder.edit', 'builder.draft.save', 'builder.publish',
+          'builder.rollback', 'builder.history.view',
+          'content.view', 'content.create', 'content.edit', 'content.publish',
+          'content.media.manage',
+        ],
+      },
+      {
+        name: 'Editor',
+        description: 'Can edit and save drafts, but cannot publish',
+        scope: 'SITE',
+        capabilityKeys: [
+          'builder.view', 'builder.edit', 'builder.draft.save', 'builder.history.view',
+          'content.view', 'content.create', 'content.edit', 'content.media.manage',
+        ],
+      },
+      {
+        name: 'Publisher',
+        description: 'Can publish and rollback, but cannot edit',
+        scope: 'SITE',
+        capabilityKeys: [
+          'builder.view', 'builder.publish', 'builder.rollback', 'builder.history.view',
+          'content.view', 'content.publish',
+        ],
+      },
+      {
+        name: 'Viewer',
+        description: 'Read-only access to builder, content, and analytics',
+        scope: 'SITE',
+        capabilityKeys: [
+          'builder.view', 'content.view', 'analytics.view',
+        ],
+      },
+      {
+        name: 'Marketing Manager',
+        description: 'Full marketing access including campaigns and ads',
+        scope: 'SITE',
+        capabilityKeys: [
+          'marketing.view', 'marketing.content.edit', 'marketing.publish',
+          'marketing.campaign.manage', 'marketing.stats.view', 'marketing.schedule',
+          'marketing.ads.manage',
+        ],
+      },
+      {
+        name: 'Marketing Editor',
+        description: 'Can edit marketing content',
+        scope: 'SITE',
+        capabilityKeys: [
+          'marketing.view', 'marketing.content.edit',
+        ],
+      },
+      {
+        name: 'Marketing Publisher',
+        description: 'Can publish marketing content',
+        scope: 'SITE',
+        capabilityKeys: [
+          'marketing.view', 'marketing.publish',
+        ],
+      },
+      {
+        name: 'Marketing Viewer',
+        description: 'Read-only access to marketing',
+        scope: 'SITE',
+        capabilityKeys: [
+          'marketing.view', 'marketing.stats.view',
+        ],
+      },
+    ];
+
+    const missingDefinitions = roleDefinitions.filter((roleDef) => !existingSystemSet.has(`${roleDef.name}:${roleDef.scope}`));
+    if (missingDefinitions.length == 0) return;
+
+    for (const roleDef of missingDefinitions) {
+      const role = await this.prisma.role.upsert({
+        where: {
+          orgId_name_scope: {
+            orgId,
+            name: roleDef.name,
+            scope: roleDef.scope,
+          },
+        },
+        update: {
+          description: roleDef.description,
+          type: 'SYSTEM',
+          isImmutable: true,
+        },
+        create: {
+          orgId,
+          name: roleDef.name,
+          description: roleDef.description,
+          type: 'SYSTEM',
+          scope: roleDef.scope,
+          isImmutable: true,
+        },
+      });
+
+      const capabilityIds = roleDef.capabilityKeys
+        .map((key) => capMap.get(key))
+        .filter((id): id is string => Boolean(id));
+
+      await this.prisma.roleCapability.deleteMany({ where: { roleId: role.id } });
+      if (capabilityIds.length > 0) {
+        await this.prisma.roleCapability.createMany({
+          data: capabilityIds.map((capId) => ({
+            roleId: role.id,
+            capabilityId: capId,
+          })),
+        });
+      }
+    }
+  }
+
   /**
    * Get all capabilities with policy status
    */
@@ -50,6 +217,7 @@ export class RbacService {
    * Get roles (system + custom) with optional scope filter
    */
   async getRoles(orgId: string, scope?: 'ORG' | 'SITE') {
+    await this.ensureSystemRoles(orgId);
     const where: any = { orgId };
     if (scope) {
       where.scope = scope;
@@ -740,6 +908,23 @@ export class RbacService {
     capabilityKey: string,
     siteId?: string
   ): Promise<boolean> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        isSuperAdmin: true,
+        systemRole: true,
+        role: true,
+      },
+    });
+
+    if (
+      user?.isSuperAdmin ||
+      user?.systemRole === 'super_admin' ||
+      user?.role === 'super_admin'
+    ) {
+      return true;
+    }
+
     // Get user's roles
     const where: any = {
       orgId,

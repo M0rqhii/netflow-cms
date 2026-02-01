@@ -11,7 +11,7 @@ import React, { useState, useMemo } from 'react';
 import { FiChevronDown, FiChevronRight, FiAlertTriangle, FiCheck, FiInfo } from 'react-icons/fi';
 import { usePageBuilderStore } from '@/stores/page-builder-store';
 import { validateTree } from '@/lib/page-builder/tree-ops';
-import type { PageContent, BlockNode, ValidationError } from '@/lib/page-builder/types';
+import type { PageContent, BlockNode } from '@/lib/page-builder/types';
 import styles from './DebugPanel.module.css';
 
 // =============================================================================

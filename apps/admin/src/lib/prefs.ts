@@ -6,7 +6,7 @@ export function setLastSiteSlug(slug: string) {
     const recent = getRecentlyUsedSites();
     const updated = [slug, ...recent.filter(s => s !== slug)].slice(0, 5);
     localStorage.setItem('nf-recent-sites', JSON.stringify(updated));
-  } catch {}
+  } catch { /* no-op */ }
 }
 
 export function getLastSiteSlug(): string | null {
@@ -14,6 +14,7 @@ export function getLastSiteSlug(): string | null {
   try {
     return localStorage.getItem('nf-last-site');
   } catch {
+    // ignore storage failures
     return null;
   }
 }
@@ -24,6 +25,7 @@ export function getRecentlyUsedSites(): string[] {
     const stored = localStorage.getItem('nf-recent-sites');
     return stored ? JSON.parse(stored) : [];
   } catch {
+    // ignore storage failures
     return [];
   }
 }
@@ -32,7 +34,7 @@ export function clearRecentlyUsedSites() {
   if (typeof window === 'undefined') return;
   try {
     localStorage.removeItem('nf-recent-sites');
-  } catch {}
+  } catch { /* no-op */ }
 }
 
 export function getPinnedSites(): string[] {
@@ -41,6 +43,7 @@ export function getPinnedSites(): string[] {
     const stored = localStorage.getItem('nf-pinned-sites');
     return stored ? JSON.parse(stored) : [];
   } catch {
+    // ignore storage failures
     return [];
   }
 }
@@ -56,7 +59,7 @@ export function togglePinSite(slug: string): void {
       pinned.push(slug);
     }
     localStorage.setItem('nf-pinned-sites', JSON.stringify(pinned));
-  } catch {}
+  } catch { /* no-op */ }
 }
 
 export function isSitePinned(slug: string): boolean {

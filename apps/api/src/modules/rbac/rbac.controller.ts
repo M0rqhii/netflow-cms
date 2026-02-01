@@ -111,7 +111,7 @@ export class RbacController {
   async createRole(
     @CurrentOrg() orgId: string,
     @CurrentUser() user: CurrentUserPayload,
-    @Body(new ZodValidationPipe(createRoleSchema)) dto: unknown,
+    @Body(new ZodValidationPipe(createRoleSchema)) dto: any,
   ) {
     // Check authorization: Owner or Org Admin with org.roles.manage
     await this.checkCanManageRoles(orgId, user.id);
@@ -128,7 +128,7 @@ export class RbacController {
     @CurrentOrg() orgId: string,
     @Param('roleId') roleId: string,
     @CurrentUser() user: CurrentUserPayload,
-    @Body(new ZodValidationPipe(updateRoleSchema)) dto: unknown,
+    @Body(new ZodValidationPipe(updateRoleSchema)) dto: any,
   ) {
     // Check authorization: Owner or Org Admin with org.roles.manage
     await this.checkCanManageRoles(orgId, user.id);
@@ -180,7 +180,7 @@ export class RbacController {
   async createAssignment(
     @CurrentOrg() orgId: string,
     @CurrentUser() user: CurrentUserPayload,
-    @Body(new ZodValidationPipe(createAssignmentSchema)) dto: unknown,
+    @Body(new ZodValidationPipe(createAssignmentSchema)) dto: any,
   ) {
     // Check authorization based on scope:
     // - ORG scope: need org.roles.manage or Owner
@@ -250,11 +250,18 @@ export class RbacController {
     @CurrentOrg() orgId: string,
     @CurrentUser() user: CurrentUserPayload,
     @Query('siteId') siteId?: string,
+    @Query('userId') userId?: string,
   ) {
     const resolvedSiteId = siteId === 'null' || siteId === '' ? undefined : siteId;
+    const resolvedUserId = userId && userId.length > 0 ? userId : user.id;
+
+    if (resolvedUserId !== user.id) {
+      await this.checkCanManageRoles(orgId, user.id);
+    }
+
     return this.rbacEvaluatorService.getEffectiveCapabilities({
       orgId,
-      userId: user.id,
+      userId: resolvedUserId,
       siteId: resolvedSiteId,
     });
   }
@@ -268,7 +275,7 @@ export class RbacController {
     @CurrentOrg() orgId: string,
     @Param('capabilityKey') capabilityKey: string,
     @CurrentUser() user: CurrentUserPayload,
-    @Body(new ZodValidationPipe(updatePolicySchema)) dto: unknown,
+    @Body(new ZodValidationPipe(updatePolicySchema)) dto: any,
   ) {
     // Check authorization: Owner always, Org Admin only if Owner enabled org.policies.manage
     await this.checkCanManagePolicies(orgId, user.id);

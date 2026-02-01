@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardContent, EmptyState } from '@repo/ui';
 import { Badge } from '@/components/ui/Badge';
 import { decodeAuthToken, getAuthToken, getDevEmails } from '@/lib/api';

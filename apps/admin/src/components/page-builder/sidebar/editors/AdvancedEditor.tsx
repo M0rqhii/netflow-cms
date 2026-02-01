@@ -88,7 +88,7 @@ export const AdvancedEditor: React.FC<AdvancedEditorProps> = ({
           <FieldRenderer
             type="text"
             value={node.meta?.label ?? ''}
-            onChange={(value) => {
+            onChange={(_value) => {
               // This would need special handling through updateBlockMeta
               // For now, we'll skip meta editing here
             }}

@@ -7,13 +7,12 @@
 
 import React, { useMemo } from 'react';
 import { FiX, FiSmartphone, FiTablet, FiMonitor } from 'react-icons/fi';
-import type { BlockNode, BlockProps, PropFieldSchema, Breakpoint } from '@/lib/page-builder/types';
+import type { BlockProps, PropFieldSchema, Breakpoint } from '@/lib/page-builder/types';
 import { mergeStyles, isOverridden } from '@/lib/page-builder/style-utils';
 import { FieldRenderer } from './FieldRenderer';
 import styles from './Editors.module.css';
 
 type StyleEditorProps = {
-  node: BlockNode;
   props: BlockProps;
   schema?: Record<string, PropFieldSchema>;
   currentBreakpoint: Breakpoint;
@@ -38,7 +37,6 @@ const DEFAULT_STYLE_FIELDS: Record<string, PropFieldSchema> = {
 };
 
 export const StyleEditor: React.FC<StyleEditorProps> = ({
-  node,
   props,
   schema,
   currentBreakpoint,

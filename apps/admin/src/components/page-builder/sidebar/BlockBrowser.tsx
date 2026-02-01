@@ -216,7 +216,7 @@ export const BlockBrowser: React.FC = () => {
           <div className={styles.emptyState}>
             {searchQuery ? (
               <>
-                <p>No blocks found for "{searchQuery}"</p>
+                <p>No blocks found for &quot;{searchQuery}&quot;</p>
                 <button
                   className={styles.clearSearch}
                   onClick={() => setSearchQuery('')}

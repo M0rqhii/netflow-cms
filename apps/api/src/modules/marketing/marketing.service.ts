@@ -22,7 +22,7 @@ import {
 import { GuardrailReasonCode, GuardrailMessages } from '../../common/constants';
 import { EnvironmentType, Prisma } from '@prisma/client';
 
-type DistributionDraftRecord = Prisma.DistributionDraftGetPayload<{}>;
+type DistributionDraftRecord = Prisma.DistributionDraftGetPayload<Prisma.DistributionDraftDefaultArgs>;
 
 /**
  * MarketingService - Service do zarządzania marketingiem i publikacją omnichannel
@@ -989,4 +989,5 @@ export class MarketingService {
     return { success: true };
   }
 }
+
 

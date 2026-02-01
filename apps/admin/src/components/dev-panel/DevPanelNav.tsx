@@ -5,8 +5,6 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Button } from '@repo/ui';
 
-interface DevPanelNavProps {}
-
 const navItems = [
   { id: 'overview', label: 'Overview', href: '/dev', icon: '📊' },
   { id: 'logs', label: 'Logs', href: '/dev/logs', icon: '📝' },
@@ -15,7 +13,7 @@ const navItems = [
   { id: 'sites', label: 'Sites', href: '/dev/sites', icon: '🌐' },
 ];
 
-export function DevPanelNav({}: DevPanelNavProps) {
+export function DevPanelNav() {
   const pathname = usePathname();
 
   return (

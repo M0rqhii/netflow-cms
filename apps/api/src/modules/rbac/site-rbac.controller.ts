@@ -72,7 +72,7 @@ export class SiteRbacController {
     @CurrentSite() siteId: string,
     @CurrentOrg() orgId: string,
     @CurrentUser() user: CurrentUserPayload,
-    @Body(new ZodValidationPipe(createRoleSchema)) dto: unknown,
+    @Body(new ZodValidationPipe(createRoleSchema)) dto: any,
   ) {
     const roleDto = dto as any;
     
@@ -99,7 +99,7 @@ export class SiteRbacController {
     @CurrentOrg() orgId: string,
     @Param('roleId') roleId: string,
     @CurrentUser() user: CurrentUserPayload,
-    @Body(new ZodValidationPipe(updateRoleSchema)) dto: unknown,
+    @Body(new ZodValidationPipe(updateRoleSchema)) dto: any,
   ) {
     // Verify role exists and is SITE scope
     const roles = await this.rbacService.getRoles(orgId, 'SITE');
@@ -181,7 +181,7 @@ export class SiteRbacController {
     @CurrentSite() siteId: string,
     @CurrentOrg() orgId: string,
     @CurrentUser() user: CurrentUserPayload,
-    @Body(new ZodValidationPipe(createAssignmentSchema)) dto: unknown,
+    @Body(new ZodValidationPipe(createAssignmentSchema)) dto: any,
   ) {
     const assignmentDto = dto as any;
     

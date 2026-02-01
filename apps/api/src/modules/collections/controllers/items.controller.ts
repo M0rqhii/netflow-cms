@@ -38,7 +38,7 @@ export class CollectionItemsController {
   async list(
     @CurrentSite() siteId: string,
     @Param('slug') slug: string,
-    @Query() query: unknown
+    @Query() query: any
   ) {
     const dto = ItemQueryDtoSchema.parse(query);
     return this.itemsService.list(siteId, slug, dto);
@@ -49,7 +49,7 @@ export class CollectionItemsController {
   create(
     @CurrentSite() siteId: string,
     @Param('slug') slug: string,
-    @Body() body: unknown,
+    @Body() body: any,
     @CurrentUser() user: { id: string }
   ) {
     const dto = UpsertItemDtoSchema.parse(body);
@@ -82,7 +82,7 @@ export class CollectionItemsController {
     @CurrentSite() siteId: string,
     @Param('slug') slug: string,
     @Param('id') id: string,
-    @Body() body: unknown,
+    @Body() body: any,
     @CurrentUser() user: { id: string }
   ) {
     const dto = UpsertItemDtoSchema.parse(body);

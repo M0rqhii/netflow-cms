@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardContent, EmptyState } from '@repo/ui';
 import { Badge } from '@/components/ui/Badge';
 import { decodeAuthToken, getAuthToken, getDevPayments } from '@/lib/api';
@@ -22,7 +21,7 @@ export default function DevPaymentsPage() {
     PRIVILEGED_ROLES.includes(userRole) || 
     PRIVILEGED_PLATFORM_ROLES.includes(userPlatformRole);
   const [payments, setPayments] = useState<
-    Array<{ id: string; siteId: string; plan: string; status: string; currentPeriodStart?: string; currentPeriodEnd?: string; createdAt?: string }>
+    Array<{ id: string; orgId: string; plan?: string; status: string; currentPeriodStart?: string; currentPeriodEnd?: string; createdAt?: string }>
   >([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -101,7 +100,7 @@ export default function DevPaymentsPage() {
                   {payments.map((evt) => (
                     <tr key={evt.id} className="border-b">
                       <td className="py-2 font-mono text-xs">{evt.plan}</td>
-                      <td className="py-2 font-mono text-xs">{evt.siteId}</td>
+                      <td className="py-2 font-mono text-xs">{evt.orgId}</td>
                       <td className="py-2">
                         <Badge tone={evt.status === 'active' ? 'success' : 'warning'}>{evt.status}</Badge>
                       </td>

@@ -48,7 +48,7 @@ export class PrismaOptimizationService {
    */
   async findManyOptimized<T = unknown>(
     model: string,
-    where: Record<string, unknown>,
+    where: Record<string, any>,
     select?: Record<string, boolean>,
     options?: {
       skip?: number;
@@ -59,7 +59,7 @@ export class PrismaOptimizationService {
     this.validateModel(model);
 
     const query: {
-      where: Record<string, unknown>;
+      where: Record<string, any>;
       select?: Record<string, boolean>;
       skip?: number;
       take?: number;
@@ -74,7 +74,7 @@ export class PrismaOptimizationService {
 
     // Use Prisma's select to reduce data transfer
     const startTime = Date.now();
-    const modelClient = (this.prisma as unknown as Record<string, { findMany: (args: unknown) => Promise<T[]> }>)[model];
+    const modelClient = (this.prisma as any as Record<string, { findMany: (args: any) => Promise<T[]> }>)[model];
     if (!modelClient || typeof modelClient.findMany !== 'function') {
       throw new Error(`Prisma model ${model} does not have findMany method`);
     }
@@ -94,13 +94,13 @@ export class PrismaOptimizationService {
    */
   async findUniqueOptimized<T = unknown>(
     model: string,
-    where: Record<string, unknown>,
+    where: Record<string, any>,
     select?: Record<string, boolean>,
   ): Promise<T | null> {
     this.validateModel(model);
 
     const query: {
-      where: Record<string, unknown>;
+      where: Record<string, any>;
       select?: Record<string, boolean>;
     } = {
       where,
@@ -108,7 +108,7 @@ export class PrismaOptimizationService {
     };
 
     const startTime = Date.now();
-    const modelClient = (this.prisma as unknown as Record<string, { findUnique: (args: unknown) => Promise<T | null> }>)[model];
+    const modelClient = (this.prisma as any as Record<string, { findUnique: (args: any) => Promise<T | null> }>)[model];
     if (!modelClient || typeof modelClient.findUnique !== 'function') {
       throw new Error(`Prisma model ${model} does not have findUnique method`);
     }
@@ -152,12 +152,12 @@ export class PrismaOptimizationService {
    */
   async countOptimized(
     model: string,
-    where: Record<string, unknown>,
+    where: Record<string, any>,
   ): Promise<number> {
     this.validateModel(model);
 
     const startTime = Date.now();
-    const modelClient = (this.prisma as unknown as Record<string, { count: (args: { where: Record<string, unknown> }) => Promise<number> }>)[model];
+    const modelClient = (this.prisma as any as Record<string, { count: (args: { where: Record<string, any> }) => Promise<number> }>)[model];
     if (!modelClient || typeof modelClient.count !== 'function') {
       throw new Error(`Prisma model ${model} does not have count method`);
     }

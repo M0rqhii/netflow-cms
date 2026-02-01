@@ -11,11 +11,13 @@ import {
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { AuthGuard } from '../../common/auth/guards/auth.guard';
+import { FeatureFlagGuard } from '../../common/auth/guards/feature-flag.guard';
 import { RolesGuard } from '../../common/auth/guards/roles.guard';
 import { PermissionsGuard } from '../../common/auth/guards/permissions.guard';
 import { Permissions } from '../../common/auth/decorators/permissions.decorator';
 import { Roles } from '../../common/auth/decorators/roles.decorator';
 import { CurrentSite } from '../../common/decorators/current-site.decorator';
+import { FeatureKey } from '../../common/decorators/feature-key.decorator';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 import { Role, Permission } from '../../common/auth/roles.enum';
 import { CurrentUser, CurrentUserPayload } from '../../common/auth/decorators/current-user.decorator';
@@ -28,7 +30,8 @@ import {
   UpdatePageContentDtoSchema,
 } from './dto';
 
-@UseGuards(AuthGuard, RolesGuard, PermissionsGuard)
+@UseGuards(AuthGuard, FeatureFlagGuard, RolesGuard, PermissionsGuard)
+@FeatureKey('page_builder')
 @Controller('site-panel/:siteId/pages')
 export class SitePagesController {
   constructor(private readonly pages: SitePagesService) {}
@@ -39,7 +42,7 @@ export class SitePagesController {
   list(
     @Param('siteId') siteId: string,
     @CurrentSite() _: string, // Validated by middleware
-    @Query(new ZodValidationPipe(PageQueryDtoSchema)) query: unknown,
+    @Query(new ZodValidationPipe(PageQueryDtoSchema)) query: any,
   ) {
     // siteId is validated by middleware to match currentSiteId
     return this.pages.list(siteId, query as any);
@@ -51,7 +54,7 @@ export class SitePagesController {
     @Param('siteId') siteId: string,
     @CurrentSite() _: string, // Validated by middleware
     @CurrentUser() user: CurrentUserPayload,
-    @Body(new ZodValidationPipe(CreatePageDtoSchema)) body: unknown,
+    @Body(new ZodValidationPipe(CreatePageDtoSchema)) body: any,
   ) {
     // siteId is validated by middleware to match currentSiteId
     return this.pages.create(siteId, body as any, user?.id);
@@ -76,7 +79,7 @@ export class SitePagesController {
     @CurrentSite() _: string, // Validated by middleware
     @Param('pageId') pageId: string,
     @CurrentUser() user: CurrentUserPayload,
-    @Body(new ZodValidationPipe(UpdatePageDtoSchema)) body: unknown,
+    @Body(new ZodValidationPipe(UpdatePageDtoSchema)) body: any,
   ) {
     // siteId is validated by middleware to match currentSiteId
     return this.pages.update(siteId, pageId, body as any, user?.id);
@@ -90,7 +93,7 @@ export class SitePagesController {
     @CurrentSite() _: string, // Validated by middleware
     @Param('pageId') pageId: string,
     @CurrentUser() user: CurrentUserPayload,
-    @Body(new ZodValidationPipe(PublishPageDtoSchema)) body: unknown,
+    @Body(new ZodValidationPipe(PublishPageDtoSchema)) body: any,
   ) {
     // siteId is validated by middleware to match currentSiteId
     return this.pages.publish(siteId, pageId, body as any, user?.id);
@@ -115,7 +118,7 @@ export class SitePagesController {
     @CurrentSite() _: string, // Validated by middleware
     @Param('pageId') pageId: string,
     @CurrentUser() user: CurrentUserPayload,
-    @Body(new ZodValidationPipe(UpdatePageContentDtoSchema)) body: unknown,
+    @Body(new ZodValidationPipe(UpdatePageContentDtoSchema)) body: any,
   ) {
     // siteId is validated by middleware to match currentSiteId
     return this.pages.updateContent(siteId, pageId, (body as any).content, user?.id);

@@ -1,10 +1,15 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import {
   getPlanFeatures,
   getPlanConfig,
+  getPlanLimits,
+  getBuilderModuleDependencies,
+  getBuilderModuleDependents,
+  isBuilderModuleKey,
 } from '@repo/schemas';
 import { FeatureOverrideDto } from './dto';
+import { AuditLoggerService, AuditEventType } from '../../common/audit/audit-logger.service';
 
 /**
  * FeatureFlagsService - Business logic for feature flags and plan-based features
@@ -12,7 +17,10 @@ import { FeatureOverrideDto } from './dto';
  */
 @Injectable()
 export class FeatureFlagsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly auditLogger: AuditLoggerService,
+  ) {}
 
   /**
    * Validate plan name (fallback if isValidPlan is not available)
@@ -46,6 +54,20 @@ export class FeatureFlagsService {
     }
     try {
       return getPlanConfig(plan || 'free');
+    } catch (error) {
+      return null;
+    }
+  }
+
+  /**
+   * Get plan limits
+   */
+  getPlanLimits(plan: string | null | undefined) {
+    if (!this.isValidPlan(plan)) {
+      return null;
+    }
+    try {
+      return getPlanLimits(plan || 'free');
     } catch (error) {
       return null;
     }
@@ -143,15 +165,77 @@ export class FeatureFlagsService {
     // Verify site exists
     const site = await this.prisma.site.findUnique({
       where: { id: siteId },
-      select: { id: true },
+      select: { id: true, orgId: true },
     });
 
     if (!site) {
       throw new NotFoundException(`Site with ID ${siteId} not found`);
     }
 
-    // Upsert override
-    return this.prisma.siteFeatureOverride.upsert({
+    const organization = await this.prisma.organization.findUnique({
+      where: { id: site.orgId },
+      select: { plan: true },
+    });
+
+    if (!organization) {
+      throw new NotFoundException(`Organization with ID ${site.orgId} not found`);
+    }
+
+    const planFeatures = this.getPlanFeatures(organization.plan);
+    const inPlan = planFeatures.includes(dto.featureKey);
+
+    if (dto.enabled && !inPlan) {
+      throw new BadRequestException(`Feature ${dto.featureKey} is not available in plan ${organization.plan}`);
+    }
+
+    const effectiveFeatures = await this.getEffectiveFeatures(siteId);
+
+    if (!dto.enabled && isBuilderModuleKey(dto.featureKey)) {
+      const dependents = getBuilderModuleDependents(dto.featureKey);
+      const enabledDependents = dependents.filter((dep) => effectiveFeatures.includes(dep));
+      if (enabledDependents.length > 0) {
+        throw new BadRequestException(
+          `Disable dependent modules first: ${enabledDependents.join(', ')}`
+        );
+      }
+    }
+
+    if (dto.enabled && isBuilderModuleKey(dto.featureKey)) {
+      const deps = getBuilderModuleDependencies(dto.featureKey);
+      const missingDeps = deps.filter((dep) => !effectiveFeatures.includes(dep));
+
+      for (const dep of missingDeps) {
+        if (!planFeatures.includes(dep)) {
+          throw new BadRequestException(`Dependency ${dep} is not available in plan ${organization.plan}`);
+        }
+        const depOverride = await this.prisma.siteFeatureOverride.upsert({
+          where: {
+            siteId_featureKey: {
+              siteId,
+              featureKey: dep,
+            },
+          },
+          create: {
+            siteId,
+            featureKey: dep,
+            enabled: true,
+          },
+          update: {
+            enabled: true,
+          },
+        });
+        this.auditLogger.log(AuditEventType.SITE_MODULE_ENABLED, {
+          orgId: site.orgId,
+          siteId,
+          resourceType: 'feature',
+          resourceId: depOverride.id,
+          action: 'enable',
+          changes: { featureKey: dep, enabled: true, dependencyOf: dto.featureKey },
+        });
+      }
+    }
+
+    const result = await this.prisma.siteFeatureOverride.upsert({
       where: {
         siteId_featureKey: {
           siteId,
@@ -173,6 +257,20 @@ export class FeatureFlagsService {
         createdAt: true,
       },
     });
+
+    this.auditLogger.log(
+      dto.enabled ? AuditEventType.SITE_MODULE_ENABLED : AuditEventType.SITE_MODULE_DISABLED,
+      {
+        orgId: site.orgId,
+        siteId,
+        resourceType: 'feature',
+        resourceId: result.id,
+        action: dto.enabled ? 'enable' : 'disable',
+        changes: { featureKey: dto.featureKey, enabled: dto.enabled },
+      }
+    );
+
+    return result;
   }
 
   /**
@@ -214,6 +312,7 @@ export class FeatureFlagsService {
     const planFeatures = this.getPlanFeatures(organization.plan);
     const overrides = await this.getOverrides(siteId);
     const effective = await this.getEffectiveFeatures(siteId);
+    const limits = this.getPlanLimits(organization.plan);
 
     return {
       plan: organization.plan,
@@ -224,14 +323,7 @@ export class FeatureFlagsService {
         createdAt: o.createdAt,
       })),
       effective,
+      limits,
     };
   }
 }
-
-
-
-
-
-
-
-

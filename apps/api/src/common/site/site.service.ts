@@ -95,7 +95,7 @@ export class SiteService {
    * Create a new site for an organization
    * Used by Organization level (not Site level)
    */
-  async create(orgId: string, data: { name: string; slug: string; settings?: Record<string, unknown> }) {
+  async create(orgId: string, data: { name: string; slug: string; settings?: Record<string, any> }) {
     // Check if site with same slug already exists in this organization
     const existing = await this.findBySlug(orgId, data.slug);
     if (existing) {

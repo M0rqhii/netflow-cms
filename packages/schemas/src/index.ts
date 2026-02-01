@@ -851,9 +851,16 @@ export type Payment = z.infer<typeof PaymentSchema>;
 export type CreatePayment = z.infer<typeof CreatePaymentSchema>;
 export type UsageTracking = z.infer<typeof UsageTrackingSchema>;
 export type CreateUsageTracking = z.infer<typeof CreateUsageTrackingSchema>;
-// Block and BlockTree types are already defined above, no need to re-export inferred types// Export permissions
-export * from './permissions';// Export feature flags
+// Block and BlockTree types are already defined above, no need to re-export inferred types
+
+// Export permissions
+export * from './permissions';
+
+// Export feature flags
 export * from './feature-flags';
 // Snapshots & Site Events
 export * from './snapshots';
 export * from './site-events';
+// Builder modules
+export * from './builder-modules';
+export * from './builder-block-modules';

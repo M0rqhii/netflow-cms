@@ -38,7 +38,7 @@ export class CollectionsController {
   @Permissions(Permission.COLLECTIONS_WRITE)
   create(
     @CurrentSite() siteId: string,
-    @Body(new ZodValidationPipe(CreateCollectionDtoSchema)) body: unknown
+    @Body(new ZodValidationPipe(CreateCollectionDtoSchema)) body: any
   ) {
     return this.collectionsService.create(siteId, body as any);
   }
@@ -61,7 +61,7 @@ export class CollectionsController {
   update(
     @CurrentSite() siteId: string,
     @Param('slug') slug: string,
-    @Body(new ZodValidationPipe(UpdateCollectionDtoSchema)) body: unknown
+    @Body(new ZodValidationPipe(UpdateCollectionDtoSchema)) body: any
   ) {
     return this.collectionsService.update(siteId, slug, body as any);
   }

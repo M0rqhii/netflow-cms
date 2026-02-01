@@ -158,7 +158,7 @@ export class ContentTypesService {
       await this.cache.del(`content-types:${siteId}:list`);
 
       return result;
-    } catch (e: unknown) {
+    } catch (e: any) {
       if (e && typeof e === 'object' && 'code' in e && e.code === 'P2002') {
         throw new ConflictException('Content type slug already exists for this site');
       }
@@ -334,7 +334,7 @@ export class ContentTypesService {
       ]);
 
       return result;
-    } catch (e: unknown) {
+    } catch (e: any) {
       if (e && typeof e === 'object' && 'code' in e && e.code === 'P2002') {
         throw new ConflictException('Content type slug already exists for this site');
       }

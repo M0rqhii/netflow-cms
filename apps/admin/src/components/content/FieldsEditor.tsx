@@ -98,7 +98,7 @@ export function FieldsEditor({ fields, onChange, availableContentTypes = [] }: F
       </div>
 
       {fields.length === 0 ? (
-        <p className="text-sm text-muted">No fields yet. Click "Add Field" to start.</p>
+        <p className="text-sm text-muted">No fields yet. Click &quot;Add Field&quot; to start.</p>
       ) : (
         <div className="space-y-2">
           {fields.map((field, index) => (

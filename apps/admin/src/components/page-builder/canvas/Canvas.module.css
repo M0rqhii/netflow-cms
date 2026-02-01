@@ -34,7 +34,8 @@
   cursor: default !important;
 }
 
-.blockTree {
+.blockTree,
+.blocksContainer {
   min-height: 200px;
   padding: 16px;
 }
@@ -44,4 +45,27 @@
   outline: 2px dashed var(--primary-color, #3b82f6);
   outline-offset: -2px;
   background-color: rgba(59, 130, 246, 0.05);
+}
+
+.canvas.structureMode {
+  background: #f8fafc;
+  box-shadow: none;
+  border: 1px dashed #cbd5e1;
+}
+
+.canvas.structureMode .blockTree,
+.canvas.structureMode .blocksContainer {
+  padding: 12px;
+}
+
+.breakpointNotice {
+  margin: 8px auto 12px;
+  max-width: 960px;
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  color: #92400e;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  text-align: center;
 }

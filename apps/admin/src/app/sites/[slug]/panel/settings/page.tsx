@@ -7,7 +7,7 @@ import { SectionHeader } from '@/components/site-panel/SectionHeader';
 import { Card, CardHeader, CardTitle, CardContent } from '@repo/ui';
 import { Button, Input, Textarea, LoadingSpinner } from '@repo/ui';
 import { useToast } from '@/components/ui/Toast';
-import { fetchMySites, exchangeSiteToken, getSiteToken, getSeoSettings, updateSeoSettings, type SeoSettings, type UpdateSeoSettingsDto } from '@/lib/api';
+import { fetchMySites, getSeoSettings, updateSeoSettings, type UpdateSeoSettingsDto } from '@/lib/api';
 import type { SiteInfo } from '@repo/sdk';
 
 export default function SettingsPage() {
@@ -18,10 +18,8 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [site, setSite] = useState<SiteInfo | null>(null);
-  const [seoSettings, setSeoSettings] = useState<SeoSettings | null>(null);
   const [siteId, setSiteId] = useState<string | null>(null);
 
-  // SEO form state
   const [seoTitle, setSeoTitle] = useState('');
   const [seoDescription, setSeoDescription] = useState('');
   const [seoOgTitle, setSeoOgTitle] = useState('');
@@ -42,20 +40,14 @@ export default function SettingsPage() {
       const foundSite = sites.find((s: SiteInfo) => s.site.slug === slug);
 
       if (!foundSite) {
-        throw new Error(`Site with slug "${slug}" not found`);
+        throw new Error(`Nie znaleziono strony o slug: "${slug}"`);
       }
 
       const id = foundSite.siteId;
       setSiteId(id);
       setSite(foundSite);
 
-      let token = getSiteToken(id);
-      if (!token) {
-        token = await exchangeSiteToken(id);
-      }
-
       const seo = await getSeoSettings(id);
-      setSeoSettings(seo);
       setSeoTitle(seo.title || '');
       setSeoDescription(seo.description || '');
       setSeoOgTitle(seo.ogTitle || '');
@@ -63,7 +55,7 @@ export default function SettingsPage() {
       setSeoOgImage(seo.ogImage || '');
       setSeoTwitterCard(seo.twitterCard || 'summary_large_image');
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to load settings';
+      const message = err instanceof Error ? err.message : 'Nie udało się pobrać ustawień';
       toast.push({
         tone: 'error',
         message,
@@ -93,15 +85,14 @@ export default function SettingsPage() {
         twitterCard: seoTwitterCard || null,
       };
 
-      const updated = await updateSeoSettings(siteId, payload);
-      setSeoSettings(updated);
+      await updateSeoSettings(siteId, payload);
 
       toast.push({
         tone: 'success',
-        message: 'SEO settings saved successfully',
+        message: 'Ustawienia SEO zapisane',
       });
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to save SEO settings';
+      const message = err instanceof Error ? err.message : 'Nie udało się zapisać ustawień SEO';
       toast.push({
         tone: 'error',
         message,
@@ -115,7 +106,7 @@ export default function SettingsPage() {
     return (
       <SitePanelLayout>
         <div className="flex justify-center items-center min-h-[400px]">
-          <LoadingSpinner text="Loading settings..." />
+          <LoadingSpinner text="Wczytywanie ustawień..." />
         </div>
       </SitePanelLayout>
     );
@@ -125,22 +116,21 @@ export default function SettingsPage() {
     <SitePanelLayout>
       <div className="space-y-6">
         <SectionHeader
-          title="Settings"
-          description="Manage your site settings, SEO configuration, and domains."
+          title="Ustawienia"
+          description="Zarządzaj ustawieniami strony, SEO oraz domenami."
         />
 
-        {/* General Settings */}
         <Card>
           <CardHeader>
-            <CardTitle>General Settings</CardTitle>
+            <CardTitle>Ogólne</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-1">Site Name</label>
+              <label className="block text-sm font-medium mb-1">Nazwa strony</label>
               <Input
                 value={site?.site.name || ''}
                 disabled
-                helperText="Site name cannot be changed here. Contact support to change it."
+                helperText="Nazwy strony nie można zmienić tutaj. Skontaktuj się z supportem."
               />
             </div>
             <div>
@@ -148,92 +138,81 @@ export default function SettingsPage() {
               <Input
                 value={site?.site.slug || ''}
                 disabled
-                helperText="Site slug cannot be changed after creation."
+                helperText="Slug jest stały po utworzeniu strony."
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Site ID</label>
+              <label className="block text-sm font-medium mb-1">ID strony</label>
               <code className="block text-xs bg-gray-100 px-3 py-2 rounded">
-                {siteId || 'N/A'}
+                {siteId || '—'}
               </code>
             </div>
           </CardContent>
         </Card>
 
-        {/* SEO Settings */}
         <Card>
           <CardHeader>
-            <CardTitle>SEO Settings</CardTitle>
+            <CardTitle>SEO</CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSeoSave} className="space-y-4">
-              <div>
-                <Input
-                  label="Meta Title"
-                  placeholder="e.g., My Awesome Site"
-                  value={seoTitle}
-                  onChange={(e) => setSeoTitle(e.target.value)}
-                  helperText="The title that appears in search engine results and browser tabs."
-                />
-              </div>
+              <Input
+                label="Meta tytuł"
+                placeholder="np. Nowoczesna strona firmowa"
+                value={seoTitle}
+                onChange={(e) => setSeoTitle(e.target.value)}
+                helperText="Tytuł widoczny w wynikach wyszukiwania i w karcie przeglądarki."
+              />
 
-              <div>
-                <Textarea
-                  label="Meta Description"
-                  placeholder="e.g., A brief description of your site"
-                  value={seoDescription}
-                  onChange={(e) => setSeoDescription(e.target.value)}
-                  rows={3}
-                  helperText="A brief description that appears in search engine results (recommended: 150-160 characters)."
-                />
-              </div>
+              <Textarea
+                label="Meta opis"
+                placeholder="np. Krótki opis strony (150–160 znaków)"
+                value={seoDescription}
+                onChange={(e) => setSeoDescription(e.target.value)}
+                rows={3}
+                helperText="Opis widoczny w wynikach wyszukiwania."
+              />
 
               <div className="pt-4 border-t">
-                <h3 className="text-sm font-semibold mb-3">Open Graph (Social Media)</h3>
+                <h3 className="text-sm font-semibold mb-3">Open Graph (social media)</h3>
                 <div className="space-y-4">
-                  <div>
-                    <Input
-                      label="OG Title"
-                      placeholder="e.g., My Awesome Site - Share Title"
-                      value={seoOgTitle}
-                      onChange={(e) => setSeoOgTitle(e.target.value)}
-                      helperText="Title for social media shares (defaults to Meta Title if empty)."
-                    />
-                  </div>
+                  <Input
+                    label="OG tytuł"
+                    placeholder="np. Nowoczesna strona firmowa"
+                    value={seoOgTitle}
+                    onChange={(e) => setSeoOgTitle(e.target.value)}
+                    helperText="Tytuł dla podglądu w social mediach (domyślnie Meta tytuł)."
+                  />
+
+                  <Textarea
+                    label="OG opis"
+                    placeholder="np. Opis do udostępnień"
+                    value={seoOgDescription}
+                    onChange={(e) => setSeoOgDescription(e.target.value)}
+                    rows={2}
+                    helperText="Opis dla podglądu w social mediach."
+                  />
+
+                  <Input
+                    label="Adres obrazka OG"
+                    placeholder="https://example.com/cover.jpg"
+                    value={seoOgImage}
+                    onChange={(e) => setSeoOgImage(e.target.value)}
+                    helperText="Rekomendowany rozmiar: 1200x630 px."
+                  />
 
                   <div>
-                    <Textarea
-                      label="OG Description"
-                      placeholder="e.g., A description for social media shares"
-                      value={seoOgDescription}
-                      onChange={(e) => setSeoOgDescription(e.target.value)}
-                      rows={2}
-                      helperText="Description for social media shares (defaults to Meta Description if empty)."
-                    />
-                  </div>
-
-                  <div>
-                    <Input
-                      label="OG Image URL"
-                      placeholder="https://example.com/image.jpg"
-                      value={seoOgImage}
-                      onChange={(e) => setSeoOgImage(e.target.value)}
-                      helperText="URL to an image for social media shares (recommended: 1200x630px)."
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Twitter Card Type</label>
+                    <label className="block text-sm font-medium mb-1">Typ karty Twitter</label>
                     <select
                       value={seoTwitterCard}
                       onChange={(e) => setSeoTwitterCard(e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
                     >
                       <option value="summary">Summary</option>
-                      <option value="summary_large_image">Summary with Large Image</option>
+                      <option value="summary_large_image">Summary z dużym obrazem</option>
                     </select>
                     <p className="text-xs text-muted mt-1">
-                      Choose how your site appears when shared on Twitter.
+                      Wybierz sposób prezentacji strony po udostępnieniu na X (Twitter).
                     </p>
                   </div>
                 </div>
@@ -241,64 +220,48 @@ export default function SettingsPage() {
 
               <div className="flex gap-2 justify-end pt-4 border-t">
                 <Button type="submit" variant="primary" disabled={saving}>
-                  {saving ? 'Saving...' : 'Save SEO Settings'}
+                  {saving ? 'Zapisywanie...' : 'Zapisz ustawienia SEO'}
                 </Button>
               </div>
             </form>
           </CardContent>
         </Card>
 
-        {/* Domains */}
         <Card>
           <CardHeader>
-            <CardTitle>Custom Domains</CardTitle>
+            <CardTitle>Domeny</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="py-8 text-center">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                className="h-12 w-12 mx-auto mb-4 text-muted"
-              >
-                <path d="M12 8a4 4 0 110 8 4 4 0 010-8z" />
-                <path d="M4.5 12a7.5 7.5 0 1115 0 7.5 7.5 0 01-15 0z" />
-              </svg>
-              <h3 className="text-lg font-semibold mb-2">Custom Domains</h3>
-              <p className="text-sm text-muted mb-4">
-                Connect your custom domain to this site. This feature is available on Pro and Enterprise plans.
-              </p>
-              <Button variant="outline" disabled>
-                Coming Soon
-              </Button>
+            <div className="space-y-4">
+              <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+                Moduł domen jest dostępny w planach Pro/Enterprise. Jeśli chcesz go aktywować, skontaktuj się z zespołem.
+              </div>
+              <div className="grid gap-3">
+                <Input
+                  label="Podłącz domenę"
+                  placeholder="np. www.twojadomena.pl"
+                  disabled
+                  helperText="Włącz plan Pro/Enterprise, aby dodać domenę."
+                />
+                <Button variant="outline" disabled>
+                  Dodaj domenę
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Publishing Settings */}
         <Card>
           <CardHeader>
-            <CardTitle>Publishing Settings</CardTitle>
+            <CardTitle>Publikacja</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="py-8 text-center">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                className="h-12 w-12 mx-auto mb-4 text-muted"
-              >
-                <path d="M5 4.5h14a1 1 0 011 1v9a1 1 0 01-1 1H5a1 1 0 01-1-1v-9a1 1 0 011-1z" />
-                <path d="M6.5 7h11M6.5 10h11M6.5 13h7" strokeLinecap="round" />
-              </svg>
-              <h3 className="text-lg font-semibold mb-2">Publishing Controls</h3>
-              <p className="text-sm text-muted mb-4">
-                Configure publishing rules, environments, and deployment settings.
-              </p>
+            <div className="space-y-3">
+              <div className="rounded-lg border border-gray-200 px-4 py-3 text-sm text-muted">
+                Wkrótce: reguły publikacji, środowiska i walidatory publikacji.
+              </div>
               <Button variant="outline" disabled>
-                Coming Soon
+                Konfiguruj publikację
               </Button>
             </div>
           </CardContent>

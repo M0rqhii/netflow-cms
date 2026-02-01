@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Card, CardContent, Button } from '../index';
+import { Card, CardContent } from '../index';
 import { clsx } from 'clsx';
 
 export interface KanbanTask {
@@ -48,7 +48,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
     e.preventDefault();
   };
 
-  const handleDrop = async (columnId: string, columnStatus: string) => {
+  const handleDrop = async (columnStatus: string) => {
     if (!draggedTask || !draggedFromColumn || draggedTask.status === columnStatus) {
       setDraggedTask(null);
       setDraggedFromColumn(null);
@@ -99,7 +99,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
           key={column.id}
           className="flex-shrink-0 w-80"
           onDragOver={handleDragOver}
-          onDrop={() => handleDrop(column.id, column.status)}
+          onDrop={() => handleDrop(column.status)}
         >
           <div className="mb-2 flex items-center justify-between">
             <h3 className="font-semibold text-lg">{column.title}</h3>

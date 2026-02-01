@@ -1,6 +1,7 @@
 "use client";
 
 import React from 'react';
+import Image from 'next/image';
 import { Card, CardContent } from '@repo/ui';
 
 type Props = {
@@ -18,7 +19,7 @@ export function SeoPreviewCard({ title, description, imageUrl, urlHint }: Props)
           <div className="h-20 w-20 flex-shrink-0 overflow-hidden rounded-md bg-gradient-to-br from-gray-100 to-gray-200">
             {imageUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={imageUrl} alt="Preview" className="h-full w-full object-cover" />
+              <Image src={imageUrl} alt="Preview" className="h-full w-full object-cover" width={160} height={160} sizes="160px" unoptimized />
             ) : (
               <div className="h-full w-full grid place-items-center text-[11px] text-muted">
                 Social image

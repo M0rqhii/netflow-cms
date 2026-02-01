@@ -73,8 +73,8 @@ export function useLanguage() {
         const token = getAuthToken();
         if (token) {
           try {
-            const profile = await apiRef.current.get('/auth/me', token);
-            const userLang = profile.preferredLanguage as Language;
+            const profile = await apiRef.current.get<{ preferredLanguage?: Language }>('/auth/me', token);
+            const userLang = profile.preferredLanguage;
             if (userLang && (userLang === 'pl' || userLang === 'en')) {
               if (!isMounted) return;
               setLanguage(userLang);

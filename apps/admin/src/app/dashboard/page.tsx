@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardContent } from '@repo/ui';
 import { Button } from '@repo/ui';
@@ -100,6 +100,31 @@ export default function DashboardPage() {
   const userEmail = userInfo?.email || 'user@example.com';
   const userOrgId = userInfo?.orgId || null;
 
+  const loadActivity = useCallback(async (orgId: string | undefined, siteId: string | null) => {
+    if (!orgId) return;
+    
+    setActivityLoading(true);
+    setActivityError(null);
+    
+    try {
+      const activityData = await Promise.allSettled([
+        fetchActivity(10, orgId, siteId || undefined),
+      ]);
+
+      if (activityData[0].status === 'fulfilled') {
+        setActivity(activityData[0].value);
+      } else {
+        setActivityError(activityData[0].reason instanceof Error ? activityData[0].reason.message : t('errors.failedToLoad'));
+        setActivity([]);
+      }
+    } catch (error) {
+      setActivityError(error instanceof Error ? error.message : t('errors.failedToLoad'));
+      setActivity([]);
+    } finally {
+      setActivityLoading(false);
+    }
+  }, [t]);
+
   useEffect(() => {
     const checkOnboarding = () => {
       const shouldShow = shouldShowOnboarding();
@@ -135,9 +160,6 @@ export default function DashboardPage() {
           const validSites = sitesData.value.filter(s => s?.site != null);
           setSites(validSites);
           
-          // Fetch activity for the current org (if available)
-          const resolvedOrgId = userOrgId || undefined;
-          await loadActivity(resolvedOrgId, selectedSiteId);
         } else {
           setSitesError(sitesData.reason instanceof Error ? sitesData.reason.message : t('dashboard.failedToLoad'));
           setSites([]);
@@ -170,33 +192,7 @@ export default function DashboardPage() {
     if (userOrgId) {
       loadActivity(userOrgId, selectedSiteId);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedSiteId, userOrgId]);
-
-  const loadActivity = async (orgId: string | undefined, siteId: string | null) => {
-    if (!orgId) return;
-    
-    setActivityLoading(true);
-    setActivityError(null);
-    
-    try {
-      const activityData = await Promise.allSettled([
-        fetchActivity(10, orgId, siteId || undefined),
-      ]);
-
-      if (activityData[0].status === 'fulfilled') {
-        setActivity(activityData[0].value);
-      } else {
-        setActivityError(activityData[0].reason instanceof Error ? activityData[0].reason.message : t('errors.failedToLoad'));
-        setActivity([]);
-      }
-    } catch (error) {
-      setActivityError(error instanceof Error ? error.message : t('errors.failedToLoad'));
-      setActivity([]);
-    } finally {
-      setActivityLoading(false);
-    }
-  };
+  }, [loadActivity, selectedSiteId, userOrgId]);
 
   const filteredSites = useMemo(() => {
     return sites.filter(site => {

@@ -1,0 +1,63 @@
+.container {
+  border: 1px dashed #cbd5f5;
+  background: #f8fafc;
+  padding: 16px;
+  border-radius: 12px;
+  text-align: left;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.icon {
+  color: #64748b;
+  width: 18px;
+  height: 18px;
+}
+
+.title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.message {
+  font-size: 12px;
+  color: #475569;
+  line-height: 1.4;
+}
+
+.actions {
+  margin-top: 12px;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1d4ed8;
+  background: #eff6ff;
+  border-radius: 999px;
+  padding: 6px 10px;
+  text-decoration: none;
+}
+
+.button:hover {
+  background: #dbeafe;
+}
+
+.buttonIcon {
+  width: 14px;
+  height: 14px;
+}
+
+.hint {
+  font-size: 12px;
+  color: #94a3b8;
+}

@@ -8,9 +8,11 @@ import { PlatformRolesGuard } from './guards/platform-roles.guard';
 import { PermissionsGuard } from './guards/permissions.guard';
 import { CapabilityGuard } from './guards/capability.guard';
 import { CsrfGuard } from './guards/csrf.guard';
+import { FeatureFlagGuard } from './guards/feature-flag.guard';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { PrismaService } from '../prisma/prisma.service';
 import { RbacModule } from '../../modules/rbac/rbac.module';
+import { FeatureFlagsModule } from '../../modules/feature-flags/feature-flags.module';
 
 /**
  * AuthModule - provides authentication and authorization guards
@@ -20,6 +22,7 @@ import { RbacModule } from '../../modules/rbac/rbac.module';
   imports: [
     PassportModule.register({ defaultStrategy: 'jwt' }),
     RbacModule,
+    FeatureFlagsModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => {
@@ -42,7 +45,7 @@ import { RbacModule } from '../../modules/rbac/rbac.module';
       inject: [ConfigService],
     }),
   ],
-  providers: [AuthGuard, RolesGuard, PlatformRolesGuard, PermissionsGuard, CapabilityGuard, CsrfGuard, JwtStrategy, PrismaService],
-  exports: [AuthGuard, RolesGuard, PlatformRolesGuard, PermissionsGuard, CapabilityGuard, CsrfGuard, JwtModule],
+  providers: [AuthGuard, RolesGuard, PlatformRolesGuard, PermissionsGuard, CapabilityGuard, CsrfGuard, FeatureFlagGuard, JwtStrategy, PrismaService],
+  exports: [AuthGuard, RolesGuard, PlatformRolesGuard, PermissionsGuard, CapabilityGuard, CsrfGuard, FeatureFlagGuard, JwtModule],
 })
 export class AuthModule {}

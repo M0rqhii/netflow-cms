@@ -9,11 +9,7 @@ import React from 'react';
 import type { BlockComponentProps } from '@/lib/page-builder/types';
 import styles from './TabItemBlock.module.css';
 
-export const TabItemBlock: React.FC<BlockComponentProps> = ({ 
-  node,
-  children,
-  isPreview,
-}) => {
+export const TabItemBlock: React.FC<BlockComponentProps> = ({ children }) => {
   return (
     <div 
       className={styles.tabItem}

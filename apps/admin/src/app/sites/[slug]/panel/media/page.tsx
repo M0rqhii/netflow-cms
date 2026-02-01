@@ -12,7 +12,7 @@ const MediaManager = dynamic(
   {
     loading: () => (
       <div className="flex items-center justify-center py-12">
-        <LoadingSpinner text="Loading media manager..." />
+        <LoadingSpinner text="Wczytywanie biblioteki mediów..." />
       </div>
     ),
     ssr: false,
@@ -27,14 +27,14 @@ export default function MediaPage() {
     <SitePanelLayout>
       <div className="space-y-6">
         <SectionHeader
-          title="Media Library"
-          description="Upload and manage media assets used across pages, collections, and SEO."
+          title="Biblioteka mediów"
+          description="Wgrywaj i zarządzaj mediami używanymi w stronach, kolekcjach i SEO."
           action={undefined}
         />
 
         <Suspense fallback={
           <div className="flex items-center justify-center py-12">
-            <LoadingSpinner text="Loading media manager..." />
+            <LoadingSpinner text="Wczytywanie biblioteki mediów..." />
           </div>
         }>
           <MediaManager siteSlug={slug} />

@@ -12,6 +12,9 @@ describe('RbacEvaluatorService', () => {
     orgPolicy: {
       findMany: jest.fn(),
     },
+    user: {
+      findUnique: jest.fn(),
+    },
   };
 
   beforeEach(async () => {
@@ -33,6 +36,7 @@ describe('RbacEvaluatorService', () => {
   });
 
   it('allows when role grants capability and policy is enabled', async () => {
+    mockPrismaService.user.findUnique.mockResolvedValue({ isSuperAdmin: false, systemRole: null, role: 'viewer' });
     mockPrismaService.userRole.findMany.mockResolvedValue([
       {
         role: {
@@ -62,6 +66,7 @@ describe('RbacEvaluatorService', () => {
   });
 
   it('blocks when policy disables capability', async () => {
+    mockPrismaService.user.findUnique.mockResolvedValue({ isSuperAdmin: false, systemRole: null, role: 'viewer' });
     mockPrismaService.userRole.findMany.mockResolvedValue([
       {
         role: {
@@ -92,7 +97,28 @@ describe('RbacEvaluatorService', () => {
     expect(result.roleSources).toEqual(['Site Admin']);
   });
 
+
+  it('allows all capabilities for super admin', async () => {
+    mockPrismaService.user.findUnique.mockResolvedValue({ isSuperAdmin: true, systemRole: null, role: 'viewer' });
+    mockPrismaService.userRole.findMany.mockResolvedValue([]);
+    mockPrismaService.orgPolicy.findMany.mockResolvedValue([
+      { capabilityKey: 'builder.edit', enabled: false },
+    ]);
+
+    const result = await service.can({
+      userId: 'user-1',
+      orgId: 'org-1',
+      capabilityKey: 'builder.edit',
+    });
+
+    expect(result.allowed).toBe(true);
+    expect(result.reason).toBe('allowed');
+    expect(result.policyEnabled).toBe(false);
+    expect(result.roleSources).toEqual(['Super Admin']);
+  });
+
   it('denies when user lacks role capability', async () => {
+    mockPrismaService.user.findUnique.mockResolvedValue({ isSuperAdmin: false, systemRole: null, role: 'viewer' });
     mockPrismaService.userRole.findMany.mockResolvedValue([]);
     mockPrismaService.orgPolicy.findMany.mockResolvedValue([]);
 

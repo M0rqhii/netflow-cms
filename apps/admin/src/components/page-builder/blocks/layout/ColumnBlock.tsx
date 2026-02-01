@@ -13,11 +13,7 @@ import { mergeBlockStyles } from '@/lib/page-builder/style-utils';
 import { useCurrentBreakpoint } from '@/stores/page-builder-store';
 import styles from './ColumnBlock.module.css';
 
-export const ColumnBlock: React.FC<BlockComponentProps> = ({ 
-  node, 
-  children,
-  isPreview,
-}) => {
+export const ColumnBlock: React.FC<BlockComponentProps> = ({ node, children }) => {
   const breakpoint = useCurrentBreakpoint();
   
   // Get width from content

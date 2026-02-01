@@ -16,6 +16,8 @@ import {
   type PlatformUser 
 } from '@/lib/api';
 
+type UpdatePayload = Parameters<typeof updatePlatformUser>[1];
+
 // Map old role names to new role names
 const mapOldRoleToSiteRole = (role: string | undefined): string => {
   if (!role) return 'viewer';
@@ -119,7 +121,7 @@ export default function PlatformUsersPage() {
         password,
         role: systemRole || role,
         platformRole: platformRole === 'user' ? undefined : platformRole,
-        permissions: selectedPermissions.length > 0 ? selectedPermissions as any : undefined,
+        permissions: selectedPermissions.length > 0 ? selectedPermissions : undefined,
       });
       setEmail('');
       setPassword('');
@@ -152,7 +154,7 @@ export default function PlatformUsersPage() {
       const mappedSystemRole = isSystemUser ? (editSystemRole || mapOldRoleToSystemRole(editRole)) : undefined;
       
       // Build update payload - only send role if it's a system user or if siteRole is not set
-      const updatePayload: any = {};
+      const updatePayload: UpdatePayload = {};
       
       // Only add platformRole if it's not 'user'
       if (editPlatformRole && editPlatformRole !== 'user') {
@@ -161,7 +163,7 @@ export default function PlatformUsersPage() {
       
       // Only add permissions if there are any
       if (editPermissions.length > 0) {
-        updatePayload.permissions = editPermissions as any;
+        updatePayload.permissions = editPermissions;
       }
       
       if (isSystemUser) {
@@ -349,7 +351,7 @@ export default function PlatformUsersPage() {
         </CardHeader>
         <CardContent>
           {systemUsers.length === 0 ? (
-            <EmptyState message={t('platformUsers.noSystemAdministratorsFound')} />
+            <EmptyState title={t('platformUsers.noSystemAdministratorsFound')} />
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full border-collapse">
@@ -419,7 +421,7 @@ export default function PlatformUsersPage() {
                             <Button size="sm" variant="outline" onClick={() => startEdit(u)}>
                               Edit
                             </Button>
-                            <Button size="sm" variant="destructive" onClick={() => onDeleteUser(u.id)}>
+                            <Button size="sm" variant="danger" onClick={() => onDeleteUser(u.id)}>
                               Delete
                             </Button>
                           </div>
@@ -441,7 +443,7 @@ export default function PlatformUsersPage() {
         </CardHeader>
         <CardContent>
           {organizationUsers.length === 0 ? (
-            <EmptyState message={t('platformUsers.noOrganizationUsersFound')} />
+            <EmptyState title={t('platformUsers.noOrganizationUsersFound')} />
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full border-collapse">
@@ -524,7 +526,7 @@ export default function PlatformUsersPage() {
                             <Button size="sm" variant="outline" onClick={() => startEdit(u)}>
                               {t('common.edit')}
                             </Button>
-                            <Button size="sm" variant="destructive" onClick={() => onDeleteUser(u.id)}>
+                            <Button size="sm" variant="danger" onClick={() => onDeleteUser(u.id)}>
                               {t('common.delete')}
                             </Button>
                           </div>

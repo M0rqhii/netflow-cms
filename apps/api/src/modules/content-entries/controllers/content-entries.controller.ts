@@ -41,7 +41,7 @@ export class ContentEntriesController {
     @CurrentSite() siteId: string,
     @CurrentUser() user: CurrentUserPayload,
     @Param('contentTypeSlug') contentTypeSlug: string,
-    @Body(new ZodValidationPipe(CreateContentEntryDtoSchema)) body: unknown
+    @Body(new ZodValidationPipe(CreateContentEntryDtoSchema)) body: any
   ) {
     return this.contentEntriesService.create(siteId, contentTypeSlug, body as any, user.id);
   }
@@ -51,7 +51,7 @@ export class ContentEntriesController {
   list(
     @CurrentSite() siteId: string,
     @Param('contentTypeSlug') contentTypeSlug: string,
-    @Query(new ZodValidationPipe(ContentEntryQueryDtoSchema)) query: unknown
+    @Query(new ZodValidationPipe(ContentEntryQueryDtoSchema)) query: any
   ) {
     return this.contentEntriesService.list(siteId, contentTypeSlug, query as any);
   }
@@ -73,7 +73,7 @@ export class ContentEntriesController {
     @CurrentUser() user: CurrentUserPayload,
     @Param('contentTypeSlug') contentTypeSlug: string,
     @Param('id') id: string,
-    @Body(new ZodValidationPipe(UpdateContentEntryDtoSchema)) body: unknown
+    @Body(new ZodValidationPipe(UpdateContentEntryDtoSchema)) body: any
   ) {
     return this.contentEntriesService.update(siteId, contentTypeSlug, id, body as any, user.id);
   }

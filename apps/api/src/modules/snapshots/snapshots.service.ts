@@ -46,7 +46,7 @@ export class SnapshotsService {
     });
   }
 
-  private serializeDate(value: unknown) {
+  private serializeDate(value: any) {
     if (!value) return null;
     if (value instanceof Date) return value.toISOString();
     const parsed = new Date(value as any);

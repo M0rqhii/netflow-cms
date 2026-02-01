@@ -14,7 +14,7 @@ import React, { memo, useCallback } from 'react';
 import type { DraggableAttributes } from '@dnd-kit/core';
 import type { SyntheticListenerMap } from '@dnd-kit/core/dist/hooks/utilities';
 import { cn } from '@/lib/utils';
-import { useBlockNode, useEditorMode } from '@/stores/page-builder-store';
+import { useBlockNode } from '@/stores/page-builder-store';
 import { BlockControls } from './BlockControls';
 import styles from './BlockWrapper.module.css';
 
@@ -25,6 +25,7 @@ interface BlockWrapperProps {
   isPreview?: boolean;
   isDragging?: boolean;
   isLocked?: boolean;
+  isStructure?: boolean;
   dragAttributes?: DraggableAttributes;
   dragListeners?: SyntheticListenerMap;
   setDragRef?: (node: HTMLElement | null) => void;
@@ -38,6 +39,7 @@ function BlockWrapperComponent({
   isPreview = false,
   isDragging = false,
   isLocked = false,
+  isStructure = false,
   dragAttributes,
   dragListeners,
   setDragRef,
@@ -79,7 +81,8 @@ function BlockWrapperComponent({
         !isSelected && styles.hoverable,
         isDragging && styles.dragging,
         isLocked && styles.locked,
-        isHidden && styles.hidden
+        isHidden && styles.hidden,
+        isStructure && styles.structure
       )}
       onClick={onClick}
       onKeyDown={handleKeyDown}
@@ -121,7 +124,7 @@ function BlockWrapperComponent({
       )}
       
       {/* Block type label (on hover) */}
-      <div className={cn(styles.typeLabel, isSelected && styles.visible)}>
+      <div className={cn(styles.typeLabel, (isSelected || isStructure) && styles.visible)}>
         {node.meta?.label || node.type}
       </div>
       
@@ -143,6 +146,7 @@ function arePropsEqual(
     prevProps.nodeId === nextProps.nodeId &&
     prevProps.isSelected === nextProps.isSelected &&
     prevProps.isPreview === nextProps.isPreview &&
+    prevProps.isStructure === nextProps.isStructure &&
     prevProps.isDragging === nextProps.isDragging &&
     prevProps.isLocked === nextProps.isLocked
   );

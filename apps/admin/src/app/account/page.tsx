@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@repo/ui';
 import { Button } from '@repo/ui';
 import { Input } from '@repo/ui';
@@ -23,11 +23,7 @@ export default function AccountPage() {
   const [nip, setNip] = useState('');
   const [address, setAddress] = useState('');
 
-  useEffect(() => {
-    loadAccountData();
-  }, []);
-
-  const loadAccountData = async () => {
+  const loadAccountData = useCallback(async () => {
     try {
       setLoading(true);
       const [accountData, billingData] = await Promise.all([
@@ -48,7 +44,11 @@ export default function AccountPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [pushToast, t]);
+
+  useEffect(() => {
+    loadAccountData();
+  }, [loadAccountData]);
 
   const handleUpdateAccount = async (e: React.FormEvent) => {
     e.preventDefault();

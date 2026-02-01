@@ -27,7 +27,7 @@ export class SnapshotsController {
     @Param('siteId') siteId: string,
     @CurrentSite() _: string, // Validated by middleware
     @CurrentUser() user: CurrentUserPayload,
-    @Body(new ZodValidationPipe(CreateSnapshotDtoSchema)) body: unknown,
+    @Body(new ZodValidationPipe(CreateSnapshotDtoSchema)) body: any,
   ) {
     // siteId is validated by middleware to match currentSiteId
     const payload = body as { label?: string };

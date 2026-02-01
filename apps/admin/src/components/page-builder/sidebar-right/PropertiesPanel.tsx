@@ -17,7 +17,7 @@ import {
 import { blockRegistry } from '@/lib/page-builder/block-registry';
 import { FieldRenderer } from '../sidebar/editors/FieldRenderer';
 import { FiX, FiSettings, FiType, FiLayout, FiTrash2, FiCopy, FiLock, FiUnlock } from 'react-icons/fi';
-import type { BlockDefinition, PropFieldSchema, BlockProps } from '@/lib/page-builder/types';
+import type { BlockDefinition, PropFieldSchema, BlockNode, Breakpoint } from '@/lib/page-builder/types';
 
 // =============================================================================
 // TYPES
@@ -274,14 +274,14 @@ export function PropertiesPanel({ selectedBlockId: overrideSelectedId }: Propert
 // =============================================================================
 
 interface TabProps {
-  node: any;
+  node: BlockNode;
   definition: BlockDefinition | null;
   onChange: (key: string, value: unknown) => void;
   onBlur: () => void;
-  breakpoint?: string;
+  breakpoint?: Breakpoint;
 }
 
-function ContentTab({ node, definition, onChange, onBlur }: TabProps) {
+function ContentTab({ node, definition, onChange, onBlur: _onBlur }: TabProps) {
   const schema = definition?.propsSchema?.content;
   
   if (!schema || Object.keys(schema).length === 0) {
@@ -317,7 +317,7 @@ function ContentTab({ node, definition, onChange, onBlur }: TabProps) {
   );
 }
 
-function StyleTab({ node, definition, breakpoint = 'desktop', onChange, onBlur }: TabProps) {
+function StyleTab({ node, definition, breakpoint = 'desktop', onChange, onBlur: _onBlur }: TabProps) {
   const schema = definition?.propsSchema?.style;
   
   // Get current values (base + responsive merged)
@@ -401,7 +401,7 @@ function AdvancedTab({ node, definition, onChange, onBlur }: TabProps) {
         </label>
         <input
           type="text"
-          value={node.props.advanced?.className || ''}
+          value={typeof node.props.advanced?.className === 'string' ? node.props.advanced?.className : ''}
           onChange={(e) => onChange('className', e.target.value)}
           onBlur={onBlur}
           placeholder="np. my-custom-class"

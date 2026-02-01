@@ -7,9 +7,11 @@ import { Card, CardHeader, CardTitle, CardContent, EmptyState, Skeleton } from '
 import { Button } from '@repo/ui';
 import { Badge } from '@/components/ui/Badge';
 import { useTranslations } from '@/hooks/useTranslations';
-import { fetchMySites, getSiteSubscription, type Subscription } from '@/lib/api';
+import { fetchMySites } from '@/lib/api';
 import { trackOnboardingSuccess } from '@/lib/onboarding';
 import type { SiteInfo } from '@repo/sdk';
+
+type SiteWithDates = SiteInfo['site'] & { createdAt?: string; updatedAt?: string };
 
 export default function SiteOverviewPage() {
   const t = useTranslations();
@@ -17,7 +19,6 @@ export default function SiteOverviewPage() {
   const slug = params?.slug as string;
 
   const [site, setSite] = useState<SiteInfo | null>(null);
-  const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
@@ -34,10 +35,6 @@ export default function SiteOverviewPage() {
         }
 
         setSite(current);
-        // Load subscription in parallel (non-blocking)
-        getSiteSubscription(current.siteId)
-          .then(setSubscription)
-          .catch(() => setSubscription(null));
       } finally {
         setLoading(false);
       }
@@ -52,14 +49,7 @@ export default function SiteOverviewPage() {
     }
   }, [site]);
 
-  const planLabel = useMemo(() => 
-    subscription?.plan || site?.site.plan || 'free',
-    [subscription?.plan, site?.site.plan]
-  );
-  const statusLabel = useMemo(() => 
-    subscription?.status || 'active',
-    [subscription?.status]
-  );
+  const planLabel = useMemo(() => site?.site.plan || 'org', [site?.site.plan]);
 
   if (loading) {
     return (
@@ -125,10 +115,6 @@ export default function SiteOverviewPage() {
               <Badge className="text-xs sm:text-sm">{site.role}</Badge>
               <span className="text-xs sm:text-sm text-muted">-</span>
               <span className="text-xs sm:text-sm text-muted">{t('siteOverview.plan')}: {planLabel}</span>
-              <span className="text-xs sm:text-sm text-muted">-</span>
-              <span className="text-xs sm:text-sm text-muted">
-                {t('siteOverview.status')}: <span className={statusLabel === 'active' ? 'text-green-600 dark:text-green-400' : statusLabel === 'disabled' ? 'text-red-600 dark:text-red-400' : ''}>{statusLabel}</span>
-              </span>
             </div>
           </div>
         </div>
@@ -158,16 +144,18 @@ export default function SiteOverviewPage() {
                   <dd className="text-xs sm:text-sm">{planLabel || t('sitesList.basic')}</dd>
                 </div>
                 <div>
-                  <dt className="text-xs sm:text-sm text-muted mb-0.5">{t('siteOverview.status')}</dt>
-                  <dd className="text-xs sm:text-sm">{statusLabel || t('siteOverview.active')}</dd>
-                </div>
-                <div>
                   <dt className="text-xs sm:text-sm text-muted mb-0.5">{t('siteOverview.created')}</dt>
-                  <dd className="text-xs sm:text-sm">{(site as any)?.site?.createdAt ? new Date((site as any).site.createdAt).toLocaleString() : 'N/A'}</dd>
+                  <dd className="text-xs sm:text-sm">{(() => {
+                    const createdAt = (site.site as SiteWithDates).createdAt;
+                    return createdAt ? new Date(createdAt).toLocaleString() : 'N/A';
+                  })()}</dd>
                 </div>
                 <div>
                   <dt className="text-xs sm:text-sm text-muted mb-0.5">{t('siteOverview.updated')}</dt>
-                  <dd className="text-xs sm:text-sm">{(site as any)?.site?.updatedAt ? new Date((site as any).site.updatedAt).toLocaleString() : 'N/A'}</dd>
+                  <dd className="text-xs sm:text-sm">{(() => {
+                    const updatedAt = (site.site as SiteWithDates).updatedAt;
+                    return updatedAt ? new Date(updatedAt).toLocaleString() : 'N/A';
+                  })()}</dd>
                 </div>
                 <div>
                   <dt className="text-xs sm:text-sm text-muted mb-0.5">{t('siteOverview.yourRole')}</dt>
@@ -217,22 +205,7 @@ export default function SiteOverviewPage() {
                     {t('siteOverview.manageUsers')}
                   </Button>
                 </Link>
-                <Link href={`/sites/${encodeURIComponent(slug)}/plan`} className="block">
-                  <Button variant="outline" className="w-full justify-start text-xs sm:text-sm h-7 sm:h-8 px-2">
-                    <svg className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                    </svg>
-                    {t('sites.currentPlan')} & {t('sites.features')}
-                  </Button>
-                </Link>
-                <Link href={`/sites/${encodeURIComponent(slug)}/billing`} className="block">
-                  <Button variant="outline" className="w-full justify-start text-xs sm:text-sm h-7 sm:h-8 px-2">
-                    <svg className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                    </svg>
-                    {t('siteOverview.viewBilling')}
-                  </Button>
-                </Link>
+                
               </div>
             </CardContent>
           </Card>

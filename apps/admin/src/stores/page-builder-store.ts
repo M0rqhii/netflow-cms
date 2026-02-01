@@ -537,7 +537,7 @@ export const usePageBuilderStore = create<PageBuilderState & PageBuilderActions>
       );
       
       // Build new content
-      let newContent: PageContent = {
+      const newContent: PageContent = {
         ...content,
         nodes: { ...content.nodes, ...newNodes },
       };

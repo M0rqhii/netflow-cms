@@ -16,7 +16,7 @@ let sitesCache: SiteInfo[] | null = null;
 let sitesPromise: Promise<SiteInfo[]> | null = null;
 
 // Function to clear cache (useful for debugging)
-export function clearSitesCache() {
+function clearSitesCache() {
   sitesCache = null;
   sitesPromise = null;
 }
@@ -251,9 +251,6 @@ export default function SitesPage() {
                                   </Link>
                                   <Link href={`/sites/${site.site.slug}/users`}>
                                     <Button variant="outline" size="sm" className="text-xs sm:text-sm h-7 sm:h-8 px-2">{t('sitesList.users')}</Button>
-                                  </Link>
-                                  <Link href={`/sites/${site.site.slug}/billing`}>
-                                    <Button variant="outline" size="sm" className="text-xs sm:text-sm h-7 sm:h-8 px-2">{t('sitesList.billing')}</Button>
                                   </Link>
                                 </div>
                               </td>

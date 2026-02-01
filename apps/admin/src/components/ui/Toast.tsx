@@ -36,9 +36,10 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 
   // Cleanup all timeouts on unmount
   useEffect(() => {
+    const timeouts = timeoutsRef.current;
     return () => {
-      timeoutsRef.current.forEach((timeout) => clearTimeout(timeout));
-      timeoutsRef.current.clear();
+      timeouts.forEach((timeout) => clearTimeout(timeout));
+      timeouts.clear();
     };
   }, []);
 
@@ -55,8 +56,6 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         aria-label="Notifications"
       >
         {toasts.map((t) => {
-          let border = 'border-gray-200';
-          // Border color will be handled by CSS dark mode rules
           let toneColor = 'currentColor';
           if (t.tone === 'success') toneColor = 'var(--color-accent)';
           else if (t.tone === 'error') toneColor = '#ef4444';

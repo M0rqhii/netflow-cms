@@ -1,7 +1,6 @@
 "use client";
 
 import React from 'react';
-import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { Badge } from '@/components/ui/Badge';
 import BreadcrumbsComponent from '@/components/ui/Breadcrumbs';

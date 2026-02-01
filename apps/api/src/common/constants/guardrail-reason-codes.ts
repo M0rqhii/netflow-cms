@@ -24,6 +24,8 @@ export enum GuardrailReasonCode {
   
   // Page builder guardrails
   NO_PAGE_ID = 'no_page_id',
+  MODULE_DISABLED = 'module_disabled',
+  MISSING_ALT = 'missing_alt',
   
   // SEO warnings (not errors, but warnings)
   MISSING_SEO_META = 'missing_seo_meta',
@@ -49,6 +51,8 @@ export const GuardrailMessages: Record<GuardrailReasonCode, string> = {
   [GuardrailReasonCode.NO_PUBLISHED_PAGES]: 'No published pages available. Publish at least one page before creating marketing content.',
   
   [GuardrailReasonCode.NO_PAGE_ID]: 'No page selected. Select a page to edit, or create a new one.',
+  [GuardrailReasonCode.MODULE_DISABLED]: 'Publish blocked because required modules are disabled. Enable required modules before publishing.',
+  [GuardrailReasonCode.MISSING_ALT]: 'Image blocks require alt text before publishing.',
   
   [GuardrailReasonCode.MISSING_SEO_META]: 'SEO metadata is missing. Adding meta title and description will improve SEO.',
 };

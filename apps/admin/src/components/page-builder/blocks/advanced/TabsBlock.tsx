@@ -1,4 +1,4 @@
-/**
+﻿/**
  * TabsBlock Component
  * 
  * Blok zakładek z item nodes pattern.
@@ -12,12 +12,7 @@ import { mergeBlockStyles } from '@/lib/page-builder/style-utils';
 import { useCurrentBreakpoint, usePageBuilderStore, useBlockChildren } from '@/stores/page-builder-store';
 import styles from './TabsBlock.module.css';
 
-export const TabsBlock: React.FC<BlockComponentProps> = ({ 
-  node,
-  children,
-  isPreview,
-  isSelected,
-}) => {
+export const TabsBlock: React.FC<BlockComponentProps> = ({ node, children, isPreview }) => {
   const breakpoint = useCurrentBreakpoint();
   const childIds = useBlockChildren(node.id);
   const addBlock = usePageBuilderStore((state) => state.addBlock);
@@ -75,12 +70,12 @@ export const TabsBlock: React.FC<BlockComponentProps> = ({
           );
         })}
         
-        {/* Add tab button (edit mode only) */}
+        {/* Dodaj zak�adk� button (edit mode only) */}
         {!isPreview && (
           <button
             className={styles.addTabBtn}
             onClick={handleAddTab}
-            title="Add tab"
+            title="Dodaj zak�adk�"
             type="button"
           >
             <FiPlus />
@@ -107,7 +102,7 @@ export const TabsBlock: React.FC<BlockComponentProps> = ({
         
         {childIds.length === 0 && (
           <div className={styles.emptyState}>
-            <p>No tabs yet. Click + to add a tab.</p>
+            <p>Brak zak�adek. Kliknij +, aby doda� zak�adk�.</p>
           </div>
         )}
       </div>
@@ -116,3 +111,5 @@ export const TabsBlock: React.FC<BlockComponentProps> = ({
 };
 
 export default TabsBlock;
+
+

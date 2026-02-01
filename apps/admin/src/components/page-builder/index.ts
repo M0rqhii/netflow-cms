@@ -3,7 +3,7 @@
  */
 
 export { PageBuilder } from './PageBuilder';
-export { PageBuilderProvider, usePageBuilderContext, useSiteId, useIsReadOnly } from './PageBuilderContext';
+export { PageBuilderProvider, usePageBuilderContext, useSiteId, useIsReadOnly, useEnabledModules } from './PageBuilderContext';
 export { Canvas } from './canvas';
 export { Toolbar } from './toolbar';
 export { BlockBrowser, PropertiesPanel } from './sidebar';

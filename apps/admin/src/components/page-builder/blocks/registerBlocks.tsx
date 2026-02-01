@@ -17,7 +17,7 @@ import { HeadingBlock } from './typography/HeadingBlock';
 import { TextBlock } from './typography/TextBlock';
 
 // Media blocks
-import { ImageBlock, imageBlockDefinition } from './media/ImageBlock';
+import { imageBlockDefinition } from './media/ImageBlock';
 
 // Component blocks
 import { ButtonBlock } from './components/ButtonBlock';
@@ -25,8 +25,12 @@ import { ButtonBlock } from './components/ButtonBlock';
 // Advanced blocks
 import { TabsBlock } from './advanced/TabsBlock';
 import { TabItemBlock } from './advanced/TabItemBlock';
+
 import { AccordionBlock } from './advanced/AccordionBlock';
+
 import { AccordionItemBlock } from './advanced/AccordionItemBlock';
+
+import { catalogBlockDefinitions } from './catalogBlocks';
 
 // Icons
 import {
@@ -35,7 +39,6 @@ import {
   FiSquare,
   FiType,
   FiAlignLeft,
-  FiImage,
   FiMousePointer,
   FiLayers,
   FiList,
@@ -68,7 +71,6 @@ const sectionBlockDefinition: BlockDefinition = {
   category: 'layout',
   component: SectionBlock,
   canHaveChildren: true,
-  allowedChildren: ['column', 'heading', 'text', 'image', 'button'],
   allowedParents: ['root'],
   defaultProps: {
     content: {},
@@ -96,7 +98,6 @@ const columnBlockDefinition: BlockDefinition = {
   category: 'layout',
   component: ColumnBlock,
   canHaveChildren: true,
-  allowedChildren: ['heading', 'text', 'image', 'button'],
   allowedParents: ['section'],
   defaultProps: {
     content: {
@@ -311,7 +312,6 @@ const tabItemBlockDefinition: BlockDefinition = {
   category: 'internal',
   component: TabItemBlock,
   canHaveChildren: true,
-  allowedChildren: ['heading', 'text', 'image', 'button'],
   allowedParents: ['tabs'],
   isItemNode: true,
   defaultProps: {
@@ -366,7 +366,6 @@ const accordionItemBlockDefinition: BlockDefinition = {
   category: 'internal',
   component: AccordionItemBlock,
   canHaveChildren: true,
-  allowedChildren: ['heading', 'text', 'image', 'button'],
   allowedParents: ['accordion'],
   isItemNode: true,
   defaultProps: {
@@ -381,6 +380,7 @@ const accordionItemBlockDefinition: BlockDefinition = {
     },
   },
 };
+
 
 // =============================================================================
 // REGISTRATION
@@ -411,14 +411,27 @@ export function registerAllBlocks(): void {
   blockRegistry.registerBlock(tabItemBlockDefinition);
   blockRegistry.registerBlock(accordionBlockDefinition);
   blockRegistry.registerBlock(accordionItemBlockDefinition);
-  
+
+  // Catalog blocks (full component library)
+  blockRegistry.registerBlocks(catalogBlockDefinitions);
+
   registered = true;
   
   if (process.env.NODE_ENV === 'development') {
-    if (process.env.NODE_ENV !== 'production') {
     console.log('[PageBuilder] Registered blocks:', blockRegistry.getAllBlocks().map(b => b.type));
-  }
   }
 }
 
 export default registerAllBlocks;
+
+
+
+
+
+
+
+
+
+
+
+

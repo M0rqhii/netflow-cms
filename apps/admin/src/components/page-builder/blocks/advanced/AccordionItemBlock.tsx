@@ -9,11 +9,7 @@ import React from 'react';
 import type { BlockComponentProps } from '@/lib/page-builder/types';
 import styles from './AccordionItemBlock.module.css';
 
-export const AccordionItemBlock: React.FC<BlockComponentProps> = ({ 
-  node,
-  children,
-  isPreview,
-}) => {
+export const AccordionItemBlock: React.FC<BlockComponentProps> = ({ children }) => {
   return (
     <div 
       className={styles.accordionItem}

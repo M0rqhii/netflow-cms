@@ -17,6 +17,7 @@ import {
   FiRotateCw,
   FiEye,
   FiEdit3,
+  FiGrid,
   FiSave,
   FiCheck,
   FiLoader,
@@ -128,6 +129,15 @@ const ModeToggle: React.FC = memo(() => {
       >
         <FiEye />
         <span>Preview</span>
+      </button>
+      <button
+        className={`${styles.modeBtn} ${mode === 'structure' ? styles.active : ''}`}
+        onClick={() => setMode('structure')}
+        title="Structure mode"
+        type="button"
+      >
+        <FiGrid />
+        <span>Structure</span>
       </button>
     </div>
   );

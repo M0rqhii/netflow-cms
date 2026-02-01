@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
+import React from 'react';
 import DynamicFormField from './DynamicFormField';
 import type { FieldDefinition } from './FieldsEditor';
 import { fetchContentEntries } from '@/lib/api';
@@ -29,8 +29,8 @@ export default function DynamicForm({
   const loadRelations = async (contentTypeSlug: string) => {
     if (!siteId) return [];
     try {
-      const entries = await fetchContentEntries(siteId, contentTypeSlug);
-      return entries.map(entry => ({
+      const { entries } = await fetchContentEntries(siteId, contentTypeSlug);
+      return entries.map((entry) => ({
         id: entry.id,
         ...entry.data,
       }));
@@ -53,7 +53,6 @@ export default function DynamicForm({
             value={fieldValue}
             onChange={(value) => handleFieldChange(field.name, value)}
             error={fieldError}
-            availableContentTypes={availableContentTypes}
             onLoadRelations={field.type === 'relation' && field.relatedContentTypeId 
               ? async () => {
                   const contentType = availableContentTypes.find(ct => ct.id === field.relatedContentTypeId);

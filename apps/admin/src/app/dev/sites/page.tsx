@@ -1,9 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardContent, EmptyState } from '@repo/ui';
-import { Badge } from '@/components/ui/Badge';
 import { LoadingSpinner } from '@repo/ui';
 import { decodeAuthToken, getAuthToken, getDevSites } from '@/lib/api';
 import type { SiteInfo } from '@repo/sdk';
@@ -11,6 +9,20 @@ import { DevPanelLayout } from '@/components/dev-panel/DevPanelLayout';
 
 const PRIVILEGED_ROLES = ['super_admin', 'org_admin', 'site_admin'];
 const PRIVILEGED_PLATFORM_ROLES = ['platform_admin'];
+
+type DevSiteRow = {
+  id: string;
+  name: string;
+  slug: string;
+  plan?: string;
+  createdAt?: string;
+};
+
+type SiteWithCreatedAt = SiteInfo['site'] & { createdAt?: string };
+
+const isSiteInfo = (value: unknown): value is SiteInfo => {
+  return Boolean(value && typeof value === 'object' && 'site' in value && 'siteId' in value);
+};
 
 export default function DevSitesPage() {
   const appProfile = process.env.NEXT_PUBLIC_APP_PROFILE || process.env.NODE_ENV || 'development';
@@ -33,13 +45,14 @@ export default function DevSitesPage() {
     setError(null);
     getDevSites()
       .then((data) => {
-        const normalized: SiteInfo[] = (data as any[]).map((s: any) => {
-          if (s?.site) return s as SiteInfo;
+        const normalized: SiteInfo[] = (Array.isArray(data) ? data : []).map((item) => {
+          if (isSiteInfo(item)) return item;
+          const fallback = item as DevSiteRow;
           return {
-            siteId: s.id,
+            siteId: fallback.id,
             role: 'admin',
-            site: { id: s.id, name: s.name, slug: s.slug, plan: s.plan, createdAt: s.createdAt },
-          } as SiteInfo;
+            site: { id: fallback.id, name: fallback.name, slug: fallback.slug, plan: fallback.plan ?? 'free', createdAt: fallback.createdAt },
+          };
         });
         setSites(normalized);
       })
@@ -118,9 +131,10 @@ export default function DevSitesPage() {
                       <td className="py-2 font-mono text-xs">{site.site.slug}</td>
                       <td className="py-2">{site.site.plan || 'free'}</td>
                       <td className="py-2">
-                        {(site as any)?.site?.createdAt
-                          ? new Date((site as any).site.createdAt).toLocaleString()
-                          : 'N/A'}
+                        {(() => {
+                          const createdAt = (site.site as SiteWithCreatedAt).createdAt;
+                          return createdAt ? new Date(createdAt).toLocaleString() : 'N/A';
+                        })()}
                       </td>
                     </tr>
                   ))}

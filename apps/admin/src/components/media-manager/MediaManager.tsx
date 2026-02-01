@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { Card, EmptyState, LoadingSpinner } from '@repo/ui';
 import { MediaGrid } from './grid/MediaGrid';
 import { MediaSidebar } from './sidebar/MediaSidebar';
@@ -10,6 +10,7 @@ import { MediaFilter, MediaItem, MediaType } from './types';
 import { fetchMySites } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 import { Media } from '@repo/sdk';
+import type { MediaItem as ApiMediaItem } from '@repo/sdk';
 
 function matchesFilter(item: MediaItem, filter: MediaFilter) {
   if (filter === 'all') return true;
@@ -34,7 +35,7 @@ function deriveType(mime: string): MediaType {
   return 'other';
 }
 
-function mapMediaItem(apiItem: any): MediaItem {
+function mapMediaItem(apiItem: ApiMediaItem & { fileName?: string; width?: number; height?: number; path?: string }): MediaItem {
   const mimeType = apiItem.mimeType || '';
   const type = deriveType(mimeType);
   const fileName = apiItem.fileName || apiItem.filename || 'untitled';
@@ -75,6 +76,7 @@ export function MediaManager({ siteSlug }: Props) {
   const [deleting, setDeleting] = useState(false);
   const [selectedId, setSelectedId] = useState<string | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -91,15 +93,15 @@ export function MediaManager({ siteSlug }: Props) {
       mounted = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [siteSlug]); // push is stable, no need to include in dependencies
+  }, [push, siteSlug]);
 
-  const loadMedia = async (siteId: string) => {
+  const loadMedia = useCallback(async (siteId: string) => {
     setLoading(true);
     setError(null);
     try {
       const data = await Media.listMedia(siteId);
       setItems(data.map(mapMediaItem));
-      setSelectedId((prev) => prev && data.some((d) => d.id === prev) ? prev : undefined);
+      setSelectedId((prev) => (prev && data.some((d) => d.id === prev) ? prev : undefined));
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to load media';
       setError(message);
@@ -107,11 +109,11 @@ export function MediaManager({ siteSlug }: Props) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [push]);
 
   useEffect(() => {
     if (siteId) loadMedia(siteId);
-  }, [siteId]);
+  }, [loadMedia, siteId]);
 
   const filteredItems = useMemo(() => {
     const term = searchQuery.trim().toLowerCase();
@@ -138,24 +140,54 @@ export function MediaManager({ siteSlug }: Props) {
 
   const handleUploadClick = () => fileInputRef.current?.click();
 
-  const handleFileChange: React.ChangeEventHandler<HTMLInputElement> = async (event) => {
+  const handleFilesUpload = useCallback(async (files: FileList | File[]) => {
     if (!siteId) return;
-    const file = event.target.files?.[0];
-    if (!file) return;
+    const list = Array.from(files || []);
+    if (list.length === 0) return;
+
     setUploading(true);
     try {
-      const uploaded = await Media.uploadMedia(siteId, file);
-      const mapped = mapMediaItem(uploaded);
-      setItems((prev) => [mapped, ...prev]);
-      setSelectedId(mapped.id);
-      push({ tone: 'success', message: 'File uploaded' });
+      const uploadedItems: MediaItem[] = [];
+      for (const file of list) {
+        const uploaded = await Media.uploadMedia(siteId, file);
+        uploadedItems.push(mapMediaItem(uploaded));
+      }
+      if (uploadedItems.length > 0) {
+        setItems((prev) => [...uploadedItems, ...prev]);
+        setSelectedId(uploadedItems[0].id);
+      }
+      push({ tone: 'success', message: 'Files uploaded' });
     } catch (error) {
       push({ tone: 'error', message: error instanceof Error ? error.message : 'Upload failed' });
     } finally {
       setUploading(false);
-      event.target.value = '';
     }
+  }, [push, siteId]);
+
+  const handleFileChange: React.ChangeEventHandler<HTMLInputElement> = async (event) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+    await handleFilesUpload(files);
+    event.target.value = '';
   };
+
+  const handleDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    if (!uploading) setIsDragOver(true);
+  }, [uploading]);
+
+  const handleDragLeave = useCallback(() => {
+    setIsDragOver(false);
+  }, []);
+
+  const handleDrop = useCallback(async (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    setIsDragOver(false);
+    if (uploading) return;
+    const files = event.dataTransfer?.files;
+    if (!files || files.length === 0) return;
+    await handleFilesUpload(files);
+  }, [handleFilesUpload, uploading]);
 
   const handleDelete = async () => {
     if (!siteId || !selectedItem) return;
@@ -177,7 +209,7 @@ export function MediaManager({ siteSlug }: Props) {
   if (!siteId) {
     return (
       <Card className="p-6">
-        <EmptyState title="Loading site" description="Resolving site access…" />
+        <EmptyState title="Loading site" description="Resolving site access..." />
       </Card>
     );
   }
@@ -188,6 +220,8 @@ export function MediaManager({ siteSlug }: Props) {
         ref={fileInputRef}
         type="file"
         className="hidden"
+        multiple
+        accept="image/*,video/*,application/pdf"
         onChange={handleFileChange}
       />
 
@@ -218,7 +252,15 @@ export function MediaManager({ siteSlug }: Props) {
         )}
 
         {!loading && (
-          <MediaGrid items={filteredItems} selectedId={selectedItem?.id} onSelect={setSelectedId} />
+          <MediaGrid
+            items={filteredItems}
+            selectedId={selectedItem?.id}
+            onSelect={setSelectedId}
+            isDragOver={isDragOver}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+          />
         )}
       </div>
 

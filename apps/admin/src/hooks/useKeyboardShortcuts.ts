@@ -42,6 +42,52 @@ export function useKeyboardShortcuts(options: KeyboardShortcutsOptions = {}) {
   const selectBlock = usePageBuilderStore((state) => state.selectBlock);
   const commit = usePageBuilderStore((state) => state.commit);
   
+  // Navigate between blocks
+  const navigateBlocks = useCallback((direction: 'next' | 'prev') => {
+    const { content, selectedBlockId, selectBlock } = usePageBuilderStore.getState();
+    
+    // Get flat list of block IDs (depth-first)
+    const blockIds: string[] = [];
+    
+    const traverse = (nodeId: string) => {
+      const node = content.nodes[nodeId];
+      if (!node) return;
+      
+      // Skip root
+      if (node.parentId !== null) {
+        blockIds.push(nodeId);
+      }
+      
+      for (const childId of node.childIds) {
+        traverse(childId);
+      }
+    };
+    
+    traverse(content.rootId);
+    
+    if (blockIds.length === 0) return;
+    
+    // Find next/prev
+    if (!selectedBlockId) {
+      selectBlock(direction === 'next' ? blockIds[0] : blockIds[blockIds.length - 1]);
+      return;
+    }
+    
+    const currentIndex = blockIds.indexOf(selectedBlockId);
+    if (currentIndex === -1) {
+      selectBlock(blockIds[0]);
+      return;
+    }
+    
+    let nextIndex = direction === 'next' ? currentIndex + 1 : currentIndex - 1;
+    
+    // Wrap around
+    if (nextIndex < 0) nextIndex = blockIds.length - 1;
+    if (nextIndex >= blockIds.length) nextIndex = 0;
+    
+    selectBlock(blockIds[nextIndex]);
+  }, []);
+  
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     // Skip if disabled or in input/textarea
     if (!enabled) return;
@@ -162,53 +208,8 @@ export function useKeyboardShortcuts(options: KeyboardShortcutsOptions = {}) {
     selectBlock,
     commit,
     onSave,
+    navigateBlocks,
   ]);
-  
-  // Navigate between blocks
-  const navigateBlocks = useCallback((direction: 'next' | 'prev') => {
-    const { content, selectedBlockId, selectBlock } = usePageBuilderStore.getState();
-    
-    // Get flat list of block IDs (depth-first)
-    const blockIds: string[] = [];
-    
-    const traverse = (nodeId: string) => {
-      const node = content.nodes[nodeId];
-      if (!node) return;
-      
-      // Skip root
-      if (node.parentId !== null) {
-        blockIds.push(nodeId);
-      }
-      
-      for (const childId of node.childIds) {
-        traverse(childId);
-      }
-    };
-    
-    traverse(content.rootId);
-    
-    if (blockIds.length === 0) return;
-    
-    // Find next/prev
-    if (!selectedBlockId) {
-      selectBlock(direction === 'next' ? blockIds[0] : blockIds[blockIds.length - 1]);
-      return;
-    }
-    
-    const currentIndex = blockIds.indexOf(selectedBlockId);
-    if (currentIndex === -1) {
-      selectBlock(blockIds[0]);
-      return;
-    }
-    
-    let nextIndex = direction === 'next' ? currentIndex + 1 : currentIndex - 1;
-    
-    // Wrap around
-    if (nextIndex < 0) nextIndex = blockIds.length - 1;
-    if (nextIndex >= blockIds.length) nextIndex = 0;
-    
-    selectBlock(blockIds[nextIndex]);
-  }, []);
   
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown);

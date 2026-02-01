@@ -183,7 +183,7 @@ export class SitesController {
         slug: z.string().min(1).max(100).regex(/^[a-z0-9-]+$/).optional(),
         settings: z.record(z.unknown()).optional(),
       })
-    )) dto: { name?: string; slug?: string; settings?: Record<string, unknown> },
+    )) dto: { name?: string; slug?: string; settings?: Record<string, any> },
   ) {
     // Verify site exists and belongs to organization
     const site = await this.siteService.findById(siteId);

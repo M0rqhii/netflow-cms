@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import {
   decodeAuthToken,
@@ -58,7 +58,7 @@ export default function OrgEffectivePermissionsPage() {
   const [moduleFilter, setModuleFilter] = useState('all');
   const isOwner = useMemo(() => getOwnerFlag(), []);
 
-  const loadBaseData = async () => {
+  const loadBaseData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -75,9 +75,9 @@ export default function OrgEffectivePermissionsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [orgId]);
 
-  const loadEffective = async (userId: string, siteId?: string) => {
+  const loadEffective = useCallback(async (userId: string, siteId?: string) => {
     if (!userId) {
       setEffective([]);
       return;
@@ -94,16 +94,16 @@ export default function OrgEffectivePermissionsPage() {
     } finally {
       setLoadingEffective(false);
     }
-  };
+  }, [orgId, push]);
 
   useEffect(() => {
     if (!orgId) return;
     loadBaseData();
-  }, [orgId]);
+  }, [loadBaseData, orgId]);
 
   useEffect(() => {
     loadEffective(selectedUserId, selectedSiteId);
-  }, [selectedUserId, selectedSiteId]);
+  }, [loadEffective, selectedUserId, selectedSiteId]);
 
   const effectiveMap = useMemo(() => {
     return new Map(effective.map((item) => [item.key, item]));
@@ -139,7 +139,7 @@ export default function OrgEffectivePermissionsPage() {
   };
 
   if (loading) {
-    return <LoadingSpinner text="Loading effective permissions..." />;
+    return <LoadingSpinner text="Wczytywanie efektywnych uprawnień..." />;
   }
 
   if (error) {
@@ -148,7 +148,7 @@ export default function OrgEffectivePermissionsPage() {
         <CardContent>
           <p className="text-red-600">{error}</p>
           <Button variant="outline" className="mt-4" onClick={loadBaseData}>
-            Retry
+            Spróbuj ponownie
           </Button>
         </CardContent>
       </Card>
@@ -161,18 +161,15 @@ export default function OrgEffectivePermissionsPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             Effective permissions
-            <span 
-              className="text-sm text-muted font-normal cursor-help"
-              title="To jest realny dostęp po połączeniu ról organizacji i stron oraz ustawień organizacji."
-            >
-              (ℹ️ Realny dostęp)
-            </span>
+            <span className="text-sm text-muted font-normal">(realny dostęp)</span>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
             <p className="text-sm text-blue-900 dark:text-blue-100">
-              <strong>Jak to działa:</strong> Łączymy role organizacji i stron z ustawieniami organizacji, aby pokazać realny dostęp. Wybierz użytkownika i opcjonalnie stronę, aby zobaczyć wynik.
+              <strong>Jak to działa:</strong> to finalny wynik po połączeniu ról organizacji i ról na stronach oraz polityk organizacji.
+              Zakładka Assignments pokazuje <em>kto ma jakie role</em>, a Effective pokazuje <em>realny dostęp</em> (co użytkownik faktycznie może).
+              Wybierz użytkownika i opcjonalnie stronę, aby zobaczyć wynik.
             </p>
           </div>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -259,13 +256,13 @@ export default function OrgEffectivePermissionsPage() {
                   <tbody>
                     {group.items.map((capability) => {
                       const entry = effectiveMap.get(capability.key);
-                      const allowed = entry?.allowed ?? false;
+                      const allowed = Boolean(entry?.allowed);
                       const policyEnabled = entry?.policyEnabled ?? capability.policyEnabled ?? true;
                       const reason =
                         entry?.reason ||
                         (allowed ? 'Z roli' : policyEnabled ? 'Brak w rolach' : 'Wyłączone w ustawieniach organizacji');
                       return (
-                        <tr key={capability.key} className="border-b border-gray-200 hover:bg-gray-50 transition-colors">
+                        <tr key={capability.key} className="border-b border-border hover:bg-muted/30 transition-colors">
                           <td className="py-3 px-4 align-top">
                             <div className="font-semibold">{capability.label}</div>
                             <div className="text-xs text-muted">{capability.key}</div>

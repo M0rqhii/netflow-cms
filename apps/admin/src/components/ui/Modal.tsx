@@ -17,7 +17,7 @@ export default function Modal({ open, onClose, title, children, className }: Mod
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/30" onClick={onClose} />
       <div className={clsx('relative z-10 w-full max-w-lg card', className)}>
-        <div className="card-body">
+        <div className="card-body max-h-[85vh] overflow-y-auto pr-1">
           {title && <h3 className="text-lg font-semibold mb-3">{title}</h3>}
           {children}
         </div>

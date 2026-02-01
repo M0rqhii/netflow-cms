@@ -19,6 +19,7 @@ export type RbacCanResult = {
 type EvaluationContext = {
   policyMap: Map<string, boolean>;
   roleSourcesByCapability: Map<string, Set<string>>;
+  isSuperAdmin: boolean;
 };
 
 @Injectable()
@@ -41,6 +42,20 @@ export class RbacEvaluatorService {
 
   private async buildContext(orgId: string, userId: string, siteId?: string): Promise<EvaluationContext> {
     const roleSourcesByCapability = new Map<string, Set<string>>();
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        isSuperAdmin: true,
+        systemRole: true,
+        role: true,
+      },
+    });
+
+    const isSuperAdmin =
+      Boolean(user?.isSuperAdmin) ||
+      user?.systemRole === 'super_admin' ||
+      user?.role === 'super_admin';
 
     const where: any = {
       orgId,
@@ -67,31 +82,33 @@ export class RbacEvaluatorService {
       };
     }
 
-    const assignments = await this.prisma.userRole.findMany({
-      where,
-      include: {
-        role: {
-          include: {
-            roleCapabilities: {
-              include: {
-                capability: true,
+    if (!isSuperAdmin) {
+      const assignments = await this.prisma.userRole.findMany({
+        where,
+        include: {
+          role: {
+            include: {
+              roleCapabilities: {
+                include: {
+                  capability: true,
+                },
               },
             },
           },
         },
-      },
-    });
+      });
 
-    for (const assignment of assignments) {
-      const role = assignment.role;
-      const sourceLabel = `${role.name}`;
+      for (const assignment of assignments) {
+        const role = assignment.role;
+        const sourceLabel = `${role.name}`;
 
-      for (const roleCap of role.roleCapabilities) {
-        const key = roleCap.capability.key;
-        if (!roleSourcesByCapability.has(key)) {
-          roleSourcesByCapability.set(key, new Set());
+        for (const roleCap of role.roleCapabilities) {
+          const key = roleCap.capability.key;
+          if (!roleSourcesByCapability.has(key)) {
+            roleSourcesByCapability.set(key, new Set());
+          }
+          roleSourcesByCapability.get(key)?.add(sourceLabel);
         }
-        roleSourcesByCapability.get(key)?.add(sourceLabel);
       }
     }
 
@@ -101,7 +118,7 @@ export class RbacEvaluatorService {
 
     const policyMap = new Map(policies.map(policy => [policy.capabilityKey, policy.enabled]));
 
-    return { policyMap, roleSourcesByCapability };
+    return { policyMap, roleSourcesByCapability, isSuperAdmin };
   }
 
   private evaluateWithContext(capabilityKey: string, context: EvaluationContext): RbacCanResult {
@@ -118,6 +135,15 @@ export class RbacEvaluatorService {
     const roleSources = Array.from(context.roleSourcesByCapability.get(capabilityKey) ?? []).sort();
     const hasRoleCapability = roleSources.length > 0;
     const policyEnabled = context.policyMap.get(capabilityKey) ?? capability.defaultPolicyEnabled;
+
+    if (context.isSuperAdmin) {
+      return {
+        allowed: true,
+        reason: 'allowed',
+        policyEnabled,
+        roleSources: ['Super Admin'],
+      };
+    }
 
     if (!hasRoleCapability) {
       return {

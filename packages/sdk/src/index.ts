@@ -50,6 +50,21 @@ export type SitePage = {
   updatedAt: string;
 };
 
+
+export type SeoSettings = {
+  id: string;
+  siteId: string;
+  title: string | null;
+  description: string | null;
+  ogTitle: string | null;
+  ogDescription: string | null;
+  ogImage: string | null;
+  twitterCard: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+
 export type SiteSnapshot = {
   id: string;
   siteId: string;
@@ -75,6 +90,64 @@ export type SiteDeployment = {
   status: 'success' | 'failed';
   message?: string | null;
   createdAt: string;
+};
+
+export type Pagination = {
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages?: number;
+};
+
+
+export type Subscription = {
+  id: string;
+  siteId: string;
+  plan: string;
+  status: string;
+  currentPeriodStart: string | null;
+  currentPeriodEnd: string | null;
+  site?: { id: string; name: string; slug: string; plan?: string };
+};
+
+export type Invoice = {
+  id: string;
+  siteId: string;
+  subscriptionId: string;
+  invoiceNumber: string;
+  amount: number;
+  currency: string;
+  status: string;
+  createdAt: string;
+  paidAt?: string | null;
+  site?: { id: string; name: string; slug: string };
+  subscription?: { id: string; plan: string; status: string };
+};
+
+export type BillingInfo = {
+  companyName: string | null;
+  nip: string | null;
+  address: string | null;
+};
+
+export type AccountInfo = {
+  id: string;
+  email: string;
+  role: string;
+  orgId?: string;
+  preferredLanguage: string;
+  createdAt: string;
+  updatedAt: string;
+  billingInfo: BillingInfo;
+};
+
+export type DevLogEntry = {
+  id: string;
+  timestamp: string;
+  level: string;
+  module: string;
+  message: string;
+  metadata?: Record<string, unknown>;
 };
 
 export class ApiClient {
@@ -224,19 +297,19 @@ export class ApiClient {
   }
 
   // Billing methods
-  async getSubscriptions(token: string): Promise<{ subscriptions: any[]; pagination: any }> {
-    return this.request<{ subscriptions: any[]; pagination: any }>(`/billing/subscriptions`, {
+  async getSubscriptions(token: string): Promise<{ subscriptions: Subscription[]; pagination: Pagination }> {
+    return this.request<{ subscriptions: Subscription[]; pagination: Pagination }>(`/billing/subscriptions`, {
       method: 'GET',
       headers: { Authorization: `Bearer ${token}` },
     });
   }
 
-  async getInvoices(token: string, page?: number, pageSize?: number): Promise<{ invoices: any[]; pagination: any }> {
+  async getInvoices(token: string, page?: number, pageSize?: number): Promise<{ invoices: Invoice[]; pagination: Pagination }> {
     const params = new URLSearchParams();
     if (page) params.append('page', page.toString());
     if (pageSize) params.append('pageSize', pageSize.toString());
     const query = params.toString() ? `?${params.toString()}` : '';
-    return this.request<{ invoices: any[]; pagination: any }>(`/billing/invoices${query}`, {
+    return this.request<{ invoices: Invoice[]; pagination: Pagination }>(`/billing/invoices${query}`, {
       method: 'GET',
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -250,38 +323,38 @@ export class ApiClient {
   }
 
   // Account methods
-  async getAccount(token: string): Promise<any> {
-    return this.request<any>(`/account`, {
+  async getAccount(token: string): Promise<AccountInfo> {
+    return this.request<AccountInfo>(`/account`, {
       method: 'GET',
       headers: { Authorization: `Bearer ${token}` },
     });
   }
 
-  async updateAccount(token: string, data: { name?: string; preferredLanguage?: 'pl' | 'en' }): Promise<any> {
-    return this.request<any>(`/account`, {
+  async updateAccount(token: string, data: { name?: string; preferredLanguage?: 'pl' | 'en' }): Promise<AccountInfo> {
+    return this.request<AccountInfo>(`/account`, {
       method: 'PATCH',
       headers: { Authorization: `Bearer ${token}` },
       body: JSON.stringify(data),
     });
   }
 
-  async changePassword(token: string, data: { oldPassword: string; newPassword: string }): Promise<any> {
-    return this.request<any>(`/account/password`, {
+  async changePassword(token: string, data: { oldPassword: string; newPassword: string }): Promise<Record<string, unknown>> {
+    return this.request<Record<string, unknown>>(`/account/password`, {
       method: 'PATCH',
       headers: { Authorization: `Bearer ${token}` },
       body: JSON.stringify(data),
     });
   }
 
-  async getBillingInfo(token: string): Promise<any> {
-    return this.request<any>(`/account/billing-info`, {
+  async getBillingInfo(token: string): Promise<BillingInfo> {
+    return this.request<BillingInfo>(`/account/billing-info`, {
       method: 'GET',
       headers: { Authorization: `Bearer ${token}` },
     });
   }
 
-  async updateBillingInfo(token: string, data: { companyName?: string; nip?: string; address?: string }): Promise<any> {
-    return this.request<any>(`/account/billing-info`, {
+  async updateBillingInfo(token: string, data: { companyName?: string; nip?: string; address?: string }): Promise<BillingInfo> {
+    return this.request<BillingInfo>(`/account/billing-info`, {
       method: 'PATCH',
       headers: { Authorization: `Bearer ${token}` },
       body: JSON.stringify(data),
@@ -337,7 +410,7 @@ export class ApiClient {
     });
   }
 
-  async getDevLogs(token: string): Promise<any[]> {
+  async getDevLogs(token: string): Promise<DevLogEntry[]> {
     return this.request(`/dev/logs`, {
       method: 'GET',
       headers: { Authorization: `Bearer ${token}` },
@@ -371,7 +444,7 @@ export class ApiClient {
   }
 
   // Feature flags
-  async isFeatureEnabled(token: string, feature: string): Promise<boolean> {
+  async isPlatformFeatureEnabled(token: string, feature: string): Promise<boolean> {
     const result = await this.request<{ feature: string; enabled: boolean }>(
       `/features/${encodeURIComponent(feature)}`,
       {
@@ -393,7 +466,37 @@ export class ApiClient {
     return result.flags;
   }
 
-  // Billing helpers - Site subscription methods
+  
+  async getSiteSubscription(token: string, siteId: string): Promise<{
+    id: string;
+    siteId: string;
+    plan: string;
+    status: string;
+    currentPeriodStart: string | null;
+    currentPeriodEnd: string | null;
+    createdAt?: string;
+    updatedAt?: string;
+  }> {
+    return this.request(`/billing/site/${encodeURIComponent(siteId)}`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  }
+
+  async getSiteInvoices(
+    token: string,
+    siteId: string,
+    page?: number,
+    pageSize?: number
+  ): Promise<{ invoices: Invoice[]; pagination: Pagination }> {
+    const result = await this.getInvoices(token, page, pageSize);
+    const filtered = Array.isArray(result?.invoices)
+      ? result.invoices.filter((invoice) => invoice?.siteId === siteId || invoice?.site?.id === siteId)
+      : [];
+    return { ...result, invoices: filtered };
+  }
+
+// Billing helpers - Site subscription methods
   async getSiteBilling(token: string, siteId: string): Promise<{
     siteId: string;
     plan: string;
@@ -614,13 +717,6 @@ export class ApiClient {
     });
   }
 
-  async publishPage(token: string, siteId: string, pageId: string): Promise<{
-    deployment: SiteDeployment;
-    pagesPublished: number;
-    pages: SitePage[];
-  }> {
-    return this.publishSite(token, siteId, pageId);
-  }
 
   async listDeployments(
     token: string,
@@ -641,7 +737,26 @@ export class ApiClient {
     return this.get<SiteDeployment | null>(`/site-panel/${encodeURIComponent(siteId)}/deployments/latest${query}`, token);
   }
 
-  // Feature Flags
+  
+  // Site Module Config
+  async getSiteModuleConfig(token: string, siteId: string): Promise<{ modules: Record<string, any> }> {
+    return this.get<{ modules: Record<string, any> }>(`/site-panel/${encodeURIComponent(siteId)}/modules/config`, token);
+  }
+
+  async updateSiteModuleConfig(
+    token: string,
+    siteId: string,
+    moduleKey: string,
+    config: Record<string, any>
+  ): Promise<{ modules: Record<string, any> }> {
+    return this.request<{ modules: Record<string, any> }>(`/site-panel/${encodeURIComponent(siteId)}/modules/config`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ moduleKey, config }),
+    });
+  }
+
+// Feature Flags
   async getSiteFeatures(token: string, siteId: string): Promise<{
     plan: string;
     planFeatures: string[];
@@ -708,3 +823,5 @@ export function createApiClient(): ApiClient {
 }
 
 export * as Media from './media';
+
+

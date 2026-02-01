@@ -13,7 +13,6 @@ type DynamicFormFieldProps = {
   value: unknown;
   onChange: (value: unknown) => void;
   error?: string;
-  availableContentTypes?: Array<{ id: string; name: string; slug: string }>;
   onLoadRelations?: (contentTypeSlug: string) => Promise<Array<{ id: string; [key: string]: unknown }>>;
 };
 
@@ -22,7 +21,6 @@ export default function DynamicFormField({
   value,
   onChange,
   error,
-  availableContentTypes = [],
   onLoadRelations,
 }: DynamicFormFieldProps) {
   const [relationOptions, setRelationOptions] = useState<Array<{ id: string; [key: string]: unknown }>>([]);
@@ -33,7 +31,7 @@ export default function DynamicFormField({
       setLoadingRelations(true);
       onLoadRelations(field.relationType)
         .then(setRelationOptions)
-        .catch((error) => {
+        .catch((_error) => {
           // Silently handle relation loading errors
           // The field will just show empty options
         })
@@ -157,7 +155,7 @@ export default function DynamicFormField({
           >
             {!field.required && <option value="">— Select —</option>}
             {relationOptions.map((item) => {
-              const displayValue = item.title || item.name || item.id;
+              const displayValue = String(item.title ?? item.name ?? item.id);
               return (
                 <option key={item.id} value={item.id}>
                   {displayValue}
@@ -197,7 +195,7 @@ export default function DynamicFormField({
               placeholder="Media URL or ID"
               required={field.required}
             />
-            {value && (
+            {(value !== undefined && value !== null && String(value) !== '') && (
               <div className="mt-2">
                 {/* Could add media picker here */}
                 <a href={String(value)} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline">

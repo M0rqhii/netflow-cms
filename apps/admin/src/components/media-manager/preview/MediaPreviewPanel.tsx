@@ -1,4 +1,5 @@
 import React from 'react';
+import Image from 'next/image';
 import { Button, EmptyState } from '@repo/ui';
 import { MediaItem } from '../types';
 
@@ -23,7 +24,7 @@ export function MediaPreviewPanel({ item, onDelete }: MediaPreviewPanelProps) {
       <div className="aspect-video w-full overflow-hidden rounded-lg border border-gray-200 bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
         {isImage ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={item.url} alt={item.alt || item.fileName} className="h-full w-full object-contain" />
+          <Image src={item.url} alt={item.alt || item.fileName} className="h-full w-full object-contain" width={320} height={240} sizes="320px" unoptimized />
         ) : (
           <div className="text-sm text-muted">
             {item.extension.toUpperCase()} preview not available

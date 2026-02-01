@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
-// @ts-ignore - GraphQL packages not installed yet
+// @ts-expect-error - GraphQL packages not installed yet
 import { GraphQLModule as NestGraphQLModule } from '@nestjs/graphql';
-// @ts-ignore - GraphQL packages not installed yet
+// @ts-expect-error - GraphQL packages not installed yet
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { join } from 'path';
 import { AuthModule } from '../../common/auth/auth.module';
@@ -31,4 +31,5 @@ import { AuthModule } from '../../common/auth/auth.module';
   exports: [NestGraphQLModule],
 })
 export class GraphQLModule {}
+
 

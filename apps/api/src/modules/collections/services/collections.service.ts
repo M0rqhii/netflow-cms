@@ -50,7 +50,7 @@ export class CollectionsService {
       await this.cache.del(`collections:${siteId}:list`);
 
       return result;
-    } catch (e: unknown) {
+    } catch (e: any) {
       if (e && typeof e === 'object' && 'code' in e && e.code === 'P2002') {
         throw new ConflictException('Collection slug already exists for this site');
       }

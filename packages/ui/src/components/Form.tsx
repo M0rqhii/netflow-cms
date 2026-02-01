@@ -31,7 +31,7 @@ export interface FormField {
 }
 
 export interface FormProps {
-  schema: z.ZodObject<any>;
+  schema: z.ZodObject<Record<string, z.ZodTypeAny>>;
   fields: FormField[];
   onSubmit: (data: Record<string, unknown>) => void | Promise<void>;
   defaultValues?: Record<string, unknown>;
@@ -94,6 +94,7 @@ export const Form: React.FC<FormProps> = ({
       helperText: field.helperText,
       ...field.props,
     };
+    const { id: fieldId, ...inputProps } = commonProps;
 
     switch (field.type) {
       case 'textarea':
@@ -126,11 +127,11 @@ export const Form: React.FC<FormProps> = ({
           <div key={field.name} className="flex items-center space-x-2">
             <input
               type="checkbox"
-              id={field.name}
+              id={fieldId}
               checked={Boolean(value)}
               onChange={(e) => handleChange(field.name, e.target.checked)}
               className="h-4 w-4 rounded border-border text-primary focus:ring-ring"
-              {...commonProps}
+              {...inputProps}
             />
             <label htmlFor={field.name} className="text-sm font-medium text-foreground">
               {field.label}

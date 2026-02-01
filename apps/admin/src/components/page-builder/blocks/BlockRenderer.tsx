@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Block Renderer Component
  * 
  * Dynamicznie renderuje blok na podstawie typu.
@@ -8,26 +8,33 @@
 import React, { memo, useMemo } from 'react';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 import { useBlockNode, useIsBlockSelected, usePageBuilderStore } from '@/stores/page-builder-store';
+import { useEnabledModules } from '../PageBuilderContext';
 import { blockRegistry } from '@/lib/page-builder/block-registry';
 import { BlockWrapper } from './BlockWrapper';
 import { UnknownBlock } from './UnknownBlock';
+import { ModuleDisabledBlock } from './ModuleDisabledBlock';
 import type { DragDataExistingNode } from '@/lib/page-builder/dnd-utils';
 import styles from './BlockRenderer.module.css';
 
 type BlockRendererProps = {
   nodeId: string;
   isPreview?: boolean;
+  isStructure?: boolean;
 };
 
-export const BlockRenderer: React.FC<BlockRendererProps> = memo(({ nodeId, isPreview = false }) => {
+export const BlockRenderer: React.FC<BlockRendererProps> = memo(({ nodeId, isPreview = false, isStructure = false }) => {
   const node = useBlockNode(nodeId);
   const isSelected = useIsBlockSelected(nodeId);
   const selectBlock = usePageBuilderStore((state) => state.selectBlock);
+  const enabledModules = useEnabledModules();
   
   // Get block definition
   const definition = useMemo(() => {
     return node ? blockRegistry.getBlock(node.type) : null;
-  }, [node?.type]);
+  }, [node]);
+
+  const moduleKey = definition?.moduleKey;
+  const moduleDisabled = Boolean(moduleKey && !enabledModules.includes(moduleKey));
   
   // Draggable setup
   const dragData: DragDataExistingNode = useMemo(() => ({
@@ -44,11 +51,11 @@ export const BlockRenderer: React.FC<BlockRendererProps> = memo(({ nodeId, isPre
   } = useDraggable({
     id: nodeId,
     data: dragData,
-    disabled: isPreview || node?.meta?.locked,
+    disabled: isPreview || node?.meta?.locked || moduleDisabled,
   });
   
   // Droppable setup (for container blocks)
-  const canHaveChildren = definition?.canHaveChildren ?? false;
+  const canHaveChildren = definition?.canHaveChildren && !moduleDisabled ? true : false;
   
   const {
     setNodeRef: setDropRef,
@@ -83,6 +90,7 @@ export const BlockRenderer: React.FC<BlockRendererProps> = memo(({ nodeId, isPre
         nodeId={nodeId}
         isSelected={isSelected}
         isPreview={isPreview}
+        isStructure={isStructure}
         isDragging={isDragging}
         dragAttributes={dragAttributes}
         dragListeners={dragListeners}
@@ -94,6 +102,25 @@ export const BlockRenderer: React.FC<BlockRendererProps> = memo(({ nodeId, isPre
     );
   }
   
+  if (definition && moduleDisabled) {
+    return (
+      <BlockWrapper
+        nodeId={nodeId}
+        isSelected={isSelected}
+        isPreview={isPreview}
+        isStructure={isStructure}
+        isDragging={isDragging}
+        isLocked
+        dragAttributes={dragAttributes}
+        dragListeners={dragListeners}
+        setDragRef={setDragRef}
+        onClick={handleClick}
+      >
+        <ModuleDisabledBlock moduleKey={moduleKey!} blockLabel={definition.title} />
+      </BlockWrapper>
+    );
+  }
+
   // Get component
   const BlockComponent = definition.component;
   
@@ -109,11 +136,12 @@ export const BlockRenderer: React.FC<BlockRendererProps> = memo(({ nodeId, isPre
           key={childId}
           nodeId={childId}
           isPreview={isPreview}
+          isStructure={isStructure}
         />
       ))}
       {node.childIds.length === 0 && !isPreview && (
         <div className={styles.emptyPlaceholder}>
-          Drop blocks here
+          Upu�� blok tutaj
         </div>
       )}
     </div>
@@ -124,6 +152,7 @@ export const BlockRenderer: React.FC<BlockRendererProps> = memo(({ nodeId, isPre
       nodeId={nodeId}
       isSelected={isSelected}
       isPreview={isPreview}
+      isStructure={isStructure}
       isDragging={isDragging}
       isLocked={node.meta?.locked}
       dragAttributes={dragAttributes}
@@ -135,6 +164,7 @@ export const BlockRenderer: React.FC<BlockRendererProps> = memo(({ nodeId, isPre
         node={node}
         isSelected={isSelected}
         isPreview={isPreview}
+        isStructure={isStructure}
       >
         {children}
       </BlockComponent>
@@ -145,3 +175,5 @@ export const BlockRenderer: React.FC<BlockRendererProps> = memo(({ nodeId, isPre
 BlockRenderer.displayName = 'BlockRenderer';
 
 export default BlockRenderer;
+
+

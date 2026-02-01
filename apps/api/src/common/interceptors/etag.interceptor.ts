@@ -13,16 +13,16 @@ import { map } from 'rxjs/operators';
  */
 @Injectable()
 export class ETagInterceptor implements NestInterceptor {
-  intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
+  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     return next.handle().pipe(
-      map((data: unknown) => {
+      map((data: any) => {
         // Jeśli response zawiera CollectionItem z etag, ustaw header
         if (
           data &&
           typeof data === 'object' &&
           data !== null &&
           'etag' in data &&
-          typeof (data as { etag?: unknown }).etag === 'string'
+          typeof (data as { etag?: any }).etag === 'string'
         ) {
           const response = context.switchToHttp().getResponse();
           response.setHeader('ETag', (data as { etag: string }).etag);

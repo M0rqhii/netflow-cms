@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import clsx from 'clsx';
 import {
@@ -33,6 +33,17 @@ const DANGEROUS_CAPABILITY_KEYS = new Set([
   'domains.dns.manage',
   'marketing.ads.manage',
 ]);
+
+function getRiskTone(riskLevel?: string | null, isDangerous?: boolean) {
+  if (isDangerous) return { tone: 'error' as const, label: 'Dangerous' };
+  const normalized = String(riskLevel ?? '').toUpperCase();
+  if (normalized === 'LOW') return { tone: 'success' as const, label: 'Low' };
+  if (normalized === 'MED' || normalized === 'MEDIUM') return { tone: 'warning' as const, label: 'Medium' };
+  if (normalized === 'HIGH' || normalized === 'DANGEROUS' || normalized === 'CRITICAL') {
+    return { tone: 'error' as const, label: 'Dangerous' };
+  }
+  return { tone: 'default' as const, label: normalized || 'Unknown' };
+}
 
 function getOwnerFlag(): boolean {
   const payload = decodeAuthToken(getAuthToken());
@@ -84,7 +95,7 @@ export default function OrgPoliciesPage() {
 
   const isOwner = useMemo(() => getOwnerFlag(), []);
 
-  const loadCapabilities = async () => {
+  const loadCapabilities = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -95,12 +106,12 @@ export default function OrgPoliciesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [orgId]);
 
   useEffect(() => {
     if (!orgId) return;
     loadCapabilities();
-  }, [orgId]);
+  }, [loadCapabilities, orgId]);
 
   const filteredCapabilities = useMemo(() => {
     return capabilities.filter((capability) => {
@@ -216,7 +227,7 @@ export default function OrgPoliciesPage() {
                       const policyEnabled = capability.policyEnabled ?? true;
                       const toggleDisabled = !capability.canBePolicyControlled || updatingKey === capability.key;
                       return (
-                        <tr key={capability.key} className="border-b border-gray-200 hover:bg-gray-50 transition-colors">
+                        <tr key={capability.key} className="border-b border-border hover:bg-muted/30 transition-colors">
                           <td className="py-3 px-4 align-top">
                             <div className="font-semibold text-foreground flex items-center gap-2">
                               {capability.label}
@@ -242,11 +253,10 @@ export default function OrgPoliciesPage() {
                             </div>
                           </td>
                           <td className="py-3 px-4 align-top">
-                            {capability.isDangerous || DANGEROUS_CAPABILITY_KEYS.has(capability.key) ? (
-                              <Badge tone="warning">Dangerous</Badge>
-                            ) : (
-                              <Badge tone="default">{capability.riskLevel}</Badge>
-                            )}
+                            {(() => {
+                              const risk = getRiskTone(capability.riskLevel, capability.isDangerous || DANGEROUS_CAPABILITY_KEYS.has(capability.key));
+                              return <Badge tone={risk.tone}>{risk.label}</Badge>;
+                            })()}
                           </td>
                         </tr>
                       );

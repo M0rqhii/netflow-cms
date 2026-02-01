@@ -32,6 +32,9 @@ describe('RbacController effective endpoint', () => {
     orgPolicy: {
       findMany: jest.fn(),
     },
+    user: {
+      findUnique: jest.fn(),
+    },
   };
 
   beforeEach(async () => {
@@ -64,6 +67,7 @@ describe('RbacController effective endpoint', () => {
   });
 
   it('returns effective capabilities with reasons', async () => {
+    mockPrismaService.user.findUnique.mockResolvedValue({ isSuperAdmin: false, systemRole: null, role: 'viewer' });
     mockPrismaService.userRole.findMany.mockResolvedValue([
       {
         role: {

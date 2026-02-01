@@ -16,7 +16,6 @@ import styles from './SectionBlock.module.css';
 export const SectionBlock: React.FC<BlockComponentProps> = ({ 
   node, 
   children,
-  isPreview,
 }) => {
   const breakpoint = useCurrentBreakpoint();
   

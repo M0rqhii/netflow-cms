@@ -1,4 +1,4 @@
-/**
+﻿/**
  * AccordionBlock Component
  * 
  * Blok akordeon z item nodes pattern.
@@ -100,7 +100,7 @@ export const AccordionBlock: React.FC<BlockComponentProps> = ({
         );
       })}
       
-      {/* Add item button (edit mode only) */}
+      {/* Dodaj element button (edit mode only) */}
       {!isPreview && (
         <button
           className={styles.addItemBtn}
@@ -108,13 +108,13 @@ export const AccordionBlock: React.FC<BlockComponentProps> = ({
           type="button"
         >
           <FiPlus />
-          <span>Add item</span>
+          <span>Dodaj element</span>
         </button>
       )}
       
       {childIds.length === 0 && (
         <div className={styles.emptyState}>
-          <p>No items yet. Click to add an item.</p>
+          <p>Brak element�w. Kliknij, aby doda� element.</p>
         </div>
       )}
     </div>
@@ -122,3 +122,5 @@ export const AccordionBlock: React.FC<BlockComponentProps> = ({
 };
 
 export default AccordionBlock;
+
+

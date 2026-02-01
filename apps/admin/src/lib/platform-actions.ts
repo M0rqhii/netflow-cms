@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import { createApiClient, type SiteInfo } from '@repo/sdk';
+import { type SiteInfo } from '@repo/sdk';
 import {
   fetchMySites,
   createSite as createSiteRequest,
@@ -18,7 +18,6 @@ import {
   type UserSummary,
   type ActivityItem,
   type QuickStats,
-  getAuthToken,
 } from '@/lib/api';
 
 export type { SiteInfo } from '@repo/sdk';
@@ -29,7 +28,6 @@ export type AccountDetails = Awaited<ReturnType<typeof getAccountRequest>>;
 
 type SiteIdentifier = string | SiteInfo;
 
-const apiClient = createApiClient();
 
 async function resolveSite(identifier: SiteIdentifier, sitesCache?: SiteInfo[]): Promise<SiteInfo> {
   if (typeof identifier !== 'string') return identifier;
@@ -40,17 +38,6 @@ async function resolveSite(identifier: SiteIdentifier, sitesCache?: SiteInfo[]):
 
   const bySlug = sites.find((site) => site.site.slug === identifier);
   if (bySlug) return bySlug;
-
-  const token = getAuthToken();
-  if (token) {
-    try {
-      const resolved = await apiClient.resolveSite(token, identifier);
-      return { siteId: resolved.id, role: 'viewer', site: resolved };
-    } catch {
-      // fallback handled below
-    }
-  }
-
   throw new Error('Site not found or unavailable for current user.');
 }
 

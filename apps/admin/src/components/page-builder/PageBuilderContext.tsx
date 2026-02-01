@@ -18,6 +18,8 @@ interface PageBuilderContextValue {
   siteSlug?: string;
   /** Czy page builder jest w trybie read-only */
   readOnly?: boolean;
+  /** Enabled module keys for gating */
+  enabledModules?: string[];
 }
 
 interface PageBuilderProviderProps {
@@ -25,6 +27,7 @@ interface PageBuilderProviderProps {
   siteId: string;
   siteSlug?: string;
   readOnly?: boolean;
+  enabledModules?: string[];
 }
 
 // =============================================================================
@@ -42,14 +45,16 @@ export function PageBuilderProvider({
   siteId,
   siteSlug,
   readOnly = false,
+  enabledModules = [],
 }: PageBuilderProviderProps) {
   const value = useMemo(
     () => ({
       siteId,
       siteSlug,
       readOnly,
+      enabledModules,
     }),
-    [siteId, siteSlug, readOnly]
+    [siteId, siteSlug, readOnly, enabledModules]
   );
 
   return (
@@ -95,6 +100,11 @@ export function useSiteId(): string {
 export function useIsReadOnly(): boolean {
   const { readOnly } = usePageBuilderContext();
   return readOnly ?? false;
+}
+
+export function useEnabledModules(): string[] {
+  const { enabledModules } = usePageBuilderContext();
+  return enabledModules ?? [];
 }
 
 export default PageBuilderContext;

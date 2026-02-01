@@ -57,6 +57,8 @@ export function PageBuilderCanvas({ content, onContentChange }: PageBuilderCanva
   
   const currentBreakpoint = useCurrentBreakpoint();
   const mode = useEditorMode();
+  const isPreview = mode === 'preview';
+  const isStructure = mode === 'structure';
   const rootChildren = useBlockChildren(storeContent.rootId);
   
   // Register blocks on mount
@@ -140,11 +142,18 @@ export function PageBuilderCanvas({ content, onContentChange }: PageBuilderCanva
   
   return (
     <div className={styles.canvasContainer}>
+      {currentBreakpoint !== 'desktop' && !isPreview && (
+        <div className={styles.breakpointNotice}>
+          Zmiany struktury wpływają na wszystkie breakpointy.
+        </div>
+      )}
+
       <div
         ref={setCanvasRef}
         className={cn(
           styles.canvas,
-          mode === 'preview' && styles.previewMode,
+          isPreview && styles.previewMode,
+          isStructure && styles.structureMode,
           isOverCanvas && styles.isOver
         )}
         style={{ maxWidth: canvasWidth }}
@@ -155,7 +164,7 @@ export function PageBuilderCanvas({ content, onContentChange }: PageBuilderCanva
         ) : (
           <div className={styles.blocksContainer}>
             {rootChildren.map((childId) => (
-              <BlockRenderer key={childId} nodeId={childId} />
+              <BlockRenderer key={childId} nodeId={childId} isPreview={isPreview} isStructure={isStructure} />
             ))}
           </div>
         )}

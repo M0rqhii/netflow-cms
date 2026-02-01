@@ -1,0 +1,2044 @@
+(node:4340) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+[96msrc/common/audit/audit.interceptor.ts[0m:[93m47[0m:[93m18[0m - [91merror[0m[90m TS18046: [0m'request' is of type 'unknown'.
+
+[7m47[0m     const path = request.path;
+[7m  [0m [91m                 ~~~~~~~[0m
+[96msrc/common/audit/audit.interceptor.ts[0m:[93m48[0m:[93m20[0m - [91merror[0m[90m TS18046: [0m'request' is of type 'unknown'.
+
+[7m48[0m     const method = request.method;
+[7m  [0m [91m                   ~~~~~~~[0m
+[96msrc/common/audit/audit.interceptor.ts[0m:[93m77[0m:[93m36[0m - [91merror[0m[90m TS18046: [0m'request' is of type 'unknown'.
+
+[7m77[0m     if (path.includes('/site-') || request.headers['x-site-id'] || request.siteId) {
+[7m  [0m [91m                                   ~~~~~~~[0m
+[96msrc/common/audit/audit.interceptor.ts[0m:[93m77[0m:[93m68[0m - [91merror[0m[90m TS18046: [0m'request' is of type 'unknown'.
+
+[7m77[0m     if (path.includes('/site-') || request.headers['x-site-id'] || request.siteId) {
+[7m  [0m [91m                                                                   ~~~~~~~[0m
+[96msrc/common/cache/cache.decorator.ts[0m:[93m15[0m:[93m33[0m - [91merror[0m[90m TS2345: [0mArgument of type 'unknown' is not assignable to parameter of type 'Object'.
+
+[7m15[0m     SetMetadata(CACHE_TTL, ttl)(target, propertyKey, descriptor);
+[7m  [0m [91m                                ~~~~~~[0m
+[96msrc/common/cache/cache.decorator.ts[0m:[93m17[0m:[93m35[0m - [91merror[0m[90m TS2345: [0mArgument of type 'unknown' is not assignable to parameter of type 'Object'.
+
+[7m17[0m       SetMetadata(CACHE_KEY, key)(target, propertyKey, descriptor);
+[7m  [0m [91m                                  ~~~~~~[0m
+[96msrc/common/cache/cache.interceptor.ts[0m:[93m74[0m:[93m35[0m - [91merror[0m[90m TS18046: [0m'request' is of type 'unknown'.
+
+[7m74[0m     const params = JSON.stringify(request.params || {});
+[7m  [0m [91m                                  ~~~~~~~[0m
+[96msrc/common/cache/cache.interceptor.ts[0m:[93m75[0m:[93m34[0m - [91merror[0m[90m TS18046: [0m'request' is of type 'unknown'.
+
+[7m75[0m     const query = JSON.stringify(request.query || {});
+[7m  [0m [91m                                 ~~~~~~~[0m
+[96msrc/common/cache/cache.interceptor.ts[0m:[93m76[0m:[93m21[0m - [91merror[0m[90m TS18046: [0m'request' is of type 'unknown'.
+
+[7m76[0m     const scopeId = request.siteId || request.orgId || 'global';
+[7m  [0m [91m                    ~~~~~~~[0m
+[96msrc/common/cache/cache.interceptor.ts[0m:[93m76[0m:[93m39[0m - [91merror[0m[90m TS18046: [0m'request' is of type 'unknown'.
+
+[7m76[0m     const scopeId = request.siteId || request.orgId || 'global';
+[7m  [0m [91m                                      ~~~~~~~[0m
+[96msrc/common/filters/http-exception.filter.ts[0m:[93m50[0m:[93m19[0m - [91merror[0m[90m TS18046: [0m'responseObj' is of type 'unknown'.
+
+[7m50[0m         message = responseObj.message || message;
+[7m  [0m [91m                  ~~~~~~~~~~~[0m
+[96msrc/common/filters/http-exception.filter.ts[0m:[93m51[0m:[93m17[0m - [91merror[0m[90m TS18046: [0m'responseObj' is of type 'unknown'.
+
+[7m51[0m         error = responseObj.error || null;
+[7m  [0m [91m                ~~~~~~~~~~~[0m
+[96msrc/common/filters/http-exception.filter.ts[0m:[93m53[0m:[93m13[0m - [91merror[0m[90m TS18046: [0m'responseObj' is of type 'unknown'.
+
+[7m53[0m         if (responseObj.errors) {
+[7m  [0m [91m            ~~~~~~~~~~~[0m
+[96msrc/common/filters/http-exception.filter.ts[0m:[93m54[0m:[93m21[0m - [91merror[0m[90m TS18046: [0m'responseObj' is of type 'unknown'.
+
+[7m54[0m           details = responseObj.errors;
+[7m  [0m [91m                    ~~~~~~~~~~~[0m
+[96msrc/common/filters/http-exception.filter.ts[0m:[93m55[0m:[93m20[0m - [91merror[0m[90m TS18046: [0m'responseObj' is of type 'unknown'.
+
+[7m55[0m         } else if (responseObj.details) {
+[7m  [0m [91m                   ~~~~~~~~~~~[0m
+[96msrc/common/filters/http-exception.filter.ts[0m:[93m56[0m:[93m21[0m - [91merror[0m[90m TS18046: [0m'responseObj' is of type 'unknown'.
+
+[7m56[0m           details = responseObj.details;
+[7m  [0m [91m                    ~~~~~~~~~~~[0m
+[96msrc/common/filters/http-exception.filter.ts[0m:[93m96[0m:[93m7[0m - [91merror[0m[90m TS18046: [0m'responseBody' is of type 'unknown'.
+
+[7m96[0m       responseBody.error = error;
+[7m  [0m [91m      ~~~~~~~~~~~~[0m
+[96msrc/common/filters/http-exception.filter.ts[0m:[93m101[0m:[93m7[0m - [91merror[0m[90m TS18046: [0m'responseBody' is of type 'unknown'.
+
+[7m101[0m       responseBody.details = details;
+[7m   [0m [91m      ~~~~~~~~~~~~[0m
+[96msrc/common/filters/http-exception.filter.ts[0m:[93m106[0m:[93m7[0m - [91merror[0m[90m TS18046: [0m'responseBody' is of type 'unknown'.
+
+[7m106[0m       responseBody.request = {
+[7m   [0m [91m      ~~~~~~~~~~~~[0m
+[96msrc/common/filters/http-exception.filter.ts[0m:[93m148[0m:[93m47[0m - [91merror[0m[90m TS2769: [0mNo overload matches this call.
+  Overload 1 of 2, '(o: { [s: string]: unknown; } | ArrayLike<unknown>): [string, unknown][]', gave the following error.
+    Argument of type 'unknown' is not assignable to parameter of type '{ [s: string]: unknown; } | ArrayLike<unknown>'.
+  Overload 2 of 2, '(o: {}): [string, any][]', gave the following error.
+    Argument of type 'unknown' is not assignable to parameter of type '{}'.
+
+[7m148[0m     for (const [key, value] of Object.entries(headers)) {
+[7m   [0m [91m                                              ~~~~~~~[0m
+
+[96msrc/common/filters/http-exception.filter.ts[0m:[93m172[0m:[93m9[0m - [91merror[0m[90m TS7053: [0mElement implicitly has an 'any' type because expression of type 'string' can't be used to index type '{}'.
+  No index signature with a parameter of type 'string' was found on type '{}'.
+
+[7m172[0m         sanitized[key] = '[REDACTED]';
+[7m   [0m [91m        ~~~~~~~~~~~~~~[0m
+[96msrc/common/logging/trace-id.middleware.ts[0m:[93m25[0m:[93m5[0m - [91merror[0m[90m TS2571: [0mObject is of type 'unknown'.
+
+[7m25[0m     (req as unknown).traceId = traceId;
+[7m  [0m [91m    ~~~~~~~~~~~~~~~~[0m
+[96msrc/common/monitoring/monitoring.interceptor.ts[0m:[93m36[0m:[93m40[0m - [91merror[0m[90m TS2339: [0mProperty 'statusCode' does not exist on type '{}'.
+
+[7m36[0m           const statusCode = response?.statusCode || 200;
+[7m  [0m [91m                                       ~~~~~~~~~~[0m
+[96msrc/common/prisma/prisma.service.ts[0m:[93m35[0m:[93m15[0m - [91merror[0m[90m TS2345: [0mArgument of type '(params: unknown, next: (params: unknown) => Promise<unknown>) => Promise<unknown>' is not assignable to parameter of type 'Middleware<any>'.
+  Types of parameters 'next' and 'next' are incompatible.
+    Types of parameters 'params' and 'params' are incompatible.
+      Type 'unknown' is not assignable to type 'MiddlewareParams'.
+
+[7m35[0m     this.$use(async (params: unknown, next: (params: unknown) => Promise<unknown>) => {
+[7m  [0m [91m              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+[96msrc/common/prisma/prisma.service.ts[0m:[93m48[0m:[93m11[0m - [91merror[0m[90m TS18046: [0m'params' is of type 'unknown'.
+
+[7m48[0m       if (params.model === 'CollectionItem') {
+[7m  [0m [91m          ~~~~~~[0m
+[96msrc/common/prisma/prisma.service.ts[0m:[93m49[0m:[93m13[0m - [91merror[0m[90m TS18046: [0m'params' is of type 'unknown'.
+
+[7m49[0m         if (params.action === 'create') {
+[7m  [0m [91m            ~~~~~~[0m
+[96msrc/common/prisma/prisma.service.ts[0m:[93m50[0m:[93m29[0m - [91merror[0m[90m TS18046: [0m'params' is of type 'unknown'.
+
+[7m50[0m           const incoming = (params.args?.data ?? {}) as {
+[7m  [0m [91m                            ~~~~~~[0m
+[96msrc/common/prisma/prisma.service.ts[0m:[93m56[0m:[93m11[0m - [91merror[0m[90m TS18046: [0m'params' is of type 'unknown'.
+
+[7m56[0m           params.args.data = { ...incoming, etag };
+[7m  [0m [91m          ~~~~~~[0m
+[96msrc/common/prisma/prisma.service.ts[0m:[93m57[0m:[93m20[0m - [91merror[0m[90m TS18046: [0m'params' is of type 'unknown'.
+
+[7m57[0m         } else if (params.action === 'update') {
+[7m  [0m [91m                   ~~~~~~[0m
+[96msrc/common/prisma/prisma.service.ts[0m:[93m58[0m:[93m26[0m - [91merror[0m[90m TS18046: [0m'params' is of type 'unknown'.
+
+[7m58[0m           const where = (params.args?.where ?? {}) as { id?: string };
+[7m  [0m [91m                         ~~~~~~[0m
+[96msrc/common/prisma/prisma.service.ts[0m:[93m59[0m:[93m26[0m - [91merror[0m[90m TS18046: [0m'params' is of type 'unknown'.
+
+[7m59[0m           const patch = (params.args?.data ?? {}) as {
+[7m  [0m [91m                         ~~~~~~[0m
+[96msrc/common/prisma/prisma.service.ts[0m:[93m81[0m:[93m11[0m - [91merror[0m[90m TS18046: [0m'params' is of type 'unknown'.
+
+[7m81[0m           params.args.data = { ...patch, etag };
+[7m  [0m [91m          ~~~~~~[0m
+[96msrc/common/prisma/prisma.service.ts[0m:[93m82[0m:[93m20[0m - [91merror[0m[90m TS18046: [0m'params' is of type 'unknown'.
+
+[7m82[0m         } else if (params.action === 'upsert') {
+[7m  [0m [91m                   ~~~~~~[0m
+[96msrc/common/prisma/prisma.service.ts[0m:[93m83[0m:[93m28[0m - [91merror[0m[90m TS18046: [0m'params' is of type 'unknown'.
+
+[7m83[0m           const upWhere = (params.args?.where ?? {}) as { id?: string };
+[7m  [0m [91m                           ~~~~~~[0m
+[96msrc/common/prisma/prisma.service.ts[0m:[93m84[0m:[93m27[0m - [91merror[0m[90m TS18046: [0m'params' is of type 'unknown'.
+
+[7m84[0m           const create = (params.args?.create ?? {}) as {
+[7m  [0m [91m                          ~~~~~~[0m
+[96msrc/common/prisma/prisma.service.ts[0m:[93m89[0m:[93m27[0m - [91merror[0m[90m TS18046: [0m'params' is of type 'unknown'.
+
+[7m89[0m           const update = (params.args?.update ?? {}) as {
+[7m  [0m [91m                          ~~~~~~[0m
+[96msrc/common/prisma/prisma.service.ts[0m:[93m97[0m:[93m11[0m - [91merror[0m[90m TS18046: [0m'params' is of type 'unknown'.
+
+[7m97[0m           params.args.create = { ...create, etag: createEtag };
+[7m  [0m [91m          ~~~~~~[0m
+[96msrc/common/prisma/prisma.service.ts[0m:[93m114[0m:[93m11[0m - [91merror[0m[90m TS18046: [0m'params' is of type 'unknown'.
+
+[7m114[0m           params.args.update = { ...update, etag: updateEtag };
+[7m   [0m [91m          ~~~~~~[0m
+[96msrc/common/providers/implementations/dev-domain-provider.service.ts[0m:[93m37[0m:[93m11[0m - [91merror[0m[90m TS2322: [0mType 'Record<string, unknown>' is not assignable to type 'JsonNull | InputJsonValue | undefined'.
+  Type 'Record<string, unknown>' is missing the following properties from type 'readonly (InputJsonValue | null)[]': length, concat, join, slice, and 20 more.
+
+[7m37[0m           metadata: params.metadata || {},
+[7m  [0m [91m          ~~~~~~~~[0m
+
+  [96m../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/.prisma/client/index.d.ts[0m:[93m55505[0m:[93m5[0m
+    [7m55505[0m     metadata?: JsonNullValueInput | InputJsonValue
+    [7m     [0m [96m    ~~~~~~~~[0m
+    The expected type comes from property 'metadata' which is declared here on type '(Without<DevDomainRecordUpdateInput, DevDomainRecordUncheckedUpdateInput> & DevDomainRecordUncheckedUpdateInput) | (Without<...> & DevDomainRecordUpdateInput)'
+[96msrc/common/providers/implementations/dev-domain-provider.service.ts[0m:[93m46[0m:[93m11[0m - [91merror[0m[90m TS2322: [0mType 'Record<string, unknown>' is not assignable to type 'JsonNull | InputJsonValue | undefined'.
+  Type 'Record<string, unknown>' is missing the following properties from type 'readonly (InputJsonValue | null)[]': length, concat, join, slice, and 20 more.
+
+[7m46[0m           metadata: params.metadata || {},
+[7m  [0m [91m          ~~~~~~~~[0m
+
+  [96m../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/.prisma/client/index.d.ts[0m:[93m55481[0m:[93m5[0m
+    [7m55481[0m     metadata?: JsonNullValueInput | InputJsonValue
+    [7m     [0m [96m    ~~~~~~~~[0m
+    The expected type comes from property 'metadata' which is declared here on type '(Without<DevDomainRecordCreateInput, DevDomainRecordUncheckedCreateInput> & DevDomainRecordUncheckedCreateInput) | (Without<...> & DevDomainRecordCreateInput)'
+[96msrc/common/providers/implementations/dev-domain-provider.service.ts[0m:[93m136[0m:[93m11[0m - [91merror[0m[90m TS18046: [0m'error' is of type 'unknown'.
+
+[7m136[0m       if (error.code === 'P2025') {
+[7m   [0m [91m          ~~~~~[0m
+[96msrc/common/providers/implementations/dev-mailer.service.ts[0m:[93m32[0m:[93m11[0m - [91merror[0m[90m TS2322: [0mType 'Record<string, unknown>' is not assignable to type 'JsonNull | InputJsonValue | undefined'.
+  Type 'Record<string, unknown>' is missing the following properties from type 'readonly (InputJsonValue | null)[]': length, concat, join, slice, and 20 more.
+
+[7m32[0m           variables: params.variables || {},
+[7m  [0m [91m          ~~~~~~~~~[0m
+
+  [96m../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/.prisma/client/index.d.ts[0m:[93m55375[0m:[93m5[0m
+    [7m55375[0m     variables?: JsonNullValueInput | InputJsonValue
+    [7m     [0m [96m    ~~~~~~~~~[0m
+    The expected type comes from property 'variables' which is declared here on type '(Without<DevEmailLogCreateInput, DevEmailLogUncheckedCreateInput> & DevEmailLogUncheckedCreateInput) | (Without<...> & DevEmailLogCreateInput)'
+[96msrc/common/providers/implementations/dev-mailer.service.ts[0m:[93m33[0m:[93m11[0m - [91merror[0m[90m TS2322: [0mType 'Record<string, unknown>' is not assignable to type 'JsonNull | InputJsonValue | undefined'.
+  Type 'Record<string, unknown>' is missing the following properties from type 'readonly (InputJsonValue | null)[]': length, concat, join, slice, and 20 more.
+
+[7m33[0m           metadata: params.metadata || {},
+[7m  [0m [91m          ~~~~~~~~[0m
+
+  [96m../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/.prisma/client/index.d.ts[0m:[93m55376[0m:[93m5[0m
+    [7m55376[0m     metadata?: JsonNullValueInput | InputJsonValue
+    [7m     [0m [96m    ~~~~~~~~[0m
+    The expected type comes from property 'metadata' which is declared here on type '(Without<DevEmailLogCreateInput, DevEmailLogUncheckedCreateInput> & DevEmailLogUncheckedCreateInput) | (Without<...> & DevEmailLogCreateInput)'
+[96msrc/common/providers/implementations/dev-payment-provider.service.ts[0m:[93m68[0m:[93m7[0m - [91merror[0m[90m TS18046: [0m'updateData' is of type 'unknown'.
+
+[7m68[0m       updateData.plan = params.plan;
+[7m  [0m [91m      ~~~~~~~~~~[0m
+[96msrc/common/providers/implementations/dev-payment-provider.service.ts[0m:[93m71[0m:[93m7[0m - [91merror[0m[90m TS18046: [0m'updateData' is of type 'unknown'.
+
+[7m71[0m       updateData.cancelAtPeriodEnd = params.cancelAtPeriodEnd;
+[7m  [0m [91m      ~~~~~~~~~~[0m
+[96msrc/common/providers/implementations/dev-payment-provider.service.ts[0m:[93m76[0m:[93m7[0m - [91merror[0m[90m TS2322: [0mType 'unknown' is not assignable to type '(Without<SubscriptionUpdateInput, SubscriptionUncheckedUpdateInput> & SubscriptionUncheckedUpdateInput) | (Without<...> & SubscriptionUpdateInput)'.
+
+[7m76[0m       data: updateData,
+[7m  [0m [91m      ~~~~[0m
+
+  [96m../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/.prisma/client/index.d.ts[0m:[93m25707[0m:[93m5[0m
+    [7m25707[0m     data: XOR<SubscriptionUpdateInput, SubscriptionUncheckedUpdateInput>
+    [7m     [0m [96m    ~~~~[0m
+    The expected type comes from property 'data' which is declared here on type '{ select?: SubscriptionSelect<DefaultArgs> | null | undefined; include?: SubscriptionInclude<DefaultArgs> | null | undefined; data: (Without<...> & SubscriptionUncheckedUpdateInput) | (Without<...> & SubscriptionUpdateInput); where: SubscriptionWhereUniqueInput; }'
+[96msrc/common/providers/implementations/local-file-storage.service.ts[0m:[93m83[0m:[93m11[0m - [91merror[0m[90m TS18046: [0m'error' is of type 'unknown'.
+
+[7m83[0m       if (error.code === 'ENOENT') {
+[7m  [0m [91m          ~~~~~[0m
+[96msrc/common/saas/plan-limits.service.ts[0m:[93m145[0m:[93m11[0m - [91merror[0m[90m TS2571: [0mObject is of type 'unknown'.
+
+[7m145[0m     await (this.prisma as unknown).usageTracking.upsert({
+[7m   [0m [91m          ~~~~~~~~~~~~~~~~~~~~~~~~[0m
+[96msrc/common/saas/plan-limits.service.ts[0m:[93m174[0m:[93m32[0m - [91merror[0m[90m TS2571: [0mObject is of type 'unknown'.
+
+[7m174[0m     const usageRecords = await (this.prisma as unknown).usageTracking.findMany({
+[7m   [0m [91m                               ~~~~~~~~~~~~~~~~~~~~~~~~[0m
+[96msrc/common/saas/plan-limits.service.ts[0m:[93m247[0m:[93m32[0m - [91merror[0m[90m TS2571: [0mObject is of type 'unknown'.
+
+[7m247[0m     const subscription = await (this.prisma as unknown).subscription.findFirst({
+[7m   [0m [91m                               ~~~~~~~~~~~~~~~~~~~~~~~~[0m
+[96msrc/common/throttler/role-based-throttler.guard.ts[0m:[93m24[0m:[93m11[0m - [91merror[0m[90m TS2345: [0mArgument of type 'unknown' is not assignable to parameter of type 'ThrottlerModuleOptions'.
+
+[7m24[0m     super(options, storageService, reflector);
+[7m  [0m [91m          ~~~~~~~[0m
+[96msrc/common/throttler/role-based-throttler.guard.ts[0m:[93m71[0m:[93m15[0m - [91merror[0m[90m TS2339: [0mProperty 'id' does not exist on type '{}'.
+
+[7m71[0m     if (user?.id) {
+[7m  [0m [91m              ~~[0m
+[96msrc/common/throttler/role-based-throttler.guard.ts[0m:[93m72[0m:[93m22[0m - [91merror[0m[90m TS2339: [0mProperty 'id' does not exist on type '{}'.
+
+[7m72[0m       return `${user.id}:${user.role || 'anonymous'}`;
+[7m  [0m [91m                     ~~[0m
+[96msrc/common/throttler/role-based-throttler.guard.ts[0m:[93m72[0m:[93m33[0m - [91merror[0m[90m TS2339: [0mProperty 'role' does not exist on type '{}'.
+
+[7m72[0m       return `${user.id}:${user.role || 'anonymous'}`;
+[7m  [0m [91m                                ~~~~[0m
+[96msrc/common/throttler/role-based-throttler.guard.ts[0m:[93m74[0m:[93m5[0m - [91merror[0m[90m TS2322: [0mType '{}' is not assignable to type 'string'.
+
+[7m74[0m     return req.ip || 'unknown';
+[7m  [0m [91m    ~~~~~~[0m
+[96msrc/common/throttler/role-based-throttler.guard.ts[0m:[93m85[0m:[93m18[0m - [91merror[0m[90m TS2571: [0mObject is of type 'unknown'.
+
+[7m85[0m     const user = (request as unknown).user;
+[7m  [0m [91m                 ~~~~~~~~~~~~~~~~~~~~[0m
+[96msrc/modules/auth/auth.service.ts[0m:[93m493[0m:[93m26[0m - [91merror[0m[90m TS2345: [0mArgument of type 'unknown' is not assignable to parameter of type 'string'.
+
+[7m493[0m     await this.cache.del(key as unknown);
+[7m   [0m [91m                         ~~~~~~~~~~~~~~[0m
+[96msrc/modules/auth/auth.service.ts[0m:[93m512[0m:[93m39[0m - [91merror[0m[90m TS18046: [0m'decoded' is of type 'unknown'.
+
+[7m512[0m     const siteRole = user.siteRole || decoded.siteRole || this.mapRoleToSiteRole(role ?? user.role);
+[7m   [0m [91m                                      ~~~~~~~[0m
+[96msrc/modules/auth/auth.service.ts[0m:[93m513[0m:[93m47[0m - [91merror[0m[90m TS18046: [0m'decoded' is of type 'unknown'.
+
+[7m513[0m     const platformRole = user.platformRole || decoded.platformRole || this.mapRoleToPlatformRole(user.role);
+[7m   [0m [91m                                              ~~~~~~~[0m
+[96msrc/modules/auth/auth.service.ts[0m:[93m514[0m:[93m43[0m - [91merror[0m[90m TS18046: [0m'decoded' is of type 'unknown'.
+
+[7m514[0m     const systemRole = user.systemRole || decoded.systemRole || (user.role === 'super_admin' ? 'super_admin' : undefined);
+[7m   [0m [91m                                          ~~~~~~~[0m
+[96msrc/modules/auth/auth.service.ts[0m:[93m515[0m:[93m47[0m - [91merror[0m[90m TS18046: [0m'decoded' is of type 'unknown'.
+
+[7m515[0m     const isSuperAdmin = user.isSuperAdmin || decoded.isSuperAdmin || user.role === 'super_admin' || user.systemRole === 'super_admin';
+[7m   [0m [91m                                              ~~~~~~~[0m
+[96msrc/modules/auth/auth.service.ts[0m:[93m543[0m:[93m30[0m - [91merror[0m[90m TS2345: [0mArgument of type 'unknown' is not assignable to parameter of type 'string'.
+
+[7m543[0m         await this.cache.del(`refresh:${sub}:${jti}` as unknown);
+[7m   [0m [91m                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+[96msrc/modules/billing/billing.controller.ts[0m:[93m67[0m:[93m23[0m - [91merror[0m[90m TS18046: [0m'body' is of type 'unknown'.
+
+[7m67[0m     const eventType = body.type;
+[7m  [0m [91m                      ~~~~[0m
+[96msrc/modules/billing/billing.controller.ts[0m:[93m68[0m:[93m18[0m - [91merror[0m[90m TS18046: [0m'body' is of type 'unknown'.
+
+[7m68[0m     const data = body.data?.object;
+[7m  [0m [91m                 ~~~~[0m
+[96msrc/modules/billing/billing.service.ts[0m:[93m74[0m:[93m7[0m - [91merror[0m[90m TS18046: [0m'where' is of type 'unknown'.
+
+[7m74[0m       where.status = status;
+[7m  [0m [91m      ~~~~~[0m
+[96msrc/modules/billing/billing.service.ts[0m:[93m78[0m:[93m7[0m - [91merror[0m[90m TS18046: [0m'where' is of type 'unknown'.
+
+[7m78[0m       where.plan = plan;
+[7m  [0m [91m      ~~~~~[0m
+[96msrc/modules/billing/billing.service.ts[0m:[93m83[0m:[93m9[0m - [91merror[0m[90m TS2322: [0mType 'unknown' is not assignable to type 'SubscriptionWhereInput | undefined'.
+
+[7m83[0m         where,
+[7m  [0m [91m        ~~~~~[0m
+[96msrc/modules/billing/billing.service.ts[0m:[93m88[0m:[93m40[0m - [91merror[0m[90m TS2322: [0mType 'unknown' is not assignable to type 'SubscriptionWhereInput | undefined'.
+
+[7m88[0m       this.prisma.subscription.count({ where }),
+[7m  [0m [91m                                       ~~~~~[0m
+[96msrc/modules/billing/billing.service.ts[0m:[93m207[0m:[93m7[0m - [91merror[0m[90m TS18046: [0m'where' is of type 'unknown'.
+
+[7m207[0m       where.status = status;
+[7m   [0m [91m      ~~~~~[0m
+[96msrc/modules/billing/billing.service.ts[0m:[93m212[0m:[93m9[0m - [91merror[0m[90m TS2322: [0mType 'unknown' is not assignable to type 'InvoiceWhereInput | undefined'.
+
+[7m212[0m         where,
+[7m   [0m [91m        ~~~~~[0m
+[96msrc/modules/billing/billing.service.ts[0m:[93m217[0m:[93m35[0m - [91merror[0m[90m TS2322: [0mType 'unknown' is not assignable to type 'InvoiceWhereInput | undefined'.
+
+[7m217[0m       this.prisma.invoice.count({ where }),
+[7m   [0m [91m                                  ~~~~~[0m
+[96msrc/modules/billing/billing.service.ts[0m:[93m261[0m:[93m7[0m - [91merror[0m[90m TS18046: [0m'where' is of type 'unknown'.
+
+[7m261[0m       where.status = status;
+[7m   [0m [91m      ~~~~~[0m
+[96msrc/modules/billing/billing.service.ts[0m:[93m266[0m:[93m9[0m - [91merror[0m[90m TS2322: [0mType 'unknown' is not assignable to type 'PaymentWhereInput | undefined'.
+
+[7m266[0m         where,
+[7m   [0m [91m        ~~~~~[0m
+[96msrc/modules/billing/billing.service.ts[0m:[93m271[0m:[93m35[0m - [91merror[0m[90m TS2322: [0mType 'unknown' is not assignable to type 'PaymentWhereInput | undefined'.
+
+[7m271[0m       this.prisma.payment.count({ where }),
+[7m   [0m [91m                                  ~~~~~[0m
+[96msrc/modules/billing/billing.service.ts[0m:[93m618[0m:[93m51[0m - [91merror[0m[90m TS2339: [0mProperty 'subscriptions' does not exist on type '{}'.
+
+[7m618[0m       const latestSubscription = uo.organization?.subscriptions?.[0];
+[7m   [0m [91m                                                  ~~~~~~~~~~~~~[0m
+[96msrc/modules/billing/billing.service.ts[0m:[93m621[0m:[93m35[0m - [91merror[0m[90m TS2339: [0mProperty 'name' does not exist on type '{}'.
+
+[7m621[0m         orgName: uo.organization?.name || '',
+[7m   [0m [91m                                  ~~~~[0m
+[96msrc/modules/billing/billing.service.ts[0m:[93m622[0m:[93m35[0m - [91merror[0m[90m TS2339: [0mProperty 'slug' does not exist on type '{}'.
+
+[7m622[0m         orgSlug: uo.organization?.slug || '',
+[7m   [0m [91m                                  ~~~~[0m
+[96msrc/modules/billing/stripe.service.ts[0m:[93m65[0m:[93m28[0m - [91merror[0m[90m TS18046: [0m'data' is of type 'unknown'.
+
+[7m65[0m     const subscriptionId = data.id;
+[7m  [0m [91m                           ~~~~[0m
+[96msrc/modules/billing/stripe.service.ts[0m:[93m66[0m:[93m24[0m - [91merror[0m[90m TS18046: [0m'data' is of type 'unknown'.
+
+[7m66[0m     const customerId = data.customer;
+[7m  [0m [91m                       ~~~~[0m
+[96msrc/modules/billing/stripe.service.ts[0m:[93m67[0m:[93m20[0m - [91merror[0m[90m TS18046: [0m'data' is of type 'unknown'.
+
+[7m67[0m     const status = data.status;
+[7m  [0m [91m                   ~~~~[0m
+[96msrc/modules/billing/stripe.service.ts[0m:[93m68[0m:[93m43[0m - [91merror[0m[90m TS18046: [0m'data' is of type 'unknown'.
+
+[7m68[0m     const plan = this.mapStripePlanToPlan(data.items?.data?.[0]?.price?.id);
+[7m  [0m [91m                                          ~~~~[0m
+[96msrc/modules/billing/stripe.service.ts[0m:[93m94[0m:[93m38[0m - [91merror[0m[90m TS18046: [0m'data' is of type 'unknown'.
+
+[7m94[0m         currentPeriodStart: new Date(data.current_period_start * 1000),
+[7m  [0m [91m                                     ~~~~[0m
+[96msrc/modules/billing/stripe.service.ts[0m:[93m95[0m:[93m36[0m - [91merror[0m[90m TS18046: [0m'data' is of type 'unknown'.
+
+[7m95[0m         currentPeriodEnd: new Date(data.current_period_end * 1000),
+[7m  [0m [91m                                   ~~~~[0m
+[96msrc/modules/billing/stripe.service.ts[0m:[93m96[0m:[93m28[0m - [91merror[0m[90m TS18046: [0m'data' is of type 'unknown'.
+
+[7m96[0m         cancelAtPeriodEnd: data.cancel_at_period_end || false,
+[7m  [0m [91m                           ~~~~[0m
+[96msrc/modules/billing/stripe.service.ts[0m:[93m102[0m:[93m38[0m - [91merror[0m[90m TS18046: [0m'data' is of type 'unknown'.
+
+[7m102[0m         currentPeriodStart: new Date(data.current_period_start * 1000),
+[7m   [0m [91m                                     ~~~~[0m
+[96msrc/modules/billing/stripe.service.ts[0m:[93m103[0m:[93m36[0m - [91merror[0m[90m TS18046: [0m'data' is of type 'unknown'.
+
+[7m103[0m         currentPeriodEnd: new Date(data.current_period_end * 1000),
+[7m   [0m [91m                                   ~~~~[0m
+[96msrc/modules/billing/stripe.service.ts[0m:[93m104[0m:[93m28[0m - [91merror[0m[90m TS18046: [0m'data' is of type 'unknown'.
+
+[7m104[0m         cancelAtPeriodEnd: data.cancel_at_period_end || false,
+[7m   [0m [91m                           ~~~~[0m
+[96msrc/modules/billing/stripe.service.ts[0m:[93m129[0m:[93m28[0m - [91merror[0m[90m TS18046: [0m'data' is of type 'unknown'.
+
+[7m129[0m     const subscriptionId = data.id;
+[7m   [0m [91m                           ~~~~[0m
+[96msrc/modules/billing/stripe.service.ts[0m:[93m164[0m:[93m23[0m - [91merror[0m[90m TS18046: [0m'data' is of type 'unknown'.
+
+[7m164[0m     const invoiceId = data.id;
+[7m   [0m [91m                      ~~~~[0m
+[96msrc/modules/billing/stripe.service.ts[0m:[93m165[0m:[93m28[0m - [91merror[0m[90m TS18046: [0m'data' is of type 'unknown'.
+
+[7m165[0m     const subscriptionId = data.subscription;
+[7m   [0m [91m                           ~~~~[0m
+[96msrc/modules/billing/stripe.service.ts[0m:[93m166[0m:[93m20[0m - [91merror[0m[90m TS18046: [0m'data' is of type 'unknown'.
+
+[7m166[0m     const amount = data.amount_paid / 100; // Convert from cents
+[7m   [0m [91m                   ~~~~[0m
+[96msrc/modules/billing/stripe.service.ts[0m:[93m167[0m:[93m22[0m - [91merror[0m[90m TS18046: [0m'data' is of type 'unknown'.
+
+[7m167[0m     const currency = data.currency.toUpperCase();
+[7m   [0m [91m                     ~~~~[0m
+[96msrc/modules/billing/stripe.service.ts[0m:[93m188[0m:[93m20[0m - [91merror[0m[90m TS18046: [0m'data' is of type 'unknown'.
+
+[7m188[0m         lineItems: data.lines?.data || [],
+[7m   [0m [91m                   ~~~~[0m
+[96msrc/modules/billing/stripe.service.ts[0m:[93m197[0m:[93m28[0m - [91merror[0m[90m TS18046: [0m'data' is of type 'unknown'.
+
+[7m197[0m     const subscriptionId = data.subscription;
+[7m   [0m [91m                           ~~~~[0m
+[96msrc/modules/collection-roles/collection-roles.controller.ts[0m:[93m44[0m:[93m73[0m - [91merror[0m[90m TS2345: [0mArgument of type 'unknown' is not assignable to parameter of type '{ userId: string; canRead: boolean; canWrite: boolean; canPublish: boolean; canDelete: boolean; role?: "editor" | "viewer" | "admin" | undefined; }'.
+
+[7m44[0m     return this.collectionRolesService.assignRole(siteId, collectionId, dto as unknown);
+[7m  [0m [91m                                                                        ~~~~~~~~~~~~~~[0m
+[96msrc/modules/collection-roles/collection-roles.controller.ts[0m:[93m65[0m:[93m81[0m - [91merror[0m[90m TS2345: [0mArgument of type 'unknown' is not assignable to parameter of type '{ role?: "editor" | "viewer" | "admin" | undefined; canRead?: boolean | undefined; canWrite?: boolean | undefined; canPublish?: boolean | undefined; canDelete?: boolean | undefined; }'.
+
+[7m65[0m     return this.collectionRolesService.updateRole(siteId, collectionId, userId, dto as unknown);
+[7m  [0m [91m                                                                                ~~~~~~~~~~~~~~[0m
+[96msrc/modules/collection-roles/collection-roles.service.ts[0m:[93m51[0m:[93m28[0m - [91merror[0m[90m TS2571: [0mObject is of type 'unknown'.
+
+[7m51[0m     const existing = await (this.prisma as unknown).collectionRole.findUnique({
+[7m  [0m [91m                           ~~~~~~~~~~~~~~~~~~~~~~~~[0m
+[96msrc/modules/collection-roles/collection-roles.service.ts[0m:[93m78[0m:[93m12[0m - [91merror[0m[90m TS2571: [0mObject is of type 'unknown'.
+
+[7m78[0m     return (this.prisma as unknown).collectionRole.create({
+[7m  [0m [91m           ~~~~~~~~~~~~~~~~~~~~~~~~[0m
+[96msrc/modules/collection-roles/collection-roles.service.ts[0m:[93m102[0m:[93m24[0m - [91merror[0m[90m TS2571: [0mObject is of type 'unknown'.
+
+[7m102[0m     const role = await (this.prisma as unknown).collectionRole.findUnique({
+[7m   [0m [91m                       ~~~~~~~~~~~~~~~~~~~~~~~~[0m
+[96msrc/modules/collection-roles/collection-roles.service.ts[0m:[93m118[0m:[93m7[0m - [91merror[0m[90m TS18046: [0m'updateData' is of type 'unknown'.
+
+[7m118[0m       updateData.role = dto.role;
+[7m   [0m [91m      ~~~~~~~~~~[0m
+[96msrc/modules/collection-roles/collection-roles.service.ts[0m:[93m121[0m:[93m7[0m - [91merror[0m[90m TS18046: [0m'updateData' is of type 'unknown'.
+
+[7m121[0m       updateData.canRead = dto.canRead;
+[7m   [0m [91m      ~~~~~~~~~~[0m
+[96msrc/modules/collection-roles/collection-roles.service.ts[0m:[93m124[0m:[93m7[0m - [91merror[0m[90m TS18046: [0m'updateData' is of type 'unknown'.
+
+[7m124[0m       updateData.canWrite = dto.canWrite;
+[7m   [0m [91m      ~~~~~~~~~~[0m
+[96msrc/modules/collection-roles/collection-roles.service.ts[0m:[93m127[0m:[93m7[0m - [91merror[0m[90m TS18046: [0m'updateData' is of type 'unknown'.
+
+[7m127[0m       updateData.canPublish = dto.canPublish;
+[7m   [0m [91m      ~~~~~~~~~~[0m
+[96msrc/modules/collection-roles/collection-roles.service.ts[0m:[93m130[0m:[93m7[0m - [91merror[0m[90m TS18046: [0m'updateData' is of type 'unknown'.
+
+[7m130[0m       updateData.canDelete = dto.canDelete;
+[7m   [0m [91m      ~~~~~~~~~~[0m
+[96msrc/modules/collection-roles/collection-roles.service.ts[0m:[93m133[0m:[93m12[0m - [91merror[0m[90m TS2571: [0mObject is of type 'unknown'.
+
+[7m133[0m     return (this.prisma as unknown).collectionRole.update({
+[7m   [0m [91m           ~~~~~~~~~~~~~~~~~~~~~~~~[0m
+[96msrc/modules/collection-roles/collection-roles.service.ts[0m:[93m149[0m:[93m24[0m - [91merror[0m[90m TS2571: [0mObject is of type 'unknown'.
+
+[7m149[0m     const role = await (this.prisma as unknown).collectionRole.findUnique({
+[7m   [0m [91m                       ~~~~~~~~~~~~~~~~~~~~~~~~[0m
+[96msrc/modules/collection-roles/collection-roles.service.ts[0m:[93m162[0m:[93m11[0m - [91merror[0m[90m TS2571: [0mObject is of type 'unknown'.
+
+[7m162[0m     await (this.prisma as unknown).collectionRole.delete({
+[7m   [0m [91m          ~~~~~~~~~~~~~~~~~~~~~~~~[0m
+[96msrc/modules/collection-roles/collection-roles.service.ts[0m:[93m257[0m:[93m24[0m - [91merror[0m[90m TS2571: [0mObject is of type 'unknown'.
+
+[7m257[0m     const role = await (this.prisma as unknown).collectionRole.findUnique({
+[7m   [0m [91m                       ~~~~~~~~~~~~~~~~~~~~~~~~[0m
+[96msrc/modules/collections/controllers/collections.controller.ts[0m:[93m43[0m:[93m51[0m - [91merror[0m[90m TS2345: [0mArgument of type 'unknown' is not assignable to parameter of type '{ name: string; slug: string; schemaJson?: Record<string, unknown> | undefined; }'.
+
+[7m43[0m     return this.collectionsService.create(siteId, body as unknown);
+[7m  [0m [91m                                                  ~~~~~~~~~~~~~~~[0m
+[96msrc/modules/collections/controllers/collections.controller.ts[0m:[93m49[0m:[93m49[0m - [91merror[0m[90m TS2345: [0mArgument of type 'unknown' is not assignable to parameter of type '{ page?: number | undefined; pageSize?: number | undefined; sort?: string | undefined; }'.
+
+[7m49[0m     return this.collectionsService.list(siteId, query);
+[7m  [0m [91m                                                ~~~~~[0m
+[96msrc/modules/collections/controllers/collections.controller.ts[0m:[93m66[0m:[93m57[0m - [91merror[0m[90m TS2345: [0mArgument of type 'unknown' is not assignable to parameter of type '{ name?: string | undefined; slug?: string | undefined; schemaJson?: Record<string, unknown> | undefined; }'.
+
+[7m66[0m     return this.collectionsService.update(siteId, slug, body as unknown);
+[7m  [0m [91m                                                        ~~~~~~~~~~~~~~~[0m
+[96msrc/modules/collections/services/collections.service.ts[0m:[93m36[0m:[93m11[0m - [91merror[0m[90m TS2322: [0mType 'unknown' is not assignable to type 'JsonNull | InputJsonValue'.
+
+[7m36[0m           schemaJson: (dto.schemaJson || {}) as unknown, // Prisma Json type
+[7m  [0m [91m          ~~~~~~~~~~[0m
+
+  [96m../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/.prisma/client/index.d.ts[0m:[93m53731[0m:[93m5[0m
+    [7m53731[0m     schemaJson: JsonNullValueInput | InputJsonValue
+    [7m     [0m [96m    ~~~~~~~~~~[0m
+    The expected type comes from property 'schemaJson' which is declared here on type '(Without<CollectionCreateInput, CollectionUncheckedCreateInput> & CollectionUncheckedCreateInput) | (Without<...> & CollectionCreateInput)'
+[96msrc/modules/collections/services/collections.service.ts[0m:[93m162[0m:[93m33[0m - [91merror[0m[90m TS18046: [0m'updateData' is of type 'unknown'.
+
+[7m162[0m     if (dto.name !== undefined) updateData.name = dto.name;
+[7m   [0m [91m                                ~~~~~~~~~~[0m
+[96msrc/modules/collections/services/collections.service.ts[0m:[93m163[0m:[93m33[0m - [91merror[0m[90m TS18046: [0m'updateData' is of type 'unknown'.
+
+[7m163[0m     if (dto.slug !== undefined) updateData.slug = dto.slug;
+[7m   [0m [91m                                ~~~~~~~~~~[0m
+[96msrc/modules/collections/services/collections.service.ts[0m:[93m164[0m:[93m39[0m - [91merror[0m[90m TS18046: [0m'updateData' is of type 'unknown'.
+
+[7m164[0m     if (dto.schemaJson !== undefined) updateData.schemaJson = dto.schemaJson as unknown; // Prisma Json type
+[7m   [0m [91m                                      ~~~~~~~~~~[0m
+[96msrc/modules/collections/services/collections.service.ts[0m:[93m168[0m:[93m7[0m - [91merror[0m[90m TS2322: [0mType 'unknown' is not assignable to type '(Without<CollectionUpdateInput, CollectionUncheckedUpdateInput> & CollectionUncheckedUpdateInput) | (Without<...> & CollectionUpdateInput)'.
+
+[7m168[0m       data: updateData,
+[7m   [0m [91m      ~~~~[0m
+
+  [96m../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/.prisma/client/index.d.ts[0m:[93m12169[0m:[93m5[0m
+    [7m12169[0m     data: XOR<CollectionUpdateInput, CollectionUncheckedUpdateInput>
+    [7m     [0m [96m    ~~~~[0m
+    The expected type comes from property 'data' which is declared here on type '{ select?: CollectionSelect<DefaultArgs> | null | undefined; include?: CollectionInclude<DefaultArgs> | null | undefined; data: (Without<...> & CollectionUncheckedUpdateInput) | (Without<...> & CollectionUpdateInput); where: CollectionWhereUniqueInput; }'
+[96msrc/modules/collections/services/items.service.ts[0m:[93m359[0m:[93m36[0m - [91merror[0m[90m TS2339: [0mProperty 'data' does not exist on type '{}'.
+
+[7m359[0m       if (hookResult && hookResult.data) {
+[7m   [0m [91m                                   ~~~~[0m
+[96msrc/modules/collections/services/items.service.ts[0m:[93m360[0m:[93m38[0m - [91merror[0m[90m TS2339: [0mProperty 'data' does not exist on type '{}'.
+
+[7m360[0m         transformedData = hookResult.data;
+[7m   [0m [91m                                     ~~~~[0m
+[96msrc/modules/content-entries/controllers/content-entries.controller.ts[0m:[93m46[0m:[93m71[0m - [91merror[0m[90m TS2345: [0mArgument of type 'unknown' is not assignable to parameter of type '{ status: "draft" | "published" | "archived"; data: Record<string, any>; }'.
+
+[7m46[0m     return this.contentEntriesService.create(siteId, contentTypeSlug, body as unknown, user.id);
+[7m  [0m [91m                                                                      ~~~~~~~~~~~~~~~[0m
+[96msrc/modules/content-entries/controllers/content-entries.controller.ts[0m:[93m56[0m:[93m69[0m - [91merror[0m[90m TS2345: [0mArgument of type 'unknown' is not assignable to parameter of type '{ page: number; pageSize: number; sort?: string | undefined; filter?: Record<string, any> | undefined; status?: "draft" | "published" | "archived" | undefined; search?: string | undefined; }'.
+
+[7m56[0m     return this.contentEntriesService.list(siteId, contentTypeSlug, query as unknown);
+[7m  [0m [91m                                                                    ~~~~~~~~~~~~~~~~[0m
+[96msrc/modules/content-entries/controllers/content-entries.controller.ts[0m:[93m78[0m:[93m75[0m - [91merror[0m[90m TS2345: [0mArgument of type 'unknown' is not assignable to parameter of type '{ status?: "draft" | "published" | "archived" | undefined; data?: Record<string, any> | undefined; }'.
+
+[7m78[0m     return this.contentEntriesService.update(siteId, contentTypeSlug, id, body as unknown, user.id);
+[7m  [0m [91m                                                                          ~~~~~~~~~~~~~~~[0m
+[96msrc/modules/content-entries/services/content-entries.service.ts[0m:[93m56[0m:[93m5[0m - [91merror[0m[90m TS2322: [0mType '{ id: string; siteId: string; name: string; slug: string; schema: unknown; createdAt: Date; updatedAt: Date; }' is not assignable to type '{ id: string; siteId: string; slug: string; name: string; schema: Record<string, unknown>; }'.
+  Types of property 'schema' are incompatible.
+    Type 'unknown' is not assignable to type 'Record<string, unknown>'.
+
+[7m56[0m     return contentType;
+[7m  [0m [91m    ~~~~~~[0m
+[96msrc/modules/content-entries/services/content-entries.service.ts[0m:[93m93[0m:[93m29[0m - [91merror[0m[90m TS18046: [0m'fieldSchema' is of type 'unknown'.
+
+[7m93[0m           const fieldType = fieldSchema.type;
+[7m  [0m [91m                            ~~~~~~~~~~~[0m
+[96msrc/modules/content-entries/services/content-entries.service.ts[0m:[93m118[0m:[93m17[0m - [91merror[0m[90m TS18046: [0m'fieldSchema' is of type 'unknown'.
+
+[7m118[0m             if (fieldSchema.minLength && value.length < fieldSchema.minLength) {
+[7m   [0m [91m                ~~~~~~~~~~~[0m
+[96msrc/modules/content-entries/services/content-entries.service.ts[0m:[93m118[0m:[93m57[0m - [91merror[0m[90m TS18046: [0m'fieldSchema' is of type 'unknown'.
+
+[7m118[0m             if (fieldSchema.minLength && value.length < fieldSchema.minLength) {
+[7m   [0m [91m                                                        ~~~~~~~~~~~[0m
+[96msrc/modules/content-entries/services/content-entries.service.ts[0m:[93m120[0m:[93m82[0m - [91merror[0m[90m TS18046: [0m'fieldSchema' is of type 'unknown'.
+
+[7m120[0m                 `Data validation failed: field '${fieldName}' must be at least ${fieldSchema.minLength} characters`
+[7m   [0m [91m                                                                                 ~~~~~~~~~~~[0m
+[96msrc/modules/content-entries/services/content-entries.service.ts[0m:[93m123[0m:[93m17[0m - [91merror[0m[90m TS18046: [0m'fieldSchema' is of type 'unknown'.
+
+[7m123[0m             if (fieldSchema.maxLength && value.length > fieldSchema.maxLength) {
+[7m   [0m [91m                ~~~~~~~~~~~[0m
+[96msrc/modules/content-entries/services/content-entries.service.ts[0m:[93m123[0m:[93m57[0m - [91merror[0m[90m TS18046: [0m'fieldSchema' is of type 'unknown'.
+
+[7m123[0m             if (fieldSchema.maxLength && value.length > fieldSchema.maxLength) {
+[7m   [0m [91m                                                        ~~~~~~~~~~~[0m
+[96msrc/modules/content-entries/services/content-entries.service.ts[0m:[93m125[0m:[93m81[0m - [91merror[0m[90m TS18046: [0m'fieldSchema' is of type 'unknown'.
+
+[7m125[0m                 `Data validation failed: field '${fieldName}' must be at most ${fieldSchema.maxLength} characters`
+[7m   [0m [91m                                                                                ~~~~~~~~~~~[0m
+[96msrc/modules/content-entries/services/content-entries.service.ts[0m:[93m132[0m:[93m17[0m - [91merror[0m[90m TS18046: [0m'fieldSchema' is of type 'unknown'.
+
+[7m132[0m             if (fieldSchema.minimum !== undefined && value < fieldSchema.minimum) {
+[7m   [0m [91m                ~~~~~~~~~~~[0m
+[96msrc/modules/content-entries/services/content-entries.service.ts[0m:[93m132[0m:[93m62[0m - [91merror[0m[90m TS18046: [0m'fieldSchema' is of type 'unknown'.
+
+[7m132[0m             if (fieldSchema.minimum !== undefined && value < fieldSchema.minimum) {
+[7m   [0m [91m                                                             ~~~~~~~~~~~[0m
+[96msrc/modules/content-entries/services/content-entries.service.ts[0m:[93m134[0m:[93m82[0m - [91merror[0m[90m TS18046: [0m'fieldSchema' is of type 'unknown'.
+
+[7m134[0m                 `Data validation failed: field '${fieldName}' must be at least ${fieldSchema.minimum}`
+[7m   [0m [91m                                                                                 ~~~~~~~~~~~[0m
+[96msrc/modules/content-entries/services/content-entries.service.ts[0m:[93m137[0m:[93m17[0m - [91merror[0m[90m TS18046: [0m'fieldSchema' is of type 'unknown'.
+
+[7m137[0m             if (fieldSchema.maximum !== undefined && value > fieldSchema.maximum) {
+[7m   [0m [91m                ~~~~~~~~~~~[0m
+[96msrc/modules/content-entries/services/content-entries.service.ts[0m:[93m137[0m:[93m62[0m - [91merror[0m[90m TS18046: [0m'fieldSchema' is of type 'unknown'.
+
+[7m137[0m             if (fieldSchema.maximum !== undefined && value > fieldSchema.maximum) {
+[7m   [0m [91m                                                             ~~~~~~~~~~~[0m
+[96msrc/modules/content-entries/services/content-entries.service.ts[0m:[93m139[0m:[93m81[0m - [91merror[0m[90m TS18046: [0m'fieldSchema' is of type 'unknown'.
+
+[7m139[0m                 `Data validation failed: field '${fieldName}' must be at most ${fieldSchema.maximum}`
+[7m   [0m [91m                                                                                ~~~~~~~~~~~[0m
+[96msrc/modules/content-entries/services/content-entries.service.ts[0m:[93m359[0m:[93m9[0m - [91merror[0m[90m TS2698: [0mSpread types may only be created from object types.
+
+[7m359[0m         ...entry,
+[7m   [0m [91m        ~~~~~~~~[0m
+[96msrc/modules/content-entries/services/content-entries.service.ts[0m:[93m360[0m:[93m22[0m - [91merror[0m[90m TS18046: [0m'entry' is of type 'unknown'.
+
+[7m360[0m         contentType: entry.contentType,
+[7m   [0m [91m                     ~~~~~[0m
+[96msrc/modules/content-entries/services/content-entries.service.ts[0m:[93m467[0m:[93m7[0m - [91merror[0m[90m TS2322: [0mType 'unknown' is not assignable to type '(Without<ContentEntryUpdateInput, ContentEntryUncheckedUpdateInput> & ContentEntryUncheckedUpdateInput) | (Without<...> & ContentEntryUpdateInput)'.
+
+[7m467[0m       data: updateData as unknown,
+[7m   [0m [91m      ~~~~[0m
+
+  [96m../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/.prisma/client/index.d.ts[0m:[93m11130[0m:[93m5[0m
+    [7m11130[0m     data: XOR<ContentEntryUpdateInput, ContentEntryUncheckedUpdateInput>
+    [7m     [0m [96m    ~~~~[0m
+    The expected type comes from property 'data' which is declared here on type '{ select?: ContentEntrySelect<DefaultArgs> | null | undefined; include?: ContentEntryInclude<DefaultArgs> | null | undefined; data: (Without<...> & ContentEntryUncheckedUpdateInput) | (Without<...> & ContentEntryUpdateInput); where: ContentEntryWhereUniqueInput; }'
+[96msrc/modules/content-types/services/content-types.service.ts[0m:[93m37[0m:[93m15[0m - [91merror[0m[90m TS18046: [0m'field' is of type 'unknown'.
+
+[7m37[0m       switch (field.type) {
+[7m  [0m [91m              ~~~~~[0m
+[96msrc/modules/content-types/services/content-types.service.ts[0m:[93m41[0m:[93m15[0m - [91merror[0m[90m TS18046: [0m'field' is of type 'unknown'.
+
+[7m41[0m           if (field.minLength) schema.minLength = field.minLength;
+[7m  [0m [91m              ~~~~~[0m
+[96msrc/modules/content-types/services/content-types.service.ts[0m:[93m41[0m:[93m32[0m - [91merror[0m[90m TS18046: [0m'schema' is of type 'unknown'.
+
+[7m41[0m           if (field.minLength) schema.minLength = field.minLength;
+[7m  [0m [91m                               ~~~~~~[0m
+[96msrc/modules/content-types/services/content-types.service.ts[0m:[93m41[0m:[93m51[0m - [91merror[0m[90m TS18046: [0m'field' is of type 'unknown'.
+
+[7m41[0m           if (field.minLength) schema.minLength = field.minLength;
+[7m  [0m [91m                                                  ~~~~~[0m
+[96msrc/modules/content-types/services/content-types.service.ts[0m:[93m42[0m:[93m15[0m - [91merror[0m[90m TS18046: [0m'field' is of type 'unknown'.
+
+[7m42[0m           if (field.maxLength) schema.maxLength = field.maxLength;
+[7m  [0m [91m              ~~~~~[0m
+[96msrc/modules/content-types/services/content-types.service.ts[0m:[93m42[0m:[93m32[0m - [91merror[0m[90m TS18046: [0m'schema' is of type 'unknown'.
+
+[7m42[0m           if (field.maxLength) schema.maxLength = field.maxLength;
+[7m  [0m [91m                               ~~~~~~[0m
+[96msrc/modules/content-types/services/content-types.service.ts[0m:[93m42[0m:[93m51[0m - [91merror[0m[90m TS18046: [0m'field' is of type 'unknown'.
+
+[7m42[0m           if (field.maxLength) schema.maxLength = field.maxLength;
+[7m  [0m [91m                                                  ~~~~~[0m
+[96msrc/modules/content-types/services/content-types.service.ts[0m:[93m46[0m:[93m15[0m - [91merror[0m[90m TS18046: [0m'field' is of type 'unknown'.
+
+[7m46[0m           if (field.min !== undefined) schema.minimum = field.min;
+[7m  [0m [91m              ~~~~~[0m
+[96msrc/modules/content-types/services/content-types.service.ts[0m:[93m46[0m:[93m40[0m - [91merror[0m[90m TS18046: [0m'schema' is of type 'unknown'.
+
+[7m46[0m           if (field.min !== undefined) schema.minimum = field.min;
+[7m  [0m [91m                                       ~~~~~~[0m
+[96msrc/modules/content-types/services/content-types.service.ts[0m:[93m46[0m:[93m57[0m - [91merror[0m[90m TS18046: [0m'field' is of type 'unknown'.
+
+[7m46[0m           if (field.min !== undefined) schema.minimum = field.min;
+[7m  [0m [91m                                                        ~~~~~[0m
+[96msrc/modules/content-types/services/content-types.service.ts[0m:[93m47[0m:[93m15[0m - [91merror[0m[90m TS18046: [0m'field' is of type 'unknown'.
+
+[7m47[0m           if (field.max !== undefined) schema.maximum = field.max;
+[7m  [0m [91m              ~~~~~[0m
+[96msrc/modules/content-types/services/content-types.service.ts[0m:[93m47[0m:[93m40[0m - [91merror[0m[90m TS18046: [0m'schema' is of type 'unknown'.
+
+[7m47[0m           if (field.max !== undefined) schema.maximum = field.max;
+[7m  [0m [91m                                       ~~~~~~[0m
+[96msrc/modules/content-types/services/content-types.service.ts[0m:[93m47[0m:[93m57[0m - [91merror[0m[90m TS18046: [0m'field' is of type 'unknown'.
+
+[7m47[0m           if (field.max !== undefined) schema.maximum = field.max;
+[7m  [0m [91m                                                        ~~~~~[0m
+[96msrc/modules/content-types/services/content-types.service.ts[0m:[93m63[0m:[93m27[0m - [91merror[0m[90m TS18046: [0m'field' is of type 'unknown'.
+
+[7m63[0m             relationType: field.relationType || 'manyToOne',
+[7m  [0m [91m                          ~~~~~[0m
+[96msrc/modules/content-types/services/content-types.service.ts[0m:[93m64[0m:[93m35[0m - [91merror[0m[90m TS18046: [0m'field' is of type 'unknown'.
+
+[7m64[0m             relatedContentTypeId: field.relatedContentTypeId,
+[7m  [0m [91m                                  ~~~~~[0m
+[96msrc/modules/content-types/services/content-types.service.ts[0m:[93m69[0m:[93m15[0m - [91merror[0m[90m TS18046: [0m'field' is of type 'unknown'.
+
+[7m69[0m           if (field.fields && field.fields.length > 0) {
+[7m  [0m [91m              ~~~~~[0m
+[96msrc/modules/content-types/services/content-types.service.ts[0m:[93m69[0m:[93m31[0m - [91merror[0m[90m TS18046: [0m'field' is of type 'unknown'.
+
+[7m69[0m           if (field.fields && field.fields.length > 0) {
+[7m  [0m [91m                              ~~~~~[0m
+[96msrc/modules/content-types/services/content-types.service.ts[0m:[93m72[0m:[93m51[0m - [91merror[0m[90m TS18046: [0m'field' is of type 'unknown'.
+
+[7m72[0m               properties: this.fieldsToJsonSchema(field.fields).properties,
+[7m  [0m [91m                                                  ~~~~~[0m
+[96msrc/modules/content-types/services/content-types.service.ts[0m:[93m73[0m:[93m49[0m - [91merror[0m[90m TS18046: [0m'field' is of type 'unknown'.
+
+[7m73[0m               required: this.fieldsToJsonSchema(field.fields).required,
+[7m  [0m [91m                                                ~~~~~[0m
+[96msrc/modules/content-types/services/content-types.service.ts[0m:[93m81[0m:[93m15[0m - [91merror[0m[90m TS18046: [0m'field' is of type 'unknown'.
+
+[7m81[0m           if (field.items) {
+[7m  [0m [91m              ~~~~~[0m
+[96msrc/modules/content-types/services/content-types.service.ts[0m:[93m82[0m:[93m32[0m - [91merror[0m[90m TS2571: [0mObject is of type 'unknown'.
+
+[7m82[0m             const itemSchema = this.fieldsToJsonSchema([field.items]).properties[field.items.name];
+[7m  [0m [91m                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+[96msrc/modules/content-types/services/content-types.service.ts[0m:[93m82[0m:[93m57[0m - [91merror[0m[90m TS18046: [0m'field' is of type 'unknown'.
+
+[7m82[0m             const itemSchema = this.fieldsToJsonSchema([field.items]).properties[field.items.name];
+[7m  [0m [91m                                                        ~~~~~[0m
+[96msrc/modules/content-types/services/content-types.service.ts[0m:[93m82[0m:[93m82[0m - [91merror[0m[90m TS18046: [0m'field' is of type 'unknown'.
+
+[7m82[0m             const itemSchema = this.fieldsToJsonSchema([field.items]).properties[field.items.name];
+[7m  [0m [91m                                                                                 ~~~~~[0m
+[96msrc/modules/content-types/services/content-types.service.ts[0m:[93m101[0m:[93m11[0m - [91merror[0m[90m TS18046: [0m'field' is of type 'unknown'.
+
+[7m101[0m       if (field.description) {
+[7m   [0m [91m          ~~~~~[0m
+[96msrc/modules/content-types/services/content-types.service.ts[0m:[93m102[0m:[93m9[0m - [91merror[0m[90m TS18046: [0m'schema' is of type 'unknown'.
+
+[7m102[0m         schema.description = field.description;
+[7m   [0m [91m        ~~~~~~[0m
+[96msrc/modules/content-types/services/content-types.service.ts[0m:[93m102[0m:[93m30[0m - [91merror[0m[90m TS18046: [0m'field' is of type 'unknown'.
+
+[7m102[0m         schema.description = field.description;
+[7m   [0m [91m                             ~~~~~[0m
+[96msrc/modules/content-types/services/content-types.service.ts[0m:[93m105[0m:[93m18[0m - [91merror[0m[90m TS18046: [0m'field' is of type 'unknown'.
+
+[7m105[0m       properties[field.name] = schema;
+[7m   [0m [91m                 ~~~~~[0m
+[96msrc/modules/content-types/services/content-types.service.ts[0m:[93m107[0m:[93m11[0m - [91merror[0m[90m TS18046: [0m'field' is of type 'unknown'.
+
+[7m107[0m       if (field.required) {
+[7m   [0m [91m          ~~~~~[0m
+[96msrc/modules/content-types/services/content-types.service.ts[0m:[93m108[0m:[93m23[0m - [91merror[0m[90m TS18046: [0m'field' is of type 'unknown'.
+
+[7m108[0m         required.push(field.name);
+[7m   [0m [91m                      ~~~~~[0m
+[96msrc/modules/content-types/services/content-types.service.ts[0m:[93m144[0m:[93m11[0m - [91merror[0m[90m TS2322: [0mType 'Record<string, unknown>' is not assignable to type 'JsonNull | InputJsonValue'.
+  Type 'Record<string, unknown>' is missing the following properties from type 'readonly (InputJsonValue | null)[]': length, concat, join, slice, and 20 more.
+
+[7m144[0m           schema,
+[7m   [0m [91m          ~~~~~~[0m
+
+  [96m../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/.prisma/client/index.d.ts[0m:[93m53539[0m:[93m5[0m
+    [7m53539[0m     schema: JsonNullValueInput | InputJsonValue
+    [7m     [0m [96m    ~~~~~~[0m
+    The expected type comes from property 'schema' which is declared here on type '(Without<ContentTypeCreateInput, ContentTypeUncheckedCreateInput> & ContentTypeUncheckedCreateInput) | (Without<...> & ContentTypeCreateInput)'
+[96msrc/modules/content-types/services/content-types.service.ts[0m:[93m298[0m:[93m7[0m - [91merror[0m[90m TS18046: [0m'updateData' is of type 'unknown'.
+
+[7m298[0m       updateData.name = dto.name;
+[7m   [0m [91m      ~~~~~~~~~~[0m
+[96msrc/modules/content-types/services/content-types.service.ts[0m:[93m302[0m:[93m7[0m - [91merror[0m[90m TS18046: [0m'updateData' is of type 'unknown'.
+
+[7m302[0m       updateData.slug = dto.slug;
+[7m   [0m [91m      ~~~~~~~~~~[0m
+[96msrc/modules/content-types/services/content-types.service.ts[0m:[93m306[0m:[93m7[0m - [91merror[0m[90m TS18046: [0m'updateData' is of type 'unknown'.
+
+[7m306[0m       updateData.schema = this.fieldsToJsonSchema(dto.fields);
+[7m   [0m [91m      ~~~~~~~~~~[0m
+[96msrc/modules/content-types/services/content-types.service.ts[0m:[93m308[0m:[93m7[0m - [91merror[0m[90m TS18046: [0m'updateData' is of type 'unknown'.
+
+[7m308[0m       updateData.schema = dto.schema;
+[7m   [0m [91m      ~~~~~~~~~~[0m
+[96msrc/modules/content-types/services/content-types.service.ts[0m:[93m314[0m:[93m9[0m - [91merror[0m[90m TS2322: [0mType 'unknown' is not assignable to type '(Without<ContentTypeUpdateInput, ContentTypeUncheckedUpdateInput> & ContentTypeUncheckedUpdateInput) | (Without<...> & ContentTypeUpdateInput)'.
+
+[7m314[0m         data: updateData,
+[7m   [0m [91m        ~~~~[0m
+
+  [96m../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/.prisma/client/index.d.ts[0m:[93m10077[0m:[93m5[0m
+    [7m10077[0m     data: XOR<ContentTypeUpdateInput, ContentTypeUncheckedUpdateInput>
+    [7m     [0m [96m    ~~~~[0m
+    The expected type comes from property 'data' which is declared here on type '{ select?: ContentTypeSelect<DefaultArgs> | null | undefined; include?: ContentTypeInclude<DefaultArgs> | null | undefined; data: (Without<...> & ContentTypeUncheckedUpdateInput) | (Without<...> & ContentTypeUpdateInput); where: ContentTypeWhereUniqueInput; }'
+[96msrc/modules/content-versioning/content-versioning.service.ts[0m:[93m42[0m:[93m9[0m - [91merror[0m[90m TS2322: [0mType 'unknown' is not assignable to type 'JsonNull | InputJsonValue'.
+
+[7m42[0m         data,
+[7m  [0m [91m        ~~~~[0m
+
+  [96m../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/.prisma/client/index.d.ts[0m:[93m53927[0m:[93m5[0m
+    [7m53927[0m     data: JsonNullValueInput | InputJsonValue
+    [7m     [0m [96m    ~~~~[0m
+    The expected type comes from property 'data' which is declared here on type '(Without<CollectionItemVersionCreateInput, CollectionItemVersionUncheckedCreateInput> & CollectionItemVersionUncheckedCreateInput) | (Without<...> & CollectionItemVersionCreateInput)'
+[96msrc/modules/content-versioning/content-versioning.service.ts[0m:[93m43[0m:[93m9[0m - [91merror[0m[90m TS2322: [0mType 'unknown' is not assignable to type 'ItemStatus'.
+
+[7m43[0m         status: status as unknown,
+[7m  [0m [91m        ~~~~~~[0m
+
+  [96m../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/.prisma/client/index.d.ts[0m:[93m53928[0m:[93m5[0m
+    [7m53928[0m     status: $Enums.ItemStatus
+    [7m     [0m [96m    ~~~~~~[0m
+    The expected type comes from property 'status' which is declared here on type '(Without<CollectionItemVersionCreateInput, CollectionItemVersionUncheckedCreateInput> & CollectionItemVersionUncheckedCreateInput) | (Without<...> & CollectionItemVersionCreateInput)'
+[96msrc/modules/content-versioning/content-versioning.service.ts[0m:[93m174[0m:[93m9[0m - [91merror[0m[90m TS2322: [0mType 'unknown' is not assignable to type 'JsonNull | InputJsonValue | undefined'.
+
+[7m174[0m         data: versionRecord.data as unknown, // JsonValue type compatibility
+[7m   [0m [91m        ~~~~[0m
+
+  [96m../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/.prisma/client/index.d.ts[0m:[93m53856[0m:[93m5[0m
+    [7m53856[0m     data?: JsonNullValueInput | InputJsonValue
+    [7m     [0m [96m    ~~~~[0m
+    The expected type comes from property 'data' which is declared here on type '(Without<CollectionItemUpdateInput, CollectionItemUncheckedUpdateInput> & CollectionItemUncheckedUpdateInput) | (Without<...> & CollectionItemUpdateInput)'
+[96msrc/modules/content-versioning/content-versioning.service.ts[0m:[93m211[0m:[93m20[0m - [91merror[0m[90m TS7053: [0mElement implicitly has an 'any' type because expression of type 'string' can't be used to index type '{}'.
+  No index signature with a parameter of type 'string' was found on type '{}'.
+
+[7m211[0m       const val1 = obj1?.[key];
+[7m   [0m [91m                   ~~~~~~~~~~~[0m
+[96msrc/modules/content-versioning/content-versioning.service.ts[0m:[93m212[0m:[93m20[0m - [91merror[0m[90m TS7053: [0mElement implicitly has an 'any' type because expression of type 'string' can't be used to index type '{}'.
+  No index signature with a parameter of type 'string' was found on type '{}'.
+
+[7m212[0m       const val2 = obj2?.[key];
+[7m   [0m [91m                   ~~~~~~~~~~~[0m
+[96msrc/modules/content-versioning/content-versioning.service.ts[0m:[93m214[0m:[93m20[0m - [91merror[0m[90m TS2638: [0mType '{}' may represent a primitive value, which is not permitted as the right operand of the 'in' operator.
+
+[7m214[0m       if (!(key in (obj1 || {}))) {
+[7m   [0m [91m                   ~~~~~~~~~~~~[0m
+[96msrc/modules/content-versioning/content-versioning.service.ts[0m:[93m215[0m:[93m9[0m - [91merror[0m[90m TS18046: [0m'diff' is of type 'unknown'.
+
+[7m215[0m         diff.added[key] = val2;
+[7m   [0m [91m        ~~~~[0m
+[96msrc/modules/content-versioning/content-versioning.service.ts[0m:[93m216[0m:[93m27[0m - [91merror[0m[90m TS2638: [0mType '{}' may represent a primitive value, which is not permitted as the right operand of the 'in' operator.
+
+[7m216[0m       } else if (!(key in (obj2 || {}))) {
+[7m   [0m [91m                          ~~~~~~~~~~~~[0m
+[96msrc/modules/content-versioning/content-versioning.service.ts[0m:[93m217[0m:[93m9[0m - [91merror[0m[90m TS18046: [0m'diff' is of type 'unknown'.
+
+[7m217[0m         diff.removed[key] = val1;
+[7m   [0m [91m        ~~~~[0m
+[96msrc/modules/content-versioning/content-versioning.service.ts[0m:[93m219[0m:[93m9[0m - [91merror[0m[90m TS18046: [0m'diff' is of type 'unknown'.
+
+[7m219[0m         diff.changed[key] = {
+[7m   [0m [91m        ~~~~[0m
+[96msrc/modules/content-versioning/content-versioning.service.ts[0m:[93m224[0m:[93m9[0m - [91merror[0m[90m TS18046: [0m'diff' is of type 'unknown'.
+
+[7m224[0m         diff.unchanged[key] = val1;
+[7m   [0m [91m        ~~~~[0m
+[96msrc/modules/content-workflow/controllers/content-workflow.controller.ts[0m:[93m73[0m:[93m7[0m - [91merror[0m[90m TS2345: [0mArgument of type 'unknown' is not assignable to parameter of type '{ status: "approved" | "rejected" | "changes_requested"; comment?: string | undefined; }'.
+
+[7m73[0m       dto as unknown,
+[7m  [0m [91m      ~~~~~~~~~~~~~~[0m
+[96msrc/modules/content-workflow/controllers/content-workflow.controller.ts[0m:[93m109[0m:[93m7[0m - [91merror[0m[90m TS2345: [0mArgument of type 'unknown' is not assignable to parameter of type '{ content: string; }'.
+
+[7m109[0m       dto as unknown,
+[7m   [0m [91m      ~~~~~~~~~~~~~~[0m
+[96msrc/modules/content-workflow/controllers/content-workflow.controller.ts[0m:[93m153[0m:[93m7[0m - [91merror[0m[90m TS2345: [0mArgument of type 'unknown' is not assignable to parameter of type '{ content?: string | undefined; resolved?: boolean | undefined; }'.
+
+[7m153[0m       dto as unknown,
+[7m   [0m [91m      ~~~~~~~~~~~~~~[0m
+[96msrc/modules/feature-flags/feature-flags.controller.ts[0m:[93m56[0m:[93m64[0m - [91merror[0m[90m TS2345: [0mArgument of type 'unknown' is not assignable to parameter of type '{ enabled: boolean; featureKey: string; }'.
+
+[7m56[0m     return this.featureFlagsService.setFeatureOverride(siteId, dto as unknown);
+[7m  [0m [91m                                                               ~~~~~~~~~~~~~~[0m
+[96msrc/modules/hooks/hooks.service.ts[0m:[93m42[0m:[93m9[0m - [91merror[0m[90m TS2322: [0mType 'unknown' is not assignable to type 'JsonNull | InputJsonValue | undefined'.
+
+[7m42[0m         config: (dto.config || {}) as unknown, // JsonValue type compatibility
+[7m  [0m [91m        ~~~~~~[0m
+
+  [96m../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/.prisma/client/index.d.ts[0m:[93m54759[0m:[93m5[0m
+    [7m54759[0m     config?: JsonNullValueInput | InputJsonValue
+    [7m     [0m [96m    ~~~~~~[0m
+    The expected type comes from property 'config' which is declared here on type '(Without<HookCreateInput, HookUncheckedCreateInput> & HookUncheckedCreateInput) | (Without<...> & HookCreateInput)'
+[96msrc/modules/hooks/hooks.service.ts[0m:[93m106[0m:[93m7[0m - [91merror[0m[90m TS2322: [0mType '{ collectionId?: string | null | undefined; priority?: number | undefined; active?: boolean | undefined; config?: unknown; handler?: string | undefined; event?: string | undefined; type?: "before" | ... 2 more ... | undefined; name?: string | undefined; }' is not assignable to type '(Without<HookUpdateInput, HookUncheckedUpdateInput> & HookUncheckedUpdateInput) | (Without<...> & HookUpdateInput)'.
+  Type '{ collectionId?: string | null | undefined; priority?: number | undefined; active?: boolean | undefined; config?: unknown; handler?: string | undefined; event?: string | undefined; type?: "before" | ... 2 more ... | undefined; name?: string | undefined; }' is not assignable to type 'Without<HookUncheckedUpdateInput, HookUpdateInput> & HookUpdateInput'.
+    Type '{ collectionId?: string | null | undefined; priority?: number | undefined; active?: boolean | undefined; config?: unknown; handler?: string | undefined; event?: string | undefined; type?: "before" | ... 2 more ... | undefined; name?: string | undefined; }' is not assignable to type 'Without<HookUncheckedUpdateInput, HookUpdateInput>'.
+      Types of property 'collectionId' are incompatible.
+        Type 'string | null | undefined' is not assignable to type 'undefined'.
+          Type 'null' is not assignable to type 'undefined'.
+
+[7m106[0m       data: {
+[7m   [0m [91m      ~~~~[0m
+
+  [96m../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/.prisma/client/index.d.ts[0m:[93m23596[0m:[93m5[0m
+    [7m23596[0m     data: XOR<HookUpdateInput, HookUncheckedUpdateInput>
+    [7m     [0m [96m    ~~~~[0m
+    The expected type comes from property 'data' which is declared here on type '{ select?: HookSelect<DefaultArgs> | null | undefined; include?: HookInclude<DefaultArgs> | null | undefined; data: (Without<HookUpdateInput, HookUncheckedUpdateInput> & HookUncheckedUpdateInput) | (Without<...> & HookUpdateInput); where: HookWhereUniqueInput; }'
+[96msrc/modules/hooks/hooks.service.ts[0m:[93m164[0m:[93m93[0m - [91merror[0m[90m TS18046: [0m'error' is of type 'unknown'.
+
+[7m164[0m         this.logger.error(`Hook ${hook.id} failed:`, error instanceof Error ? error.stack : error.message);
+[7m   [0m [91m                                                                                            ~~~~~[0m
+[96msrc/modules/hooks/hooks.service.ts[0m:[93m167[0m:[93m56[0m - [91merror[0m[90m TS18046: [0m'error' is of type 'unknown'.
+
+[7m167[0m           throw new Error(`Hook ${hook.name} failed: ${error.message}`);
+[7m   [0m [91m                                                       ~~~~~[0m
+[96msrc/modules/hooks/hooks.service.ts[0m:[93m180[0m:[93m9[0m - [91merror[0m[90m TS18046: [0m'hook' is of type 'unknown'.
+
+[7m180[0m     if (hook.handler.startsWith('http://') || hook.handler.startsWith('https://')) {
+[7m   [0m [91m        ~~~~[0m
+[96msrc/modules/hooks/hooks.service.ts[0m:[93m180[0m:[93m47[0m - [91merror[0m[90m TS18046: [0m'hook' is of type 'unknown'.
+
+[7m180[0m     if (hook.handler.startsWith('http://') || hook.handler.startsWith('https://')) {
+[7m   [0m [91m                                              ~~~~[0m
+[96msrc/modules/hooks/hooks.service.ts[0m:[93m183[0m:[93m16[0m - [91merror[0m[90m TS18046: [0m'hook' is of type 'unknown'.
+
+[7m183[0m     } else if (hook.handler.startsWith('function:')) {
+[7m   [0m [91m               ~~~~[0m
+[96msrc/modules/hooks/hooks.service.ts[0m:[93m187[0m:[93m53[0m - [91merror[0m[90m TS18046: [0m'hook' is of type 'unknown'.
+
+[7m187[0m       throw new Error(`Unknown hook handler type: ${hook.handler}`);
+[7m   [0m [91m                                                    ~~~~[0m
+[96msrc/modules/hooks/hooks.service.ts[0m:[93m195[0m:[93m22[0m - [91merror[0m[90m TS18046: [0m'hook' is of type 'unknown'.
+
+[7m195[0m     const timeout = (hook.config as unknown)?.timeout || 5000;
+[7m   [0m [91m                     ~~~~[0m
+[96msrc/modules/hooks/hooks.service.ts[0m:[93m195[0m:[93m47[0m - [91merror[0m[90m TS2339: [0mProperty 'timeout' does not exist on type '{}'.
+
+[7m195[0m     const timeout = (hook.config as unknown)?.timeout || 5000;
+[7m   [0m [91m                                              ~~~~~~~[0m
+[96msrc/modules/hooks/hooks.service.ts[0m:[93m200[0m:[93m36[0m - [91merror[0m[90m TS18046: [0m'hook' is of type 'unknown'.
+
+[7m200[0m       const response = await fetch(hook.handler, {
+[7m   [0m [91m                                   ~~~~[0m
+[96msrc/modules/hooks/hooks.service.ts[0m:[93m204[0m:[93m16[0m - [91merror[0m[90m TS18046: [0m'hook' is of type 'unknown'.
+
+[7m204[0m           ...((hook.config as unknown)?.headers || {}),
+[7m   [0m [91m               ~~~~[0m
+[96msrc/modules/hooks/hooks.service.ts[0m:[93m204[0m:[93m41[0m - [91merror[0m[90m TS2339: [0mProperty 'headers' does not exist on type '{}'.
+
+[7m204[0m           ...((hook.config as unknown)?.headers || {}),
+[7m   [0m [91m                                        ~~~~~~~[0m
+[96msrc/modules/hooks/hooks.service.ts[0m:[93m207[0m:[93m18[0m - [91merror[0m[90m TS18046: [0m'hook' is of type 'unknown'.
+
+[7m207[0m           event: hook.event,
+[7m   [0m [91m                 ~~~~[0m
+[96msrc/modules/hooks/hooks.service.ts[0m:[93m208[0m:[93m17[0m - [91merror[0m[90m TS18046: [0m'hook' is of type 'unknown'.
+
+[7m208[0m           type: hook.type,
+[7m   [0m [91m                ~~~~[0m
+[96msrc/modules/hooks/hooks.service.ts[0m:[93m210[0m:[93m19[0m - [91merror[0m[90m TS18046: [0m'hook' is of type 'unknown'.
+
+[7m210[0m           config: hook.config,
+[7m   [0m [91m                  ~~~~[0m
+[96msrc/modules/hooks/hooks.service.ts[0m:[93m222[0m:[93m11[0m - [91merror[0m[90m TS18046: [0m'hook' is of type 'unknown'.
+
+[7m222[0m       if (hook.type === 'transform') {
+[7m   [0m [91m          ~~~~[0m
+[96msrc/modules/marketing/marketing.service.ts[0m:[93m125[0m:[93m7[0m - [91merror[0m[90m TS18046: [0m'where' is of type 'unknown'.
+
+[7m125[0m       where.siteId = siteId;
+[7m   [0m [91m      ~~~~~[0m
+[96msrc/modules/marketing/marketing.service.ts[0m:[93m128[0m:[93m7[0m - [91merror[0m[90m TS18046: [0m'where' is of type 'unknown'.
+
+[7m128[0m       where.status = status;
+[7m   [0m [91m      ~~~~~[0m
+[96msrc/modules/marketing/marketing.service.ts[0m:[93m133[0m:[93m9[0m - [91merror[0m[90m TS2322: [0mType 'unknown' is not assignable to type 'CampaignWhereInput | undefined'.
+
+[7m133[0m         where,
+[7m   [0m [91m        ~~~~~[0m
+[96msrc/modules/marketing/marketing.service.ts[0m:[93m146[0m:[93m36[0m - [91merror[0m[90m TS2322: [0mType 'unknown' is not assignable to type 'CampaignWhereInput | undefined'.
+
+[7m146[0m       this.prisma.campaign.count({ where }),
+[7m   [0m [91m                                   ~~~~~[0m
+[96msrc/modules/marketing/marketing.service.ts[0m:[93m179[0m:[93m33[0m - [91merror[0m[90m TS18046: [0m'updateData' is of type 'unknown'.
+
+[7m179[0m     if (dto.name !== undefined) updateData.name = dto.name;
+[7m   [0m [91m                                ~~~~~~~~~~[0m
+[96msrc/modules/marketing/marketing.service.ts[0m:[93m180[0m:[93m40[0m - [91merror[0m[90m TS18046: [0m'updateData' is of type 'unknown'.
+
+[7m180[0m     if (dto.description !== undefined) updateData.description = dto.description;
+[7m   [0m [91m                                       ~~~~~~~~~~[0m
+[96msrc/modules/marketing/marketing.service.ts[0m:[93m181[0m:[93m35[0m - [91merror[0m[90m TS18046: [0m'updateData' is of type 'unknown'.
+
+[7m181[0m     if (dto.status !== undefined) updateData.status = dto.status;
+[7m   [0m [91m                                  ~~~~~~~~~~[0m
+[96msrc/modules/marketing/marketing.service.ts[0m:[93m183[0m:[93m7[0m - [91merror[0m[90m TS18046: [0m'updateData' is of type 'unknown'.
+
+[7m183[0m       updateData.startDate = dto.startDate ? new Date(dto.startDate) : null;
+[7m   [0m [91m      ~~~~~~~~~~[0m
+[96msrc/modules/marketing/marketing.service.ts[0m:[93m185[0m:[93m7[0m - [91merror[0m[90m TS18046: [0m'updateData' is of type 'unknown'.
+
+[7m185[0m       updateData.endDate = dto.endDate ? new Date(dto.endDate) : null;
+[7m   [0m [91m      ~~~~~~~~~~[0m
+[96msrc/modules/marketing/marketing.service.ts[0m:[93m189[0m:[93m7[0m - [91merror[0m[90m TS2322: [0mType 'unknown' is not assignable to type '(Without<CampaignUpdateInput, CampaignUncheckedUpdateInput> & CampaignUncheckedUpdateInput) | (Without<...> & CampaignUpdateInput)'.
+
+[7m189[0m       data: updateData,
+[7m   [0m [91m      ~~~~[0m
+
+  [96m../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/.prisma/client/index.d.ts[0m:[93m44361[0m:[93m5[0m
+    [7m44361[0m     data: XOR<CampaignUpdateInput, CampaignUncheckedUpdateInput>
+    [7m     [0m [96m    ~~~~[0m
+    The expected type comes from property 'data' which is declared here on type '{ select?: CampaignSelect<DefaultArgs> | null | undefined; include?: CampaignInclude<DefaultArgs> | null | undefined; data: (Without<...> & CampaignUncheckedUpdateInput) | (Without<...> & CampaignUpdateInput); where: CampaignWhereUniqueInput; }'
+[96msrc/modules/marketing/marketing.service.ts[0m:[93m313[0m:[93m9[0m - [91merror[0m[90m TS2322: [0mType 'unknown' is not assignable to type 'JsonNull | InputJsonValue'.
+
+[7m313[0m         content: dto.content as unknown,
+[7m   [0m [91m        ~~~~~~~[0m
+
+  [96m../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/.prisma/client/index.d.ts[0m:[93m56600[0m:[93m5[0m
+    [7m56600[0m     content: JsonNullValueInput | InputJsonValue
+    [7m     [0m [96m    ~~~~~~~[0m
+    The expected type comes from property 'content' which is declared here on type '(Without<DistributionDraftCreateInput, DistributionDraftUncheckedCreateInput> & DistributionDraftUncheckedCreateInput) | (Without<...> & DistributionDraftCreateInput)'
+[96msrc/modules/marketing/marketing.service.ts[0m:[93m360[0m:[93m7[0m - [91merror[0m[90m TS18046: [0m'where' is of type 'unknown'.
+
+[7m360[0m       where.siteId = siteId;
+[7m   [0m [91m      ~~~~~[0m
+[96msrc/modules/marketing/marketing.service.ts[0m:[93m363[0m:[93m7[0m - [91merror[0m[90m TS18046: [0m'where' is of type 'unknown'.
+
+[7m363[0m       where.campaignId = campaignId;
+[7m   [0m [91m      ~~~~~[0m
+[96msrc/modules/marketing/marketing.service.ts[0m:[93m366[0m:[93m7[0m - [91merror[0m[90m TS18046: [0m'where' is of type 'unknown'.
+
+[7m366[0m       where.status = status;
+[7m   [0m [91m      ~~~~~[0m
+[96msrc/modules/marketing/marketing.service.ts[0m:[93m371[0m:[93m9[0m - [91merror[0m[90m TS2322: [0mType 'unknown' is not assignable to type 'DistributionDraftWhereInput | undefined'.
+
+[7m371[0m         where,
+[7m   [0m [91m        ~~~~~[0m
+[96msrc/modules/marketing/marketing.service.ts[0m:[93m384[0m:[93m45[0m - [91merror[0m[90m TS2322: [0mType 'unknown' is not assignable to type 'DistributionDraftWhereInput | undefined'.
+
+[7m384[0m       this.prisma.distributionDraft.count({ where }),
+[7m   [0m [91m                                            ~~~~~[0m
+[96msrc/modules/marketing/marketing.service.ts[0m:[93m417[0m:[93m34[0m - [91merror[0m[90m TS18046: [0m'updateData' is of type 'unknown'.
+
+[7m417[0m     if (dto.title !== undefined) updateData.title = dto.title;
+[7m   [0m [91m                                 ~~~~~~~~~~[0m
+[96msrc/modules/marketing/marketing.service.ts[0m:[93m418[0m:[93m36[0m - [91merror[0m[90m TS18046: [0m'updateData' is of type 'unknown'.
+
+[7m418[0m     if (dto.content !== undefined) updateData.content = dto.content as unknown;
+[7m   [0m [91m                                   ~~~~~~~~~~[0m
+[96msrc/modules/marketing/marketing.service.ts[0m:[93m419[0m:[93m37[0m - [91merror[0m[90m TS18046: [0m'updateData' is of type 'unknown'.
+
+[7m419[0m     if (dto.channels !== undefined) updateData.channels = dto.channels;
+[7m   [0m [91m                                    ~~~~~~~~~~[0m
+[96msrc/modules/marketing/marketing.service.ts[0m:[93m420[0m:[93m35[0m - [91merror[0m[90m TS18046: [0m'updateData' is of type 'unknown'.
+
+[7m420[0m     if (dto.status !== undefined) updateData.status = dto.status;
+[7m   [0m [91m                                  ~~~~~~~~~~[0m
+[96msrc/modules/marketing/marketing.service.ts[0m:[93m422[0m:[93m7[0m - [91merror[0m[90m TS18046: [0m'updateData' is of type 'unknown'.
+
+[7m422[0m       updateData.scheduledAt = dto.scheduledAt ? new Date(dto.scheduledAt) : null;
+[7m   [0m [91m      ~~~~~~~~~~[0m
+[96msrc/modules/marketing/marketing.service.ts[0m:[93m426[0m:[93m7[0m - [91merror[0m[90m TS2322: [0mType 'unknown' is not assignable to type '(Without<DistributionDraftUpdateInput, DistributionDraftUncheckedUpdateInput> & DistributionDraftUncheckedUpdateInput) | (Without<...> & DistributionDraftUpdateInput)'.
+
+[7m426[0m       data: updateData,
+[7m   [0m [91m      ~~~~[0m
+
+  [96m../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/.prisma/client/index.d.ts[0m:[93m45434[0m:[93m5[0m
+    [7m45434[0m     data: XOR<DistributionDraftUpdateInput, DistributionDraftUncheckedUpdateInput>
+    [7m     [0m [96m    ~~~~[0m
+    The expected type comes from property 'data' which is declared here on type '{ select?: DistributionDraftSelect<DefaultArgs> | null | undefined; include?: DistributionDraftInclude<DefaultArgs> | null | undefined; data: (Without<...> & DistributionDraftUncheckedUpdateInput) | (Without<...> & DistributionDraftUpdateInput); where: DistributionDraftWhereUniqueInput; }'
+[96msrc/modules/marketing/marketing.service.ts[0m:[93m712[0m:[93m7[0m - [91merror[0m[90m TS2322: [0mType 'unknown[]' is not assignable to type 'PublishResultCreateManyInput | PublishResultCreateManyInput[]'.
+  Type 'unknown[]' is not assignable to type 'PublishResultCreateManyInput[]'.
+    Type 'unknown' is not assignable to type 'PublishResultCreateManyInput'.
+
+[7m712[0m       data: results,
+[7m   [0m [91m      ~~~~[0m
+[96msrc/modules/marketing/marketing.service.ts[0m:[93m716[0m:[93m45[0m - [91merror[0m[90m TS18046: [0m'r' is of type 'unknown'.
+
+[7m716[0m     const allSuccess = results.every((r) => r.status === 'success');
+[7m   [0m [91m                                            ~[0m
+[96msrc/modules/marketing/marketing.service.ts[0m:[93m717[0m:[93m44[0m - [91merror[0m[90m TS18046: [0m'r' is of type 'unknown'.
+
+[7m717[0m     const allFailed = results.every((r) => r.status === 'failed');
+[7m   [0m [91m                                           ~[0m
+[96msrc/modules/marketing/marketing.service.ts[0m:[93m741[0m:[93m14[0m - [91merror[0m[90m TS18046: [0m'job' is of type 'unknown'.
+
+[7m741[0m       jobId: job.id,
+[7m   [0m [91m             ~~~[0m
+[96msrc/modules/marketing/marketing.service.ts[0m:[93m742[0m:[93m14[0m - [91merror[0m[90m TS18046: [0m'job' is of type 'unknown'.
+
+[7m742[0m       orgId: job.orgId,
+[7m   [0m [91m             ~~~[0m
+[96msrc/modules/marketing/marketing.service.ts[0m:[93m743[0m:[93m15[0m - [91merror[0m[90m TS18046: [0m'job' is of type 'unknown'.
+
+[7m743[0m       siteId: job.siteId,
+[7m   [0m [91m              ~~~[0m
+[96msrc/modules/marketing/marketing.service.ts[0m:[93m789[0m:[93m7[0m - [91merror[0m[90m TS18046: [0m'where' is of type 'unknown'.
+
+[7m789[0m       where.siteId = siteId;
+[7m   [0m [91m      ~~~~~[0m
+[96msrc/modules/marketing/marketing.service.ts[0m:[93m792[0m:[93m7[0m - [91merror[0m[90m TS18046: [0m'where' is of type 'unknown'.
+
+[7m792[0m       where.campaignId = campaignId;
+[7m   [0m [91m      ~~~~~[0m
+[96msrc/modules/marketing/marketing.service.ts[0m:[93m795[0m:[93m7[0m - [91merror[0m[90m TS18046: [0m'where' is of type 'unknown'.
+
+[7m795[0m       where.draftId = draftId;
+[7m   [0m [91m      ~~~~~[0m
+[96msrc/modules/marketing/marketing.service.ts[0m:[93m798[0m:[93m7[0m - [91merror[0m[90m TS18046: [0m'where' is of type 'unknown'.
+
+[7m798[0m       where.status = status;
+[7m   [0m [91m      ~~~~~[0m
+[96msrc/modules/marketing/marketing.service.ts[0m:[93m803[0m:[93m9[0m - [91merror[0m[90m TS2322: [0mType 'unknown' is not assignable to type 'PublishJobWhereInput | undefined'.
+
+[7m803[0m         where,
+[7m   [0m [91m        ~~~~~[0m
+[96msrc/modules/marketing/marketing.service.ts[0m:[93m827[0m:[93m38[0m - [91merror[0m[90m TS2322: [0mType 'unknown' is not assignable to type 'PublishJobWhereInput | undefined'.
+
+[7m827[0m       this.prisma.publishJob.count({ where }),
+[7m   [0m [91m                                     ~~~~~[0m
+[96msrc/modules/marketing/marketing.service.ts[0m:[93m885[0m:[93m9[0m - [91merror[0m[90m TS2322: [0mType 'unknown' is not assignable to type 'JsonNull | InputJsonValue | undefined'.
+
+[7m885[0m         credentials: dto.credentials as unknown,
+[7m   [0m [91m        ~~~~~~~~~~~[0m
+
+  [96m../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/.prisma/client/index.d.ts[0m:[93m56714[0m:[93m5[0m
+    [7m56714[0m     credentials?: JsonNullValueInput | InputJsonValue
+    [7m     [0m [96m    ~~~~~~~~~~~[0m
+    The expected type comes from property 'credentials' which is declared here on type '(Without<ChannelConnectionCreateInput, ChannelConnectionUncheckedCreateInput> & ChannelConnectionUncheckedCreateInput) | (Without<...> & ChannelConnectionCreateInput)'
+[96msrc/modules/marketing/marketing.service.ts[0m:[93m886[0m:[93m9[0m - [91merror[0m[90m TS2322: [0mType 'unknown' is not assignable to type 'JsonNull | InputJsonValue | undefined'.
+
+[7m886[0m         metadata: dto.metadata as unknown,
+[7m   [0m [91m        ~~~~~~~~[0m
+
+  [96m../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/.prisma/client/index.d.ts[0m:[93m56715[0m:[93m5[0m
+    [7m56715[0m     metadata?: JsonNullValueInput | InputJsonValue
+    [7m     [0m [96m    ~~~~~~~~[0m
+    The expected type comes from property 'metadata' which is declared here on type '(Without<ChannelConnectionCreateInput, ChannelConnectionUncheckedCreateInput> & ChannelConnectionUncheckedCreateInput) | (Without<...> & ChannelConnectionCreateInput)'
+[96msrc/modules/marketing/marketing.service.ts[0m:[93m919[0m:[93m7[0m - [91merror[0m[90m TS18046: [0m'where' is of type 'unknown'.
+
+[7m919[0m       where.siteId = query.siteId;
+[7m   [0m [91m      ~~~~~[0m
+[96msrc/modules/marketing/marketing.service.ts[0m:[93m922[0m:[93m7[0m - [91merror[0m[90m TS18046: [0m'where' is of type 'unknown'.
+
+[7m922[0m       where.channel = query.channel;
+[7m   [0m [91m      ~~~~~[0m
+[96msrc/modules/marketing/marketing.service.ts[0m:[93m925[0m:[93m7[0m - [91merror[0m[90m TS18046: [0m'where' is of type 'unknown'.
+
+[7m925[0m       where.status = query.status;
+[7m   [0m [91m      ~~~~~[0m
+[96msrc/modules/marketing/marketing.service.ts[0m:[93m929[0m:[93m7[0m - [91merror[0m[90m TS2322: [0mType 'unknown' is not assignable to type 'ChannelConnectionWhereInput | undefined'.
+
+[7m929[0m       where,
+[7m   [0m [91m      ~~~~~[0m
+[96msrc/modules/marketing/marketing.service.ts[0m:[93m956[0m:[93m38[0m - [91merror[0m[90m TS18046: [0m'updateData' is of type 'unknown'.
+
+[7m956[0m     if (dto.channelId !== undefined) updateData.channelId = dto.channelId;
+[7m   [0m [91m                                     ~~~~~~~~~~[0m
+[96msrc/modules/marketing/marketing.service.ts[0m:[93m957[0m:[93m40[0m - [91merror[0m[90m TS18046: [0m'updateData' is of type 'unknown'.
+
+[7m957[0m     if (dto.channelName !== undefined) updateData.channelName = dto.channelName;
+[7m   [0m [91m                                       ~~~~~~~~~~[0m
+[96msrc/modules/marketing/marketing.service.ts[0m:[93m958[0m:[93m35[0m - [91merror[0m[90m TS18046: [0m'updateData' is of type 'unknown'.
+
+[7m958[0m     if (dto.status !== undefined) updateData.status = dto.status;
+[7m   [0m [91m                                  ~~~~~~~~~~[0m
+[96msrc/modules/marketing/marketing.service.ts[0m:[93m959[0m:[93m40[0m - [91merror[0m[90m TS18046: [0m'updateData' is of type 'unknown'.
+
+[7m959[0m     if (dto.credentials !== undefined) updateData.credentials = dto.credentials as unknown;
+[7m   [0m [91m                                       ~~~~~~~~~~[0m
+[96msrc/modules/marketing/marketing.service.ts[0m:[93m960[0m:[93m37[0m - [91merror[0m[90m TS18046: [0m'updateData' is of type 'unknown'.
+
+[7m960[0m     if (dto.metadata !== undefined) updateData.metadata = dto.metadata as unknown;
+[7m   [0m [91m                                    ~~~~~~~~~~[0m
+[96msrc/modules/marketing/marketing.service.ts[0m:[93m964[0m:[93m7[0m - [91merror[0m[90m TS2322: [0mType 'unknown' is not assignable to type '(Without<ChannelConnectionUpdateInput, ChannelConnectionUncheckedUpdateInput> & ChannelConnectionUncheckedUpdateInput) | (Without<...> & ChannelConnectionUpdateInput)'.
+
+[7m964[0m       data: updateData,
+[7m   [0m [91m      ~~~~[0m
+
+  [96m../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/.prisma/client/index.d.ts[0m:[93m46490[0m:[93m5[0m
+    [7m46490[0m     data: XOR<ChannelConnectionUpdateInput, ChannelConnectionUncheckedUpdateInput>
+    [7m     [0m [96m    ~~~~[0m
+    The expected type comes from property 'data' which is declared here on type '{ select?: ChannelConnectionSelect<DefaultArgs> | null | undefined; include?: ChannelConnectionInclude<DefaultArgs> | null | undefined; data: (Without<...> & ChannelConnectionUncheckedUpdateInput) | (Without<...> & ChannelConnectionUpdateInput); where: ChannelConnectionWhereUniqueInput; }'
+[96msrc/modules/media/media.controller.ts[0m:[93m71[0m:[93m64[0m - [91merror[0m[90m TS2345: [0mArgument of type 'unknown' is not assignable to parameter of type '{ size?: number | undefined; width?: number | undefined; height?: number | undefined; filename?: string | undefined; mimeType?: string | undefined; alt?: string | undefined; metadata?: Record<...> | undefined; }'.
+
+[7m71[0m     return this.mediaService.upload(req.siteId, user.id, file, body);
+[7m  [0m [91m                                                               ~~~~[0m
+[96msrc/modules/media/media.controller.ts[0m:[93m85[0m:[93m50[0m - [91merror[0m[90m TS2345: [0mArgument of type 'unknown' is not assignable to parameter of type '{ page: number; pageSize: number; sortBy: "createdAt" | "size" | "fileName"; sortOrder: "asc" | "desc"; search?: string | undefined; mimeType?: string | undefined; }'.
+
+[7m85[0m     return this.mediaService.findAll(req.siteId, query);
+[7m  [0m [91m                                                 ~~~~~[0m
+[96msrc/modules/media/media.service.ts[0m:[93m140[0m:[93m7[0m - [91merror[0m[90m TS18046: [0m'where' is of type 'unknown'.
+
+[7m140[0m       where.mimeType = mimeType;
+[7m   [0m [91m      ~~~~~[0m
+[96msrc/modules/media/media.service.ts[0m:[93m144[0m:[93m7[0m - [91merror[0m[90m TS18046: [0m'where' is of type 'unknown'.
+
+[7m144[0m       where.OR = [
+[7m   [0m [91m      ~~~~~[0m
+[96msrc/modules/media/media.service.ts[0m:[93m152[0m:[93m9[0m - [91merror[0m[90m TS2322: [0mType 'unknown' is not assignable to type 'MediaItemWhereInput | undefined'.
+
+[7m152[0m         where,
+[7m   [0m [91m        ~~~~~[0m
+[96msrc/modules/media/media.service.ts[0m:[93m175[0m:[93m37[0m - [91merror[0m[90m TS2322: [0mType 'unknown' is not assignable to type 'MediaItemWhereInput | undefined'.
+
+[7m175[0m       this.prisma.mediaItem.count({ where }),
+[7m   [0m [91m                                    ~~~~~[0m
+[96msrc/modules/media/media.service.ts[0m:[93m211[0m:[93m19[0m - [91merror[0m[90m TS18046: [0m'item' is of type 'unknown'.
+
+[7m211[0m         mimeType: item.mimeType,
+[7m   [0m [91m                  ~~~~[0m
+[96msrc/modules/media/media.service.ts[0m:[93m212[0m:[93m16[0m - [91merror[0m[90m TS18046: [0m'item' is of type 'unknown'.
+
+[7m212[0m         count: item._count,
+[7m   [0m [91m               ~~~~[0m
+[96msrc/modules/media/media.service.ts[0m:[93m266[0m:[93m9[0m - [91merror[0m[90m TS2322: [0mType 'string | number | boolean | Record<string, unknown> | JsonArray | JsonNull' is not assignable to type 'JsonNull | InputJsonValue | undefined'.
+  Type 'Record<string, unknown>' is not assignable to type 'JsonNull | InputJsonValue | undefined'.
+    Type 'Record<string, unknown>' is missing the following properties from type 'readonly (InputJsonValue | null)[]': length, concat, join, slice, and 20 more.
+
+[7m266[0m         metadata: metadataValue,
+[7m   [0m [91m        ~~~~~~~~[0m
+
+  [96m../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/.prisma/client/index.d.ts[0m:[93m54054[0m:[93m5[0m
+    [7m54054[0m     metadata?: JsonNullValueInput | InputJsonValue
+    [7m     [0m [96m    ~~~~~~~~[0m
+    The expected type comes from property 'metadata' which is declared here on type '(Without<MediaItemUpdateInput, MediaItemUncheckedUpdateInput> & MediaItemUncheckedUpdateInput) | (Without<...> & MediaItemUpdateInput)'
+[96msrc/modules/media/media.service.ts[0m:[93m296[0m:[93m34[0m - [91merror[0m[90m TS2339: [0mProperty 'storageKey' does not exist on type '{}'.
+
+[7m296[0m     const storageKey = metadata?.storageKey;
+[7m   [0m [91m                                 ~~~~~~~~~~[0m
+[96msrc/modules/org-dashboard/org-dashboard.service.ts[0m:[93m370[0m:[93m48[0m - [91merror[0m[90m TS2339: [0mProperty 'domain' does not exist on type '{}'.
+
+[7m370[0m     const domain = (site.settings as unknown)?.domain || undefined;
+[7m   [0m [91m                                               ~~~~~~[0m
+[96msrc/modules/rbac/rbac-evaluator.service.ts[0m:[93m51[0m:[93m7[0m - [91merror[0m[90m TS18046: [0m'where' is of type 'unknown'.
+
+[7m51[0m       where.OR = [
+[7m  [0m [91m      ~~~~~[0m
+[96msrc/modules/rbac/rbac-evaluator.service.ts[0m:[93m65[0m:[93m7[0m - [91merror[0m[90m TS18046: [0m'where' is of type 'unknown'.
+
+[7m65[0m       where.role = {
+[7m  [0m [91m      ~~~~~[0m
+[96msrc/modules/rbac/rbac-evaluator.service.ts[0m:[93m71[0m:[93m7[0m - [91merror[0m[90m TS2322: [0mType 'unknown' is not assignable to type 'UserRoleWhereInput | undefined'.
+
+[7m71[0m       where,
+[7m  [0m [91m      ~~~~~[0m
+[96msrc/modules/rbac/rbac-evaluator.service.ts[0m:[93m86[0m:[93m31[0m - [91merror[0m[90m TS2339: [0mProperty 'role' does not exist on type '{ id: string; siteId: string | null; createdAt: Date; orgId: string; userId: string; roleId: string; }'.
+
+[7m86[0m       const role = assignment.role;
+[7m  [0m [91m                              ~~~~[0m
+[96msrc/modules/rbac/rbac.controller.ts[0m:[93m119[0m:[93m47[0m - [91merror[0m[90m TS2345: [0mArgument of type 'unknown' is not assignable to parameter of type '{ name: string; scope: "ORG" | "SITE"; capabilityKeys: string[]; description?: string | undefined; }'.
+
+[7m119[0m     return this.rbacService.createRole(orgId, dto as unknown, user.id);
+[7m   [0m [91m                                              ~~~~~~~~~~~~~~[0m
+[96msrc/modules/rbac/rbac.controller.ts[0m:[93m136[0m:[93m55[0m - [91merror[0m[90m TS2345: [0mArgument of type 'unknown' is not assignable to parameter of type '{ name?: string | undefined; description?: string | undefined; capabilityKeys?: string[] | undefined; }'.
+
+[7m136[0m     return this.rbacService.updateRole(orgId, roleId, dto as unknown, user.id);
+[7m   [0m [91m                                                      ~~~~~~~~~~~~~~[0m
+[96msrc/modules/rbac/rbac.controller.ts[0m:[93m190[0m:[93m48[0m - [91merror[0m[90m TS18046: [0m'assignmentDto' is of type 'unknown'.
+
+[7m190[0m     const targetRole = role.find(r => r.id === assignmentDto.roleId);
+[7m   [0m [91m                                               ~~~~~~~~~~~~~[0m
+[96msrc/modules/rbac/rbac.controller.ts[0m:[93m199[0m:[93m58[0m - [91merror[0m[90m TS18046: [0m'assignmentDto' is of type 'unknown'.
+
+[7m199[0m       await this.checkCanManageSiteRoles(orgId, user.id, assignmentDto.siteId);
+[7m   [0m [91m                                                         ~~~~~~~~~~~~~[0m
+[96msrc/modules/rbac/rbac.controller.ts[0m:[93m202[0m:[93m53[0m - [91merror[0m[90m TS2345: [0mArgument of type 'unknown' is not assignable to parameter of type '{ userId: string; roleId: string; siteId?: string | null | undefined; }'.
+
+[7m202[0m     return this.rbacService.createAssignment(orgId, assignmentDto, user.id);
+[7m   [0m [91m                                                    ~~~~~~~~~~~~~[0m
+[96msrc/modules/rbac/rbac.controller.ts[0m:[93m276[0m:[93m64[0m - [91merror[0m[90m TS2345: [0mArgument of type 'unknown' is not assignable to parameter of type '{ enabled: boolean; }'.
+
+[7m276[0m     return this.rbacService.updatePolicy(orgId, capabilityKey, dto as unknown, user.id);
+[7m   [0m [91m                                                               ~~~~~~~~~~~~~~[0m
+[96msrc/modules/rbac/rbac.service.ts[0m:[93m55[0m:[93m7[0m - [91merror[0m[90m TS18046: [0m'where' is of type 'unknown'.
+
+[7m55[0m       where.scope = scope;
+[7m  [0m [91m      ~~~~~[0m
+[96msrc/modules/rbac/rbac.service.ts[0m:[93m59[0m:[93m7[0m - [91merror[0m[90m TS2322: [0mType 'unknown' is not assignable to type 'RoleWhereInput | undefined'.
+
+[7m59[0m       where,
+[7m  [0m [91m      ~~~~~[0m
+[96msrc/modules/rbac/rbac.service.ts[0m:[93m80[0m:[93m26[0m - [91merror[0m[90m TS2339: [0mProperty 'roleCapabilities' does not exist on type '{ id: string; createdAt: Date; updatedAt: Date; name: string; orgId: string; description: string | null; scope: string; type: string; isImmutable: boolean; }'.
+
+[7m80[0m       capabilities: role.roleCapabilities.map((rc: unknown) => ({
+[7m  [0m [91m                         ~~~~~~~~~~~~~~~~[0m
+[96msrc/modules/rbac/rbac.service.ts[0m:[93m81[0m:[93m14[0m - [91merror[0m[90m TS18046: [0m'rc' is of type 'unknown'.
+
+[7m81[0m         key: rc.capability.key,
+[7m  [0m [91m             ~~[0m
+[96msrc/modules/rbac/rbac.service.ts[0m:[93m82[0m:[93m17[0m - [91merror[0m[90m TS18046: [0m'rc' is of type 'unknown'.
+
+[7m82[0m         module: rc.capability.module,
+[7m  [0m [91m                ~~[0m
+[96msrc/modules/rbac/rbac.service.ts[0m:[93m83[0m:[93m16[0m - [91merror[0m[90m TS18046: [0m'rc' is of type 'unknown'.
+
+[7m83[0m         label: rc.capability.label,
+[7m  [0m [91m               ~~[0m
+[96msrc/modules/rbac/rbac.service.ts[0m:[93m192[0m:[93m14[0m - [91merror[0m[90m TS18046: [0m'rc' is of type 'unknown'.
+
+[7m192[0m         key: rc.capability.key,
+[7m   [0m [91m             ~~[0m
+[96msrc/modules/rbac/rbac.service.ts[0m:[93m193[0m:[93m17[0m - [91merror[0m[90m TS18046: [0m'rc' is of type 'unknown'.
+
+[7m193[0m         module: rc.capability.module,
+[7m   [0m [91m                ~~[0m
+[96msrc/modules/rbac/rbac.service.ts[0m:[93m194[0m:[93m16[0m - [91merror[0m[90m TS18046: [0m'rc' is of type 'unknown'.
+
+[7m194[0m         label: rc.capability.label,
+[7m   [0m [91m               ~~[0m
+[96msrc/modules/rbac/rbac.service.ts[0m:[93m303[0m:[93m16[0m - [91merror[0m[90m TS18046: [0m'rc' is of type 'unknown'.
+
+[7m303[0m           key: rc.capability.key,
+[7m   [0m [91m               ~~[0m
+[96msrc/modules/rbac/rbac.service.ts[0m:[93m304[0m:[93m19[0m - [91merror[0m[90m TS18046: [0m'rc' is of type 'unknown'.
+
+[7m304[0m           module: rc.capability.module,
+[7m   [0m [91m                  ~~[0m
+[96msrc/modules/rbac/rbac.service.ts[0m:[93m305[0m:[93m18[0m - [91merror[0m[90m TS18046: [0m'rc' is of type 'unknown'.
+
+[7m305[0m           label: rc.capability.label,
+[7m   [0m [91m                 ~~[0m
+[96msrc/modules/rbac/rbac.service.ts[0m:[93m335[0m:[93m16[0m - [91merror[0m[90m TS18046: [0m'rc' is of type 'unknown'.
+
+[7m335[0m           key: rc.capability.key,
+[7m   [0m [91m               ~~[0m
+[96msrc/modules/rbac/rbac.service.ts[0m:[93m336[0m:[93m19[0m - [91merror[0m[90m TS18046: [0m'rc' is of type 'unknown'.
+
+[7m336[0m           module: rc.capability.module,
+[7m   [0m [91m                  ~~[0m
+[96msrc/modules/rbac/rbac.service.ts[0m:[93m337[0m:[93m18[0m - [91merror[0m[90m TS18046: [0m'rc' is of type 'unknown'.
+
+[7m337[0m           label: rc.capability.label,
+[7m   [0m [91m                 ~~[0m
+[96msrc/modules/rbac/rbac.service.ts[0m:[93m395[0m:[93m7[0m - [91merror[0m[90m TS18046: [0m'where' is of type 'unknown'.
+
+[7m395[0m       where.userId = userId;
+[7m   [0m [91m      ~~~~~[0m
+[96msrc/modules/rbac/rbac.service.ts[0m:[93m399[0m:[93m9[0m - [91merror[0m[90m TS18046: [0m'where' is of type 'unknown'.
+
+[7m399[0m         where.siteId = null;
+[7m   [0m [91m        ~~~~~[0m
+[96msrc/modules/rbac/rbac.service.ts[0m:[93m401[0m:[93m9[0m - [91merror[0m[90m TS18046: [0m'where' is of type 'unknown'.
+
+[7m401[0m         where.siteId = siteId;
+[7m   [0m [91m        ~~~~~[0m
+[96msrc/modules/rbac/rbac.service.ts[0m:[93m406[0m:[93m7[0m - [91merror[0m[90m TS2322: [0mType 'unknown' is not assignable to type 'UserRoleWhereInput | undefined'.
+
+[7m406[0m       where,
+[7m   [0m [91m      ~~~~~[0m
+[96msrc/modules/rbac/rbac.service.ts[0m:[93m428[0m:[93m24[0m - [91merror[0m[90m TS2339: [0mProperty 'role' does not exist on type '{ id: string; siteId: string | null; createdAt: Date; orgId: string; userId: string; roleId: string; }'.
+
+[7m428[0m         id: assignment.role.id,
+[7m   [0m [91m                       ~~~~[0m
+[96msrc/modules/rbac/rbac.service.ts[0m:[93m429[0m:[93m26[0m - [91merror[0m[90m TS2339: [0mProperty 'role' does not exist on type '{ id: string; siteId: string | null; createdAt: Date; orgId: string; userId: string; roleId: string; }'.
+
+[7m429[0m         name: assignment.role.name,
+[7m   [0m [91m                         ~~~~[0m
+[96msrc/modules/rbac/rbac.service.ts[0m:[93m430[0m:[93m26[0m - [91merror[0m[90m TS2339: [0mProperty 'role' does not exist on type '{ id: string; siteId: string | null; createdAt: Date; orgId: string; userId: string; roleId: string; }'.
+
+[7m430[0m         type: assignment.role.type,
+[7m   [0m [91m                         ~~~~[0m
+[96msrc/modules/rbac/rbac.service.ts[0m:[93m431[0m:[93m27[0m - [91merror[0m[90m TS2339: [0mProperty 'role' does not exist on type '{ id: string; siteId: string | null; createdAt: Date; orgId: string; userId: string; roleId: string; }'.
+
+[7m431[0m         scope: assignment.role.scope,
+[7m   [0m [91m                          ~~~~[0m
+[96msrc/modules/rbac/rbac.service.ts[0m:[93m432[0m:[93m34[0m - [91merror[0m[90m TS2339: [0mProperty 'role' does not exist on type '{ id: string; siteId: string | null; createdAt: Date; orgId: string; userId: string; roleId: string; }'.
+
+[7m432[0m         capabilities: assignment.role.roleCapabilities.map((rc: unknown) => ({
+[7m   [0m [91m                                 ~~~~[0m
+[96msrc/modules/rbac/rbac.service.ts[0m:[93m433[0m:[93m16[0m - [91merror[0m[90m TS18046: [0m'rc' is of type 'unknown'.
+
+[7m433[0m           key: rc.capability.key,
+[7m   [0m [91m               ~~[0m
+[96msrc/modules/rbac/rbac.service.ts[0m:[93m434[0m:[93m19[0m - [91merror[0m[90m TS18046: [0m'rc' is of type 'unknown'.
+
+[7m434[0m           module: rc.capability.module,
+[7m   [0m [91m                  ~~[0m
+[96msrc/modules/rbac/rbac.service.ts[0m:[93m634[0m:[93m16[0m - [91merror[0m[90m TS18046: [0m'rc' is of type 'unknown'.
+
+[7m634[0m           key: rc.capability.key,
+[7m   [0m [91m               ~~[0m
+[96msrc/modules/rbac/rbac.service.ts[0m:[93m635[0m:[93m19[0m - [91merror[0m[90m TS18046: [0m'rc' is of type 'unknown'.
+
+[7m635[0m           module: rc.capability.module,
+[7m   [0m [91m                  ~~[0m
+[96msrc/modules/rbac/rbac.service.ts[0m:[93m751[0m:[93m7[0m - [91merror[0m[90m TS18046: [0m'where' is of type 'unknown'.
+
+[7m751[0m       where.OR = [
+[7m   [0m [91m      ~~~~~[0m
+[96msrc/modules/rbac/rbac.service.ts[0m:[93m766[0m:[93m7[0m - [91merror[0m[90m TS18046: [0m'where' is of type 'unknown'.
+
+[7m766[0m       where.role = {
+[7m   [0m [91m      ~~~~~[0m
+[96msrc/modules/rbac/rbac.service.ts[0m:[93m772[0m:[93m7[0m - [91merror[0m[90m TS2322: [0mType 'unknown' is not assignable to type 'UserRoleWhereInput | undefined'.
+
+[7m772[0m       where,
+[7m   [0m [91m      ~~~~~[0m
+[96msrc/modules/rbac/rbac.service.ts[0m:[93m788[0m:[93m40[0m - [91merror[0m[90m TS2339: [0mProperty 'role' does not exist on type '{ id: string; siteId: string | null; createdAt: Date; orgId: string; userId: string; roleId: string; }'.
+
+[7m788[0m       const hasCapability = assignment.role.roleCapabilities.some(
+[7m   [0m [91m                                       ~~~~[0m
+[96msrc/modules/rbac/rbac.service.ts[0m:[93m789[0m:[93m9[0m - [91merror[0m[90m TS7006: [0mParameter 'rc' implicitly has an 'any' type.
+
+[7m789[0m         rc => rc.capability.key === capabilityKey
+[7m   [0m [91m        ~~[0m
+[96msrc/modules/rbac/site-rbac.controller.ts[0m:[93m80[0m:[93m9[0m - [91merror[0m[90m TS18046: [0m'roleDto' is of type 'unknown'.
+
+[7m80[0m     if (roleDto.scope !== 'SITE') {
+[7m  [0m [91m        ~~~~~~~[0m
+[96msrc/modules/rbac/site-rbac.controller.ts[0m:[93m88[0m:[93m49[0m - [91merror[0m[90m TS2698: [0mSpread types may only be created from object types.
+
+[7m88[0m     return this.rbacService.createRole(orgId, { ...roleDto, scope: 'SITE' }, user.id);
+[7m  [0m [91m                                                ~~~~~~~~~~[0m
+[96msrc/modules/rbac/site-rbac.controller.ts[0m:[93m120[0m:[93m55[0m - [91merror[0m[90m TS2345: [0mArgument of type 'unknown' is not assignable to parameter of type '{ name?: string | undefined; description?: string | undefined; capabilityKeys?: string[] | undefined; }'.
+
+[7m120[0m     return this.rbacService.updateRole(orgId, roleId, dto as unknown, user.id);
+[7m   [0m [91m                                                      ~~~~~~~~~~~~~~[0m
+[96msrc/modules/rbac/site-rbac.controller.ts[0m:[93m190[0m:[93m49[0m - [91merror[0m[90m TS18046: [0m'assignmentDto' is of type 'unknown'.
+
+[7m190[0m     const targetRole = roles.find(r => r.id === assignmentDto.roleId);
+[7m   [0m [91m                                                ~~~~~~~~~~~~~[0m
+[96msrc/modules/rbac/site-rbac.controller.ts[0m:[93m206[0m:[93m7[0m - [91merror[0m[90m TS2698: [0mSpread types may only be created from object types.
+
+[7m206[0m       ...assignmentDto,
+[7m   [0m [91m      ~~~~~~~~~~~~~~~~[0m
+[96msrc/modules/search/elasticsearch.service.ts[0m:[93m58[0m:[93m42[0m - [91merror[0m[90m TS2339: [0mProperty 'indices' does not exist on type '{}'.
+
+[7m58[0m         const exists = await this.client.indices.exists({ index: indexName });
+[7m  [0m [91m                                         ~~~~~~~[0m
+[96msrc/modules/search/elasticsearch.service.ts[0m:[93m60[0m:[93m29[0m - [91merror[0m[90m TS2339: [0mProperty 'indices' does not exist on type '{}'.
+
+[7m60[0m           await this.client.indices.create({
+[7m  [0m [91m                            ~~~~~~~[0m
+[96msrc/modules/search/elasticsearch.service.ts[0m:[93m109[0m:[93m25[0m - [91merror[0m[90m TS2339: [0mProperty 'index' does not exist on type '{}'.
+
+[7m109[0m       await this.client.index({
+[7m   [0m [91m                        ~~~~~[0m
+[96msrc/modules/search/elasticsearch.service.ts[0m:[93m135[0m:[93m25[0m - [91merror[0m[90m TS2339: [0mProperty 'update' does not exist on type '{}'.
+
+[7m135[0m       await this.client.update({
+[7m   [0m [91m                        ~~~~~~[0m
+[96msrc/modules/search/elasticsearch.service.ts[0m:[93m162[0m:[93m25[0m - [91merror[0m[90m TS2339: [0mProperty 'delete' does not exist on type '{}'.
+
+[7m162[0m       await this.client.delete({
+[7m   [0m [91m                        ~~~~~~[0m
+[96msrc/modules/search/elasticsearch.service.ts[0m:[93m236[0m:[93m40[0m - [91merror[0m[90m TS2339: [0mProperty 'from' does not exist on type '{}'.
+
+[7m236[0m                 gte: filters.dateRange.from,
+[7m   [0m [91m                                       ~~~~[0m
+[96msrc/modules/search/elasticsearch.service.ts[0m:[93m237[0m:[93m40[0m - [91merror[0m[90m TS2339: [0mProperty 'to' does not exist on type '{}'.
+
+[7m237[0m                 lte: filters.dateRange.to,
+[7m   [0m [91m                                       ~~[0m
+[96msrc/modules/search/elasticsearch.service.ts[0m:[93m243[0m:[93m11[0m - [91merror[0m[90m TS18046: [0m'searchBody' is of type 'unknown'.
+
+[7m243[0m           searchBody.query.bool.filter = filterClauses;
+[7m   [0m [91m          ~~~~~~~~~~[0m
+[96msrc/modules/search/elasticsearch.service.ts[0m:[93m249[0m:[93m9[0m - [91merror[0m[90m TS18046: [0m'searchBody' is of type 'unknown'.
+
+[7m249[0m         searchBody.aggs = {};
+[7m   [0m [91m        ~~~~~~~~~~[0m
+[96msrc/modules/search/elasticsearch.service.ts[0m:[93m251[0m:[93m11[0m - [91merror[0m[90m TS18046: [0m'searchBody' is of type 'unknown'.
+
+[7m251[0m           searchBody.aggs[facet] = {
+[7m   [0m [91m          ~~~~~~~~~~[0m
+[96msrc/modules/search/elasticsearch.service.ts[0m:[93m261[0m:[93m7[0m - [91merror[0m[90m TS18046: [0m'searchBody' is of type 'unknown'.
+
+[7m261[0m       searchBody.suggest = {
+[7m   [0m [91m      ~~~~~~~~~~[0m
+[96msrc/modules/search/elasticsearch.service.ts[0m:[93m271[0m:[93m40[0m - [91merror[0m[90m TS2339: [0mProperty 'search' does not exist on type '{}'.
+
+[7m271[0m       const result = await this.client.search({
+[7m   [0m [91m                                       ~~~~~~[0m
+[96msrc/modules/search/elasticsearch.service.ts[0m:[93m277[0m:[93m12[0m - [91merror[0m[90m TS18046: [0m'hit' is of type 'unknown'.
+
+[7m277[0m         ...hit._source,
+[7m   [0m [91m           ~~~[0m
+[96msrc/modules/search/elasticsearch.service.ts[0m:[93m278[0m:[93m17[0m - [91merror[0m[90m TS18046: [0m'hit' is of type 'unknown'.
+
+[7m278[0m         _score: hit._score,
+[7m   [0m [91m                ~~~[0m
+[96msrc/modules/search/elasticsearch.service.ts[0m:[93m279[0m:[93m21[0m - [91merror[0m[90m TS18046: [0m'hit' is of type 'unknown'.
+
+[7m279[0m         _highlight: hit.highlight,
+[7m   [0m [91m                    ~~~[0m
+[96msrc/modules/search/elasticsearch.service.ts[0m:[93m288[0m:[93m22[0m - [91merror[0m[90m TS18046: [0m'bucket' is of type 'unknown'.
+
+[7m288[0m               value: bucket.key,
+[7m   [0m [91m                     ~~~~~~[0m
+[96msrc/modules/search/elasticsearch.service.ts[0m:[93m289[0m:[93m22[0m - [91merror[0m[90m TS18046: [0m'bucket' is of type 'unknown'.
+
+[7m289[0m               count: bucket.doc_count,
+[7m   [0m [91m                     ~~~~~~[0m
+[96msrc/modules/search/elasticsearch.service.ts[0m:[93m296[0m:[93m96[0m - [91merror[0m[90m TS18046: [0m'opt' is of type 'unknown'.
+
+[7m296[0m       const suggestions = result.body.suggest?.suggestion?.[0]?.options?.map((opt: unknown) => opt.text) || [];
+[7m   [0m [91m                                                                                               ~~~[0m
+[96msrc/modules/search/elasticsearch.service.ts[0m:[93m330[0m:[93m25[0m - [91merror[0m[90m TS2339: [0mProperty 'bulk' does not exist on type '{}'.
+
+[7m330[0m       await this.client.bulk({
+[7m   [0m [91m                        ~~~~[0m
+[96msrc/modules/search/search.controller.ts[0m:[93m38[0m:[93m50[0m - [91merror[0m[90m TS2345: [0mArgument of type 'unknown' is not assignable to parameter of type '{ query: string; page: number; pageSize: number; sortOrder: "asc" | "desc"; contentTypeSlug?: string | undefined; sortBy?: string | undefined; facets?: string[] | undefined; collectionSlug?: string | undefined; filters?: Record<...> | undefined; }'.
+
+[7m38[0m     return this.searchService.search(req.siteId, query);
+[7m  [0m [91m                                                 ~~~~~[0m
+[96msrc/modules/search/search.controller.ts[0m:[93m52[0m:[93m57[0m - [91merror[0m[90m TS2345: [0mArgument of type 'unknown' is not assignable to parameter of type '{ query: string; page: number; pageSize: number; sortOrder: "asc" | "desc"; contentTypeSlug?: string | undefined; sortBy?: string | undefined; facets?: string[] | undefined; collectionSlug?: string | undefined; filters?: Record<...> | undefined; }'.
+
+[7m52[0m     return this.searchService.searchContent(req.siteId, query);
+[7m  [0m [91m                                                        ~~~~~[0m
+[96msrc/modules/search/search.controller.ts[0m:[93m66[0m:[93m61[0m - [91merror[0m[90m TS2345: [0mArgument of type 'unknown' is not assignable to parameter of type '{ query: string; page: number; pageSize: number; sortOrder: "asc" | "desc"; contentTypeSlug?: string | undefined; sortBy?: string | undefined; facets?: string[] | undefined; collectionSlug?: string | undefined; filters?: Record<...> | undefined; }'.
+
+[7m66[0m     return this.searchService.searchCollections(req.siteId, query);
+[7m  [0m [91m                                                            ~~~~~[0m
+[96msrc/modules/search/search.service.ts[0m:[93m50[0m:[93m80[0m - [91merror[0m[90m TS18046: [0m'h' is of type 'unknown'.
+
+[7m50[0m           const contentTypeIds = [...new Set(esResult.hits.map((h: unknown) => h.contentTypeId))];
+[7m  [0m [91m                                                                               ~[0m
+[96msrc/modules/search/search.service.ts[0m:[93m58[0m:[93m13[0m - [91merror[0m[90m TS2698: [0mSpread types may only be created from object types.
+
+[7m58[0m             ...hit,
+[7m  [0m [91m            ~~~~~~[0m
+[96msrc/modules/search/search.service.ts[0m:[93m59[0m:[93m45[0m - [91merror[0m[90m TS18046: [0m'hit' is of type 'unknown'.
+
+[7m59[0m             contentType: contentTypeMap.get(hit.contentTypeId),
+[7m  [0m [91m                                            ~~~[0m
+[96msrc/modules/search/search.service.ts[0m:[93m95[0m:[93m9[0m - [91merror[0m[90m TS18046: [0m'where' is of type 'unknown'.
+
+[7m95[0m         where.contentTypeId = contentType.id;
+[7m  [0m [91m        ~~~~~[0m
+[96msrc/modules/search/search.service.ts[0m:[93m102[0m:[93m9[0m - [91merror[0m[90m TS18046: [0m'where' is of type 'unknown'.
+
+[7m102[0m         where.status = filters.status;
+[7m   [0m [91m        ~~~~~[0m
+[96msrc/modules/search/search.service.ts[0m:[93m106[0m:[93m11[0m - [91merror[0m[90m TS18046: [0m'where' is of type 'unknown'.
+
+[7m106[0m           where.createdAt = { ...where.createdAt, gte: new Date(filters.dateRange.from) };
+[7m   [0m [91m          ~~~~~[0m
+[96msrc/modules/search/search.service.ts[0m:[93m106[0m:[93m34[0m - [91merror[0m[90m TS18046: [0m'where' is of type 'unknown'.
+
+[7m106[0m           where.createdAt = { ...where.createdAt, gte: new Date(filters.dateRange.from) };
+[7m   [0m [91m                                 ~~~~~[0m
+[96msrc/modules/search/search.service.ts[0m:[93m109[0m:[93m11[0m - [91merror[0m[90m TS18046: [0m'where' is of type 'unknown'.
+
+[7m109[0m           where.createdAt = { ...where.createdAt, lte: new Date(filters.dateRange.to) };
+[7m   [0m [91m          ~~~~~[0m
+[96msrc/modules/search/search.service.ts[0m:[93m109[0m:[93m34[0m - [91merror[0m[90m TS18046: [0m'where' is of type 'unknown'.
+
+[7m109[0m           where.createdAt = { ...where.createdAt, lte: new Date(filters.dateRange.to) };
+[7m   [0m [91m                                 ~~~~~[0m
+[96msrc/modules/search/search.service.ts[0m:[93m166[0m:[93m13[0m - [91merror[0m[90m TS18046: [0m'where' is of type 'unknown'.
+
+[7m166[0m         if (where.contentTypeId) {
+[7m   [0m [91m            ~~~~~[0m
+[96msrc/modules/search/search.service.ts[0m:[93m168[0m:[93m23[0m - [91merror[0m[90m TS18046: [0m'where' is of type 'unknown'.
+
+[7m168[0m           params.push(where.contentTypeId);
+[7m   [0m [91m                      ~~~~~[0m
+[96msrc/modules/search/search.service.ts[0m:[93m171[0m:[93m13[0m - [91merror[0m[90m TS18046: [0m'where' is of type 'unknown'.
+
+[7m171[0m         if (where.status) {
+[7m   [0m [91m            ~~~~~[0m
+[96msrc/modules/search/search.service.ts[0m:[93m173[0m:[93m23[0m - [91merror[0m[90m TS18046: [0m'where' is of type 'unknown'.
+
+[7m173[0m           params.push(where.status);
+[7m   [0m [91m                      ~~~~~[0m
+[96msrc/modules/search/search.service.ts[0m:[93m176[0m:[93m13[0m - [91merror[0m[90m TS18046: [0m'where' is of type 'unknown'.
+
+[7m176[0m         if (where.createdAt) {
+[7m   [0m [91m            ~~~~~[0m
+[96msrc/modules/search/search.service.ts[0m:[93m177[0m:[93m15[0m - [91merror[0m[90m TS18046: [0m'where' is of type 'unknown'.
+
+[7m177[0m           if (where.createdAt.gte) {
+[7m   [0m [91m              ~~~~~[0m
+[96msrc/modules/search/search.service.ts[0m:[93m179[0m:[93m25[0m - [91merror[0m[90m TS18046: [0m'where' is of type 'unknown'.
+
+[7m179[0m             params.push(where.createdAt.gte);
+[7m   [0m [91m                        ~~~~~[0m
+[96msrc/modules/search/search.service.ts[0m:[93m182[0m:[93m15[0m - [91merror[0m[90m TS18046: [0m'where' is of type 'unknown'.
+
+[7m182[0m           if (where.createdAt.lte) {
+[7m   [0m [91m              ~~~~~[0m
+[96msrc/modules/search/search.service.ts[0m:[93m184[0m:[93m25[0m - [91merror[0m[90m TS18046: [0m'where' is of type 'unknown'.
+
+[7m184[0m             params.push(where.createdAt.lte);
+[7m   [0m [91m                        ~~~~~[0m
+[96msrc/modules/search/search.service.ts[0m:[93m203[0m:[93m31[0m - [91merror[0m[90m TS18046: [0m'orderBy' is of type 'unknown'.
+
+[7m203[0m         const orderByClause = orderBy.createdAt && ['asc', 'desc'].includes(orderBy.createdAt.toLowerCase())
+[7m   [0m [91m                              ~~~~~~~[0m
+[96msrc/modules/search/search.service.ts[0m:[93m203[0m:[93m77[0m - [91merror[0m[90m TS18046: [0m'orderBy' is of type 'unknown'.
+
+[7m203[0m         const orderByClause = orderBy.createdAt && ['asc', 'desc'].includes(orderBy.createdAt.toLowerCase())
+[7m   [0m [91m                                                                            ~~~~~~~[0m
+[96msrc/modules/search/search.service.ts[0m:[93m204[0m:[93m28[0m - [91merror[0m[90m TS18046: [0m'orderBy' is of type 'unknown'.
+
+[7m204[0m           ? `"createdAt" ${orderBy.createdAt.toUpperCase()}`
+[7m   [0m [91m                           ~~~~~~~[0m
+[96msrc/modules/search/search.service.ts[0m:[93m242[0m:[93m69[0m - [91merror[0m[90m TS2345: [0mArgument of type 'unknown' is not assignable to parameter of type 'Record<string, unknown>'.
+
+[7m242[0m           this.prismaOptimization.findManyOptimized('contentEntry', where, selectFields, {
+[7m   [0m [91m                                                                    ~~~~~[0m
+[96msrc/modules/search/search.service.ts[0m:[93m247[0m:[93m66[0m - [91merror[0m[90m TS2345: [0mArgument of type 'unknown' is not assignable to parameter of type 'Record<string, unknown>'.
+
+[7m247[0m           this.prismaOptimization.countOptimized('contentEntry', where),
+[7m   [0m [91m                                                                 ~~~~~[0m
+[96msrc/modules/search/search.service.ts[0m:[93m253[0m:[93m67[0m - [91merror[0m[90m TS2345: [0mArgument of type 'unknown' is not assignable to parameter of type 'Record<string, unknown>'.
+
+[7m253[0m         this.prismaOptimization.findManyOptimized('contentEntry', where, selectFields, {
+[7m   [0m [91m                                                                  ~~~~~[0m
+[96msrc/modules/search/search.service.ts[0m:[93m258[0m:[93m64[0m - [91merror[0m[90m TS2345: [0mArgument of type 'unknown' is not assignable to parameter of type 'Record<string, unknown>'.
+
+[7m258[0m         this.prismaOptimization.countOptimized('contentEntry', where),
+[7m   [0m [91m                                                               ~~~~~[0m
+[96msrc/modules/search/search.service.ts[0m:[93m263[0m:[93m69[0m - [91merror[0m[90m TS18046: [0m'item' is of type 'unknown'.
+
+[7m263[0m     const contentTypeIds = [...new Set(items.map((item: unknown) => item.contentTypeId))];
+[7m   [0m [91m                                                                    ~~~~[0m
+[96msrc/modules/search/search.service.ts[0m:[93m271[0m:[93m7[0m - [91merror[0m[90m TS2698: [0mSpread types may only be created from object types.
+
+[7m271[0m       ...item,
+[7m   [0m [91m      ~~~~~~~[0m
+[96msrc/modules/search/search.service.ts[0m:[93m272[0m:[93m39[0m - [91merror[0m[90m TS18046: [0m'item' is of type 'unknown'.
+
+[7m272[0m       contentType: contentTypeMap.get(item.contentTypeId),
+[7m   [0m [91m                                      ~~~~[0m
+[96msrc/modules/search/search.service.ts[0m:[93m336[0m:[93m9[0m - [91merror[0m[90m TS18046: [0m'where' is of type 'unknown'.
+
+[7m336[0m         where.collectionId = collection.id;
+[7m   [0m [91m        ~~~~~[0m
+[96msrc/modules/search/search.service.ts[0m:[93m342[0m:[93m9[0m - [91merror[0m[90m TS2322: [0mType 'unknown' is not assignable to type 'CollectionItemWhereInput | undefined'.
+
+[7m342[0m         where,
+[7m   [0m [91m        ~~~~~[0m
+[96msrc/modules/search/search.service.ts[0m:[93m360[0m:[93m20[0m - [91merror[0m[90m TS18046: [0m'item' is of type 'unknown'.
+
+[7m360[0m       const data = item.data as unknown;
+[7m   [0m [91m                   ~~~~[0m
+[96msrc/modules/site-panel/site-deployments.controller.ts[0m:[93m49[0m:[93m52[0m - [91merror[0m[90m TS2345: [0mArgument of type 'unknown' is not assignable to parameter of type '{ pageId?: string | undefined; }'.
+
+[7m49[0m     return this.deployments.publish(currentSiteId, body as unknown, user?.id);
+[7m  [0m [91m                                                   ~~~~~~~~~~~~~~~[0m
+[96msrc/modules/site-panel/site-deployments.controller.ts[0m:[93m61[0m:[93m49[0m - [91merror[0m[90m TS2345: [0mArgument of type 'unknown' is not assignable to parameter of type '{ type?: string | undefined; status?: "success" | "failed" | undefined; env?: string | undefined; limit?: number | undefined; }'.
+
+[7m61[0m     return this.deployments.list(currentSiteId, query as unknown);
+[7m  [0m [91m                                                ~~~~~~~~~~~~~~~~[0m
+[96msrc/modules/site-panel/site-environments.controller.ts[0m:[93m41[0m:[93m52[0m - [91merror[0m[90m TS2345: [0mArgument of type 'unknown' is not assignable to parameter of type '{ type: "production" | "draft"; }'.
+
+[7m41[0m     return this.environments.create(currentSiteId, body as unknown);
+[7m  [0m [91m                                                   ~~~~~~~~~~~~~~~[0m
+[96msrc/modules/site-panel/site-media.service.ts[0m:[93m147[0m:[93m53[0m - [91merror[0m[90m TS2339: [0mProperty 'storageKey' does not exist on type '{}'.
+
+[7m147[0m     const storageKey = (media.metadata as unknown)?.storageKey;
+[7m   [0m [91m                                                    ~~~~~~~~~~[0m
+[96msrc/modules/site-panel/site-pages.controller.ts[0m:[93m45[0m:[93m36[0m - [91merror[0m[90m TS2345: [0mArgument of type 'unknown' is not assignable to parameter of type '{ status?: "draft" | "published" | "archived" | undefined; environmentId?: string | undefined; environmentType?: "production" | "draft" | undefined; }'.
+
+[7m45[0m     return this.pages.list(siteId, query as unknown);
+[7m  [0m [91m                                   ~~~~~~~~~~~~~~~~[0m
+[96msrc/modules/site-panel/site-pages.controller.ts[0m:[93m57[0m:[93m38[0m - [91merror[0m[90m TS2345: [0mArgument of type 'unknown' is not assignable to parameter of type '{ slug: string; environmentId: string; title: string; content?: JsonValue | undefined; status?: "draft" | "published" | "archived" | undefined; }'.
+
+[7m57[0m     return this.pages.create(siteId, body as unknown, user?.id);
+[7m  [0m [91m                                     ~~~~~~~~~~~~~~~[0m
+[96msrc/modules/site-panel/site-pages.controller.ts[0m:[93m82[0m:[93m46[0m - [91merror[0m[90m TS2345: [0mArgument of type 'unknown' is not assignable to parameter of type '{ content?: JsonValue | undefined; status?: "draft" | "published" | "archived" | undefined; slug?: string | undefined; title?: string | undefined; }'.
+
+[7m82[0m     return this.pages.update(siteId, pageId, body as unknown, user?.id);
+[7m  [0m [91m                                             ~~~~~~~~~~~~~~~[0m
+[96msrc/modules/site-panel/site-pages.controller.ts[0m:[93m96[0m:[93m47[0m - [91merror[0m[90m TS2345: [0mArgument of type 'unknown' is not assignable to parameter of type '{ targetEnvironmentId?: string | undefined; targetEnvironmentType?: "production" | "draft" | undefined; }'.
+
+[7m96[0m     return this.pages.publish(siteId, pageId, body as unknown, user?.id);
+[7m  [0m [91m                                              ~~~~~~~~~~~~~~~[0m
+[96msrc/modules/site-panel/site-pages.controller.ts[0m:[93m121[0m:[93m53[0m - [91merror[0m[90m TS2571: [0mObject is of type 'unknown'.
+
+[7m121[0m     return this.pages.updateContent(siteId, pageId, (body as unknown).content, user?.id);
+[7m   [0m [91m                                                    ~~~~~~~~~~~~~~~~~[0m
+[96msrc/modules/site-panel/site-pages.service.ts[0m:[93m101[0m:[93m13[0m - [91merror[0m[90m TS2339: [0mProperty 'metaTitle' does not exist on type '{}'.
+
+[7m101[0m     if (seo.metaTitle && typeof seo.metaTitle === 'string' && seo.metaTitle.trim().length > 0) {
+[7m   [0m [91m            ~~~~~~~~~[0m
+[96msrc/modules/site-panel/site-pages.service.ts[0m:[93m101[0m:[93m37[0m - [91merror[0m[90m TS2339: [0mProperty 'metaTitle' does not exist on type '{}'.
+
+[7m101[0m     if (seo.metaTitle && typeof seo.metaTitle === 'string' && seo.metaTitle.trim().length > 0) {
+[7m   [0m [91m                                    ~~~~~~~~~[0m
+[96msrc/modules/site-panel/site-pages.service.ts[0m:[93m101[0m:[93m67[0m - [91merror[0m[90m TS2339: [0mProperty 'metaTitle' does not exist on type '{}'.
+
+[7m101[0m     if (seo.metaTitle && typeof seo.metaTitle === 'string' && seo.metaTitle.trim().length > 0) {
+[7m   [0m [91m                                                                  ~~~~~~~~~[0m
+[96msrc/modules/site-panel/site-pages.service.ts[0m:[93m107[0m:[93m13[0m - [91merror[0m[90m TS2339: [0mProperty 'metaDescription' does not exist on type '{}'.
+
+[7m107[0m     if (seo.metaDescription && typeof seo.metaDescription === 'string' && seo.metaDescription.trim().length > 0) {
+[7m   [0m [91m            ~~~~~~~~~~~~~~~[0m
+[96msrc/modules/site-panel/site-pages.service.ts[0m:[93m107[0m:[93m43[0m - [91merror[0m[90m TS2339: [0mProperty 'metaDescription' does not exist on type '{}'.
+
+[7m107[0m     if (seo.metaDescription && typeof seo.metaDescription === 'string' && seo.metaDescription.trim().length > 0) {
+[7m   [0m [91m                                          ~~~~~~~~~~~~~~~[0m
+[96msrc/modules/site-panel/site-pages.service.ts[0m:[93m107[0m:[93m79[0m - [91merror[0m[90m TS2339: [0mProperty 'metaDescription' does not exist on type '{}'.
+
+[7m107[0m     if (seo.metaDescription && typeof seo.metaDescription === 'string' && seo.metaDescription.trim().length > 0) {
+[7m   [0m [91m                                                                              ~~~~~~~~~~~~~~~[0m
+[96msrc/modules/site-seo/site-seo.controller.ts[0m:[93m35[0m:[93m48[0m - [91merror[0m[90m TS2345: [0mArgument of type 'unknown' is not assignable to parameter of type '{ description?: string | undefined; title?: string | undefined; ogTitle?: string | undefined; ogDescription?: string | undefined; ogImage?: string | undefined; twitterCard?: string | undefined; }'.
+
+[7m35[0m     return this.siteSeo.updateSettings(siteId, body as unknown, user?.id);
+[7m  [0m [91m                                               ~~~~~~~~~~~~~~~[0m
+[96msrc/modules/snapshots/snapshots.service.ts[0m:[93m52[0m:[93m29[0m - [91merror[0m[90m TS2769: [0mNo overload matches this call.
+  Overload 1 of 4, '(value: string | number | Date): Date', gave the following error.
+    Argument of type 'unknown' is not assignable to parameter of type 'string | number | Date'.
+  Overload 2 of 4, '(value: string | number): Date', gave the following error.
+    Argument of type 'unknown' is not assignable to parameter of type 'string | number'.
+
+[7m52[0m     const parsed = new Date(value as unknown);
+[7m  [0m [91m                            ~~~~~~~~~~~~~~~~[0m
+
+[96msrc/modules/snapshots/snapshots.service.ts[0m:[93m58[0m:[93m11[0m - [91merror[0m[90m TS18046: [0m'page' is of type 'unknown'.
+
+[7m58[0m       id: page.id,
+[7m  [0m [91m          ~~~~[0m
+[96msrc/modules/snapshots/snapshots.service.ts[0m:[93m59[0m:[93m22[0m - [91merror[0m[90m TS18046: [0m'page' is of type 'unknown'.
+
+[7m59[0m       environmentId: page.environmentId,
+[7m  [0m [91m                     ~~~~[0m
+[96msrc/modules/snapshots/snapshots.service.ts[0m:[93m60[0m:[93m13[0m - [91merror[0m[90m TS18046: [0m'page' is of type 'unknown'.
+
+[7m60[0m       slug: page.slug,
+[7m  [0m [91m            ~~~~[0m
+[96msrc/modules/snapshots/snapshots.service.ts[0m:[93m61[0m:[93m14[0m - [91merror[0m[90m TS18046: [0m'page' is of type 'unknown'.
+
+[7m61[0m       title: page.title,
+[7m  [0m [91m             ~~~~[0m
+[96msrc/modules/snapshots/snapshots.service.ts[0m:[93m62[0m:[93m15[0m - [91merror[0m[90m TS18046: [0m'page' is of type 'unknown'.
+
+[7m62[0m       status: page.status,
+[7m  [0m [91m              ~~~~[0m
+[96msrc/modules/snapshots/snapshots.service.ts[0m:[93m63[0m:[93m16[0m - [91merror[0m[90m TS18046: [0m'page' is of type 'unknown'.
+
+[7m63[0m       content: page.content as Prisma.JsonValue,
+[7m  [0m [91m               ~~~~[0m
+[96msrc/modules/snapshots/snapshots.service.ts[0m:[93m64[0m:[93m39[0m - [91merror[0m[90m TS18046: [0m'page' is of type 'unknown'.
+
+[7m64[0m       publishedAt: this.serializeDate(page.publishedAt),
+[7m  [0m [91m                                      ~~~~[0m
+[96msrc/modules/snapshots/snapshots.service.ts[0m:[93m65[0m:[93m37[0m - [91merror[0m[90m TS18046: [0m'page' is of type 'unknown'.
+
+[7m65[0m       createdAt: this.serializeDate(page.createdAt) || undefined,
+[7m  [0m [91m                                    ~~~~[0m
+[96msrc/modules/snapshots/snapshots.service.ts[0m:[93m66[0m:[93m37[0m - [91merror[0m[90m TS18046: [0m'page' is of type 'unknown'.
+
+[7m66[0m       updatedAt: this.serializeDate(page.updatedAt) || undefined,
+[7m  [0m [91m                                    ~~~~[0m
+[96msrc/modules/snapshots/snapshots.service.ts[0m:[93m72[0m:[93m11[0m - [91merror[0m[90m TS18046: [0m'env' is of type 'unknown'.
+
+[7m72[0m       id: env.id,
+[7m  [0m [91m          ~~~[0m
+[96msrc/modules/snapshots/snapshots.service.ts[0m:[93m73[0m:[93m13[0m - [91merror[0m[90m TS18046: [0m'env' is of type 'unknown'.
+
+[7m73[0m       type: env.type,
+[7m  [0m [91m            ~~~[0m
+[96msrc/modules/snapshots/snapshots.service.ts[0m:[93m74[0m:[93m37[0m - [91merror[0m[90m TS18046: [0m'env' is of type 'unknown'.
+
+[7m74[0m       createdAt: this.serializeDate(env.createdAt) || undefined,
+[7m  [0m [91m                                    ~~~[0m
+[96msrc/modules/snapshots/snapshots.service.ts[0m:[93m75[0m:[93m37[0m - [91merror[0m[90m TS18046: [0m'env' is of type 'unknown'.
+
+[7m75[0m       updatedAt: this.serializeDate(env.updatedAt) || undefined,
+[7m  [0m [91m                                    ~~~[0m
+[96msrc/modules/snapshots/snapshots.service.ts[0m:[93m83[0m:[93m41[0m - [91merror[0m[90m TS2339: [0mProperty 'createdAt' does not exist on type '{}'.
+
+[7m83[0m       createdAt: this.serializeDate(seo.createdAt) || undefined,
+[7m  [0m [91m                                        ~~~~~~~~~[0m
+[96msrc/modules/snapshots/snapshots.service.ts[0m:[93m84[0m:[93m41[0m - [91merror[0m[90m TS2339: [0mProperty 'updatedAt' does not exist on type '{}'.
+
+[7m84[0m       updatedAt: this.serializeDate(seo.updatedAt) || undefined,
+[7m  [0m [91m                                        ~~~~~~~~~[0m
+[96msrc/modules/snapshots/snapshots.service.ts[0m:[93m90[0m:[93m11[0m - [91merror[0m[90m TS18046: [0m'item' is of type 'unknown'.
+
+[7m90[0m       id: item.id,
+[7m  [0m [91m          ~~~~[0m
+[96msrc/modules/snapshots/snapshots.service.ts[0m:[93m91[0m:[93m19[0m - [91merror[0m[90m TS18046: [0m'item' is of type 'unknown'.
+
+[7m91[0m       featureKey: item.featureKey,
+[7m  [0m [91m                  ~~~~[0m
+[96msrc/modules/snapshots/snapshots.service.ts[0m:[93m92[0m:[93m18[0m - [91merror[0m[90m TS18046: [0m'item' is of type 'unknown'.
+
+[7m92[0m       enabled: !!item.enabled,
+[7m  [0m [91m                 ~~~~[0m
+[96msrc/modules/snapshots/snapshots.service.ts[0m:[93m93[0m:[93m37[0m - [91merror[0m[90m TS18046: [0m'item' is of type 'unknown'.
+
+[7m93[0m       createdAt: this.serializeDate(item.createdAt) || undefined,
+[7m  [0m [91m                                    ~~~~[0m
+[96msrc/modules/snapshots/snapshots.service.ts[0m:[93m137[0m:[93m29[0m - [91merror[0m[90m TS2769: [0mNo overload matches this call.
+  Overload 1 of 4, '(value: string | number | Date): Date', gave the following error.
+    Argument of type '{}' is not assignable to parameter of type 'string | number | Date'.
+  Overload 2 of 4, '(value: string | number): Date', gave the following error.
+    Argument of type '{}' is not assignable to parameter of type 'string | number'.
+
+[7m137[0m     const parsed = new Date(value);
+[7m   [0m [91m                            ~~~~~[0m
+
+[96msrc/modules/snapshots/snapshots.service.ts[0m:[93m186[0m:[93m13[0m - [91merror[0m[90m TS2322: [0mType '{ id: string | undefined; siteId: string; environmentId: string; slug: string; title: string; status: unknown; content: InputJsonValue; publishedAt: Date | null; createdAt: Date | undefined; updatedAt: Date | undefined; }[]' is not assignable to type 'PageCreateManyInput | PageCreateManyInput[]'.
+  Type '{ id: string | undefined; siteId: string; environmentId: string; slug: string; title: string; status: unknown; content: InputJsonValue; publishedAt: Date | null; createdAt: Date | undefined; updatedAt: Date | undefined; }[]' is not assignable to type 'PageCreateManyInput[]'.
+    Type '{ id: string | undefined; siteId: string; environmentId: string; slug: string; title: string; status: unknown; content: Prisma.InputJsonValue; publishedAt: Date | null; createdAt: Date | undefined; updatedAt: Date | undefined; }' is not assignable to type 'PageCreateManyInput'.
+      Types of property 'status' are incompatible.
+        Type 'unknown' is not assignable to type 'PageStatus | undefined'.
+
+[7m186[0m             data: pages.map((page) => ({
+[7m   [0m [91m            ~~~~[0m
+[96msrc/modules/snapshots/snapshots.service.ts[0m:[93m209[0m:[93m19[0m - [91merror[0m[90m TS2571: [0mObject is of type 'unknown'.
+
+[7m209[0m               id: (seo as unknown).id || undefined,
+[7m   [0m [91m                  ~~~~~~~~~~~~~~~~[0m
+[96msrc/modules/snapshots/snapshots.service.ts[0m:[93m211[0m:[93m15[0m - [91merror[0m[90m TS2322: [0mType '{} | null' is not assignable to type 'string | null | undefined'.
+  Type '{}' is not assignable to type 'string'.
+
+[7m211[0m               title: seo.title ?? null,
+[7m   [0m [91m              ~~~~~[0m
+
+  [96m../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/.prisma/client/index.d.ts[0m:[93m55561[0m:[93m5[0m
+    [7m55561[0m     title?: string | null
+    [7m     [0m [96m    ~~~~~[0m
+    The expected type comes from property 'title' which is declared here on type '(Without<SeoSettingsCreateInput, SeoSettingsUncheckedCreateInput> & SeoSettingsUncheckedCreateInput) | (Without<...> & SeoSettingsCreateInput)'
+[96msrc/modules/snapshots/snapshots.service.ts[0m:[93m212[0m:[93m15[0m - [91merror[0m[90m TS2322: [0mType '{} | null' is not assignable to type 'string | null | undefined'.
+  Type '{}' is not assignable to type 'string'.
+
+[7m212[0m               description: seo.description ?? null,
+[7m   [0m [91m              ~~~~~~~~~~~[0m
+
+  [96m../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/.prisma/client/index.d.ts[0m:[93m55562[0m:[93m5[0m
+    [7m55562[0m     description?: string | null
+    [7m     [0m [96m    ~~~~~~~~~~~[0m
+    The expected type comes from property 'description' which is declared here on type '(Without<SeoSettingsCreateInput, SeoSettingsUncheckedCreateInput> & SeoSettingsUncheckedCreateInput) | (Without<...> & SeoSettingsCreateInput)'
+[96msrc/modules/snapshots/snapshots.service.ts[0m:[93m213[0m:[93m15[0m - [91merror[0m[90m TS2322: [0mType '{} | null' is not assignable to type 'string | null | undefined'.
+  Type '{}' is not assignable to type 'string'.
+
+[7m213[0m               ogTitle: seo.ogTitle ?? null,
+[7m   [0m [91m              ~~~~~~~[0m
+
+  [96m../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/.prisma/client/index.d.ts[0m:[93m55563[0m:[93m5[0m
+    [7m55563[0m     ogTitle?: string | null
+    [7m     [0m [96m    ~~~~~~~[0m
+    The expected type comes from property 'ogTitle' which is declared here on type '(Without<SeoSettingsCreateInput, SeoSettingsUncheckedCreateInput> & SeoSettingsUncheckedCreateInput) | (Without<...> & SeoSettingsCreateInput)'
+[96msrc/modules/snapshots/snapshots.service.ts[0m:[93m214[0m:[93m15[0m - [91merror[0m[90m TS2322: [0mType '{} | null' is not assignable to type 'string | null | undefined'.
+  Type '{}' is not assignable to type 'string'.
+
+[7m214[0m               ogDescription: seo.ogDescription ?? null,
+[7m   [0m [91m              ~~~~~~~~~~~~~[0m
+
+  [96m../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/.prisma/client/index.d.ts[0m:[93m55564[0m:[93m5[0m
+    [7m55564[0m     ogDescription?: string | null
+    [7m     [0m [96m    ~~~~~~~~~~~~~[0m
+    The expected type comes from property 'ogDescription' which is declared here on type '(Without<SeoSettingsCreateInput, SeoSettingsUncheckedCreateInput> & SeoSettingsUncheckedCreateInput) | (Without<...> & SeoSettingsCreateInput)'
+[96msrc/modules/snapshots/snapshots.service.ts[0m:[93m215[0m:[93m15[0m - [91merror[0m[90m TS2322: [0mType '{} | null' is not assignable to type 'string | null | undefined'.
+  Type '{}' is not assignable to type 'string'.
+
+[7m215[0m               ogImage: seo.ogImage ?? null,
+[7m   [0m [91m              ~~~~~~~[0m
+
+  [96m../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/.prisma/client/index.d.ts[0m:[93m55565[0m:[93m5[0m
+    [7m55565[0m     ogImage?: string | null
+    [7m     [0m [96m    ~~~~~~~[0m
+    The expected type comes from property 'ogImage' which is declared here on type '(Without<SeoSettingsCreateInput, SeoSettingsUncheckedCreateInput> & SeoSettingsUncheckedCreateInput) | (Without<...> & SeoSettingsCreateInput)'
+[96msrc/modules/snapshots/snapshots.service.ts[0m:[93m216[0m:[93m15[0m - [91merror[0m[90m TS2322: [0mType '{} | null' is not assignable to type 'string | null | undefined'.
+  Type '{}' is not assignable to type 'string'.
+
+[7m216[0m               twitterCard: seo.twitterCard ?? null,
+[7m   [0m [91m              ~~~~~~~~~~~[0m
+
+  [96m../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/.prisma/client/index.d.ts[0m:[93m55566[0m:[93m5[0m
+    [7m55566[0m     twitterCard?: string | null
+    [7m     [0m [96m    ~~~~~~~~~~~[0m
+    The expected type comes from property 'twitterCard' which is declared here on type '(Without<SeoSettingsCreateInput, SeoSettingsUncheckedCreateInput> & SeoSettingsUncheckedCreateInput) | (Without<...> & SeoSettingsCreateInput)'
+[96msrc/modules/tasks/tasks.controller.ts[0m:[93m47[0m:[93m54[0m - [91merror[0m[90m TS2345: [0mArgument of type 'unknown' is not assignable to parameter of type '{ title: string; status?: "PENDING" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED" | undefined; description?: string | undefined; priority?: "LOW" | "HIGH" | "MEDIUM" | "URGENT" | undefined; assignedToId?: string | undefined; contentEntryId?: string | undefined; collectionItemId?: string | undefined; dueDate?: Date | u...'.
+
+[7m47[0m     return this.tasksService.create(siteId, user.id, dto as unknown);
+[7m  [0m [91m                                                     ~~~~~~~~~~~~~~[0m
+[96msrc/modules/tasks/tasks.controller.ts[0m:[93m56[0m:[93m43[0m - [91merror[0m[90m TS2345: [0mArgument of type 'unknown' is not assignable to parameter of type '{ page: number; pageSize: number; sort?: string | undefined; status?: "PENDING" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED" | undefined; priority?: "LOW" | "HIGH" | "MEDIUM" | "URGENT" | undefined; assignedToId?: string | undefined; contentEntryId?: string | undefined; collectionItemId?: string | undefined; }'.
+
+[7m56[0m     return this.tasksService.list(siteId, query as unknown);
+[7m  [0m [91m                                          ~~~~~~~~~~~~~~~~[0m
+[96msrc/modules/tasks/tasks.controller.ts[0m:[93m75[0m:[93m49[0m - [91merror[0m[90m TS2345: [0mArgument of type 'unknown' is not assignable to parameter of type '{ status?: "PENDING" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED" | undefined; description?: string | undefined; title?: string | undefined; priority?: "LOW" | "HIGH" | "MEDIUM" | "URGENT" | undefined; assignedToId?: string | ... 1 more ... | undefined; contentEntryId?: string | ... 1 more ... | undefined; collection...'.
+
+[7m75[0m     return this.tasksService.update(siteId, id, dto as unknown);
+[7m  [0m [91m                                                ~~~~~~~~~~~~~~[0m
+[96msrc/modules/tasks/tasks.service.ts[0m:[93m43[0m:[93m12[0m - [91merror[0m[90m TS2571: [0mObject is of type 'unknown'.
+
+[7m43[0m     return (this.prisma as unknown).task.create({
+[7m  [0m [91m           ~~~~~~~~~~~~~~~~~~~~~~~~[0m
+[96msrc/modules/tasks/tasks.service.ts[0m:[93m96[0m:[93m9[0m - [91merror[0m[90m TS2345: [0mArgument of type 'unknown' is not assignable to parameter of type 'Record<string, unknown>'.
+
+[7m96[0m         where,
+[7m  [0m [91m        ~~~~~[0m
+[96msrc/modules/tasks/tasks.service.ts[0m:[93m118[0m:[93m54[0m - [91merror[0m[90m TS2345: [0mArgument of type 'unknown' is not assignable to parameter of type 'Record<string, unknown>'.
+
+[7m118[0m       this.prismaOptimization.countOptimized('task', where),
+[7m   [0m [91m                                                     ~~~~~[0m
+[96msrc/modules/tasks/tasks.service.ts[0m:[93m137[0m:[93m24[0m - [91merror[0m[90m TS2571: [0mObject is of type 'unknown'.
+
+[7m137[0m     const task = await (this.prisma as unknown).task.findFirst({
+[7m   [0m [91m                       ~~~~~~~~~~~~~~~~~~~~~~~~[0m
+[96msrc/modules/tasks/tasks.service.ts[0m:[93m192[0m:[93m7[0m - [91merror[0m[90m TS18046: [0m'updateData' is of type 'unknown'.
+
+[7m192[0m       updateData.completedAt = new Date();
+[7m   [0m [91m      ~~~~~~~~~~[0m
+[96msrc/modules/tasks/tasks.service.ts[0m:[93m194[0m:[93m7[0m - [91merror[0m[90m TS18046: [0m'updateData' is of type 'unknown'.
+
+[7m194[0m       updateData.completedAt = null;
+[7m   [0m [91m      ~~~~~~~~~~[0m
+[96msrc/modules/tasks/tasks.service.ts[0m:[93m198[0m:[93m12[0m - [91merror[0m[90m TS2571: [0mObject is of type 'unknown'.
+
+[7m198[0m     return (this.prisma as unknown).task.update({
+[7m   [0m [91m           ~~~~~~~~~~~~~~~~~~~~~~~~[0m
+[96msrc/modules/tasks/tasks.service.ts[0m:[93m218[0m:[93m11[0m - [91merror[0m[90m TS2571: [0mObject is of type 'unknown'.
+
+[7m218[0m     await (this.prisma as unknown).task.delete({
+[7m   [0m [91m          ~~~~~~~~~~~~~~~~~~~~~~~~[0m
+[96msrc/modules/users/platform-users.controller.ts[0m:[93m354[0m:[93m7[0m - [91merror[0m[90m TS18046: [0m'updateData' is of type 'unknown'.
+
+[7m354[0m       updateData.role = normalizedRole; // Backward compatibility
+[7m   [0m [91m      ~~~~~~~~~~[0m
+[96msrc/modules/users/platform-users.controller.ts[0m:[93m356[0m:[93m9[0m - [91merror[0m[90m TS18046: [0m'updateData' is of type 'unknown'.
+
+[7m356[0m         updateData.siteRole = normalizedRole === 'org_admin' ? 'admin' : normalizedRole;
+[7m   [0m [91m        ~~~~~~~~~~[0m
+[96msrc/modules/users/platform-users.controller.ts[0m:[93m359[0m:[93m9[0m - [91merror[0m[90m TS18046: [0m'updateData' is of type 'unknown'.
+
+[7m359[0m         updateData.platformRole = normalizedRole === 'super_admin' || normalizedRole === 'org_admin' ? 'admin' : 'user';
+[7m   [0m [91m        ~~~~~~~~~~[0m
+[96msrc/modules/users/platform-users.controller.ts[0m:[93m362[0m:[93m23[0m - [91merror[0m[90m TS18046: [0m'updateData' is of type 'unknown'.
+
+[7m362[0m     if (dto.siteRole) updateData.siteRole = dto.siteRole;
+[7m   [0m [91m                      ~~~~~~~~~~[0m
+[96msrc/modules/users/platform-users.controller.ts[0m:[93m363[0m:[93m27[0m - [91merror[0m[90m TS18046: [0m'updateData' is of type 'unknown'.
+
+[7m363[0m     if (dto.platformRole) updateData.platformRole = dto.platformRole;
+[7m   [0m [91m                          ~~~~~~~~~~[0m
+[96msrc/modules/users/platform-users.controller.ts[0m:[93m365[0m:[93m7[0m - [91merror[0m[90m TS18046: [0m'updateData' is of type 'unknown'.
+
+[7m365[0m       updateData.systemRole = dto.systemRole;
+[7m   [0m [91m      ~~~~~~~~~~[0m
+[96msrc/modules/users/platform-users.controller.ts[0m:[93m366[0m:[93m7[0m - [91merror[0m[90m TS18046: [0m'updateData' is of type 'unknown'.
+
+[7m366[0m       updateData.isSuperAdmin = dto.systemRole === 'super_admin';
+[7m   [0m [91m      ~~~~~~~~~~[0m
+[96msrc/modules/users/platform-users.controller.ts[0m:[93m371[0m:[93m7[0m - [91merror[0m[90m TS2322: [0mType 'unknown' is not assignable to type '(Without<UserUpdateInput, UserUncheckedUpdateInput> & UserUncheckedUpdateInput) | (Without<...> & UserUpdateInput)'.
+
+[7m371[0m       data: updateData,
+[7m   [0m [91m      ~~~~[0m
+
+  [96m../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/.prisma/client/index.d.ts[0m:[93m9078[0m:[93m5[0m
+    [7m9078[0m     data: XOR<UserUpdateInput, UserUncheckedUpdateInput>
+    [7m    [0m [96m    ~~~~[0m
+    The expected type comes from property 'data' which is declared here on type '{ select?: UserSelect<DefaultArgs> | null | undefined; include?: UserInclude<DefaultArgs> | null | undefined; data: (Without<UserUpdateInput, UserUncheckedUpdateInput> & UserUncheckedUpdateInput) | (Without<...> & UserUpdateInput); where: UserWhereUniqueInput; }'
+[96msrc/modules/webhooks/webhooks.controller.ts[0m:[93m44[0m:[93m48[0m - [91merror[0m[90m TS2345: [0mArgument of type 'unknown' is not assignable to parameter of type '{ url: string; active: boolean; timeout: number; events: string[]; retryCount: number; collectionId?: string | undefined; description?: string | undefined; secret?: string | undefined; }'.
+
+[7m44[0m     return this.webhooksService.create(siteId, body);
+[7m  [0m [91m                                               ~~~~[0m
+[96msrc/modules/webhooks/webhooks.controller.ts[0m:[93m86[0m:[93m52[0m - [91merror[0m[90m TS2345: [0mArgument of type 'unknown' is not assignable to parameter of type '{ collectionId?: string | null | undefined; description?: string | undefined; secret?: string | undefined; url?: string | undefined; active?: boolean | undefined; timeout?: number | undefined; events?: string[] | undefined; retryCount?: number | undefined; }'.
+
+[7m86[0m     return this.webhooksService.update(siteId, id, body);
+[7m  [0m [91m                                                   ~~~~[0m
+[96msrc/modules/webhooks/webhooks.service.ts[0m:[93m187[0m:[93m9[0m - [91merror[0m[90m TS2698: [0mSpread types may only be created from object types.
+
+[7m187[0m         ...where,
+[7m   [0m [91m        ~~~~~~~~[0m
+[96msrc/modules/webhooks/webhooks.service.ts[0m:[93m219[0m:[93m25[0m - [91merror[0m[90m TS18046: [0m'webhook' is of type 'unknown'.
+
+[7m219[0m     const maxAttempts = webhook.retryCount || 3;
+[7m   [0m [91m                        ~~~~~~~[0m
+[96msrc/modules/webhooks/webhooks.service.ts[0m:[93m225[0m:[93m28[0m - [91merror[0m[90m TS2345: [0mArgument of type 'unknown' is not assignable to parameter of type '{ id: string; url: string; secret: string; active: boolean; events: string[]; timeout?: number | undefined; }'.
+
+[7m225[0m         await this.deliver(webhook, event, payload, attempt);
+[7m   [0m [91m                           ~~~~~~~[0m
+[96msrc/modules/webhooks/webhooks.service.ts[0m:[93m228[0m:[93m9[0m - [91merror[0m[90m TS2322: [0mType 'unknown' is not assignable to type 'Error | null'.
+
+[7m228[0m         lastError = error;
+[7m   [0m [91m        ~~~~~~~~~[0m
+[96msrc/modules/webhooks/webhooks.service.ts[0m:[93m239[0m:[93m34[0m - [91merror[0m[90m TS18046: [0m'webhook' is of type 'unknown'.
+
+[7m239[0m     this.logger.error(`Webhook ${webhook.id} failed after ${maxAttempts} attempts: ${lastError?.message}`);
+[7m   [0m [91m                                 ~~~~~~~[0m
+[96msrc/modules/webhooks/webhooks.service.ts[0m:[93m286[0m:[93m86[0m - [91merror[0m[90m TS2339: [0mProperty 'message' does not exist on type '{}'.
+
+[7m286[0m       await this.logDelivery(webhook.id, 'failed', event, undefined, attempt, error?.message || 'Unknown error');
+[7m   [0m [91m                                                                                     ~~~~~~~[0m
+[96msrc/modules/workflow/workflow-config.service.ts[0m:[93m25[0m:[93m7[0m - [91merror[0m[90m TS2322: [0mType 'unknown' is not assignable to type 'CollectionSelect<DefaultArgs> | null | undefined'.
+
+[7m25[0m       select: {
+[7m  [0m [91m      ~~~~~~[0m
+[96msrc/modules/workflow/workflow-config.service.ts[0m:[93m61[0m:[93m12[0m - [91merror[0m[90m TS2571: [0mObject is of type 'unknown'.
+
+[7m61[0m     return (collection as unknown).workflowConfig || defaultConfig;
+[7m  [0m [91m           ~~~~~~~~~~~~~~~~~~~~~~~[0m
+[96msrc/modules/workflow/workflow-config.service.ts[0m:[93m91[0m:[93m28[0m - [91merror[0m[90m TS2571: [0mObject is of type 'unknown'.
+
+[7m91[0m     const currentConfig = ((collection as unknown).workflowConfig as unknown) || {};
+[7m  [0m [91m                           ~~~~~~~~~~~~~~~~~~~~~~~[0m
+[96msrc/modules/workflow/workflow-config.service.ts[0m:[93m96[0m:[93m26[0m - [91merror[0m[90m TS2339: [0mProperty 'autoTasks' does not exist on type '{}'.
+
+[7m96[0m         ...currentConfig.autoTasks,
+[7m  [0m [91m                         ~~~~~~~~~[0m
+[96msrc/modules/workflow/workflow-config.service.ts[0m:[93m103[0m:[93m7[0m - [91merror[0m[90m TS2322: [0mType 'unknown' is not assignable to type '(Without<CollectionUpdateInput, CollectionUncheckedUpdateInput> & CollectionUncheckedUpdateInput) | (Without<...> & CollectionUpdateInput)'.
+
+[7m103[0m       data: {
+[7m   [0m [91m      ~~~~[0m
+
+  [96m../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/.prisma/client/index.d.ts[0m:[93m12169[0m:[93m5[0m
+    [7m12169[0m     data: XOR<CollectionUpdateInput, CollectionUncheckedUpdateInput>
+    [7m     [0m [96m    ~~~~[0m
+    The expected type comes from property 'data' which is declared here on type '{ select?: CollectionSelect<DefaultArgs> | null | undefined; include?: CollectionInclude<DefaultArgs> | null | undefined; data: (Without<...> & CollectionUncheckedUpdateInput) | (Without<...> & CollectionUpdateInput); where: CollectionWhereUniqueInput; }'
+[96msrc/modules/workflow/workflow-config.service.ts[0m:[93m121[0m:[93m23[0m - [91merror[0m[90m TS2571: [0mObject is of type 'unknown'.
+
+[7m121[0m     const autoTasks = (config as unknown).autoTasks || {};
+[7m   [0m [91m                      ~~~~~~~~~~~~~~~~~~~[0m
+[96msrc/modules/workflow/workflow-config.service.ts[0m:[93m131[0m:[93m11[0m - [91merror[0m[90m TS2322: [0mType '{}' is not assignable to type '"LOW" | "HIGH" | "MEDIUM" | "URGENT" | undefined'.
+
+[7m131[0m           priority: (autoTasks.onReview.priority as unknown) || 'MEDIUM',
+[7m   [0m [91m          ~~~~~~~~[0m
+
+  [96msrc/modules/tasks/dto/create-task.dto.ts[0m:[93m11[0m:[93m3[0m
+    [7m11[0m   priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']).optional(),
+    [7m  [0m [96m  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+    The expected type comes from property 'priority' which is declared here on type '{ title: string; status?: "PENDING" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED" | undefined; description?: string | undefined; priority?: "LOW" | "HIGH" | "MEDIUM" | "URGENT" | undefined; assignedToId?: string | undefined; contentEntryId?: string | undefined; collectionItemId?: string | undefined; dueDate?: Date | u...'
+[96msrc/modules/workflow/workflow-config.service.ts[0m:[93m144[0m:[93m11[0m - [91merror[0m[90m TS2322: [0mType '{}' is not assignable to type '"LOW" | "HIGH" | "MEDIUM" | "URGENT" | undefined'.
+
+[7m144[0m           priority: (autoTasks.onApproved.priority as unknown) || 'LOW',
+[7m   [0m [91m          ~~~~~~~~[0m
+
+  [96msrc/modules/tasks/dto/create-task.dto.ts[0m:[93m11[0m:[93m3[0m
+    [7m11[0m   priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']).optional(),
+    [7m  [0m [96m  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+    The expected type comes from property 'priority' which is declared here on type '{ title: string; status?: "PENDING" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED" | undefined; description?: string | undefined; priority?: "LOW" | "HIGH" | "MEDIUM" | "URGENT" | undefined; assignedToId?: string | undefined; contentEntryId?: string | undefined; collectionItemId?: string | undefined; dueDate?: Date | u...'
+[96msrc/modules/workflow/workflow-config.service.ts[0m:[93m157[0m:[93m11[0m - [91merror[0m[90m TS2322: [0mType '{}' is not assignable to type '"LOW" | "HIGH" | "MEDIUM" | "URGENT" | undefined'.
+
+[7m157[0m           priority: (autoTasks.onPublished.priority as unknown) || 'LOW',
+[7m   [0m [91m          ~~~~~~~~[0m
+
+  [96msrc/modules/tasks/dto/create-task.dto.ts[0m:[93m11[0m:[93m3[0m
+    [7m11[0m   priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']).optional(),
+    [7m  [0m [96m  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+    The expected type comes from property 'priority' which is declared here on type '{ title: string; status?: "PENDING" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED" | undefined; description?: string | undefined; priority?: "LOW" | "HIGH" | "MEDIUM" | "URGENT" | undefined; assignedToId?: string | undefined; contentEntryId?: string | undefined; collectionItemId?: string | undefined; dueDate?: Date | u...'
+[96msrc/modules/workflow/workflow-config.service.ts[0m:[93m175[0m:[93m20[0m - [91merror[0m[90m TS18046: [0m'config' is of type 'unknown'.
+
+[7m175[0m     const stages = config.stages || ['draft', 'review', 'approved', 'published', 'archived'];
+[7m   [0m [91m                   ~~~~~~[0m
+[96msrc/modules/workflow/workflow.controller.ts[0m:[93m41[0m:[93m52[0m - [91merror[0m[90m TS2345: [0mArgument of type 'unknown' is not assignable to parameter of type '{ name: string; slug: string; states: { name: string; label: string; initial: boolean; final: boolean; }[]; transitions: { label: string; from: string; to: string; conditions?: string[] | undefined; requiredRoles?: string[] | undefined; }[]; description?: string | undefined; contentTypeSlug?: string | undefined; }'.
+
+[7m41[0m     return this.workflowService.create(req.siteId, body);
+[7m  [0m [91m                                                   ~~~~[0m
+[96msrc/modules/workflow/workflow.service.ts[0m:[93m47[0m:[93m32[0m - [91merror[0m[90m TS2339: [0mProperty 'workflows' does not exist on type '{}'.
+
+[7m47[0m     const workflows = settings.workflows || [];
+[7m  [0m [91m                               ~~~~~~~~~[0m
+[96msrc/modules/workflow/workflow.service.ts[0m:[93m86[0m:[93m21[0m - [91merror[0m[90m TS2339: [0mProperty 'workflows' does not exist on type '{}'.
+
+[7m86[0m     return settings.workflows || [];
+[7m  [0m [91m                    ~~~~~~~~~[0m
+[96msrc/modules/workflow/workflow.service.ts[0m:[93m94[0m:[93m53[0m - [91merror[0m[90m TS18046: [0m'w' is of type 'unknown'.
+
+[7m94[0m     const workflow = workflows.find((w: unknown) => w.id === id);
+[7m  [0m [91m                                                    ~[0m
+[96msrc/modules/workflow/workflow.service.ts[0m:[93m117[0m:[93m23[0m - [91merror[0m[90m TS18046: [0m't' is of type 'unknown'.
+
+[7m117[0m       (t: unknown) => t.from === transitionName || t.label === transitionName,
+[7m   [0m [91m                      ~[0m
+[96msrc/modules/workflow/workflow.service.ts[0m:[93m117[0m:[93m52[0m - [91merror[0m[90m TS18046: [0m't' is of type 'unknown'.
+
+[7m117[0m       (t: unknown) => t.from === transitionName || t.label === transitionName,
+[7m   [0m [91m                                                   ~[0m
+[96msrc/modules/workflow/workflow.service.ts[0m:[93m133[0m:[93m47[0m - [91merror[0m[90m TS2339: [0mProperty 'workflowState' does not exist on type '{}'.
+
+[7m133[0m       currentState = (entry.data as unknown)?.workflowState || workflow.states.find((s: unknown) => s.initial)?.name;
+[7m   [0m [91m                                              ~~~~~~~~~~~~~[0m
+[96msrc/modules/workflow/workflow.service.ts[0m:[93m133[0m:[93m101[0m - [91merror[0m[90m TS18046: [0m's' is of type 'unknown'.
+
+[7m133[0m       currentState = (entry.data as unknown)?.workflowState || workflow.states.find((s: unknown) => s.initial)?.name;
+[7m   [0m [91m                                                                                                    ~[0m
+[96msrc/modules/workflow/workflow.service.ts[0m:[93m141[0m:[93m46[0m - [91merror[0m[90m TS2339: [0mProperty 'workflowState' does not exist on type '{}'.
+
+[7m141[0m       currentState = (item.data as unknown)?.workflowState || workflow.states.find((s: unknown) => s.initial)?.name;
+[7m   [0m [91m                                             ~~~~~~~~~~~~~[0m
+[96msrc/modules/workflow/workflow.service.ts[0m:[93m141[0m:[93m100[0m - [91merror[0m[90m TS18046: [0m's' is of type 'unknown'.
+
+[7m141[0m       currentState = (item.data as unknown)?.workflowState || workflow.states.find((s: unknown) => s.initial)?.name;
+[7m   [0m [91m                                                                                                   ~[0m
+[96msrc/modules/workflow/workflow.service.ts[0m:[93m158[0m:[93m13[0m - [91merror[0m[90m TS2698: [0mSpread types may only be created from object types.
+
+[7m158[0m             ...((await this.prisma.contentEntry.findUnique({ where: { id: entityId } }))?.data as unknown),
+[7m   [0m [91m            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+[96msrc/modules/workflow/workflow.service.ts[0m:[93m170[0m:[93m13[0m - [91merror[0m[90m TS2698: [0mSpread types may only be created from object types.
+
+[7m170[0m             ...((await this.prisma.collectionItem.findUnique({ where: { id: entityId } }))?.data as unknown),
+[7m   [0m [91m            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+ ^C^C

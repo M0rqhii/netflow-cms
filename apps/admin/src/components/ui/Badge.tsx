@@ -9,9 +9,9 @@ type BadgeProps = React.HTMLAttributes<HTMLSpanElement> & {
 export function Badge({ tone = 'default', variant = 'default', className, ...props }: BadgeProps) {
   const toneClass = {
     default: 'badge',
-    success: 'badge text-emerald-700 bg-emerald-50 border-emerald-200',
-    warning: 'badge text-amber-700 bg-amber-50 border-amber-200',
-    error: 'badge text-red-700 bg-red-50 border-red-200',
+    success: 'badge !text-emerald-700 !bg-emerald-50 !border-emerald-200 dark:!text-emerald-200 dark:!bg-emerald-900/40 dark:!border-emerald-700',
+    warning: 'badge !text-amber-700 !bg-amber-50 !border-amber-200 dark:!text-amber-200 dark:!bg-amber-900/40 dark:!border-amber-700',
+    error: 'badge !text-red-700 !bg-red-50 !border-red-200 dark:!text-red-200 dark:!bg-red-900/40 dark:!border-red-700',
   }[tone];
 
   const variantClass = variant === 'outline' ? 'bg-transparent border' : '';

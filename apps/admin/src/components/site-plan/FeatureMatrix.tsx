@@ -92,7 +92,7 @@ export function FeatureMatrix({ rows, onToggle, pendingKey, disabled }: FeatureM
                   return (
                     <tr
                       key={feature.key}
-                      className="border-b border-gray-200 hover:bg-gray-50 transition-colors"
+                      className="border-b border-border hover:bg-muted/30 transition-colors"
                     >
                       <td className="py-3 px-4 align-top">
                         <div className="font-semibold text-foreground">{feature.name}</div>
@@ -109,7 +109,7 @@ export function FeatureMatrix({ rows, onToggle, pendingKey, disabled }: FeatureM
                       <td className="py-3 px-4 align-top">
                         <div className="flex items-center gap-3">
                           <ToggleSwitch
-                            checked={feature.overrideState ?? feature.effective}
+                            checked={feature.overrideState === null ? feature.effective : feature.overrideState}
                             disabled={toggleDisabled}
                             onChange={(value) => onToggle(feature.key, value)}
                           />
@@ -117,7 +117,14 @@ export function FeatureMatrix({ rows, onToggle, pendingKey, disabled }: FeatureM
                         </div>
                       </td>
                       <td className="py-3 px-4 align-top">
-                        <Badge tone={feature.effective ? 'success' : 'default'}>
+                        <Badge
+                          tone={feature.effective ? 'success' : 'default'}
+                          className={
+                            feature.effective
+                              ? 'dark:!text-emerald-200 dark:!bg-emerald-900/40 dark:!border-emerald-700'
+                              : '!text-slate-500 !bg-slate-100 !border-slate-200 dark:!text-slate-300 dark:!bg-slate-900/30 dark:!border-slate-700'
+                          }
+                        >
                           {feature.effective ? 'Enabled' : 'Disabled'}
                         </Badge>
                       </td>

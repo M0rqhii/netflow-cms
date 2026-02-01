@@ -39,7 +39,7 @@ export class CollectionRolesController {
   assignRole(
     @CurrentSite() siteId: string,
     @Param('collectionId') collectionId: string,
-    @Body(new ZodValidationPipe(createCollectionRoleSchema)) dto: unknown,
+    @Body(new ZodValidationPipe(createCollectionRoleSchema)) dto: any,
   ) {
     return this.collectionRolesService.assignRole(siteId, collectionId, dto as any);
   }
@@ -60,7 +60,7 @@ export class CollectionRolesController {
     @CurrentSite() siteId: string,
     @Param('collectionId') collectionId: string,
     @Param('userId') userId: string,
-    @Body(new ZodValidationPipe(updateCollectionRoleSchema)) dto: unknown,
+    @Body(new ZodValidationPipe(updateCollectionRoleSchema)) dto: any,
   ) {
     return this.collectionRolesService.updateRole(siteId, collectionId, userId, dto as any);
   }

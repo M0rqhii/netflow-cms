@@ -1,12 +1,25 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
-import { TextInput } from '@/components/ui/Input';
 import { useToast } from '@/components/ui/Toast';
 import { submitContentForReview, reviewContent, getContentReviewHistory, createContentComment, getContentComments, updateContentComment, deleteContentComment } from '@/lib/api';
 import type { ContentEntry } from '@/lib/api';
+
+type CommentItem = {
+  id: string;
+  content: string;
+  createdAt: string;
+  resolved?: boolean;
+};
+
+type ReviewEntry = {
+  id: string;
+  status: string;
+  comment?: string;
+  createdAt: string;
+};
 
 interface ContentWorkflowProps {
   siteId: string;
@@ -19,32 +32,32 @@ interface ContentWorkflowProps {
 
 export function ContentWorkflow({ siteId, contentTypeSlug, entry, canEdit, canReview, onUpdate }: ContentWorkflowProps) {
   const [showComments, setShowComments] = useState(false);
-  const [comments, setComments] = useState<any[]>([]);
+  const [comments, setComments] = useState<CommentItem[]>([]);
   const [newComment, setNewComment] = useState('');
-  const [reviewHistory, setReviewHistory] = useState<any[]>([]);
+  const [reviewHistory, setReviewHistory] = useState<ReviewEntry[]>([]);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [reviewStatus, setReviewStatus] = useState<'approved' | 'rejected' | 'changes_requested'>('approved');
   const [reviewComment, setReviewComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const { push } = useToast();
 
-  const loadComments = async () => {
+  const loadComments = useCallback(async () => {
     try {
       const data = await getContentComments(siteId, contentTypeSlug, entry.id, true);
       setComments(data);
     } catch (err) {
       push({ tone: 'error', message: err instanceof Error ? err.message : 'Failed to load comments' });
     }
-  };
+  }, [contentTypeSlug, entry.id, push, siteId]);
 
-  const loadReviewHistory = async () => {
+  const loadReviewHistory = useCallback(async () => {
     try {
       const data = await getContentReviewHistory(siteId, contentTypeSlug, entry.id);
       setReviewHistory(data);
     } catch (err) {
       push({ tone: 'error', message: err instanceof Error ? err.message : 'Failed to load review history' });
     }
-  };
+  }, [contentTypeSlug, entry.id, push, siteId]);
 
   const handleSubmitForReview = async () => {
     if (!confirm('Submit this entry for review?')) return;
@@ -115,13 +128,13 @@ export function ContentWorkflow({ siteId, contentTypeSlug, entry, canEdit, canRe
     if (showComments) {
       loadComments();
     }
-  }, [showComments, entry.id]);
+  }, [showComments, loadComments]);
 
   useEffect(() => {
     if (entry.status === 'review' || reviewHistory.length > 0) {
       loadReviewHistory();
     }
-  }, [entry.id, entry.status]);
+  }, [entry.status, reviewHistory.length, loadReviewHistory]);
 
   return (
     <div className="flex items-center gap-2 flex-wrap">
@@ -210,7 +223,7 @@ export function ContentWorkflow({ siteId, contentTypeSlug, entry, canEdit, canRe
             <select
               className="border rounded w-full p-2"
               value={reviewStatus}
-              onChange={(e) => setReviewStatus(e.target.value as any)}
+              onChange={(e) => setReviewStatus(e.target.value as typeof reviewStatus)}
             >
               <option value="approved">Approve</option>
               <option value="rejected">Reject</option>

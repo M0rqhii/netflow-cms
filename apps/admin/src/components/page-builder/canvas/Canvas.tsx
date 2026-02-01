@@ -5,7 +5,7 @@
  * Renderuje drzewo bloków i obsługuje drag & drop.
  */
 
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import {
   DndContext,
   DragOverlay,
@@ -37,7 +37,6 @@ import {
   isNewBlockDrag,
   getDraggedType,
   validateDrop,
-  calculateInsertIndex,
 } from '@/lib/page-builder/dnd-utils';
 import { cn } from '@/lib/utils';
 import styles from './Canvas.module.css';
@@ -74,6 +73,7 @@ export const Canvas: React.FC = () => {
   const rootChildIds = useBlockChildren(rootId);
   const currentBreakpoint = useCurrentBreakpoint();
   const mode = useEditorMode();
+  const isStructure = mode === 'structure';
   
   const addBlock = usePageBuilderStore((state) => state.addBlock);
   const moveBlock = usePageBuilderStore((state) => state.moveBlock);
@@ -86,7 +86,6 @@ export const Canvas: React.FC = () => {
   // Drag state
   const [activeDragData, setActiveDragData] = useState<DragData | null>(null);
   const [insertionIndicator, setInsertionIndicator] = useState<InsertionIndicator>(null);
-  const [dropTargetId, setDropTargetId] = useState<string | null>(null);
   
   // Sensors
   const sensors = useSensors(
@@ -130,17 +129,16 @@ export const Canvas: React.FC = () => {
     selectBlock(null);
   }, [selectBlock]);
   
-  const handleDragMove = useCallback((event: DragMoveEvent) => {
+  const handleDragMove = useCallback((_event: DragMoveEvent) => {
     // Update insertion indicator position based on cursor
     // This is handled by DragOver for simplicity
   }, []);
   
   const handleDragOver = useCallback((event: DragOverEvent) => {
-    const { active, over } = event;
+    const { over } = event;
     
     if (!over || !activeDragData) {
       setInsertionIndicator(null);
-      setDropTargetId(null);
       return;
     }
     
@@ -160,8 +158,7 @@ export const Canvas: React.FC = () => {
       const overNode = content.nodes[overId];
       if (!overNode || !overNode.parentId) {
         setInsertionIndicator(null);
-        setDropTargetId(null);
-        return;
+          return;
       }
       
       targetParentId = overNode.parentId;
@@ -185,7 +182,6 @@ export const Canvas: React.FC = () => {
     
     if (!targetParent) {
       setInsertionIndicator(null);
-      setDropTargetId(null);
       return;
     }
     
@@ -199,12 +195,10 @@ export const Canvas: React.FC = () => {
     
     if (!validation.valid) {
       setInsertionIndicator(null);
-      setDropTargetId(null);
       return;
     }
     
     // Set drop target for visual feedback
-    setDropTargetId(targetParentId);
     
     // Calculate insertion line position
     // (simplified - in production would use actual DOM measurements)
@@ -218,11 +212,10 @@ export const Canvas: React.FC = () => {
   }, [activeDragData, content]);
   
   const handleDragEnd = useCallback((event: DragEndEvent) => {
-    const { active, over } = event;
+    const { over } = event;
     
     setActiveDragData(null);
     setInsertionIndicator(null);
-    setDropTargetId(null);
     
     if (!over || !activeDragData) return;
     
@@ -304,7 +297,6 @@ export const Canvas: React.FC = () => {
   const handleDragCancel = useCallback(() => {
     setActiveDragData(null);
     setInsertionIndicator(null);
-    setDropTargetId(null);
   }, []);
   
   // ==========================================================================
@@ -332,6 +324,7 @@ export const Canvas: React.FC = () => {
           className={cn(
             styles.canvas,
             isPreview && styles.previewMode,
+            isStructure && styles.structureMode,
             currentBreakpoint !== 'desktop' && styles.responsiveMode
           )}
           style={{ maxWidth: canvasWidth }}
@@ -351,6 +344,7 @@ export const Canvas: React.FC = () => {
                   key={childId}
                   nodeId={childId}
                   isPreview={isPreview}
+                  isStructure={isStructure}
                 />
               ))}
             </div>

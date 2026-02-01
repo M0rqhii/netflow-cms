@@ -5,7 +5,7 @@
  * Features: tabs (Content/Style/Advanced), draft state, debounced commit.
  */
 
-import React, { memo, useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   FiType,
   FiPenTool,
@@ -25,7 +25,7 @@ import { blockRegistry } from '@/lib/page-builder/block-registry';
 import { ContentEditor } from './editors/ContentEditor';
 import { StyleEditor } from './editors/StyleEditor';
 import { AdvancedEditor } from './editors/AdvancedEditor';
-import type { BlockNode, BlockProps } from '@/lib/page-builder/types';
+import type { BlockProps } from '@/lib/page-builder/types';
 import styles from './PropertiesPanel.module.css';
 
 // =============================================================================
@@ -63,7 +63,7 @@ export const PropertiesPanel: React.FC = () => {
     } else {
       setDraftProps(null);
     }
-  }, [selectedBlock?.id]);
+  }, [selectedBlock]);
   
   // Handle prop change (draft)
   const handlePropChange = useCallback((
@@ -250,7 +250,6 @@ export const PropertiesPanel: React.FC = () => {
       <div className={styles.tabContent}>
         {activeTab === 'content' && (
           <ContentEditor
-            node={selectedBlock}
             props={draftProps}
             schema={definition?.propsSchema?.content}
             onChange={(key, value) => handlePropChange('content', key, value)}
@@ -259,7 +258,6 @@ export const PropertiesPanel: React.FC = () => {
         
         {activeTab === 'style' && (
           <StyleEditor
-            node={selectedBlock}
             props={draftProps}
             schema={definition?.propsSchema?.style}
             currentBreakpoint={currentBreakpoint}

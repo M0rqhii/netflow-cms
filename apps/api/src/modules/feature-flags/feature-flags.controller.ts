@@ -46,11 +46,11 @@ export class FeatureFlagsController {
    */
   @Patch('override')
   @Throttle(50, 60) // 50 requests per minute (lower limit for write operations)
-  @Roles(Role.SUPER_ADMIN) // Only super_admin can override features
+  @Roles(Role.SUPER_ADMIN, Role.ORG_ADMIN) // Allow org admins to manage site modules
   async setFeatureOverride(
     @Param('siteId') siteId: string,
     @CurrentSite() _: string, // Validated by middleware
-    @Body(new ZodValidationPipe(FeatureOverrideDtoSchema)) dto: unknown,
+    @Body(new ZodValidationPipe(FeatureOverrideDtoSchema)) dto: any,
   ) {
     // siteId is validated by middleware to match currentSiteId
     return this.featureFlagsService.setFeatureOverride(siteId, dto as any);

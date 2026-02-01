@@ -36,9 +36,9 @@ export type DropValidation = {
  */
 export function calculateInsertIndex(
   pointerY: number,
-  containerRect: ClientRect,
+  _containerRect: ClientRect,
   childRects: ClientRect[],
-  gap: number = 8
+  _gap: number = 8
 ): number {
   // Empty container - insert at 0
   if (childRects.length === 0) {
@@ -65,9 +65,9 @@ export function calculateInsertIndex(
  */
 export function calculateInsertIndexHorizontal(
   pointerX: number,
-  containerRect: ClientRect,
+  _containerRect: ClientRect,
   childRects: ClientRect[],
-  gap: number = 8
+  _gap: number = 8
 ): number {
   if (childRects.length === 0) {
     return 0;

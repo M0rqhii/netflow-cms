@@ -6,9 +6,11 @@
  */
 
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import Image from 'next/image';
 import { FiX, FiUpload, FiSearch, FiImage, FiFile, FiCheck } from 'react-icons/fi';
 import { useSiteId } from '../../PageBuilderContext';
 import { fetchSiteMedia, uploadSiteMedia, type MediaItem } from '@/lib/api';
+import { useTranslations } from '@/hooks/useTranslations';
 import styles from './MediaPickerDialog.module.css';
 
 // =============================================================================
@@ -57,6 +59,7 @@ export const MediaPickerDialog: React.FC<MediaPickerDialogProps> = ({
   currentValue,
 }) => {
   const siteId = useSiteId();
+  const t = useTranslations();
   
   const [items, setItems] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -65,6 +68,7 @@ export const MediaPickerDialog: React.FC<MediaPickerDialogProps> = ({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState<MediaFilter>('all');
+  const [isDragOver, setIsDragOver] = useState(false);
 
   // Load media when dialog opens
   useEffect(() => {
@@ -119,26 +123,56 @@ export const MediaPickerDialog: React.FC<MediaPickerDialogProps> = ({
   }, [items, acceptType, filter, searchQuery]);
 
   // Handle file upload
-  const handleUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    
+  const handleFilesUpload = useCallback(async (files: FileList | File[]) => {
+    const list = Array.from(files || []);
+    if (list.length == 0) return;
+
     setUploading(true);
     setError(null);
-    
+
     try {
-      const uploaded = await uploadSiteMedia(siteId, file);
-      setItems(prev => [uploaded, ...prev]);
-      setSelectedId(uploaded.id);
+      const uploadedItems: MediaItem[] = [];
+      for (const file of list) {
+        const uploaded = await uploadSiteMedia(siteId, file);
+        uploadedItems.push(uploaded);
+      }
+      if (uploadedItems.length > 0) {
+        setItems(prev => [...uploadedItems, ...prev]);
+        setSelectedId(uploadedItems[0].id);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Upload failed');
     } finally {
       setUploading(false);
-      e.target.value = '';
     }
   }, [siteId]);
 
+  const handleUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length == 0) return;
+    await handleFilesUpload(files);
+    e.target.value = '';
+  }, [handleFilesUpload]);
+
   // Handle selection confirm
+  const handleDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    if (!uploading) setIsDragOver(true);
+  }, [uploading]);
+
+  const handleDragLeave = useCallback(() => {
+    setIsDragOver(false);
+  }, []);
+
+  const handleDrop = useCallback(async (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    setIsDragOver(false);
+    if (uploading) return;
+    const files = event.dataTransfer?.files;
+    if (!files || files.length == 0) return;
+    await handleFilesUpload(files);
+  }, [handleFilesUpload, uploading]);
+
   const handleConfirm = useCallback(() => {
     const selected = items.find(item => item.id === selectedId);
     if (selected) {
@@ -181,7 +215,7 @@ export const MediaPickerDialog: React.FC<MediaPickerDialogProps> = ({
         {/* Header */}
         <div className={styles.header}>
           <h2 className={styles.title}>
-            {acceptType === 'image' ? 'Select Image' : acceptType === 'video' ? 'Select Video' : 'Select Media'}
+            {acceptType === 'image' ? t('mediaPicker.selectImage') : acceptType === 'video' ? t('mediaPicker.selectVideo') : t('mediaPicker.selectMedia')}
           </h2>
           <button 
             onClick={onClose} 
@@ -199,7 +233,7 @@ export const MediaPickerDialog: React.FC<MediaPickerDialogProps> = ({
             <FiSearch className={styles.searchIcon} />
             <input
               type="text"
-              placeholder="Search files..."
+              placeholder={t('mediaPicker.searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className={styles.searchInput}
@@ -213,19 +247,19 @@ export const MediaPickerDialog: React.FC<MediaPickerDialogProps> = ({
                 className={`${styles.filterButton} ${filter === 'all' ? styles.active : ''}`}
                 onClick={() => setFilter('all')}
               >
-                All
+                {t('mediaPicker.filterAll')}
               </button>
               <button
                 className={`${styles.filterButton} ${filter === 'images' ? styles.active : ''}`}
                 onClick={() => setFilter('images')}
               >
-                Images
+                {t('mediaPicker.filterImages')}
               </button>
               <button
                 className={`${styles.filterButton} ${filter === 'videos' ? styles.active : ''}`}
                 onClick={() => setFilter('videos')}
               >
-                Videos
+                {t('mediaPicker.filterVideos')}
               </button>
             </div>
           )}
@@ -233,10 +267,10 @@ export const MediaPickerDialog: React.FC<MediaPickerDialogProps> = ({
           {/* Upload */}
           <label className={styles.uploadButton}>
             <FiUpload />
-            <span>Upload</span>
+            <span>{t('mediaPicker.upload')}</span>
             <input
               type="file"
-              accept={acceptMime}
+              accept={acceptMime} multiple
               onChange={handleUpload}
               disabled={uploading}
               className={styles.hiddenInput}
@@ -245,7 +279,16 @@ export const MediaPickerDialog: React.FC<MediaPickerDialogProps> = ({
         </div>
 
         {/* Content */}
-        <div className={styles.content}>
+        <div
+          className={`${styles.content} ${isDragOver ? styles.dragOver : ''}`}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+        >
+          {isDragOver && (
+            <div className={styles.dropOverlay}>{t('mediaPicker.dropLabel')}</div>
+          )}
+
           {/* Error */}
           {error && (
             <div className={styles.error}>
@@ -256,14 +299,14 @@ export const MediaPickerDialog: React.FC<MediaPickerDialogProps> = ({
           {/* Loading */}
           {loading && (
             <div className={styles.loading}>
-              Loading media...
+              {t('mediaPicker.loading')}
             </div>
           )}
 
           {/* Uploading overlay */}
           {uploading && (
             <div className={styles.uploading}>
-              Uploading...
+              {t('mediaPicker.uploading')}
             </div>
           )}
 
@@ -282,11 +325,14 @@ export const MediaPickerDialog: React.FC<MediaPickerDialogProps> = ({
                     type="button"
                   >
                     {type === 'image' ? (
-                      <img
+                      <Image
                         src={item.thumbnailUrl || item.url}
                         alt={item.alt || item.fileName}
                         className={styles.thumbnail}
-                        loading="lazy"
+                        width={160}
+                        height={160}
+                        sizes="160px"
+                        unoptimized
                       />
                     ) : (
                       <div className={styles.filePlaceholder}>
@@ -313,9 +359,9 @@ export const MediaPickerDialog: React.FC<MediaPickerDialogProps> = ({
           {!loading && filteredItems.length === 0 && (
             <div className={styles.empty}>
               <FiImage className={styles.emptyIcon} />
-              <p>No media files found</p>
+              <p>{t('mediaPicker.emptyTitle')}</p>
               <p className={styles.emptyHint}>
-                Upload files to your site's media library
+                {t('mediaPicker.emptyHint')}
               </p>
             </div>
           )}
@@ -335,14 +381,14 @@ export const MediaPickerDialog: React.FC<MediaPickerDialogProps> = ({
               onClick={onClose}
               className={styles.cancelButton}
             >
-              Cancel
+              {t('mediaPicker.cancel')}
             </button>
             <button
               onClick={handleConfirm}
               disabled={!selectedId}
               className={styles.confirmButton}
             >
-              Select
+              {t('mediaPicker.select')}
             </button>
           </div>
         </div>

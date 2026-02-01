@@ -79,22 +79,29 @@ export type BlockDefinition = {
   icon: ReactNode;
   category: BlockCategory;
   defaultProps: BlockProps;
-  
+
+  // Optional catalog metadata (library, search, gating)
+  moduleKey?: string;
+  tags?: string[];
+  keywords?: string[];
+  complexity?: 'simple' | 'advanced' | 'expert';
+  group?: 'section' | 'block' | 'component' | 'data' | 'integration' | 'commerce' | 'utility';
+
   // Composition rules
   canHaveChildren?: boolean;
   allowedChildren?: string[] | ((childType: string) => boolean);
   allowedParents?: string[] | ((parentType: string) => boolean);
-  
+
   // Special flags
   isCanvasOnly?: boolean;  // nie pokazuj w BlockBrowser (np. root)
   isItemNode?: boolean;    // TabItem, AccordionItem, Slide
-  
+
   // Slots (dla advanced blocks)
   slots?: SlotDefinition[];
-  
+
   // Component do renderowania
   component: React.ComponentType<BlockComponentProps>;
-  
+
   // Schema dla properties panel
   propsSchema?: BlockPropsSchema;
 };
@@ -117,6 +124,7 @@ export type BlockComponentProps = {
   children?: ReactNode;
   isSelected?: boolean;
   isPreview?: boolean;
+  isStructure?: boolean;
 };
 
 export type BlockPropsSchema = {
@@ -173,7 +181,7 @@ export type DropZoneData = {
 
 export type Breakpoint = 'desktop' | 'tablet' | 'mobile';
 
-export type EditorMode = 'edit' | 'preview';
+export type EditorMode = 'edit' | 'preview' | 'structure';
 
 export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 

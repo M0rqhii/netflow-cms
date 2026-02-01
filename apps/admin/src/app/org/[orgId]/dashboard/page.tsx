@@ -9,11 +9,11 @@ import {
   CardHeader,
   CardTitle,
   Button,
-  Badge,
   LoadingSpinner,
   EmptyState,
 } from '@repo/ui';
 import { fetchOrgDashboard, type DashboardResponse } from '@/lib/api';
+import Badge from '@/components/ui/Badge';
 import { useToast } from '@/components/ui/Toast';
 import Breadcrumbs from '@/components/ui/Breadcrumbs';
 

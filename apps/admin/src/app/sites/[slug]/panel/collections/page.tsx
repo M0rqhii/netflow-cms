@@ -10,7 +10,18 @@ import { EmptyState, Button, Input, Modal, LoadingSpinner } from '@repo/ui';
 import { Badge } from '@/components/ui/Badge';
 import { useToast } from '@/components/ui/Toast';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
-import { fetchMySites, exchangeSiteToken, getSiteToken, fetchSiteCollections, createCollection, updateCollection, deleteCollection, getCollection, type CollectionSummary } from '@/lib/api';
+import {
+  fetchMySites,
+  exchangeSiteToken,
+  getSiteToken,
+  fetchSiteCollections,
+  createCollection,
+  updateCollection,
+  deleteCollection,
+  getCollection,
+  type CollectionSummary,
+} from '@/lib/api';
+import type { SiteInfo } from '@repo/sdk';
 import { FieldsEditor, type FieldDefinition } from '@/components/content/FieldsEditor';
 import { fieldsToSimpleSchema, simpleSchemaToFields } from '@/lib/schema-converter';
 
@@ -31,13 +42,11 @@ export default function CollectionsPage() {
   const [editingCollection, setEditingCollection] = useState<CollectionWithDetails | null>(null);
   const [deletingCollectionSlug, setDeletingCollectionSlug] = useState<string | null>(null);
 
-  // Create form state
   const [createName, setCreateName] = useState('');
   const [createSlug, setCreateSlug] = useState('');
   const [createFields, setCreateFields] = useState<FieldDefinition[]>([]);
   const [createSaving, setCreateSaving] = useState(false);
 
-  // Edit form state
   const [editName, setEditName] = useState('');
   const [editFields, setEditFields] = useState<FieldDefinition[]>([]);
   const [editSaving, setEditSaving] = useState(false);
@@ -52,10 +61,10 @@ export default function CollectionsPage() {
       setLoading(true);
 
       const sites = await fetchMySites();
-      const site = sites.find((s: any) => s.site.slug === slug);
+      const site = sites.find((s: SiteInfo) => s.site.slug === slug);
 
       if (!site) {
-        throw new Error(`Site with slug "${slug}" not found`);
+        throw new Error(`Nie znaleziono strony o slug: "${slug}"`);
       }
 
       const id = site.siteId;
@@ -69,11 +78,8 @@ export default function CollectionsPage() {
       const collectionsData = await fetchSiteCollections(id);
       setCollections(collectionsData);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to load collections';
-      toast.push({
-        tone: 'error',
-        message,
-      });
+      const message = err instanceof Error ? err.message : 'Nie uda?o si? wczyta? kolekcji';
+      toast.push({ tone: 'error', message });
     } finally {
       setLoading(false);
     }
@@ -98,10 +104,7 @@ export default function CollectionsPage() {
         schemaJson,
       });
 
-      toast.push({
-        tone: 'success',
-        message: 'Collection created successfully',
-      });
+      toast.push({ tone: 'success', message: 'Kolekcja utworzona pomy?lnie' });
 
       setShowCreateModal(false);
       setCreateName('');
@@ -109,11 +112,8 @@ export default function CollectionsPage() {
       setCreateFields([]);
       await loadData();
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to create collection';
-      toast.push({
-        tone: 'error',
-        message,
-      });
+      const message = err instanceof Error ? err.message : 'Nie uda?o si? utworzy? kolekcji';
+      toast.push({ tone: 'error', message });
     } finally {
       setCreateSaving(false);
     }
@@ -133,21 +133,15 @@ export default function CollectionsPage() {
         schemaJson,
       });
 
-      toast.push({
-        tone: 'success',
-        message: 'Collection updated successfully',
-      });
+      toast.push({ tone: 'success', message: 'Kolekcja zaktualizowana' });
 
       setEditingCollection(null);
       setEditName('');
       setEditFields([]);
       await loadData();
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to update collection';
-      toast.push({
-        tone: 'error',
-        message,
-      });
+      const message = err instanceof Error ? err.message : 'Nie uda?o si? zaktualizowa? kolekcji';
+      toast.push({ tone: 'error', message });
     } finally {
       setEditSaving(false);
     }
@@ -159,19 +153,13 @@ export default function CollectionsPage() {
     try {
       await deleteCollection(siteId, deletingCollectionSlug);
 
-      toast.push({
-        tone: 'success',
-        message: 'Collection deleted successfully',
-      });
+      toast.push({ tone: 'success', message: 'Kolekcja usuni?ta' });
 
       setDeletingCollectionSlug(null);
       await loadData();
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to delete collection';
-      toast.push({
-        tone: 'error',
-        message,
-      });
+      const message = err instanceof Error ? err.message : 'Nie uda?o si? usun?? kolekcji';
+      toast.push({ tone: 'error', message });
     }
   };
 
@@ -189,13 +177,13 @@ export default function CollectionsPage() {
     } catch (err) {
       toast.push({
         tone: 'error',
-        message: err instanceof Error ? err.message : 'Failed to load collection',
+        message: err instanceof Error ? err.message : 'Nie uda?o si? wczyta? kolekcji',
       });
     }
   };
 
   const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString('en-US', {
+    return new Date(date).toLocaleDateString('pl-PL', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -206,10 +194,10 @@ export default function CollectionsPage() {
     <SitePanelLayout>
       <div className="space-y-6">
         <SectionHeader
-          title="Collections"
-          description="Collections allow you to model structured data (e.g., blog posts, news, events)."
+          title="Kolekcje"
+          description="Modeluj dane i zarz?dzaj tre?ciami strukturalnymi (np. blog, aktualno?ci, wydarzenia)."
           action={{
-            label: 'New collection',
+            label: 'Nowa kolekcja',
             onClick: () => setShowCreateModal(true),
           }}
         />
@@ -218,13 +206,13 @@ export default function CollectionsPage() {
           <CardContent className="pt-6">
             {loading ? (
               <div className="py-12 flex justify-center">
-                <LoadingSpinner text="Loading collections..." />
+                <LoadingSpinner text="Wczytywanie kolekcji..." />
               </div>
             ) : collections.length === 0 ? (
               <div className="py-12">
                 <EmptyState
-                  title="No collections yet"
-                  description="Create your first collection to start managing structured content."
+                  title="Brak kolekcji"
+                  description="Utw?rz pierwsz? kolekcj?, aby zacz?? zarz?dza? tre?ciami."
                   icon={
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-10 w-10">
                       <rect x="4" y="5" width="16" height="4" rx="1.5" />
@@ -233,7 +221,7 @@ export default function CollectionsPage() {
                     </svg>
                   }
                   action={{
-                    label: "Create collection",
+                    label: 'Utw?rz kolekcj?',
                     onClick: () => setShowCreateModal(true),
                   }}
                 />
@@ -243,50 +231,46 @@ export default function CollectionsPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Name</TableHead>
+                      <TableHead>Nazwa</TableHead>
                       <TableHead>Slug</TableHead>
-                      <TableHead>Fields</TableHead>
-                      <TableHead>Created</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
+                      <TableHead>Pola</TableHead>
+                      <TableHead>Utworzono</TableHead>
+                      <TableHead className="text-right">Akcje</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {collections.map((collection) => {
-                      const schemaJson = (collection as any).schemaJson || {};
+                      const schemaJson = ('schemaJson' in collection ? (collection as CollectionWithDetails).schemaJson : undefined) || {};
                       const fieldCount = Object.keys(schemaJson).length;
-                      
+
                       return (
                         <TableRow key={collection.id}>
-                          <TableCell className="font-medium">{collection.name}</TableCell>
-                          <TableCell>
-                            <code className="text-xs bg-gray-100 px-2 py-1 rounded">{collection.slug}</code>
+                          <TableCell className="font-medium">
+                            {collection.name}
+                          </TableCell>
+                          <TableCell className="text-muted font-mono text-sm">
+                            {collection.slug}
                           </TableCell>
                           <TableCell>
-                            <Badge>{fieldCount} {fieldCount === 1 ? 'field' : 'fields'}</Badge>
+                            <Badge>{fieldCount} {fieldCount === 1 ? 'pole' : 'p?l'}</Badge>
                           </TableCell>
-                          <TableCell className="text-muted">{formatDate(collection.createdAt)}</TableCell>
+                          <TableCell className="text-muted text-sm">
+                            {formatDate(collection.createdAt)}
+                          </TableCell>
                           <TableCell className="text-right">
                             <div className="flex items-center justify-end gap-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => router.push(`/sites/${slug}/panel/collections/${collection.slug}`)}
-                              >
-                                View Items
+                              <Button variant="outline" size="sm" onClick={() => openEditModal(collection)}>
+                                Edytuj
                               </Button>
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => openEditModal(collection)}
+                                onClick={() => router.push(`/sites/${encodeURIComponent(slug)}/panel/collections/${collection.slug}`)}
                               >
-                                Edit
+                                Wpisy
                               </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setDeletingCollectionSlug(collection.slug)}
-                              >
-                                Delete
+                              <Button variant="outline" size="sm" onClick={() => setDeletingCollectionSlug(collection.slug)}>
+                                Usu?
                               </Button>
                             </div>
                           </TableCell>
@@ -300,7 +284,6 @@ export default function CollectionsPage() {
           </CardContent>
         </Card>
 
-        {/* Create Modal */}
         {showCreateModal && (
           <Modal
             isOpen={showCreateModal}
@@ -310,42 +293,31 @@ export default function CollectionsPage() {
               setCreateSlug('');
               setCreateFields([]);
             }}
-            title="Create Collection"
-            size="xl"
+            title="Utw?rz kolekcj?"
+            size="lg"
           >
             <form onSubmit={handleCreate} className="space-y-4">
               <Input
-                label="Name"
-                placeholder="e.g., Articles, Products"
+                label="Nazwa kolekcji"
+                placeholder="np. Blog"
                 value={createName}
                 onChange={(e) => setCreateName(e.target.value)}
                 required
               />
               <Input
-                label="Slug"
-                placeholder="e.g., articles, products"
+                label="Slug kolekcji"
+                placeholder="np. blog"
                 value={createSlug}
-                onChange={(e) => {
-                  const slug = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-');
-                  setCreateSlug(slug);
-                }}
+                onChange={(e) => setCreateSlug(e.target.value)}
                 required
-                pattern="[a-z0-9-]+"
-                helperText="URL-friendly identifier (lowercase, hyphens only)"
               />
-              
+
               <div>
-                <label className="block text-sm font-medium mb-2">Schema Fields</label>
-                <p className="text-sm text-muted mb-3">
-                  Define the structure of your collection. You can add fields later.
-                </p>
-                <FieldsEditor
-                  fields={createFields}
-                  onChange={setCreateFields}
-                />
+                <div className="text-sm font-medium mb-2">Pola</div>
+                <FieldsEditor fields={createFields} onChange={setCreateFields} />
               </div>
 
-              <div className="flex gap-2 justify-end pt-4 border-t">
+              <div className="flex gap-2 justify-end pt-2">
                 <Button
                   type="button"
                   variant="outline"
@@ -356,17 +328,16 @@ export default function CollectionsPage() {
                     setCreateFields([]);
                   }}
                 >
-                  Cancel
+                  Anuluj
                 </Button>
                 <Button type="submit" variant="primary" disabled={createSaving}>
-                  {createSaving ? 'Creating...' : 'Create Collection'}
+                  {createSaving ? 'Tworzenie...' : 'Utw?rz kolekcj?'}
                 </Button>
               </div>
             </form>
           </Modal>
         )}
 
-        {/* Edit Modal */}
         {editingCollection && (
           <Modal
             isOpen={!!editingCollection}
@@ -375,32 +346,23 @@ export default function CollectionsPage() {
               setEditName('');
               setEditFields([]);
             }}
-            title="Edit Collection"
-            size="xl"
+            title={`Edytuj kolekcj?: ${editingCollection.name}`}
+            size="lg"
           >
             <form onSubmit={handleEdit} className="space-y-4">
               <Input
-                label="Name"
-                placeholder="e.g., Articles, Products"
+                label="Nazwa kolekcji"
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
                 required
               />
+
               <div>
-                <label className="block text-sm font-medium mb-1">Slug</label>
-                <code className="text-sm bg-gray-100 px-3 py-2 rounded block">{editingCollection.slug}</code>
-                <p className="text-xs text-muted mt-1">Slug cannot be changed after creation</p>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-2">Schema Fields</label>
-                <FieldsEditor
-                  fields={editFields}
-                  onChange={setEditFields}
-                />
+                <div className="text-sm font-medium mb-2">Pola</div>
+                <FieldsEditor fields={editFields} onChange={setEditFields} />
               </div>
 
-              <div className="flex gap-2 justify-end pt-4 border-t">
+              <div className="flex gap-2 justify-end pt-2">
                 <Button
                   type="button"
                   variant="outline"
@@ -410,25 +372,25 @@ export default function CollectionsPage() {
                     setEditFields([]);
                   }}
                 >
-                  Cancel
+                  Anuluj
                 </Button>
                 <Button type="submit" variant="primary" disabled={editSaving}>
-                  {editSaving ? 'Saving...' : 'Save Changes'}
+                  {editSaving ? 'Zapisywanie...' : 'Zapisz zmiany'}
                 </Button>
               </div>
             </form>
           </Modal>
         )}
 
-        {/* Delete Confirmation */}
         {deletingCollectionSlug && (
           <ConfirmDialog
-            open={!!deletingCollectionSlug}
+            open={Boolean(deletingCollectionSlug)}
             onClose={() => setDeletingCollectionSlug(null)}
             onConfirm={handleDelete}
-            title="Delete Collection"
-            message={`Are you sure you want to delete the collection "${deletingCollectionSlug}"? This will also delete all items in this collection. This action cannot be undone.`}
-            confirmLabel="Delete"
+            title="Usu? kolekcj?"
+            message={`Czy na pewno chcesz usun?? kolekcj? "${deletingCollectionSlug}"? Spowoduje to usuni?cie wszystkich wpis?w w tej kolekcji. Operacja jest nieodwracalna.`}
+            confirmLabel="Usu?"
+            cancelLabel="Anuluj"
             variant="danger"
           />
         )}

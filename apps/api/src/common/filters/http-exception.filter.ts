@@ -29,7 +29,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
     this.isProduction = profile === 'production';
   }
 
-  catch(exception: unknown, host: ArgumentsHost) {
+  catch(exception: any, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();

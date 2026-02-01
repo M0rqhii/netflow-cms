@@ -10,20 +10,11 @@ export default function SEOPage() {
     <SitePanelLayout>
       <div className="space-y-6">
         <SectionHeader
-          title="SEO Settings"
-          description="Configure SEO metadata, social previews, and search engine optimization for your site."
+          title="SEO"
+          description="Zarządzaj metadanymi, podglądem social i optymalizacją wyszukiwarki dla tej strony."
         />
         <SeoForm />
       </div>
     </SitePanelLayout>
   );
 }
-
-
-
-
-
-
-
-
-

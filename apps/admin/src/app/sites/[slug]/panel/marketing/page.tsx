@@ -1,11 +1,12 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { SitePanelLayout } from '@/components/site-panel/SitePanelLayout';
 import { SectionHeader } from '@/components/site-panel/SectionHeader';
-import { Card, CardHeader, CardTitle, CardContent, Button, EmptyState } from '@repo/ui';
+import { Card, CardHeader, CardTitle, CardContent, Button, EmptyState, Modal } from '@repo/ui';
 import { Badge } from '@/components/ui/Badge';
+import type { SiteInfo } from '@repo/sdk';
 import { useToast } from '@/components/ui/Toast';
 import {
   fetchMySites,
@@ -21,14 +22,12 @@ import {
   type MarketingCampaign,
   type DistributionDraft,
   type PublishJob,
-  type SiteInfo,
 } from '@/lib/api';
 
 type Tab = 'campaigns' | 'drafts' | 'jobs';
 
 export default function MarketingPage() {
   const params = useParams<{ slug: string }>();
-  const router = useRouter();
   const slug = params?.slug as string;
   const toast = useToast();
 
@@ -47,10 +46,9 @@ export default function MarketingPage() {
   const [campaignName, setCampaignName] = useState('');
   const [campaignDescription, setCampaignDescription] = useState('');
   const [draftTitle, setDraftTitle] = useState('');
-  const [draftContent, setDraftContent] = useState<Record<string, any>>({});
+  const [draftContent, setDraftContent] = useState<Record<string, unknown>>({});
   const [selectedChannels, setSelectedChannels] = useState<string[]>(['site']);
   const [selectedDraftId, setSelectedDraftId] = useState<string | null>(null);
-  const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [selectedJob, setSelectedJob] = useState<PublishJob | null>(null);
 
   const loadData = useCallback(async () => {
@@ -190,7 +188,7 @@ export default function MarketingPage() {
     if (!selectedChannels || selectedChannels.length === 0) {
       toast.push({
         tone: 'error',
-        message: 'Wybierz przynajmniej jeden kanał do publikacji',
+        message: 'Wybierz przynajmniej jeden kanał',
       });
       return;
     }
@@ -201,7 +199,7 @@ export default function MarketingPage() {
       if (!hasContent) {
         toast.push({
           tone: 'error',
-          message: 'Dodaj treść marketingową, aby opublikować.',
+          message: 'Dodaj treść marketingową, aby opublikowa?.',
         });
         return;
       }
@@ -249,7 +247,7 @@ export default function MarketingPage() {
       failed: 'error',
       cancelled: 'default',
     };
-    return <Badge variant={colors[status] || 'default'}>{status}</Badge>;
+    return <Badge tone={colors[status] || 'default'}>{status}</Badge>;
   };
 
   if (loading) {
@@ -276,7 +274,7 @@ export default function MarketingPage() {
           }}
         />
 
-        {/* Informacja gdy brak draftów */}
+        {/* Informacja gdy brak szkiców */}
         {drafts.length === 0 && (
           <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <p className="text-sm text-blue-900">
@@ -448,7 +446,6 @@ export default function MarketingPage() {
                       try {
                         const jobDetails = await getPublishJob(orgId, job.id);
                         setSelectedJob(jobDetails);
-                        setSelectedJobId(job.id);
                       } catch (err) {
                         toast.push({
                           tone: 'error',
@@ -519,289 +516,267 @@ export default function MarketingPage() {
 
         {/* Create Campaign Modal */}
         {showCreateCampaign && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <Card className="w-full max-w-md">
-              <CardHeader>
-                <CardTitle>Create Campaign</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleCreateCampaign} className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Name</label>
-                    <input
-                      type="text"
-                      value={campaignName}
-                      onChange={(e) => setCampaignName(e.target.value)}
-                      className="w-full px-3 py-2 border rounded-md"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Description</label>
-                    <textarea
-                      value={campaignDescription}
-                      onChange={(e) => setCampaignDescription(e.target.value)}
-                      className="w-full px-3 py-2 border rounded-md"
-                      rows={3}
-                    />
-                  </div>
-                  <div className="flex gap-2 justify-end">
-                    <Button type="button" variant="outline" onClick={() => setShowCreateCampaign(false)}>
-                      Cancel
-                    </Button>
-                    <Button type="submit">Create</Button>
-                  </div>
-                </form>
-              </CardContent>
-            </Card>
-          </div>
+          <Modal
+            isOpen={showCreateCampaign}
+            onClose={() => setShowCreateCampaign(false)}
+            title="Create Campaign"
+            size="sm"
+          >
+            <form onSubmit={handleCreateCampaign} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Name</label>
+                <input
+                  type="text"
+                  value={campaignName}
+                  onChange={(e) => setCampaignName(e.target.value)}
+                  className="w-full px-3 py-2 border rounded-md"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Description</label>
+                <textarea
+                  value={campaignDescription}
+                  onChange={(e) => setCampaignDescription(e.target.value)}
+                  className="w-full px-3 py-2 border rounded-md"
+                  rows={3}
+                />
+              </div>
+              <div className="flex gap-2 justify-end">
+                <Button type="button" variant="outline" onClick={() => setShowCreateCampaign(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit">Create</Button>
+              </div>
+            </form>
+          </Modal>
         )}
 
         {/* Create Draft Modal */}
         {showCreateDraft && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <Card className="w-full max-w-md">
-              <CardHeader>
-                <CardTitle>Create Distribution Draft</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleCreateDraft} className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Title</label>
-                    <input
-                      type="text"
-                      value={draftTitle}
-                      onChange={(e) => setDraftTitle(e.target.value)}
-                      className="w-full px-3 py-2 border rounded-md"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Channels</label>
-                    <div className="space-y-2">
-                      {['site', 'facebook', 'twitter', 'linkedin', 'instagram', 'ads'].map((channel) => (
-                        <label key={channel} className="flex items-center gap-2">
-                          <input
-                            type="checkbox"
-                            checked={selectedChannels.includes(channel)}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setSelectedChannels([...selectedChannels, channel]);
-                              } else {
-                                setSelectedChannels(selectedChannels.filter((c) => c !== channel));
-                              }
-                            }}
-                          />
-                          <span className="text-sm capitalize">{channel}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="flex gap-2 justify-end">
-                    <Button type="button" variant="outline" onClick={() => setShowCreateDraft(false)}>
-                      Cancel
-                    </Button>
-                    <Button type="submit">Create</Button>
-                  </div>
-                </form>
-              </CardContent>
-            </Card>
-          </div>
+          <Modal
+            isOpen={showCreateDraft}
+            onClose={() => setShowCreateDraft(false)}
+            title="Create Distribution Draft"
+            size="sm"
+          >
+            <form onSubmit={handleCreateDraft} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Title</label>
+                <input
+                  type="text"
+                  value={draftTitle}
+                  onChange={(e) => setDraftTitle(e.target.value)}
+                  className="w-full px-3 py-2 border rounded-md"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Channels</label>
+                <div className="space-y-2">
+                  {['site', 'facebook', 'twitter', 'linkedin', 'instagram', 'ads'].map((channel) => (
+                    <label key={channel} className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={selectedChannels.includes(channel)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedChannels([...selectedChannels, channel]);
+                          } else {
+                            setSelectedChannels(selectedChannels.filter((c) => c !== channel));
+                          }
+                        }}
+                      />
+                      <span className="text-sm capitalize">{channel}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div className="flex gap-2 justify-end">
+                <Button type="button" variant="outline" onClick={() => setShowCreateDraft(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit">Create</Button>
+              </div>
+            </form>
+          </Modal>
         )}
 
         {/* Publish Modal */}
         {showPublish && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <Card className="w-full max-w-md">
-              <CardHeader>
-                <CardTitle>Publikuj Treść</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handlePublish} className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Draft (opcjonalny)</label>
-                    <select
-                      value={selectedDraftId || ''}
-                      onChange={(e) => setSelectedDraftId(e.target.value || null)}
-                      className="w-full px-3 py-2 border rounded-md"
+          <Modal
+            isOpen={showPublish}
+            onClose={() => setShowPublish(false)}
+            title="Publikuj treść"
+            size="sm"
+          >
+            <form onSubmit={handlePublish} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Draft (opcjonalny)</label>
+                <select
+                  value={selectedDraftId || ''}
+                  onChange={(e) => setSelectedDraftId(e.target.value || null)}
+                  className="w-full px-3 py-2 border rounded-md"
+                >
+                  <option value="">{'Utwórz nowy'}</option>
+                  {drafts.map((draft) => (
+                    <option key={draft.id} value={draft.id}>
+                      {draft.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {!selectedDraftId && (
+                <div>
+                  <label className="block text-sm font-medium mb-1">{'Tytuł'}</label>
+                  <input
+                    type="text"
+                    value={draftTitle}
+                    onChange={(e) => setDraftTitle(e.target.value)}
+                    className="w-full px-3 py-2 border rounded-md"
+                  />
+                </div>
+              )}
+              <div>
+                <label className="block text-sm font-medium mb-1">{'Kanały'}</label>
+                <div className="space-y-2">
+                  {[
+                    { id: 'site', label: 'Strona', available: true },
+                    { id: 'facebook', label: 'Facebook', available: false },
+                    { id: 'twitter', label: 'Twitter', available: false },
+                    { id: 'linkedin', label: 'LinkedIn', available: false },
+                    { id: 'instagram', label: 'Instagram', available: false },
+                    { id: 'ads', label: 'Reklamy', available: true },
+                  ].map((channel) => (
+                    <label
+                      key={channel.id}
+                      className={`flex items-center gap-2 ${!channel.available ? 'opacity-50' : ''}`}
                     >
-                      <option value="">Utwórz nowy</option>
-                      {drafts.map((draft) => (
-                        <option key={draft.id} value={draft.id}>
-                          {draft.title}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  {!selectedDraftId && (
-                    <>
-                      <div>
-                        <label className="block text-sm font-medium mb-1">Tytuł</label>
-                        <input
-                          type="text"
-                          value={draftTitle}
-                          onChange={(e) => setDraftTitle(e.target.value)}
-                          className="w-full px-3 py-2 border rounded-md"
-                        />
-                      </div>
-                    </>
-                  )}
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Kanały</label>
-                    <div className="space-y-2">
-                      {[
-                        { id: 'site', label: 'Strona', available: true },
-                        { id: 'facebook', label: 'Facebook', available: false },
-                        { id: 'twitter', label: 'Twitter', available: false },
-                        { id: 'linkedin', label: 'LinkedIn', available: false },
-                        { id: 'instagram', label: 'Instagram', available: false },
-                        { id: 'ads', label: 'Reklamy', available: true },
-                      ].map((channel) => (
-                        <label 
-                          key={channel.id} 
-                          className={`flex items-center gap-2 ${!channel.available ? 'opacity-50' : ''}`}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={selectedChannels.includes(channel.id)}
-                            disabled={!channel.available}
-                            onChange={(e) => {
-                              if (!channel.available) {
-                                toast.push({
-                                  tone: 'warning',
-                                  message: `Kanał ${channel.label} nie jest połączony. Połącz konto w ustawieniach.`,
-                                });
-                                return;
-                              }
-                              if (e.target.checked) {
-                                setSelectedChannels([...selectedChannels, channel.id]);
-                              } else {
-                                setSelectedChannels(selectedChannels.filter((c) => c !== channel.id));
-                              }
-                            }}
-                          />
-                          <span className="text-sm">{channel.label}</span>
-                          {!channel.available && (
-                            <span className="text-xs text-red-600">(Nie połączono)</span>
-                          )}
-                        </label>
-                      ))}
-                    </div>
-                    {selectedChannels.length === 0 && (
-                      <p className="text-xs text-red-600 mt-2">
-                        Wybierz przynajmniej jeden kanał
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex gap-2 justify-end">
-                    <Button type="button" variant="outline" onClick={() => setShowPublish(false)}>
-                      Anuluj
-                    </Button>
-                    <Button type="submit">Publikuj</Button>
-                  </div>
-                </form>
-              </CardContent>
-            </Card>
-          </div>
+                      <input
+                        type="checkbox"
+                        checked={selectedChannels.includes(channel.id)}
+                        disabled={!channel.available}
+                        onChange={(e) => {
+                          if (!channel.available) {
+                            toast.push({
+                              tone: 'warning',
+                              message: `Kanał ${channel.label} nie jest połączony. Połącz konto w ustawieniach.`,
+                            });
+                            return;
+                          }
+                          if (e.target.checked) {
+                            setSelectedChannels([...selectedChannels, channel.id]);
+                          } else {
+                            setSelectedChannels(selectedChannels.filter((c) => c !== channel.id));
+                          }
+                        }}
+                      />
+                      <span className="text-sm">{channel.label}</span>
+                      {!channel.available && (
+                        <span className="text-xs text-red-600">(Nie połączono)</span>
+                      )}
+                    </label>
+                  ))}
+                </div>
+                {selectedChannels.length === 0 && (
+                  <p className="text-xs text-red-600 mt-2">
+                    Wybierz przynajmniej jeden kanał
+                  </p>
+                )}
+              </div>
+              <div className="flex gap-2 justify-end">
+                <Button type="button" variant="outline" onClick={() => setShowPublish(false)}>
+                  Anuluj
+                </Button>
+                <Button type="submit">Publikuj</Button>
+              </div>
+            </form>
+          </Modal>
         )}
 
         {/* Job Details Modal */}
         {selectedJob && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => {
-            setSelectedJob(null);
-            setSelectedJobId(null);
-          }}>
-            <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto mx-4" onClick={(e) => e.stopPropagation()}>
-              <CardHeader>
-                <div className="flex justify-between items-start">
-                  <div>
-                    <CardTitle>{selectedJob.draft?.title || `Job ${selectedJob.id.slice(0, 8)}`}</CardTitle>
-                    {selectedJob.campaign && (
-                      <div className="text-sm text-muted mt-1">Campaign: {selectedJob.campaign.name}</div>
-                    )}
-                  </div>
-                  <Button variant="outline" size="sm" onClick={() => {
-                    setSelectedJob(null);
-                    setSelectedJobId(null);
-                  }}>
-                    Close
-                  </Button>
+          <Modal
+            isOpen={!!selectedJob}
+            onClose={() => setSelectedJob(null)}
+            title={selectedJob.draft?.title || `Job ${selectedJob.id.slice(0, 8)}`}
+            size="lg"
+          >
+            <div className="space-y-4">
+              {selectedJob.campaign && (
+                <div className="text-sm text-muted">Campaign: {selectedJob.campaign.name}</div>
+              )}
+              <div>
+                <div className="text-sm font-medium mb-2">Status</div>
+                {getStatusBadge(selectedJob.status)}
+              </div>
+              <div>
+                <div className="text-sm font-medium mb-2">Channels</div>
+                <div className="flex gap-2 flex-wrap">
+                  {selectedJob.channels.map((channel) => (
+                    <Badge key={channel} variant="default">
+                      {channel}
+                    </Badge>
+                  ))}
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
+              </div>
+              {selectedJob.startedAt && (
                 <div>
-                  <div className="text-sm font-medium mb-2">Status</div>
-                  {getStatusBadge(selectedJob.status)}
+                  <div className="text-sm font-medium mb-1">Started</div>
+                  <div className="text-sm text-muted">{new Date(selectedJob.startedAt).toLocaleString()}</div>
                 </div>
+              )}
+              {selectedJob.completedAt && (
                 <div>
-                  <div className="text-sm font-medium mb-2">Channels</div>
-                  <div className="flex gap-2 flex-wrap">
-                    {selectedJob.channels.map((channel) => (
-                      <Badge key={channel} variant="default">
-                        {channel}
-                      </Badge>
+                  <div className="text-sm font-medium mb-1">Completed</div>
+                  <div className="text-sm text-muted">{new Date(selectedJob.completedAt).toLocaleString()}</div>
+                </div>
+              )}
+              {selectedJob.publishResults && selectedJob.publishResults.length > 0 && (
+                <div>
+                  <div className="text-sm font-medium mb-2">Publish Results</div>
+                  <div className="space-y-2">
+                    {selectedJob.publishResults.map((result) => (
+                      <div key={result.id} className="border rounded-lg p-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-medium capitalize">{result.channel}</span>
+                          {result.status === 'success' ? (
+                            <Badge tone="success">Success</Badge>
+                          ) : (
+                            <Badge tone="error">Failed</Badge>
+                          )}
+                        </div>
+                        {result.url && (
+                          <div className="mb-1">
+                            <a
+                              href={result.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:underline text-sm"
+                            >
+                              Zobacz post
+                            </a>
+                          </div>
+                        )}
+                        {result.publishedAt && (
+                          <div className="text-xs text-muted">
+                            Published {new Date(result.publishedAt).toLocaleString()}
+                          </div>
+                        )}
+                        {result.error && (
+                          <div className="text-xs text-red-600 mt-1">
+                            Error: {result.error}
+                          </div>
+                        )}
+                      </div>
                     ))}
                   </div>
                 </div>
-                {selectedJob.startedAt && (
-                  <div>
-                    <div className="text-sm font-medium mb-1">Started</div>
-                    <div className="text-sm text-muted">{new Date(selectedJob.startedAt).toLocaleString()}</div>
-                  </div>
-                )}
-                {selectedJob.completedAt && (
-                  <div>
-                    <div className="text-sm font-medium mb-1">Completed</div>
-                    <div className="text-sm text-muted">{new Date(selectedJob.completedAt).toLocaleString()}</div>
-                  </div>
-                )}
-                {selectedJob.publishResults && selectedJob.publishResults.length > 0 && (
-                  <div>
-                    <div className="text-sm font-medium mb-2">Publish Results</div>
-                    <div className="space-y-2">
-                      {selectedJob.publishResults.map((result) => (
-                        <div key={result.id} className="border rounded-lg p-3">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="font-medium capitalize">{result.channel}</span>
-                            {result.status === 'success' ? (
-                              <Badge variant="success">Success</Badge>
-                            ) : (
-                              <Badge variant="error">Failed</Badge>
-                            )}
-                          </div>
-                          {result.url && (
-                            <div className="mb-1">
-                              <a 
-                                href={result.url} 
-                                target="_blank" 
-                                rel="noopener noreferrer" 
-                                className="text-blue-600 hover:underline text-sm"
-                              >
-                                View Post →
-                              </a>
-                            </div>
-                          )}
-                          {result.publishedAt && (
-                            <div className="text-xs text-muted">
-                              Published {new Date(result.publishedAt).toLocaleString()}
-                            </div>
-                          )}
-                          {result.error && (
-                            <div className="text-xs text-red-600 mt-1">
-                              Error: {result.error}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+              )}
+            </div>
+          </Modal>
         )}
       </div>
     </SitePanelLayout>
   );
 }
-

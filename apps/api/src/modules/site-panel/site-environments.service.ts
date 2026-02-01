@@ -181,7 +181,7 @@ export class SiteEnvironmentsService {
     const haveDraft = existing.some((env) => env.type === EnvironmentType.DRAFT);
     const haveProduction = existing.some((env) => env.type === EnvironmentType.PRODUCTION);
 
-    const createOps: Promise<unknown>[] = [];
+    const createOps: Promise<any>[] = [];
     if (!haveDraft) {
       createOps.push(this.insertRow(siteId, EnvironmentType.DRAFT));
     }

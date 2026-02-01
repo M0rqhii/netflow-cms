@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import clsx from 'clsx';
 import {
@@ -54,6 +54,21 @@ const DANGEROUS_CAPABILITY_KEYS = new Set<CapabilityKey>([
   'marketing.ads.manage',
 ]);
 
+const SYSTEM_ROLE_MARKERS = new Set(['SYSTEM', 'SYSTEM_ROLE', 'SYSTEM-ROLE']);
+
+function normalizeRoleScope(scope?: string | null): string {
+  return String(scope ?? '').toUpperCase();
+}
+
+function normalizeRoleType(type?: string | null): string {
+  return String(type ?? '').toUpperCase();
+}
+
+function isSystemRole(role: RbacRole): boolean {
+  const type = normalizeRoleType(role.type);
+  return role.isImmutable || SYSTEM_ROLE_MARKERS.has(type) || type.startsWith('SYSTEM');
+}
+
 function isBlockedForCustomRole(capability: RbacCapability): boolean {
   if (capability.key.startsWith('billing.')) return true;
   if (BLOCKED_CUSTOM_ROLE_KEYS.has(capability.key)) return true;
@@ -96,7 +111,7 @@ export default function OrgRolesPage() {
 
   const isOwner = useMemo(() => getOwnerFlag(), []);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -111,22 +126,22 @@ export default function OrgRolesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [orgId]);
 
   useEffect(() => {
     if (!orgId) return;
     loadData();
-  }, [orgId]);
+  }, [loadData, orgId]);
 
-  const systemRoles = roles.filter((role) => role.type === 'SYSTEM');
-  const customRoles = roles.filter((role) => role.type === 'CUSTOM');
+  const systemRoles = roles.filter((role) => isSystemRole(role));
+  const customRoles = roles.filter((role) => !isSystemRole(role));
 
   const filteredCustomRoles = customRoles.filter((role) => {
     const matchesSearch =
       !searchQuery ||
       role.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (role.description || '').toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesScope = scopeFilter === 'all' || role.scope === scopeFilter;
+    const matchesScope = scopeFilter === 'all' || normalizeRoleScope(role.scope) === normalizeRoleScope(scopeFilter);
     return matchesSearch && matchesScope;
   });
 
@@ -180,7 +195,7 @@ export default function OrgRolesPage() {
 
   const handleSave = async () => {
     if (!editorState.name.trim()) {
-      push({ tone: 'error', message: 'Role name is required.' });
+      push({ tone: 'error', message: 'Nazwa roli jest wymagana.' });
       return;
     }
     if (editorState.capabilityKeys.length === 0) {
@@ -196,7 +211,7 @@ export default function OrgRolesPage() {
           description: editorState.description,
           capabilityKeys: editorState.capabilityKeys,
         });
-        push({ tone: 'success', message: 'Role updated.' });
+        push({ tone: 'success', message: 'Rola została zaktualizowana.' });
       } else {
         await createRbacRole(orgId, {
           name: editorState.name,
@@ -204,7 +219,7 @@ export default function OrgRolesPage() {
           scope: editorState.scope,
           capabilityKeys: editorState.capabilityKeys,
         });
-        push({ tone: 'success', message: 'Role created.' });
+        push({ tone: 'success', message: 'Rola została utworzona.' });
       }
       setEditorOpen(false);
       setEditorState({ name: '', description: '', scope: 'SITE', capabilityKeys: [] });
@@ -221,7 +236,7 @@ export default function OrgRolesPage() {
     setDeleting(true);
     try {
       await deleteRbacRole(orgId, deleteRoleId, true);
-      push({ tone: 'success', message: 'Role deleted.' });
+      push({ tone: 'success', message: 'Rola została usunięta.' });
       setDeleteRoleId(null);
       await loadData();
     } catch (err) {
@@ -374,7 +389,7 @@ export default function OrgRolesPage() {
                 <CardContent className="flex flex-wrap items-center justify-between gap-3">
                   <div className="text-sm text-muted">
                     {role.capabilities.slice(0, 4).map((cap) => cap.label ?? cap.key).join(', ')}
-                    {role.capabilities.length > 4 ? '…' : ''}
+                    {role.capabilities.length > 4 ? '...' : ''}
                   </div>
                   <div className="flex items-center gap-2">
                     <Button variant="outline" size="sm" onClick={() => openEditor('edit', role)}>
@@ -414,7 +429,7 @@ export default function OrgRolesPage() {
               <label className="block text-sm font-medium mb-1 flex items-center gap-2">
                 Scope
                 <span className="text-xs text-muted font-normal" title={editorState.scope === 'ORG' ? 'ORG scope: This role applies to all sites in the organization. Users with this role have the same permissions across all sites.' : 'SITE scope: This role applies only to a specific site. Users need to be assigned this role per site.'}>
-                  (ℹ️ {editorState.scope === 'ORG' ? 'Organization-wide' : 'Site-specific'})
+                  (i) {editorState.scope === 'ORG' ? 'Organization-wide' : 'Site-specific'}
                 </span>
               </label>
               <select
@@ -432,7 +447,7 @@ export default function OrgRolesPage() {
                   : 'This role will apply only to a specific site. Users need to be assigned this role separately for each site where they should have these permissions.'}
               </p>
               {editorMode === 'edit' && (
-                <p className="text-xs text-amber-600 mt-1">⚠️ Scope cannot be changed for existing roles.</p>
+                <p className="text-xs text-amber-600 mt-1">Uwaga: nie można zmienić zakresu dla istniejących ról.</p>
               )}
             </div>
             <div className="md:col-span-2">
@@ -490,7 +505,7 @@ export default function OrgRolesPage() {
                         const checked = editorState.capabilityKeys.includes(capability.key);
                         const checkboxId = `cap-${capability.key}`;
                         const tooltip = policyDisabled
-                          ? 'Ta opcja jest obecnie wyłączona w ustawieniach organizacji.'
+                          ? 'Ta opcja jest obecnie wy??czona w ustawieniach organizacji.'
                           : blocked
                           ? 'Ta opcja jest zarezerwowana dla ról systemowych.'
                           : undefined;
@@ -517,14 +532,14 @@ export default function OrgRolesPage() {
                               <div className="flex flex-wrap items-center gap-2">
                                 <span className="text-sm font-medium">{capability.label}</span>
                                 {capability.isDangerous || DANGEROUS_CAPABILITY_KEYS.has(capability.key) ? (
-                                  <Badge tone="warning">Dangerous</Badge>
+                                  <Badge tone="error">Dangerous</Badge>
                                 ) : null}
                                 {capability.canBePolicyControlled ? (
                                   <span
                                     className="text-xs text-amber-600 font-semibold cursor-help"
                                     title="Ta opcja może być włączona lub wyłączona w ustawieniach organizacji."
                                   >
-                                    ⚠️ Ograniczenie
+                                    ! Ograniczenie
                                   </span>
                                 ) : null}
                               </div>

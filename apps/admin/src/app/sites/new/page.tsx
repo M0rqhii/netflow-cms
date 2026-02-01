@@ -70,7 +70,8 @@ export default function NewSitePage() {
 
     try {
       const created = await createSite({ name: normalizedName, slug: normalizedSlug });
-      const redirectSlug = (created as any)?.slug || (created as any)?.site?.slug || normalizedSlug;
+      const createdObj = created as { slug?: string; site?: { slug?: string } } | null;
+      const redirectSlug = createdObj?.slug || createdObj?.site?.slug || normalizedSlug;
 
       push({
         tone: 'success',

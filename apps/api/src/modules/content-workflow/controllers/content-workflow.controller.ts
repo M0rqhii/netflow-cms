@@ -63,7 +63,7 @@ export class ContentWorkflowController {
     @CurrentUser() user: CurrentUserPayload,
     @Param('contentTypeSlug') contentTypeSlug: string,
     @Param('entryId') entryId: string,
-    @Body(new ZodValidationPipe(reviewContentSchema)) dto: unknown,
+    @Body(new ZodValidationPipe(reviewContentSchema)) dto: any,
   ) {
     return this.workflowService.reviewContent(
       siteId,
@@ -99,7 +99,7 @@ export class ContentWorkflowController {
     @CurrentUser() user: CurrentUserPayload,
     @Param('contentTypeSlug') contentTypeSlug: string,
     @Param('entryId') entryId: string,
-    @Body(new ZodValidationPipe(createCommentSchema)) dto: unknown,
+    @Body(new ZodValidationPipe(createCommentSchema)) dto: any,
   ) {
     return this.workflowService.createComment(
       siteId,
@@ -142,7 +142,7 @@ export class ContentWorkflowController {
     @Param('contentTypeSlug') contentTypeSlug: string,
     @Param('entryId') entryId: string,
     @Param('commentId') commentId: string,
-    @Body(new ZodValidationPipe(updateCommentSchema)) dto: unknown,
+    @Body(new ZodValidationPipe(updateCommentSchema)) dto: any,
   ) {
     return this.workflowService.updateComment(
       siteId,

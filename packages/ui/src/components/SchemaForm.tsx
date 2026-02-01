@@ -1,9 +1,9 @@
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo } from 'react';
 import { z } from 'zod';
 import { Form, FormField } from './Form';
 
 export interface SchemaFormProps {
-  schema: z.ZodObject<any> | Record<string, unknown>;
+  schema: z.ZodObject<Record<string, z.ZodTypeAny>> | Record<string, unknown>;
   onSubmit: (data: Record<string, unknown>) => void | Promise<void>;
   defaultValues?: Record<string, unknown>;
   submitLabel?: string;
@@ -13,7 +13,7 @@ export interface SchemaFormProps {
 
 const zodTypeToFieldType = (zodType: z.ZodTypeAny): FormField['type'] => {
   if (zodType instanceof z.ZodString) {
-    if (zodType._def.checks?.some((check: any) => check.kind === 'email')) return 'email';
+    if (zodType._def.checks?.some((check) => check.kind === 'email')) return 'email';
     return 'text';
   }
   if (zodType instanceof z.ZodNumber) return 'number';
@@ -35,8 +35,6 @@ const extractFieldFromZod = (key: string, zodType: z.ZodTypeAny): FormField | nu
   }
 
   const isOptional = zodType instanceof z.ZodOptional || zodType instanceof z.ZodNullable;
-  const innerType = isOptional ? (zodType as z.ZodOptional<any>)._def.innerType : zodType;
-  
   return {
     name: key,
     label: key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1'),

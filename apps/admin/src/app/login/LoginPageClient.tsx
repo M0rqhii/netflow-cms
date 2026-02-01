@@ -63,7 +63,8 @@ export default function LoginPage() {
       setAuthToken(res.access_token);
       
       // Check if user has preferredLanguage set, if not, use current selection
-      if (res.user && !res.user.preferredLanguage && language) {
+      const user = res.user as { preferredLanguage?: string } | null;
+      if (user && !user.preferredLanguage && language) {
         // User logged in but doesn't have language preference - save it
         try {
           await api.patch('/users/me/preferences', {

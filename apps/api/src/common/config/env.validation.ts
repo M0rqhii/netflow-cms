@@ -95,7 +95,7 @@ export class EnvironmentVariables {
   APP_PROFILE?: string;
 }
 
-export function validate(config: Record<string, unknown>) {
+export function validate(config: Record<string, any>) {
   const validatedConfig = plainToInstance(EnvironmentVariables, config, {
     enableImplicitConversion: true,
   });

@@ -14,7 +14,9 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Throttle } from '@nestjs/throttler';
 import { AuthGuard } from '../../common/auth/guards/auth.guard';
+import { FeatureFlagGuard } from '../../common/auth/guards/feature-flag.guard';
 import { CurrentSite } from '../../common/decorators/current-site.decorator';
+import { FeatureKey } from '../../common/decorators/feature-key.decorator';
 import { CurrentUser, CurrentUserPayload } from '../../common/auth/decorators/current-user.decorator';
 import { SiteMediaService } from './site-media.service';
 
@@ -25,7 +27,8 @@ type UploadedFile = {
   size: number;
 };
 
-@UseGuards(AuthGuard)
+@UseGuards(AuthGuard, FeatureFlagGuard)
+@FeatureKey('media_manager')
 @Controller('site-panel/:siteId/media')
 export class SiteMediaController {
   constructor(private readonly siteMediaService: SiteMediaService) {}

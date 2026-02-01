@@ -3,7 +3,17 @@
  * AI Note: This is the source of truth for feature definitions
  */
 
-export type FeatureCategory = 'content' | 'media' | 'seo' | 'hosting' | 'integrations';
+export type FeatureCategory =
+  | 'content'
+  | 'media'
+  | 'seo'
+  | 'hosting'
+  | 'integrations'
+  | 'security'
+  | 'accessibility'
+  | 'commerce'
+  | 'analytics'
+  | 'builder';
 
 export interface Feature {
   key: string;
@@ -148,6 +158,75 @@ export const FEATURES: Feature[] = [
     description: 'Integrate with external services (Stripe, Mailchimp, etc.)',
     category: 'integrations',
   },
+
+  // Page Builder Modules (site-level)
+  {
+    key: 'consent-security',
+    name: 'Consent & Security',
+    description: 'Cookie consent banners, preferences, and captcha enforcement',
+    category: 'security',
+  },
+  {
+    key: 'accessibility-widget',
+    name: 'Accessibility Widget',
+    description: 'Front-end accessibility toolbar (contrast, text size, focus helpers)',
+    category: 'accessibility',
+  },
+  {
+    key: 'payments',
+    name: 'Payments',
+    description: 'Payments module with checkout embeds and pricing blocks',
+    category: 'commerce',
+  },
+  {
+    key: 'shop',
+    name: 'Shop',
+    description: 'Storefront, cart, and order flows for ecommerce',
+    category: 'commerce',
+  },
+  {
+    key: 'forms-pro',
+    name: 'Forms Pro',
+    description: 'Advanced forms (multi-step, uploads, validation)',
+    category: 'builder',
+  },
+  {
+    key: 'analytics',
+    name: 'Analytics (GA4)',
+    description: 'Google Analytics tracking with consent-aware injection',
+    category: 'analytics',
+  },
+  {
+    key: 'meta-pixel',
+    name: 'Meta Pixel',
+    description: 'Facebook/Meta pixel integration with consent gating',
+    category: 'analytics',
+  },
+  {
+    key: 'tag-manager',
+    name: 'Tag Manager',
+    description: 'Google Tag Manager container support',
+    category: 'analytics',
+  },
+  {
+    key: 'embeds-media',
+    name: 'Media Embeds',
+    description: 'Embeds for YouTube, Spotify, and social posts',
+    category: 'integrations',
+  },
+  {
+    key: 'maps',
+    name: 'Maps',
+    description: 'Map components (Google/OSM) and location cards',
+    category: 'integrations',
+  },
+  {
+    key: 'blog-content',
+    name: 'Blog',
+    description: 'Blog listing, post templates, and category navigation',
+    category: 'content',
+  },
+
 ];
 
 /**

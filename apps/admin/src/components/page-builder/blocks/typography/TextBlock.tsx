@@ -13,7 +13,6 @@ import styles from './TextBlock.module.css';
 
 export const TextBlock: React.FC<BlockComponentProps> = ({ 
   node,
-  isPreview,
 }) => {
   const breakpoint = useCurrentBreakpoint();
   

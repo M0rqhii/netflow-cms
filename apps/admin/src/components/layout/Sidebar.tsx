@@ -188,7 +188,7 @@ export function Sidebar() {
       }
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [payload?.orgId, payload?.sub]);
 
   // Check RBAC roles when orgId and userId are available
   React.useEffect(() => {
@@ -257,7 +257,8 @@ export function Sidebar() {
         email: payload.email,
       };
       console.log('[Sidebar] User role info:', debugInfo);
-      (window as any).__sidebarDebugInfo = debugInfo;
+      const windowWithDebug = window as Window & { __sidebarDebugInfo?: Record<string, unknown> };
+      windowWithDebug.__sidebarDebugInfo = debugInfo;
     }
   }, [token, payload, roleMarker, hasOrgOwnerRole, hasOrgAdminRole, isOwnerFromToken, isAdminFromToken, isOwner, isAdmin, isSiteAdmin, canAccessOrgSettings, orgId, userId]);
 
@@ -282,7 +283,7 @@ export function Sidebar() {
         { href: '/dev', labelKey: 'navigation.dev', icon: Icon.dev },
       ],
     }] : []),
-  ], [siteCount, isOwner, isDev, isPrivileged, orgId]);
+  ], [siteCount, isOwner, isDev, isPrivileged, orgId, canAccessOrgSettings]);
 
   return (
     <aside className={clsx('sidebar hidden md:block transition-all h-full', sidebarCollapsed ? 'w-16' : 'w-60')} aria-label="Main navigation">

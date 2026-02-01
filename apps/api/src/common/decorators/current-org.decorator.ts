@@ -10,7 +10,7 @@ import { CurrentUserPayload } from '../auth/decorators/current-user.decorator';
  * 2. Z user.orgId (z JWT token)
  */
 export const CurrentOrg = createParamDecorator(
-  (_data: unknown, ctx: ExecutionContext): string => {
+  (_data: any, ctx: ExecutionContext): string => {
     const request = ctx.switchToHttp().getRequest() as {
       orgId?: string;
       user?: CurrentUserPayload;

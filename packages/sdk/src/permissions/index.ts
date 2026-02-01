@@ -1,11 +1,12 @@
-import {
-  combinePlatformPermissions,
-  combineSitePermissions,
-  PlatformPermissions,
-  PlatformRole,
-  SitePermissions,
-  SiteRole,
-} from '@repo/schemas/permissions';
+import { Permissions } from '@repo/schemas';
+
+type PlatformRole = Permissions.PlatformRole;
+type SiteRole = Permissions.SiteRole;
+type PlatformPermissions = Permissions.PlatformPermissions;
+type SitePermissions = Permissions.SitePermissions;
+
+const { combinePlatformPermissions, combineSitePermissions } = Permissions;
+
 
 type PlatformUserLike = {
   platformRole?: PlatformRole;

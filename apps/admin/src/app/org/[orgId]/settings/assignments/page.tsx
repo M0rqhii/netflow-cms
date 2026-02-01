@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
+import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import {
   createRbacAssignment,
@@ -20,6 +21,14 @@ import SearchAndFilters from '@/components/ui/SearchAndFilters';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import { useToast } from '@/components/ui/Toast';
 import { toFriendlyMessage } from '@/lib/errors';
+
+function normalizeRoleScope(scope?: string | null): string {
+  return String(scope ?? '').toUpperCase();
+}
+
+function normalizeRoleType(type?: string | null): string {
+  return String(type ?? '').toUpperCase();
+}
 
 export default function OrgAssignmentsPage() {
   const params = useParams<{ orgId: string }>();
@@ -42,33 +51,34 @@ export default function OrgAssignmentsPage() {
   const [removeAssignmentId, setRemoveAssignmentId] = useState<string | null>(null);
   const [removing, setRemoving] = useState(false);
 
-  const orgRoles = roles.filter((role) => role.scope === 'ORG');
-  const siteRoles = roles.filter((role) => role.scope === 'SITE');
+  const orgRoles = roles.filter((role) => normalizeRoleScope(role.scope) === 'ORG');
+  const siteRoles = roles.filter((role) => normalizeRoleScope(role.scope) === 'SITE');
 
   const siteMap = useMemo(() => {
     return new Map(sites.map((site) => [site.siteId, site.site.name]));
   }, [sites]);
 
-  const loadBaseData = async () => {
+  const loadBaseData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const [usersData, rolesData, sitesData] = await Promise.all([
+      const [usersData, orgRolesData, siteRolesData, sitesData] = await Promise.all([
         fetchOrgUsers(orgId),
-        fetchRbacRoles(orgId),
+        fetchRbacRoles(orgId, 'ORG'),
+        fetchRbacRoles(orgId, 'SITE'),
         fetchMySites(),
       ]);
       setUsers(usersData);
-      setRoles(rolesData);
+      setRoles([...(orgRolesData || []), ...(siteRolesData || [])]);
       setSites(sitesData);
     } catch (err) {
       setError(toFriendlyMessage(err, 'Nie udało się wczytać danych przypisań.'));
     } finally {
       setLoading(false);
     }
-  };
+  }, [orgId]);
 
-  const loadAssignments = async (userId: string) => {
+  const loadAssignments = useCallback(async (userId: string) => {
     if (!userId) {
       setAssignments([]);
       return;
@@ -82,21 +92,21 @@ export default function OrgAssignmentsPage() {
     } finally {
       setLoadingAssignments(false);
     }
-  };
+  }, [orgId, push]);
 
   useEffect(() => {
     if (!orgId) return;
     loadBaseData();
-  }, [orgId]);
+  }, [loadBaseData, orgId]);
 
   useEffect(() => {
     loadAssignments(selectedUserId);
-  }, [selectedUserId]);
+  }, [loadAssignments, selectedUserId]);
 
   const filteredAssignments = useMemo(() => {
     return assignments.filter((assignment) => {
-      const matchesScope = scopeFilter === 'all' || assignment.role.scope === scopeFilter;
-      const searchValue = `${assignment.role.name} ${assignment.role.scope} ${assignment.role.type}`.toLowerCase();
+      const matchesScope = scopeFilter === 'all' || normalizeRoleScope(assignment.role.scope) == normalizeRoleScope(scopeFilter);
+      const searchValue = `${assignment.role.name} ${normalizeRoleScope(assignment.role.scope)} ${normalizeRoleType(assignment.role.type)}`.toLowerCase();
       const matchesSearch = !searchQuery || searchValue.includes(searchQuery.toLowerCase());
       return matchesScope && matchesSearch;
     });
@@ -169,6 +179,12 @@ export default function OrgAssignmentsPage() {
           <CardTitle>Assignments</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
+          <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+            Assignments pokazuje przypisane role. Realny dostęp (po uwzględnieniu polityk organizacji) zobaczysz w zakładce{' '}
+            <Link className="font-semibold underline underline-offset-2" href={`/org/${orgId}/settings/effective`}>
+              Effective
+            </Link>.
+          </div>
           <div>
             <label className="block text-sm font-medium mb-1">User</label>
             <select
@@ -196,7 +212,7 @@ export default function OrgAssignmentsPage() {
                 <option value="">Select org role</option>
                 {orgRoles.map((role) => (
                   <option key={role.id} value={role.id}>
-                    {role.name} ({role.type})
+                    {role.name} ({normalizeRoleType(role.type) || 'ROLE'})
                   </option>
                 ))}
               </select>
@@ -232,7 +248,7 @@ export default function OrgAssignmentsPage() {
                 <option value="">Select site role</option>
                 {siteRoles.map((role) => (
                   <option key={role.id} value={role.id}>
-                    {role.name} ({role.type})
+                    {role.name} ({normalizeRoleType(role.type) || 'ROLE'})
                   </option>
                 ))}
               </select>
@@ -301,10 +317,10 @@ export default function OrgAssignmentsPage() {
                     </thead>
                     <tbody>
                       {filteredAssignments.map((assignment) => (
-                        <tr key={assignment.id} className="border-b border-gray-200 hover:bg-gray-50 transition-colors">
+                        <tr key={assignment.id} className="border-b border-border hover:bg-muted/30 transition-colors">
                           <td className="py-3 px-4">
                             <div className="font-semibold">{assignment.role.name}</div>
-                            <div className="text-xs text-muted">{assignment.role.type}</div>
+                            <div className="text-xs text-muted">{normalizeRoleType(assignment.role.type) || 'ROLE'}</div>
                           </td>
                           <td className="py-3 px-4">
                             <Badge tone="default" className="uppercase">

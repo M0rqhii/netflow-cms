@@ -4,6 +4,8 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { SiteEnvironmentsService } from './site-environments.service';
 import { CreatePageDto, PageQueryDto, PublishPageDto, UpdatePageDto } from './dto';
 import { SiteEventsService } from '../site-events/site-events.service';
+import { FeatureFlagsService } from '../feature-flags/feature-flags.service';
+import { validatePageBuilderContent } from '../../common/page-builder/publish-validation';
 import { GuardrailReasonCode, GuardrailMessages } from '../../common/constants';
 
 @Injectable()
@@ -12,6 +14,7 @@ export class SitePagesService {
     private readonly prisma: PrismaService,
     private readonly environments: SiteEnvironmentsService,
     private readonly siteEvents: SiteEventsService,
+    private readonly featureFlags: FeatureFlagsService,
   ) {}
 
   private async logEvent(
@@ -293,6 +296,22 @@ export class SitePagesService {
         message: GuardrailMessages[GuardrailReasonCode.EMPTY_CONTENT],
         reason: GuardrailReasonCode.EMPTY_CONTENT,
         details: 'Add at least one section or block before publishing',
+      });
+    }
+
+    const enabledModules = await this.featureFlags.getEffectiveFeatures(siteId);
+    const validation = validatePageBuilderContent(sourcePage.content as any, enabledModules);
+    if (!validation.valid) {
+      const hasModuleErrors = validation.errors.some((e) => e.type === 'module_disabled');
+      const hasAltErrors = validation.errors.some((e) => e.type === 'missing_alt');
+      throw new BadRequestException({
+        message: hasModuleErrors
+          ? GuardrailMessages[GuardrailReasonCode.MODULE_DISABLED]
+          : GuardrailMessages[GuardrailReasonCode.MISSING_ALT],
+        reason: hasModuleErrors
+          ? GuardrailReasonCode.MODULE_DISABLED
+          : GuardrailReasonCode.MISSING_ALT,
+        details: validation.errors,
       });
     }
 

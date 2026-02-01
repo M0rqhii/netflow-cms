@@ -34,7 +34,7 @@ export class ContentEntriesService {
     siteId: string;
     slug: string;
     name: string;
-    schema: Record<string, unknown>;
+    schema: Record<string, any>;
   }> {
     const cacheKey = `ct:${siteId}:${slug}`;
     const cached = await this.cache.get<{
@@ -42,7 +42,7 @@ export class ContentEntriesService {
       siteId: string;
       slug: string;
       name: string;
-      schema: Record<string, unknown>;
+      schema: Record<string, any>;
     }>(cacheKey);
     
     if (cached) {
@@ -61,9 +61,9 @@ export class ContentEntriesService {
    * Note: For full JSON Schema validation, install ajv: pnpm add ajv ajv-formats
    */
   private async validateDataAgainstSchema(
-    schemaJson: Record<string, unknown>,
-    data: Record<string, unknown> | null
-  ): Promise<Record<string, unknown>> {
+    schemaJson: Record<string, any>,
+    data: Record<string, any> | null
+  ): Promise<Record<string, any>> {
     if (!data || typeof data !== 'object') {
       throw new BadRequestException('Data validation failed: invalid data');
     }
@@ -157,7 +157,7 @@ export class ContentEntriesService {
     userId?: string
   ) {
     const contentType = await this.getContentType(siteId, contentTypeSlug);
-    const schema = contentType.schema as Record<string, unknown>;
+    const schema = contentType.schema as Record<string, any>;
     
     await this.validateDataAgainstSchema(schema, dto.data);
 
@@ -443,13 +443,13 @@ export class ContentEntriesService {
     }
 
     const updateData: {
-      data?: Record<string, unknown>;
+      data?: Record<string, any>;
       status?: string;
       updatedById?: string;
     } = {};
 
     if (dto.data !== undefined) {
-      const schema = contentType.schema as Record<string, unknown>;
+      const schema = contentType.schema as Record<string, any>;
       await this.validateDataAgainstSchema(schema, dto.data);
       updateData.data = dto.data;
     }

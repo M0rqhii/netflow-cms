@@ -351,3 +351,22 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+.dragOver {
+  outline: 2px dashed var(--color-accent, #4f46e5);
+  outline-offset: -8px;
+  background: rgba(79, 70, 229, 0.08);
+}
+
+.dropOverlay {
+  position: sticky;
+  top: 12px;
+  z-index: 2;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px dashed rgba(79, 70, 229, 0.6);
+  background: rgba(79, 70, 229, 0.12);
+  color: var(--color-text-primary, #fff);
+  font-size: 13px;
+  text-align: center;
+}

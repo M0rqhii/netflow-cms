@@ -46,7 +46,7 @@ export class CollectionItemsService {
       siteId: string;
       slug: string;
       name: string;
-      schemaJson: Record<string, unknown>;
+      schemaJson: Record<string, any>;
     }>(cacheKey);
     if (cached) {
       return cached;
@@ -146,9 +146,9 @@ export class CollectionItemsService {
   }
 
   async validateDataAgainstSchema(
-    _schemaJson: Record<string, unknown>,
-    data: Record<string, unknown> | null
-  ): Promise<Record<string, unknown>> {
+    _schemaJson: Record<string, any>,
+    data: Record<string, any> | null
+  ): Promise<Record<string, any>> {
     // Placeholder validation - można rozszerzyć o kompilację Zod z schemaJson
     // Na razie podstawowa walidacja typu
     if (!data || typeof data !== 'object') {
@@ -156,7 +156,7 @@ export class CollectionItemsService {
     }
     try {
       const schema = z.record(z.unknown());
-      return schema.parse(data) as Record<string, unknown>;
+      return schema.parse(data) as Record<string, any>;
     } catch (error) {
       throw new BadRequestException('Data validation failed');
     }
@@ -169,7 +169,7 @@ export class CollectionItemsService {
     userId?: string
   ) {
     const collection = await this.getCollection(siteId, slug);
-    const schemaJson = collection.schemaJson as Record<string, unknown>;
+    const schemaJson = collection.schemaJson as Record<string, any>;
     await this.validateDataAgainstSchema(schemaJson, dto.data);
 
     // Validate initial status
@@ -340,7 +340,7 @@ export class CollectionItemsService {
       }
     }
 
-    const schemaJson = collection.schemaJson as Record<string, unknown>;
+    const schemaJson = collection.schemaJson as Record<string, any>;
     await this.validateDataAgainstSchema(schemaJson, dto.data);
 
     const nextVersion = current.version + 1;
