@@ -35,10 +35,9 @@ export class ZodValidationPipe implements PipeTransform {
         return value;
       }
     }
-    this.logger.debug(`Validating input: ${JSON.stringify(value)}`);
+
     try {
       const parsedValue = this.schema.parse(value);
-      this.logger.debug(`Validation successful: ${JSON.stringify(parsedValue)}`);
       return parsedValue;
     } catch (error) {
       this.logger.error(`Validation error caught: ${error instanceof Error ? error.constructor.name : typeof error}`);
@@ -48,11 +47,10 @@ export class ZodValidationPipe implements PipeTransform {
           message: err.message,
           code: err.code,
         }));
-        
-        // Log validation errors for debugging
-        this.logger.warn(`Validation failed: ${JSON.stringify(errors)}`);
-        this.logger.debug(`Input value: ${JSON.stringify(value)}`);
-        
+
+        // Log only error metadata, not sensitive values
+        this.logger.warn(`Validation failed with ${errors.length} error(s)`);
+
         throw new BadRequestException({
           message: 'Validation failed',
           errors,

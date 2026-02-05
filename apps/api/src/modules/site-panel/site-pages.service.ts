@@ -303,7 +303,6 @@ export class SitePagesService {
     const validation = validatePageBuilderContent(sourcePage.content as any, enabledModules);
     if (!validation.valid) {
       const hasModuleErrors = validation.errors.some((e) => e.type === 'module_disabled');
-      const hasAltErrors = validation.errors.some((e) => e.type === 'missing_alt');
       throw new BadRequestException({
         message: hasModuleErrors
           ? GuardrailMessages[GuardrailReasonCode.MODULE_DISABLED]
