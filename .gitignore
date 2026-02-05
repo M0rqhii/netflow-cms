@@ -57,6 +57,7 @@ prisma/migrations/*.sql
 # Temporary files
 *.tmp
 *.temp
+tmp-*
 
 # Documentation reports (optional - uncomment if you don't want to commit reports)
 # docs/reports/
