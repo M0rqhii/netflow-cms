@@ -18,7 +18,6 @@ import { ContentEntriesService } from '../../content-entries/services/content-en
 @Injectable()
 export class ContentResolver {
   constructor(
-    // @ts-expect-error - Reserved for future use
     private _contentEntriesService: ContentEntriesService
   ) {}
 
