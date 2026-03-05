@@ -40,7 +40,7 @@ RUN pnpm --filter api db:generate
 # Build the project
 RUN pnpm --filter api build
 
-# In docker-compose we override CMD with pnpm --filter api dev
-CMD ["node", "dist/apps/api/src/main"]
+# Run migrations then start the app
+CMD ["sh", "-c", "cd /app && pnpm --filter api db:migrate:deploy && node /app/apps/api/dist/apps/api/src/main"]
 
 
