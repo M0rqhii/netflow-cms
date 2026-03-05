@@ -163,9 +163,8 @@ export function getBuilderModuleKeys(): BuilderModuleKey[] {
 export { getBuilderModuleDependencies, getBuilderModuleDependents, isBuilderModuleKey };
 
 export function getModuleDisplayTitle(key: string): string {
-  const module = EFFECTIVE_MODULES.find((mod) => mod.key === key);
-  return module?.title ?? key;
+  const moduleDef = EFFECTIVE_MODULES.find((mod) => mod.key === key);
+  return moduleDef?.title ?? key;
 }
 
 export default BUILDER_MODULES;
-

@@ -5,9 +5,8 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 import { DevPanelLayout } from '@/components/dev-panel/DevPanelLayout';
+import { DevPanelTabs } from '@/components/dev-panel/DevPanelTabs';
 import { useToast } from '@/components/ui/Toast';
 import { decodeAuthToken, getAuthToken } from '@/lib/api';
 import { timeAgo } from '@/lib/formatters';
@@ -255,15 +254,7 @@ function downloadTextFile(filename: string, text: string) {
   setTimeout(() => URL.revokeObjectURL(url), 2500);
 }
 
-const tabs = [
-  { id: 'runtime', label: 'Runtime', href: '/dev/runtime' },
-  { id: 'api-keys', label: 'API Keys', href: '/dev/api-keys' },
-  { id: 'webhooks', label: 'Webhooks', href: '/dev/webhooks' },
-  { id: 'logs', label: 'Logs', href: '/dev/logs' },
-  { id: 'flags', label: 'Feature Flags', href: '/dev/flags' },
-] as const;
-
-export type DevHubTab = typeof tabs[number]['id'];
+export type DevHubTab = 'runtime' | 'api-keys' | 'webhooks' | 'logs' | 'flags';
 
 export function DevHub({ activeTab }: { activeTab: DevHubTab }) {
   const appProfile = process.env.NEXT_PUBLIC_APP_PROFILE || process.env.NODE_ENV || 'development';
@@ -281,7 +272,6 @@ export function DevHub({ activeTab }: { activeTab: DevHubTab }) {
     userSystemRole === 'super_admin';
 
   const { push: pushToast } = useToast();
-  const pathname = usePathname();
 
   const [state, setState] = useState<DevState>(() => defaultDeveloperState());
   const [search, setSearch] = useState('');
@@ -568,18 +558,7 @@ export function DevHub({ activeTab }: { activeTab: DevHubTab }) {
       headerActions={headerActions}
     >
       <div className="spacer" />
-      <div className="card tab-bar">
-        <div className="pill-row">
-          {tabs.map((tab) => {
-            const isActive = pathname === tab.href || activeTab === tab.id;
-            return (
-              <Link key={tab.id} href={tab.href} className="pill-btn" aria-current={isActive ? 'page' : undefined}>
-                {tab.label}
-              </Link>
-            );
-          })}
-        </div>
-      </div>
+      <DevPanelTabs />
 
       <div className="spacer" />
 
@@ -669,8 +648,8 @@ export function DevHub({ activeTab }: { activeTab: DevHubTab }) {
               </div>
             </div>
             <div className="spacer-sm" />
-            <div className="overflow-auto">
-              <table className="table">
+            <div className="dev-table-wrap overflow-auto">
+              <table className="table dev-table">
                 <thead>
                   <tr>
                     <th>Service</th>
@@ -784,8 +763,8 @@ export function DevHub({ activeTab }: { activeTab: DevHubTab }) {
             </div>
 
             <div className="spacer-sm" />
-            <div className="overflow-auto">
-              <table className="table">
+            <div className="dev-table-wrap overflow-auto">
+              <table className="table dev-table">
                 <thead>
                   <tr>
                     <th>Name / Scope</th>
@@ -870,8 +849,8 @@ export function DevHub({ activeTab }: { activeTab: DevHubTab }) {
             </div>
 
             <div className="spacer-sm" />
-            <div className="overflow-auto">
-              <table className="table">
+            <div className="dev-table-wrap overflow-auto">
+              <table className="table dev-table">
                 <thead>
                   <tr>
                     <th>URL / Events</th>

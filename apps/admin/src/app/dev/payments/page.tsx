@@ -4,9 +4,45 @@ import { useEffect, useMemo, useState } from "react";
 import { decodeAuthToken, getAuthToken, getDevPayments } from "@/lib/api";
 import { LoadingSpinner } from "@repo/ui";
 import { DevPanelLayout } from "@/components/dev-panel/DevPanelLayout";
+import { DevPanelTabs } from "@/components/dev-panel/DevPanelTabs";
 
 const PRIVILEGED_ROLES = ["super_admin", "org_admin", "site_admin"];
 const PRIVILEGED_PLATFORM_ROLES = ["platform_admin"];
+
+type DevPaymentEvent = {
+  id: string;
+  orgId: string;
+  plan?: string;
+  status: string;
+  currentPeriodStart?: string;
+  currentPeriodEnd?: string;
+  createdAt?: string;
+};
+
+function formatDate(value?: string): string {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+  return date.toLocaleDateString();
+}
+
+function formatDateTime(value?: string): string {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+  return date.toLocaleString();
+}
+
+function getStatusBadgeClass(status?: string): string {
+  const normalizedStatus = String(status || "").toLowerCase();
+  if (normalizedStatus === "active" || normalizedStatus === "trialing" || normalizedStatus === "paid") {
+    return "badge green";
+  }
+  if (normalizedStatus === "past_due" || normalizedStatus === "pending" || normalizedStatus === "unpaid") {
+    return "badge orange";
+  }
+  return "badge gray";
+}
 
 export default function DevPaymentsPage() {
   const appProfile = process.env.NEXT_PUBLIC_APP_PROFILE || process.env.NODE_ENV || "development";
@@ -18,9 +54,7 @@ export default function DevPaymentsPage() {
   const isSuperAdmin = Boolean(payload?.isSuperAdmin) || userRole === "super_admin";
   const isPrivileged =
     isSuperAdmin || PRIVILEGED_ROLES.includes(userRole) || PRIVILEGED_PLATFORM_ROLES.includes(userPlatformRole);
-  const [payments, setPayments] = useState<
-    Array<{ id: string; orgId: string; plan?: string; status: string; currentPeriodStart?: string; currentPeriodEnd?: string; createdAt?: string }>
-  >([]);
+  const [payments, setPayments] = useState<DevPaymentEvent[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -29,7 +63,7 @@ export default function DevPaymentsPage() {
     setLoading(true);
     setError(null);
     getDevPayments()
-      .then((data) => setPayments(data))
+      .then((data) => setPayments(Array.isArray(data) ? data : []))
       .catch((e) => {
         const isForbidden =
           e instanceof Error &&
@@ -42,6 +76,23 @@ export default function DevPaymentsPage() {
       })
       .finally(() => setLoading(false));
   }, [isProd, isPrivileged]);
+
+  const activeCount = useMemo(
+    () => payments.filter((payment) => ["active", "trialing"].includes(String(payment.status).toLowerCase())).length,
+    [payments],
+  );
+  const endedCount = useMemo(
+    () => payments.filter((payment) => ["canceled", "cancelled", "inactive", "expired"].includes(String(payment.status).toLowerCase())).length,
+    [payments],
+  );
+  const uniqueOrgs = useMemo(() => new Set(payments.map((payment) => payment.orgId).filter(Boolean)).size, [payments]);
+  const nextRenewal = useMemo(() => {
+    const dates = payments
+      .map((payment) => payment.currentPeriodEnd)
+      .filter((value): value is string => typeof value === "string" && value.length > 0)
+      .sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+    return dates[0];
+  }, [payments]);
 
   if (isProd && !isSuperAdmin) {
     return (
@@ -71,53 +122,107 @@ export default function DevPaymentsPage() {
 
   return (
     <DevPanelLayout title="Payments" description="Simulated subscriptions and payment events (DevPaymentProvider)">
-      <div className="animate-fade-in">
-        <div className="card card-pad">
-          <div className="section-title">Payment events</div>
+      <DevPanelTabs />
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+        <div className="card card-pad tight">
+          <div className="detail-label">Events</div>
           <div className="spacer-sm" />
-          {loading ? (
-            <div className="py-8 flex items-center justify-center">
-              <LoadingSpinner text="Loading payment events..." />
+          <div className="text-xl font-extrabold leading-tight">{payments.length}</div>
+        </div>
+        <div className="card card-pad tight">
+          <div className="detail-label">Active / trialing</div>
+          <div className="spacer-sm" />
+          <div className="text-xl font-extrabold leading-tight">{activeCount}</div>
+        </div>
+        <div className="card card-pad tight">
+          <div className="detail-label">Ended</div>
+          <div className="spacer-sm" />
+          <div className="text-xl font-extrabold leading-tight">{endedCount}</div>
+        </div>
+        <div className="card card-pad tight">
+          <div className="detail-label">Next renewal</div>
+          <div className="spacer-sm" />
+          <div className="text-sm font-semibold">{formatDate(nextRenewal)}</div>
+        </div>
+      </div>
+
+      <div className="card card-pad">
+        <div className="row-between row-wrap">
+          <div>
+            <div className="section-title">Subscription events</div>
+            <div className="text-muted text-xs mt-1.5">Dev billing stream for subscriptions and periods.</div>
+          </div>
+          <div className="row-wrap">
+            <span className="badge gray">orgs: {uniqueOrgs}</span>
+            <span className="badge blue">profile: {appProfile}</span>
+          </div>
+        </div>
+
+        <div className="spacer-sm" />
+        {loading ? (
+          <div className="py-10 flex items-center justify-center">
+            <LoadingSpinner text="Loading payment events..." />
+          </div>
+        ) : error ? (
+          <div className="error-alert">
+            <div className="text-error text-sm">{error}</div>
+          </div>
+        ) : payments.length === 0 ? (
+          <div className="dev-empty-state">No payment events yet.</div>
+        ) : (
+          <div>
+            <div className="grid gap-2 md:hidden">
+              {payments.map((event) => (
+                <div key={event.id} className="card card-pad tight">
+                  <div className="row-between">
+                    <div className="font-semibold">{event.plan || "-"}</div>
+                    <span className={getStatusBadgeClass(event.status)}>{event.status || "-"}</span>
+                  </div>
+                  <div className="spacer-sm" />
+                  <div className="detail-label">Organization</div>
+                  <div className="mono text-xs">{event.orgId || "-"}</div>
+                  <div className="spacer-sm" />
+                  <div className="detail-label">Period</div>
+                  <div className="text-sm">{`${formatDate(event.currentPeriodStart)} -> ${formatDate(event.currentPeriodEnd)}`}</div>
+                  <div className="spacer-sm" />
+                  <div className="detail-label">Created</div>
+                  <div className="text-sm">{formatDateTime(event.createdAt)}</div>
+                </div>
+              ))}
             </div>
-          ) : error ? (
-            <div className="text-error text-xs">{error}</div>
-          ) : payments.length === 0 ? (
-            <div className="text-muted">No payment events yet.</div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="table">
+
+            <div className="hidden md:block overflow-x-auto dev-table-wrap">
+              <table className="table dev-table">
                 <thead>
                   <tr>
                     <th>Plan</th>
-                    <th>Site ID</th>
+                    <th>Org ID</th>
                     <th>Status</th>
+                    <th>Period start</th>
                     <th>Period end</th>
                     <th>Created</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {payments.map((evt) => (
-                    <tr key={evt.id}>
-                      <td className="mono text-xs">{evt.plan}</td>
-                      <td className="mono text-xs">{evt.orgId}</td>
+                  {payments.map((event) => (
+                    <tr key={event.id}>
+                      <td className="font-semibold">{event.plan || "-"}</td>
+                      <td className="mono text-xs">{event.orgId || "-"}</td>
                       <td>
-                        <span className={evt.status === "active" ? "badge green" : "badge orange"}>{evt.status}</span>
+                        <span className={getStatusBadgeClass(event.status)}>{event.status || "-"}</span>
                       </td>
-                      <td className="text-muted">
-                        {evt.currentPeriodEnd ? new Date(evt.currentPeriodEnd).toLocaleDateString() : "-"}
-                      </td>
-                      <td className="text-muted">
-                        {evt.createdAt ? new Date(evt.createdAt).toLocaleString() : "-"}
-                      </td>
+                      <td className="text-muted">{formatDate(event.currentPeriodStart)}</td>
+                      <td className="text-muted">{formatDate(event.currentPeriodEnd)}</td>
+                      <td className="text-muted">{formatDateTime(event.createdAt)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-          )}
           </div>
+        )}
       </div>
     </DevPanelLayout>
   );
 }
-
