@@ -31,6 +31,9 @@ EXPOSE 4000
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
   CMD node -e "require('http').get('http://localhost:4000/api/v1/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
 
+# Build the project
+RUN pnpm --filter api build
+
 # In docker-compose we override CMD with pnpm --filter api dev
 CMD ["node", "dist/main"]
 
