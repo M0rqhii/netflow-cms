@@ -36,6 +36,8 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+!apps/admin/src/app/dev/logs/
+!apps/admin/src/app/dev/logs/page.tsx
 
 # IDE
 .vscode/

@@ -462,27 +462,31 @@ export function DevHub({ activeTab }: { activeTab: DevHubTab }) {
   );
   if (isProd && !isSuperAdmin) {
     return (
-      <div className="card card-pad">
-        <div className="font-black">Dev Panel disabled</div>
-        <div className="text-muted text-xs mt-1.5">
-          Only available outside production.
+      <DevPanelLayout title="Developer" description="Internal visibility into dev-only providers and environment">
+        <div className="card card-pad">
+          <div className="font-black">Dev Panel disabled</div>
+          <div className="text-muted text-xs mt-1.5">
+            Only available outside production.
+          </div>
         </div>
-      </div>
+      </DevPanelLayout>
     );
   }
 
   if (!isPrivileged) {
     return (
-      <div className="card card-pad">
-        <div className="font-black">Access denied</div>
-        <div className="text-muted text-xs mt-1.5">
-          Only privileged users can access the Dev Panel.
+      <DevPanelLayout title="Developer" description="Internal visibility into dev-only providers and environment">
+        <div className="card card-pad">
+          <div className="font-black">Access denied</div>
+          <div className="text-muted text-xs mt-1.5">
+            Only privileged users can access the Dev Panel.
+          </div>
+          <div className="spacer-sm" />
+          <button className="btn" onClick={() => (window.location.href = '/dashboard')}>
+            Back to dashboard
+          </button>
         </div>
-        <div className="spacer-sm" />
-        <button className="btn" onClick={() => (window.location.href = '/dashboard')}>
-          Back to dashboard
-        </button>
-      </div>
+      </DevPanelLayout>
     );
   }
 

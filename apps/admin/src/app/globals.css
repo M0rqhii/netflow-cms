@@ -1421,6 +1421,49 @@ html[data-theme="light"] *::-webkit-scrollbar-thumb:hover {
   }
 }
 
+.account-page-frame,
+.billing-page-frame,
+.dev-panel-frame {
+  min-width: 0;
+}
+
+.account-page-shell,
+.billing-page-shell,
+.dev-panel-shell {
+  display: grid;
+  gap: 20px;
+  width: 100%;
+}
+
+.account-page-shell > .spacer,
+.billing-page-shell > .spacer,
+.dev-panel-content > .spacer {
+  display: none;
+}
+
+.dev-panel-hero {
+  border-radius: 22px;
+  border-color: rgba(74, 106, 156, 0.6);
+  background:
+    radial-gradient(120% 160% at 10% 0%, rgba(0, 163, 255, 0.16), rgba(0, 0, 0, 0) 56%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0)),
+    rgba(11, 24, 44, 0.86);
+}
+
+.dev-panel-content {
+  display: grid;
+  gap: 20px;
+}
+
+@media (max-width: 980px) {
+  .account-page-shell,
+  .billing-page-shell,
+  .dev-panel-shell,
+  .dev-panel-content {
+    gap: 14px;
+  }
+}
+
 .sites-header-card {
   border-radius: 24px;
 }

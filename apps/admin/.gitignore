@@ -27,6 +27,8 @@ coverage/
 # Logs
 logs/
 *.log
+!src/app/dev/logs/
+!src/app/dev/logs/page.tsx
 
 # IDE
 .vscode/

@@ -123,11 +123,15 @@ export default function AccountPage() {
 
   if (loading) {
     return (
-      <div className="card card-pad">
-        <div className="space-y-4">
-          <Skeleton variant="text" width={200} height={32} />
+      <div className="account-page-frame w-full px-3 sm:px-5 lg:px-6 2xl:px-8 py-4 sm:py-6">
+        <div className="account-page-shell">
           <div className="card card-pad">
-            <Skeleton variant="rectangular" width="100%" height={200} />
+            <div className="space-y-4">
+              <Skeleton variant="text" width={200} height={32} />
+              <div className="card card-pad">
+                <Skeleton variant="rectangular" width="100%" height={200} />
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -135,137 +139,139 @@ export default function AccountPage() {
   }
 
   return (
-    <div>
-      <div className="card card-pad">
-        <div className="view-title">{t("account.title")}</div>
-        <div className="view-sub">Manage your account preferences and security.</div>
-      </div>
+    <div className="account-page-frame w-full px-3 sm:px-5 lg:px-6 2xl:px-8 py-4 sm:py-6">
+      <div className="account-page-shell">
+        <div className="card card-pad">
+          <div className="view-title">{t("account.title")}</div>
+          <div className="view-sub">Manage your account preferences and security.</div>
+        </div>
 
-      <div className="spacer" />
+        <div className="spacer" />
 
-      <div className="card card-pad">
-        <div className="section-title">{t("account.accountSettings")}</div>
-        <div className="spacer-sm" />
-        <form onSubmit={handleUpdateAccount} className="space-y-3" style={{ maxWidth: 520 }}>
-          <Input
-            label={t("account.emailAddress")}
-            value={email}
-            readOnly
-            className="bg-surface-2"
-            style={{ backgroundColor: "rgba(255,255,255,0.03)" }}
-            helperText={t("account.emailCannotBeChanged")}
-          />
-          <div>
-            <label htmlFor="preferred-language" className="block text-xs font-semibold uppercase tracking-wide text-muted mb-1">
-              {t("account.preferredLanguage")}
-            </label>
-            <select
-              id="preferred-language"
-              className="input"
-              value={preferredLanguage}
-              onChange={(e) => setPreferredLanguage(e.target.value as "pl" | "en")}
+        <div className="card card-pad">
+          <div className="section-title">{t("account.accountSettings")}</div>
+          <div className="spacer-sm" />
+          <form onSubmit={handleUpdateAccount} className="space-y-3" style={{ maxWidth: 520 }}>
+            <Input
+              label={t("account.emailAddress")}
+              value={email}
+              readOnly
+              className="bg-surface-2"
+              style={{ backgroundColor: "rgba(255,255,255,0.03)" }}
+              helperText={t("account.emailCannotBeChanged")}
+            />
+            <div>
+              <label htmlFor="preferred-language" className="block text-xs font-semibold uppercase tracking-wide text-muted mb-1">
+                {t("account.preferredLanguage")}
+              </label>
+              <select
+                id="preferred-language"
+                className="input"
+                value={preferredLanguage}
+                onChange={(e) => setPreferredLanguage(e.target.value as "pl" | "en")}
+                disabled={saving}
+                aria-describedby="preferred-language-hint"
+              >
+                <option value="en">{t("account.english")}</option>
+                <option value="pl">{t("account.polish")}</option>
+              </select>
+              <p id="preferred-language-hint" className="text-xs text-muted mt-1">
+                {t("account.selectPreferredLanguage")}
+              </p>
+            </div>
+            <div className="flex justify-end">
+              <button className="btn btn-primary" type="submit" disabled={saving}>
+                {saving ? t("account.saving") : t("account.saveChanges")}
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <div className="spacer" />
+
+        <div className="card card-pad">
+          <div className="section-title">{t("account.changePassword")}</div>
+          <div className="spacer-sm" />
+          <form onSubmit={handleChangePassword} className="space-y-3" style={{ maxWidth: 520 }}>
+            <Input
+              label={t("account.currentPassword")}
+              type="password"
+              value={oldPassword}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setOldPassword(e.target.value)}
+              required
               disabled={saving}
-              aria-describedby="preferred-language-hint"
-            >
-              <option value="en">{t("account.english")}</option>
-              <option value="pl">{t("account.polish")}</option>
-            </select>
-            <p id="preferred-language-hint" className="text-xs text-muted mt-1">
-              {t("account.selectPreferredLanguage")}
-            </p>
-          </div>
-          <div className="flex justify-end">
-            <button className="btn btn-primary" type="submit" disabled={saving}>
-              {saving ? t("account.saving") : t("account.saveChanges")}
-            </button>
-          </div>
-        </form>
-      </div>
-
-      <div className="spacer" />
-
-      <div className="card card-pad">
-        <div className="section-title">{t("account.changePassword")}</div>
-        <div className="spacer-sm" />
-        <form onSubmit={handleChangePassword} className="space-y-3" style={{ maxWidth: 520 }}>
-          <Input
-            label={t("account.currentPassword")}
-            type="password"
-            value={oldPassword}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setOldPassword(e.target.value)}
-            required
-            disabled={saving}
-            helperText={t("account.enterCurrentPassword")}
-          />
-          <Input
-            label={t("account.newPassword")}
-            type="password"
-            value={newPassword}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewPassword(e.target.value)}
-            required
-            minLength={8}
-            helperText={t("account.passwordMinLengthHelper")}
-            disabled={saving}
-          />
-          <Input
-            label={t("account.confirmNewPassword")}
-            type="password"
-            value={confirmPassword}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}
-            required
-            minLength={8}
-            helperText={t("account.reEnterNewPassword")}
-            disabled={saving}
-          />
-          <div className="flex justify-end">
-            <button className="btn btn-primary" type="submit" disabled={saving}>
-              {saving ? t("account.changing") : t("account.changePasswordButton")}
-            </button>
-          </div>
-        </form>
-      </div>
-
-      <div className="spacer" />
-
-      <div className="card card-pad">
-        <div className="section-title">{t("account.billingInfo")}</div>
-        <div className="spacer-sm" />
-        <form onSubmit={handleUpdateBillingInfo} className="space-y-3" style={{ maxWidth: 520 }}>
-          <Input
-            label={t("account.companyName")}
-            value={companyName}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCompanyName(e.target.value)}
-            placeholder={t("account.enterCompanyName")}
-            disabled={saving}
-          />
-          <Input
-            label={t("account.nip")}
-            value={nip}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNip(e.target.value)}
-            placeholder={t("account.enterNip")}
-            disabled={saving}
-            helperText={t("account.nipHelperText")}
-          />
-          <div>
-            <label className="block text-xs font-semibold uppercase tracking-wide text-muted mb-1">
-              {t("account.address")}
-            </label>
-            <textarea
-              className="input"
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              placeholder={t("account.enterBillingAddress")}
-              rows={3}
+              helperText={t("account.enterCurrentPassword")}
+            />
+            <Input
+              label={t("account.newPassword")}
+              type="password"
+              value={newPassword}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewPassword(e.target.value)}
+              required
+              minLength={8}
+              helperText={t("account.passwordMinLengthHelper")}
               disabled={saving}
             />
-            <p className="text-xs text-muted mt-1">{t("account.enterCompanyBillingAddress")}</p>
-          </div>
-          <div className="flex justify-end">
-            <button className="btn btn-primary" type="submit" disabled={saving}>
-              {saving ? t("account.savingBilling") : t("account.saveBillingInfo")}
-            </button>
-          </div>
-        </form>
+            <Input
+              label={t("account.confirmNewPassword")}
+              type="password"
+              value={confirmPassword}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}
+              required
+              minLength={8}
+              helperText={t("account.reEnterNewPassword")}
+              disabled={saving}
+            />
+            <div className="flex justify-end">
+              <button className="btn btn-primary" type="submit" disabled={saving}>
+                {saving ? t("account.changing") : t("account.changePasswordButton")}
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <div className="spacer" />
+
+        <div className="card card-pad">
+          <div className="section-title">{t("account.billingInfo")}</div>
+          <div className="spacer-sm" />
+          <form onSubmit={handleUpdateBillingInfo} className="space-y-3" style={{ maxWidth: 520 }}>
+            <Input
+              label={t("account.companyName")}
+              value={companyName}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCompanyName(e.target.value)}
+              placeholder={t("account.enterCompanyName")}
+              disabled={saving}
+            />
+            <Input
+              label={t("account.nip")}
+              value={nip}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNip(e.target.value)}
+              placeholder={t("account.enterNip")}
+              disabled={saving}
+              helperText={t("account.nipHelperText")}
+            />
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wide text-muted mb-1">
+                {t("account.address")}
+              </label>
+              <textarea
+                className="input"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder={t("account.enterBillingAddress")}
+                rows={3}
+                disabled={saving}
+              />
+              <p className="text-xs text-muted mt-1">{t("account.enterCompanyBillingAddress")}</p>
+            </div>
+            <div className="flex justify-end">
+              <button className="btn btn-primary" type="submit" disabled={saving}>
+                {saving ? t("account.savingBilling") : t("account.saveBillingInfo")}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );

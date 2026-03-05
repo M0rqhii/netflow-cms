@@ -45,23 +45,27 @@ export default function DevEmailsPage() {
 
   if (isProd && !isSuperAdmin) {
     return (
-      <div className="card card-pad">
-        <div className="font-black">Dev Panel disabled</div>
-        <div className="text-muted text-xs mt-1.5">Only available outside production.</div>
-      </div>
+      <DevPanelLayout title="Email Logs" description="Recent dev emails (DevMailer)">
+        <div className="card card-pad">
+          <div className="font-black">Dev Panel disabled</div>
+          <div className="text-muted text-xs mt-1.5">Only available outside production.</div>
+        </div>
+      </DevPanelLayout>
     );
   }
 
   if (!isPrivileged) {
     return (
-      <div className="card card-pad">
-        <div className="font-black">Access denied</div>
-        <div className="text-muted text-xs mt-1.5">Only privileged users can access the Dev Panel.</div>
-        <div className="spacer-sm" />
-        <button className="btn" onClick={() => (window.location.href = "/dashboard")}>
-          Back to dashboard
-        </button>
-      </div>
+      <DevPanelLayout title="Email Logs" description="Recent dev emails (DevMailer)">
+        <div className="card card-pad">
+          <div className="font-black">Access denied</div>
+          <div className="text-muted text-xs mt-1.5">Only privileged users can access the Dev Panel.</div>
+          <div className="spacer-sm" />
+          <button className="btn" onClick={() => (window.location.href = "/dashboard")}>
+            Back to dashboard
+          </button>
+        </div>
+      </DevPanelLayout>
     );
   }
 
@@ -69,45 +73,45 @@ export default function DevEmailsPage() {
     <DevPanelLayout title="Email Logs" description="Recent dev emails (DevMailer)">
       <div className="animate-fade-in">
         <div className="card card-pad">
-        <div className="section-title">Email log</div>
-        <div className="spacer-sm" />
-        {loading ? (
-          <div className="py-8 flex items-center justify-center">
-            <LoadingSpinner text="Loading email logs..." />
-          </div>
-        ) : error ? (
-          <div className="text-error text-xs">{error}</div>
-        ) : logs.length === 0 ? (
-          <div className="text-muted">No email logs yet.</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Recipient</th>
-                  <th>Subject</th>
-                  <th>Status</th>
-                  <th>Timestamp</th>
-                </tr>
-              </thead>
-              <tbody>
-                {logs.map((log) => (
-                  <tr key={log.id}>
-                    <td>{log.to}</td>
-                    <td>{log.subject}</td>
-                    <td>
-                      <span className={log.status === "sent" ? "badge green" : "badge orange"}>{log.status}</span>
-                    </td>
-                    <td className="text-muted">
-                      {new Date(log.sentAt || log.createdAt || "").toLocaleString()}
-                    </td>
+          <div className="section-title">Email log</div>
+          <div className="spacer-sm" />
+          {loading ? (
+            <div className="py-8 flex items-center justify-center">
+              <LoadingSpinner text="Loading email logs..." />
+            </div>
+          ) : error ? (
+            <div className="text-error text-xs">{error}</div>
+          ) : logs.length === 0 ? (
+            <div className="text-muted">No email logs yet.</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Recipient</th>
+                    <th>Subject</th>
+                    <th>Status</th>
+                    <th>Timestamp</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {logs.map((log) => (
+                    <tr key={log.id}>
+                      <td>{log.to}</td>
+                      <td>{log.subject}</td>
+                      <td>
+                        <span className={log.status === "sent" ? "badge green" : "badge orange"}>{log.status}</span>
+                      </td>
+                      <td className="text-muted">
+                        {new Date(log.sentAt || log.createdAt || "").toLocaleString()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
           </div>
-        )}
-        </div>
       </div>
     </DevPanelLayout>
   );

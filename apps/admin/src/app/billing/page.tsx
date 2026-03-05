@@ -83,19 +83,24 @@ export default function BillingPage() {
 
   if (error) {
     return (
-      <div className="card card-pad">
-        <div className="view-title">{t("billing.title")}</div>
-        <div className="spacer-sm" />
-        <div className="error-alert">
-          <div className="text-error text-sm">{t("billing.errorLoadingBillingData")}</div>
-          <div className="text-error text-xs mt-1.5">{error}</div>
+      <div className="billing-page-frame w-full px-3 sm:px-5 lg:px-6 2xl:px-8 py-4 sm:py-6">
+        <div className="billing-page-shell">
+          <div className="card card-pad">
+            <div className="view-title">{t("billing.title")}</div>
+            <div className="spacer-sm" />
+            <div className="error-alert">
+              <div className="text-error text-sm">{t("billing.errorLoadingBillingData")}</div>
+              <div className="text-error text-xs mt-1.5">{error}</div>
+            </div>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div>
+    <div className="billing-page-frame w-full px-3 sm:px-5 lg:px-6 2xl:px-8 py-4 sm:py-6">
+      <div className="billing-page-shell">
       <div className="card card-pad">
         <div className="view-title">{t("billing.title")}</div>
         <div className="view-sub">{t("billing.manageOrganizationBilling")}</div>
@@ -303,6 +308,7 @@ export default function BillingPage() {
             </table>
           </div>
         )}
+      </div>
       </div>
     </div>
   );

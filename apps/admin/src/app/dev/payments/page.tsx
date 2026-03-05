@@ -45,23 +45,27 @@ export default function DevPaymentsPage() {
 
   if (isProd && !isSuperAdmin) {
     return (
-      <div className="card card-pad">
-        <div className="font-black">Dev Panel disabled</div>
-        <div className="text-muted text-xs mt-1.5">Only available outside production.</div>
-      </div>
+      <DevPanelLayout title="Payments" description="Simulated subscriptions and payment events (DevPaymentProvider)">
+        <div className="card card-pad">
+          <div className="font-black">Dev Panel disabled</div>
+          <div className="text-muted text-xs mt-1.5">Only available outside production.</div>
+        </div>
+      </DevPanelLayout>
     );
   }
 
   if (!isPrivileged) {
     return (
-      <div className="card card-pad">
-        <div className="font-black">Access denied</div>
-        <div className="text-muted text-xs mt-1.5">Only privileged users can access the Dev Panel.</div>
-        <div className="spacer-sm" />
-        <button className="btn" onClick={() => (window.location.href = "/dashboard")}>
-          Back to dashboard
-        </button>
-      </div>
+      <DevPanelLayout title="Payments" description="Simulated subscriptions and payment events (DevPaymentProvider)">
+        <div className="card card-pad">
+          <div className="font-black">Access denied</div>
+          <div className="text-muted text-xs mt-1.5">Only privileged users can access the Dev Panel.</div>
+          <div className="spacer-sm" />
+          <button className="btn" onClick={() => (window.location.href = "/dashboard")}>
+            Back to dashboard
+          </button>
+        </div>
+      </DevPanelLayout>
     );
   }
 
@@ -69,49 +73,49 @@ export default function DevPaymentsPage() {
     <DevPanelLayout title="Payments" description="Simulated subscriptions and payment events (DevPaymentProvider)">
       <div className="animate-fade-in">
         <div className="card card-pad">
-        <div className="section-title">Payment events</div>
-        <div className="spacer-sm" />
-        {loading ? (
-          <div className="py-8 flex items-center justify-center">
-            <LoadingSpinner text="Loading payment events..." />
-          </div>
-        ) : error ? (
-          <div className="text-error text-xs">{error}</div>
-        ) : payments.length === 0 ? (
-          <div className="text-muted">No payment events yet.</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Plan</th>
-                  <th>Site ID</th>
-                  <th>Status</th>
-                  <th>Period end</th>
-                  <th>Created</th>
-                </tr>
-              </thead>
-              <tbody>
-                {payments.map((evt) => (
-                  <tr key={evt.id}>
-                    <td className="mono text-xs">{evt.plan}</td>
-                    <td className="mono text-xs">{evt.orgId}</td>
-                    <td>
-                      <span className={evt.status === "active" ? "badge green" : "badge orange"}>{evt.status}</span>
-                    </td>
-                    <td className="text-muted">
-                      {evt.currentPeriodEnd ? new Date(evt.currentPeriodEnd).toLocaleDateString() : "-"}
-                    </td>
-                    <td className="text-muted">
-                      {evt.createdAt ? new Date(evt.createdAt).toLocaleString() : "-"}
-                    </td>
+          <div className="section-title">Payment events</div>
+          <div className="spacer-sm" />
+          {loading ? (
+            <div className="py-8 flex items-center justify-center">
+              <LoadingSpinner text="Loading payment events..." />
+            </div>
+          ) : error ? (
+            <div className="text-error text-xs">{error}</div>
+          ) : payments.length === 0 ? (
+            <div className="text-muted">No payment events yet.</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Plan</th>
+                    <th>Site ID</th>
+                    <th>Status</th>
+                    <th>Period end</th>
+                    <th>Created</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {payments.map((evt) => (
+                    <tr key={evt.id}>
+                      <td className="mono text-xs">{evt.plan}</td>
+                      <td className="mono text-xs">{evt.orgId}</td>
+                      <td>
+                        <span className={evt.status === "active" ? "badge green" : "badge orange"}>{evt.status}</span>
+                      </td>
+                      <td className="text-muted">
+                        {evt.currentPeriodEnd ? new Date(evt.currentPeriodEnd).toLocaleDateString() : "-"}
+                      </td>
+                      <td className="text-muted">
+                        {evt.createdAt ? new Date(evt.createdAt).toLocaleString() : "-"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
           </div>
-        )}
-        </div>
       </div>
     </DevPanelLayout>
   );
