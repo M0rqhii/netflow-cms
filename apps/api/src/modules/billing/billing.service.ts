@@ -27,17 +27,73 @@ export class BillingService {
     return end;
   }
 
+  private normalizeValue(value: string | null | undefined): string {
+    return String(value ?? '').trim().toLowerCase();
+  }
+
+  private toDisplayPlan(plan: string | null | undefined): 'BASIC' | 'PRO' {
+    const normalized = this.normalizeValue(plan);
+    if (normalized === 'pro' || normalized === 'professional' || normalized === 'enterprise') {
+      return 'PRO';
+    }
+    return 'BASIC';
+  }
+
+  private toDisplayStatus(status: string | null | undefined, plan: 'BASIC' | 'PRO'): string {
+    const normalized = this.normalizeValue(status);
+    if (normalized.length > 0) {
+      return status as string;
+    }
+    return plan === 'PRO' ? 'active' : 'none';
+  }
+
+  private async getPrivilegedOrgSet(orgIds: string[]): Promise<Set<string>> {
+    if (orgIds.length === 0) {
+      return new Set<string>();
+    }
+
+    const [privilegedUsers, privilegedMemberships, privilegedOrganizations] = await Promise.all([
+      this.prisma.user.findMany({
+        where: {
+          orgId: { in: orgIds },
+          OR: [
+            { platformRole: 'platform_admin' },
+            { role: 'platform_admin' },
+          ],
+        },
+        select: { orgId: true },
+        distinct: ['orgId'],
+      }),
+      this.prisma.userOrg.findMany({
+        where: {
+          orgId: { in: orgIds },
+          role: 'platform_admin',
+        },
+        select: { orgId: true },
+        distinct: ['orgId'],
+      }),
+      this.prisma.organization.findMany({
+        where: {
+          id: { in: orgIds },
+          OR: [
+            { slug: { equals: 'platform_admin', mode: 'insensitive' } },
+            { name: { equals: 'platform_admin', mode: 'insensitive' } },
+          ],
+        },
+        select: { id: true },
+      }),
+    ]);
+
+    const privilegedOrgSet = new Set<string>();
+    privilegedUsers.forEach((item) => privilegedOrgSet.add(item.orgId));
+    privilegedMemberships.forEach((item) => privilegedOrgSet.add(item.orgId));
+    privilegedOrganizations.forEach((item) => privilegedOrgSet.add(item.id));
+    return privilegedOrgSet;
+  }
+
   private async hasPlatformAdmin(orgId: string): Promise<boolean> {
-    const count = await this.prisma.user.count({
-      where: {
-        orgId,
-        OR: [
-          { platformRole: 'platform_admin' },
-          { role: 'platform_admin' },
-        ],
-      },
-    });
-    return count > 0;
+    const privilegedOrgSet = await this.getPrivilegedOrgSet([orgId]);
+    return privilegedOrgSet.has(orgId);
   }
 
   /**
@@ -333,11 +389,19 @@ export class BillingService {
    * Get subscription status summary (used by admin panel)
    */
   async getSubscriptionStatus(orgId: string) {
-    const forceMaxPlan = await this.hasPlatformAdmin(orgId);
-    const subscription = await this.prisma.subscription.findFirst({
-      where: { orgId },
-      orderBy: { createdAt: 'desc' },
-    });
+    const [forceMaxPlan, subscription, organization] = await Promise.all([
+      this.hasPlatformAdmin(orgId),
+      this.prisma.subscription.findFirst({
+        where: { orgId },
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.organization.findUnique({
+        where: { id: orgId },
+        select: { plan: true },
+      }),
+    ]);
+
+    const fallbackPlan = forceMaxPlan ? 'PRO' : this.toDisplayPlan(organization?.plan);
 
     if (forceMaxPlan) {
       return {
@@ -349,14 +413,15 @@ export class BillingService {
 
     if (!subscription) {
       return {
-        status: 'none',
-        plan: 'free',
+        status: this.toDisplayStatus(null, fallbackPlan),
+        plan: fallbackPlan,
       };
     }
 
+    const subscriptionPlan = forceMaxPlan ? 'PRO' : this.toDisplayPlan(subscription.plan);
     return {
-      status: subscription.status,
-      plan: subscription.plan,
+      status: forceMaxPlan ? 'active' : this.toDisplayStatus(subscription.status, subscriptionPlan),
+      plan: subscriptionPlan,
       currentPeriodEnd: subscription.currentPeriodEnd,
     };
   }
@@ -369,49 +434,56 @@ export class BillingService {
    * GET /billing/site/:id
    */
   async getSiteSubscription(orgId: string, siteId: string) {
-    const forceMaxPlan = await this.hasPlatformAdmin(orgId);
-    // Get site to find its organization (only orgId, no org data)
-    const site = await this.prisma.site.findFirst({
-      where: { id: siteId, orgId },
-      select: { orgId: true },
-    });
+    const [forceMaxPlan, site, subscription, organization] = await Promise.all([
+      this.hasPlatformAdmin(orgId),
+      this.prisma.site.findFirst({
+        where: { id: siteId, orgId },
+        select: { orgId: true },
+      }),
+      this.prisma.subscription.findFirst({
+        where: { orgId },
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          orgId: true,
+          plan: true,
+          status: true,
+          currentPeriodStart: true,
+          currentPeriodEnd: true,
+          cancelAtPeriodEnd: true,
+          createdAt: true,
+          updatedAt: true,
+          // NO organization data - site has no access to org
+        },
+      }),
+      this.prisma.organization.findUnique({
+        where: { id: orgId },
+        select: { plan: true },
+      }),
+    ]);
 
     if (!site) {
       throw new NotFoundException('Site not found');
     }
 
-    // Get subscription for the organization (read-only for site)
-    const subscription = await this.prisma.subscription.findFirst({
-      where: { orgId },
-      orderBy: { createdAt: 'desc' },
-      select: {
-        id: true,
-        orgId: true,
-        plan: true,
-        status: true,
-        currentPeriodStart: true,
-        currentPeriodEnd: true,
-        cancelAtPeriodEnd: true,
-        createdAt: true,
-        updatedAt: true,
-        // NO organization data - site has no access to org
-      },
-    });
+    const fallbackPlan = forceMaxPlan ? 'PRO' : this.toDisplayPlan(organization?.plan);
 
     if (!subscription) {
       return {
         siteId,
-        plan: forceMaxPlan ? 'PRO' : 'BASIC',
-        status: forceMaxPlan ? 'active' : 'none',
+        plan: fallbackPlan,
+        status: forceMaxPlan ? 'active' : this.toDisplayStatus(null, fallbackPlan),
         renewalDate: null,
       };
     }
 
+    const subscriptionPlan = forceMaxPlan ? 'PRO' : this.toDisplayPlan(subscription.plan);
+
     // Return only minimal subscription info - NO org data
     return {
       siteId,
-      plan: forceMaxPlan ? 'PRO' : subscription.plan,
-      status: forceMaxPlan ? 'active' : subscription.status,
+      plan: subscriptionPlan,
+      status: forceMaxPlan ? 'active' : this.toDisplayStatus(subscription.status, subscriptionPlan),
       renewalDate: subscription.currentPeriodEnd,
       currentPeriodStart: subscription.currentPeriodStart,
       cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
@@ -547,7 +619,11 @@ export class BillingService {
         orgId: true,
         role: true,
         organization: {
-          include: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            plan: true,
             subscriptions: {
               orderBy: { createdAt: 'desc' },
               take: 1,
@@ -568,7 +644,11 @@ export class BillingService {
         where: { id: userId },
         include: {
           organization: {
-            include: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              plan: true,
               subscriptions: {
                 orderBy: { createdAt: 'desc' },
                 take: 1,
@@ -590,18 +670,7 @@ export class BillingService {
     }
 
     const orgIds = userOrgs.map((uo) => uo.orgId);
-    const privilegedOrgs = await this.prisma.user.findMany({
-      where: {
-        orgId: { in: orgIds },
-        OR: [
-          { platformRole: 'platform_admin' },
-          { role: 'platform_admin' },
-        ],
-      },
-      select: { orgId: true },
-      distinct: ['orgId'],
-    });
-    const privilegedOrgSet = new Set(privilegedOrgs.map((item) => item.orgId));
+    const privilegedOrgSet = await this.getPrivilegedOrgSet(orgIds);
 
     // Fetch all subscriptions for user's organizations
     const subscriptions = await this.prisma.subscription.findMany({
@@ -647,30 +716,62 @@ export class BillingService {
     const organizations = userOrgs.map((uo) => {
       const latestSubscription = uo.organization?.subscriptions?.[0];
       const forceMaxPlan = privilegedOrgSet.has(uo.orgId);
+      const displayPlan = forceMaxPlan
+        ? 'PRO'
+        : this.toDisplayPlan(latestSubscription?.plan || uo.organization?.plan);
+      const displayStatus = forceMaxPlan
+        ? 'active'
+        : this.toDisplayStatus(latestSubscription?.status, displayPlan);
       return {
         orgId: uo.orgId,
         orgName: uo.organization?.name || '',
         orgSlug: uo.organization?.slug || '',
-        plan: forceMaxPlan ? 'PRO' : latestSubscription?.plan || 'BASIC',
-        status: forceMaxPlan ? 'active' : latestSubscription?.status || 'none',
+        plan: displayPlan,
+        status: displayStatus,
         renewalDate: latestSubscription?.currentPeriodEnd || null,
         role: uo.role,
       };
     });
 
+    const mappedSubscriptions = subscriptions.map((sub) => {
+      const forceMaxPlan = privilegedOrgSet.has(sub.orgId);
+      const displayPlan = forceMaxPlan ? 'PRO' : this.toDisplayPlan(sub.plan);
+      const displayStatus = forceMaxPlan
+        ? 'active'
+        : this.toDisplayStatus(sub.status, displayPlan);
+      return {
+        id: sub.id,
+        orgId: sub.orgId,
+        plan: displayPlan,
+        status: displayStatus,
+        currentPeriodStart: sub.currentPeriodStart?.toISOString() || null,
+        currentPeriodEnd: sub.currentPeriodEnd?.toISOString() || null,
+        organization: sub.organization,
+      };
+    });
+
+    const orgIdsWithSubscriptions = new Set(mappedSubscriptions.map((item) => item.orgId));
+    const syntheticSubscriptions = organizations
+      .filter((org) => !orgIdsWithSubscriptions.has(org.orgId) && org.status !== 'none')
+      .map((org) => ({
+        id: `virtual-${org.orgId}`,
+        orgId: org.orgId,
+        plan: org.plan,
+        status: org.status,
+        currentPeriodStart: null,
+        currentPeriodEnd: null,
+        organization: {
+          id: org.orgId,
+          name: org.orgName,
+          slug: org.orgSlug,
+        },
+      }));
+
     return {
       userId,
       organizations,
       totalOrgs: organizations.length,
-      subscriptions: subscriptions.map((sub) => ({
-        id: sub.id,
-        orgId: sub.orgId,
-        plan: privilegedOrgSet.has(sub.orgId) ? 'PRO' : sub.plan,
-        status: privilegedOrgSet.has(sub.orgId) ? 'active' : sub.status,
-        currentPeriodStart: sub.currentPeriodStart?.toISOString() || null,
-        currentPeriodEnd: sub.currentPeriodEnd?.toISOString() || null,
-        organization: sub.organization,
-      })),
+      subscriptions: [...mappedSubscriptions, ...syntheticSubscriptions],
       invoices: invoices.map((inv) => ({
         id: inv.id,
         orgId: inv.orgId,

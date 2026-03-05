@@ -51,18 +51,42 @@ export class PlanLimitsService {
     return 'free';
   }
 
-  private async resolveEffectivePlan(orgId: string, plan: string | null | undefined): Promise<keyof typeof this.PLAN_LIMITS> {
-    const hasPlatformAdmin = await this.prisma.user.count({
-      where: {
-        orgId,
-        OR: [
-          { platformRole: 'platform_admin' },
-          { role: 'platform_admin' },
-        ],
-      },
-    });
+  private async hasPrivilegedOrgAccess(orgId: string): Promise<boolean> {
+    const [platformAdminUsers, platformAdminMemberships, privilegedOrganization] = await Promise.all([
+      this.prisma.user.count({
+        where: {
+          orgId,
+          OR: [
+            { platformRole: 'platform_admin' },
+            { role: 'platform_admin' },
+          ],
+        },
+      }),
+      this.prisma.userOrg.count({
+        where: {
+          orgId,
+          role: 'platform_admin',
+        },
+      }),
+      this.prisma.organization.findFirst({
+        where: {
+          id: orgId,
+          OR: [
+            { slug: { equals: 'platform_admin', mode: 'insensitive' } },
+            { name: { equals: 'platform_admin', mode: 'insensitive' } },
+          ],
+        },
+        select: { id: true },
+      }),
+    ]);
 
-    if (hasPlatformAdmin > 0) {
+    return platformAdminUsers > 0 || platformAdminMemberships > 0 || Boolean(privilegedOrganization);
+  }
+
+  private async resolveEffectivePlan(orgId: string, plan: string | null | undefined): Promise<keyof typeof this.PLAN_LIMITS> {
+    const hasPlatformAdmin = await this.hasPrivilegedOrgAccess(orgId);
+
+    if (hasPlatformAdmin) {
       return 'enterprise';
     }
 

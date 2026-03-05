@@ -120,16 +120,35 @@ export class OrgDashboardService {
   ) {}
 
   private async hasPlatformAdminInOrg(orgId: string): Promise<boolean> {
-    const count = await this.prisma.user.count({
-      where: {
-        orgId,
-        OR: [
-          { platformRole: 'platform_admin' },
-          { role: 'platform_admin' },
-        ],
-      },
-    });
-    return count > 0;
+    const [platformAdminUsers, platformAdminMemberships, privilegedOrganization] = await Promise.all([
+      this.prisma.user.count({
+        where: {
+          orgId,
+          OR: [
+            { platformRole: 'platform_admin' },
+            { role: 'platform_admin' },
+          ],
+        },
+      }),
+      this.prisma.userOrg.count({
+        where: {
+          orgId,
+          role: 'platform_admin',
+        },
+      }),
+      this.prisma.organization.findFirst({
+        where: {
+          id: orgId,
+          OR: [
+            { slug: { equals: 'platform_admin', mode: 'insensitive' } },
+            { name: { equals: 'platform_admin', mode: 'insensitive' } },
+          ],
+        },
+        select: { id: true },
+      }),
+    ]);
+
+    return platformAdminUsers > 0 || platformAdminMemberships > 0 || Boolean(privilegedOrganization);
   }
 
   /**

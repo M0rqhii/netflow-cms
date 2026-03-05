@@ -22,18 +22,42 @@ export class FeatureFlagsService {
     private readonly auditLogger: AuditLoggerService,
   ) {}
 
-  private async resolveEffectivePlan(orgId: string, orgPlan: string | null | undefined): Promise<string> {
-    const platformAdminCount = await this.prisma.user.count({
-      where: {
-        orgId,
-        OR: [
-          { platformRole: 'platform_admin' },
-          { role: 'platform_admin' },
-        ],
-      },
-    });
+  private async hasPrivilegedOrgAccess(orgId: string): Promise<boolean> {
+    const [platformAdminUsers, platformAdminMemberships, privilegedOrganization] = await Promise.all([
+      this.prisma.user.count({
+        where: {
+          orgId,
+          OR: [
+            { platformRole: 'platform_admin' },
+            { role: 'platform_admin' },
+          ],
+        },
+      }),
+      this.prisma.userOrg.count({
+        where: {
+          orgId,
+          role: 'platform_admin',
+        },
+      }),
+      this.prisma.organization.findFirst({
+        where: {
+          id: orgId,
+          OR: [
+            { slug: { equals: 'platform_admin', mode: 'insensitive' } },
+            { name: { equals: 'platform_admin', mode: 'insensitive' } },
+          ],
+        },
+        select: { id: true },
+      }),
+    ]);
 
-    if (platformAdminCount > 0) {
+    return platformAdminUsers > 0 || platformAdminMemberships > 0 || Boolean(privilegedOrganization);
+  }
+
+  private async resolveEffectivePlan(orgId: string, orgPlan: string | null | undefined): Promise<string> {
+    const hasPlatformAdmin = await this.hasPrivilegedOrgAccess(orgId);
+
+    if (hasPlatformAdmin) {
       return 'enterprise';
     }
 
