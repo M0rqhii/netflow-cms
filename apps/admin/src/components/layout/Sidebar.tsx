@@ -277,13 +277,13 @@ export function Sidebar() {
         ...(isOwner ? [{ href: '/billing', labelKey: 'navigation.billing', icon: Icon.billing }] : []),
       ],
     },
-    ...(isDev && isPrivileged ? [{
+    ...((isDev || isSuperFromToken) && isPrivileged ? [{
       labelKey: 'navigation.development',
       items: [
         { href: '/dev', labelKey: 'navigation.dev', icon: Icon.dev },
       ],
     }] : []),
-  ], [siteCount, isOwner, isDev, isPrivileged, orgId, canAccessOrgSettings]);
+  ], [siteCount, isOwner, isDev, isPrivileged, isSuperFromToken, orgId, canAccessOrgSettings]);
 
   return (
     <aside className={clsx('sidebar hidden md:block transition-all h-full', sidebarCollapsed ? 'w-16' : 'w-60')} aria-label="Main navigation">
