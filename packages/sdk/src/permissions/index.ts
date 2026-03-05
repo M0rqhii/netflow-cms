@@ -1,16 +1,18 @@
 import { Permissions } from '@repo/schemas';
 
-type PlatformRole = Permissions.PlatformRole;
+type PlatformRole = Permissions.OrgRole;
 type SiteRole = Permissions.SiteRole;
-type PlatformPermissions = Permissions.PlatformPermissions;
+type PlatformPermissions = Permissions.OrgPermissions;
 type SitePermissions = Permissions.SitePermissions;
 
-const { combinePlatformPermissions, combineSitePermissions } = Permissions;
+const { combineOrgPermissions, combineSitePermissions } = Permissions;
 
 
 type PlatformUserLike = {
   platformRole?: PlatformRole;
   platformRoles?: PlatformRole[];
+  orgRole?: PlatformRole;
+  orgRoles?: PlatformRole[];
   roles?: PlatformRole[]; // fallback alias
 };
 
@@ -24,9 +26,10 @@ type SiteUserLike = {
 export function getUserPlatformPermissions(user: PlatformUserLike | null | undefined): PlatformPermissions {
   const roles: PlatformRole[] =
     (user?.platformRoles as PlatformRole[]) ||
+    (user?.orgRoles as PlatformRole[]) ||
     (user?.roles as PlatformRole[]) ||
-    (user?.platformRole ? [user.platformRole] : []);
-  return combinePlatformPermissions(roles);
+    (user?.platformRole ? [user.platformRole] : user?.orgRole ? [user.orgRole] : []);
+  return combineOrgPermissions(roles);
 }
 
 export function getUserSitePermissions(user: (PlatformUserLike & SiteUserLike) | null | undefined, siteId: string): SitePermissions {
