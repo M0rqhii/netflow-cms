@@ -26,6 +26,10 @@ export default function SettingsPage() {
   const [seoOgDescription, setSeoOgDescription] = useState("");
   const [seoOgImage, setSeoOgImage] = useState("");
   const [seoTwitterCard, setSeoTwitterCard] = useState("summary_large_image");
+  const locale = typeof navigator !== "undefined" ? navigator.language : "en-US";
+  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+  const primaryDomain = site?.site?.slug || "";
+  const isCustomDomain = primaryDomain.includes(".");
 
   const loadData = useCallback(async () => {
     if (!slug) {
@@ -109,8 +113,18 @@ export default function SettingsPage() {
       subtitle={t("sitePanelShell.settings.subtitle")}
       actions={
         <>
-          <button className="btn" type="button" onClick={() => toast.push({ tone: "success", message: t("sitePanelShell.settingsUi.toasts.testConfigMock") })}>{t("sitePanelShell.actions.testConfig")}</button>
-          <button className="btn btn-primary" type="button" onClick={() => toast.push({ tone: "success", message: t("sitePanelShell.settingsUi.toasts.saveMock") })}>{t("sitePanelShell.actions.saveChanges")}</button>
+          <button className="btn" type="button" onClick={() => void loadData()}>{t("sitePanelShell.actions.testConfig")}</button>
+          <button
+            className="btn btn-primary"
+            type="button"
+            disabled={saving}
+            onClick={() => {
+              const form = document.getElementById("site-seo-settings-form") as HTMLFormElement | null;
+              form?.requestSubmit();
+            }}
+          >
+            {saving ? t("sitePanelShell.settingsUi.actions.saving") : t("sitePanelShell.settingsUi.actions.saveSeo")}
+          </button>
         </>
       }
     >
@@ -135,26 +149,11 @@ export default function SettingsPage() {
               <div className="grid cols-2 form-grid">
                 <label className="field-group">
                   <div className="detail-label font-black">Locale</div>
-                  <input className="input" value="pl-PL" readOnly />
+                  <input className="input" value={locale} readOnly />
                 </label>
                 <label className="field-group">
                   <div className="detail-label font-black">Timezone</div>
-                  <input className="input" value="Europe/Warsaw" readOnly />
-                </label>
-              </div>
-
-              <div className="row-wrap mt-2">
-                <label className="badge gray row gap-sm">
-                  <input type="checkbox" id="site-maint" />
-                  {t("sitePanelShell.settingsUi.labels.maintenanceMode")}
-                </label>
-                <label className="badge gray row gap-sm">
-                  <input type="checkbox" id="site-index" defaultChecked />
-                  {t("sitePanelShell.settingsUi.labels.allowIndexing")}
-                </label>
-                <label className="badge gray row gap-sm">
-                  <input type="checkbox" id="site-cdn" defaultChecked />
-                  {t("sitePanelShell.settingsUi.labels.cdnEnabled")}
+                  <input className="input" value={timezone} readOnly />
                 </label>
               </div>
             </div>
@@ -167,16 +166,15 @@ export default function SettingsPage() {
 
           <div className="form-grid">
             <div className="card card-pad">
-              <div className="section-title">{t("sitePanelShell.settingsUi.sections.domains")}</div>
-              <div className="spacer-sm" />
-              <div className="row-wrap">
-                <span className="badge green">{t("sitePanelShell.settingsUi.labels.dnsVerified")}</span>
-                <span className="badge green">{t("sitePanelShell.settingsUi.labels.sslActive")}</span>
-                <span className="badge blue">{t("sitePanelShell.settingsUi.labels.cnameOk")}</span>
-                <span className="badge gray">{t("sitePanelShell.settingsUi.labels.hstsOn")}</span>
-              </div>
-              <div className="spacer-sm" />
-              <div className="detail-label">
+            <div className="section-title">{t("sitePanelShell.settingsUi.sections.domains")}</div>
+            <div className="spacer-sm" />
+            <div className="row-wrap">
+              <span className="badge blue">{t("sitePanelShell.settingsUi.labels.primaryDomain")}: {primaryDomain || "-"}</span>
+              <span className={isCustomDomain ? "badge green" : "badge gray"}>{t("sitePanelShell.settingsUi.labels.dnsVerified")}</span>
+              <span className={isCustomDomain ? "badge green" : "badge gray"}>{t("sitePanelShell.settingsUi.labels.sslActive")}</span>
+            </div>
+            <div className="spacer-sm" />
+            <div className="detail-label">
                 {t("sitePanelShell.settingsUi.labels.domainsHint")}
               </div>
             </div>
@@ -202,7 +200,7 @@ export default function SettingsPage() {
         <div className="card card-pad">
           <div className="section-title">SEO</div>
           <div className="spacer-sm" />
-          <form onSubmit={handleSeoSave} className="space-y-4">
+          <form id="site-seo-settings-form" onSubmit={handleSeoSave} className="space-y-4">
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wide text-muted mb-1">Meta title</label>
               <input className="input" value={seoTitle} onChange={(e) => setSeoTitle(e.target.value)} />

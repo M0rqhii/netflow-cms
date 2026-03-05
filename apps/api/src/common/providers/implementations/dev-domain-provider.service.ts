@@ -21,6 +21,7 @@ export class DevDomainProvider implements DomainProvider {
 
   async configureDomain(params: ConfigureDomainParams): Promise<DomainConfigurationResult> {
     this.logger.log(`[DEV] Configuring domain: ${params.domain} for site: ${params.siteId}`);
+    const fallbackTarget = process.env.DEV_DOMAIN_TARGET || 'preview.net-flow.cloud';
 
     // Store domain record in DevDomainRecord table for observability
     try {
@@ -56,7 +57,7 @@ export class DevDomainProvider implements DomainProvider {
           {
             type: 'CNAME',
             name: params.domain,
-            value: params.targetUrl || 'dev.example.com',
+            value: params.targetUrl || fallbackTarget,
           },
         ],
         sslStatus: domainRecord.sslStatus as 'active' | 'pending' | 'failed',
@@ -74,7 +75,7 @@ export class DevDomainProvider implements DomainProvider {
           {
             type: 'CNAME',
             name: params.domain,
-            value: params.targetUrl || 'dev.example.com',
+            value: params.targetUrl || fallbackTarget,
           },
         ],
         sslStatus: 'active',

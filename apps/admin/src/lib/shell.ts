@@ -13,7 +13,6 @@ export type ShellNotification = {
   href: string;
   severity: ShellNotificationSeverity;
   isRead: boolean;
-  isMock: boolean;
 };
 
 function normalizeSearchValue(value: unknown): string {
@@ -136,7 +135,6 @@ export function mapDashboardAlertsToShellNotifications(
         href: alert.actionUrl || '/dashboard',
         severity: severityFromAlert(alert),
         isRead: readIds.has(id),
-        isMock: false,
       } satisfies ShellNotification;
     })
   );
@@ -157,51 +155,9 @@ export function mapActivityToShellNotifications(
         href: hrefFromActivity(item),
         severity: severityFromActivity(item),
         isRead: readIds.has(id),
-        isMock: false,
       } satisfies ShellNotification;
     })
   );
-}
-
-export function createMockShellNotifications(
-  readIds: ReadonlySet<string> = new Set<string>()
-): ShellNotification[] {
-  const now = Date.now();
-
-  const items: ShellNotification[] = [
-    {
-      id: 'mock:deploy',
-      title: 'Deployment completed',
-      body: 'Production build published successfully.',
-      time: new Date(now - 1000 * 60 * 8).toISOString(),
-      href: '/dashboard',
-      severity: 'info',
-      isRead: readIds.has('mock:deploy'),
-      isMock: true,
-    },
-    {
-      id: 'mock:limits',
-      title: 'Usage warning',
-      body: 'API usage reached 82% of this month limit.',
-      time: new Date(now - 1000 * 60 * 34).toISOString(),
-      href: '/billing',
-      severity: 'warning',
-      isRead: readIds.has('mock:limits'),
-      isMock: true,
-    },
-    {
-      id: 'mock:security',
-      title: 'Security event',
-      body: 'A new login was detected on your account.',
-      time: new Date(now - 1000 * 60 * 95).toISOString(),
-      href: '/account',
-      severity: 'info',
-      isRead: readIds.has('mock:security'),
-      isMock: true,
-    },
-  ];
-
-  return sortNotifications(items);
 }
 
 function readIdsFromStorage(userId: string): string[] {

@@ -7,62 +7,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useToast } from "@/components/ui/Toast";
 import { useTranslations } from "@/hooks/useTranslations";
 import { fetchMySites } from "@/lib/api";
-import { statusToBadge, fmtBytes } from "@/lib/formatters";
+import { statusToBadge } from "@/lib/formatters";
 import { publishGlobalSearch, readGlobalSearch, subscribeGlobalSearch } from "@/lib/shell";
 import type { SiteInfo } from "@repo/sdk";
-
-type EditorChip = {
-  id: string;
-  name: string;
-  initials: string;
-  toneClass: string;
-  avatarUrl: string;
-};
-
-const EDITOR_POOL: EditorChip[] = [
-  {
-    id: "anna-kowalska",
-    name: "Anna Kowalska",
-    initials: "AK",
-    toneClass: "editor-tone-1",
-    avatarUrl: "https://api.dicebear.com/9.x/adventurer/svg?seed=AnnaKowalska",
-  },
-  {
-    id: "piotr-nowak",
-    name: "Piotr Nowak",
-    initials: "PN",
-    toneClass: "editor-tone-2",
-    avatarUrl: "https://api.dicebear.com/9.x/adventurer/svg?seed=PiotrNowak",
-  },
-  {
-    id: "marta-zielinska",
-    name: "Marta Zielinska",
-    initials: "MZ",
-    toneClass: "editor-tone-3",
-    avatarUrl: "https://api.dicebear.com/9.x/adventurer/svg?seed=MartaZielinska",
-  },
-  {
-    id: "tomasz-wisniewski",
-    name: "Tomasz Wisniewski",
-    initials: "TW",
-    toneClass: "editor-tone-4",
-    avatarUrl: "https://api.dicebear.com/9.x/adventurer/svg?seed=TomaszWisniewski",
-  },
-  {
-    id: "karolina-lewandowska",
-    name: "Karolina Lewandowska",
-    initials: "KL",
-    toneClass: "editor-tone-5",
-    avatarUrl: "https://api.dicebear.com/9.x/adventurer/svg?seed=KarolinaLewandowska",
-  },
-  {
-    id: "jakub-dabrowski",
-    name: "Jakub Dabrowski",
-    initials: "JD",
-    toneClass: "editor-tone-6",
-    avatarUrl: "https://api.dicebear.com/9.x/adventurer/svg?seed=JakubDabrowski",
-  },
-];
 
 let sitesCache: SiteInfo[] | null = null;
 let sitesPromise: Promise<SiteInfo[]> | null = null;
@@ -97,18 +44,12 @@ async function loadSites(): Promise<SiteInfo[]> {
   return sitesPromise;
 }
 
-function getSnapshotAgeLabel(index: number): string {
-  const minutes = Math.max(0, index * 7);
-  if (minutes < 1) return "0s temu";
-  if (minutes < 60) return `${minutes}m temu`;
-  const hours = Math.floor(minutes / 60);
-  return `${hours}h temu`;
-}
-
-function getSiteEditors(index: number): EditorChip[] {
-  const count = 3 + (index % 2);
-  const start = (index * 2) % EDITOR_POOL.length;
-  return Array.from({ length: count }, (_, i) => EDITOR_POOL[(start + i) % EDITOR_POOL.length]);
+function formatSiteCreatedAt(site: SiteInfo): string {
+  const raw = (site.site as { createdAt?: string } | undefined)?.createdAt;
+  if (!raw) return "-";
+  const date = new Date(raw);
+  if (Number.isNaN(date.getTime())) return "-";
+  return date.toLocaleDateString();
 }
 
 function normalizePreviewDomain(slug: string): string {
@@ -116,7 +57,7 @@ function normalizePreviewDomain(slug: string): string {
     .trim()
     .replace(/^https?:\/\//, "")
     .replace(/\/.*$/, "");
-  if (!cleaned) return "example.com";
+  if (!cleaned) return "site.net-flow.cloud";
   if (cleaned.includes(".")) return cleaned;
   return `${cleaned}.net-flow.cloud`;
 }
@@ -139,7 +80,6 @@ export default function SitesPage() {
   const [sites, setSites] = useState<SiteInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [snapshotStageBySite, setSnapshotStageBySite] = useState<Record<string, "primary" | "secondary" | "failed">>({});
-  const [failedAvatars, setFailedAvatars] = useState<Record<string, boolean>>({});
   const { push } = useToast();
 
   const rawSearchQuery = (searchParams.get("q") || "").trim();
@@ -239,18 +179,11 @@ export default function SitesPage() {
         ) : filteredSites.length === 0 ? (
           <div className="card p-4 text-muted">Brak wynikow.</div>
         ) : (
-          filteredSites.map((s, idx) => {
+          filteredSites.map((s) => {
             const [txt, cls] = statusToBadge(s.site?.plan);
             const safeName = s.site?.name || "";
             const safeDomain = s.site?.slug || "";
             const normalizedDomain = normalizePreviewDomain(safeDomain);
-
-            const ip = `10.0.0.${(idx % 200) + 20}`;
-            const storage = fmtBytes((idx + 2) * 18 * 1024 * 1024);
-            const bandwidth = fmtBytes((idx + 2) * 42 * 1024 * 1024);
-            const editors = getSiteEditors(idx);
-            const visibleEditors = editors.slice(0, 3);
-            const hiddenEditorsCount = Math.max(0, editors.length - visibleEditors.length);
             const snapshotSources = getSnapshotSources(safeDomain);
             const snapshotStage = snapshotStageBySite[s.siteId] || "primary";
             const snapshotSrc = snapshotStage === "secondary" ? snapshotSources.secondary : snapshotSources.primary;
@@ -297,46 +230,16 @@ export default function SitesPage() {
 
                 <div className="site-card-modern-body">
                   <div className="flex items-center justify-between gap-3 text-muted text-xs">
-                    <div>Snapshot: <span className="snapshot-age">{getSnapshotAgeLabel(idx)}</span></div>
-                    <div className="editor-stack" aria-label="Aktywni edytorzy">
-                      {visibleEditors.map((editor) => {
-                        const avatarKey = `${s.siteId}:${editor.id}`;
-                        const avatarFailed = Boolean(failedAvatars[avatarKey]);
-                        return (
-                          <span
-                            key={avatarKey}
-                            className={`editor-avatar ${editor.toneClass}${avatarFailed ? " avatar-failed" : ""}`}
-                            title={editor.name}
-                          >
-                            {!avatarFailed ? (
-                              <Image
-                                className="editor-avatar-img"
-                                src={editor.avatarUrl}
-                                alt={editor.name}
-                                width={26}
-                                height={26}
-                                unoptimized
-                                onError={() => {
-                                  setFailedAvatars((prev) => ({ ...prev, [avatarKey]: true }));
-                                }}
-                              />
-                            ) : null}
-                            <span className="editor-avatar-fallback">{editor.initials}</span>
-                          </span>
-                        );
-                      })}
-                      {hiddenEditorsCount > 0 ? (
-                        <span className="editor-more">+{hiddenEditorsCount}</span>
-                      ) : null}
-                    </div>
+                    <div>Created: <span className="snapshot-age">{formatSiteCreatedAt(s)}</span></div>
+                    <div>Role: <span className="snapshot-age">{s.role || "-"}</span></div>
                   </div>
 
                   <div className="divider-subtle" />
 
                   <div className="row-wrap site-metric-row">
-                    <span className="badge gray">IP: {ip}</span>
-                    <span className="badge gray">Storage: {storage}</span>
-                    <span className="badge gray">Bandwidth: {bandwidth}</span>
+                    <span className="badge gray">Site ID: {s.siteId}</span>
+                    <span className="badge gray">Slug: {s.site?.slug || "-"}</span>
+                    <span className="badge gray">Plan: {txt}</span>
                   </div>
 
                   <Link className="btn btn-full site-open-btn" href={`/sites/${encodeURIComponent(s.site?.slug || s.siteId)}/panel`}>
@@ -351,7 +254,3 @@ export default function SitesPage() {
     </div>
   );
 }
-
-
-
-

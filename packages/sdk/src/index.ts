@@ -440,6 +440,63 @@ export class ApiClient {
     });
   }
 
+  async getDevRuntime(token: string): Promise<{
+    profile: string;
+    node: string;
+    apiVersion: string;
+    generatedAt: string;
+    totals: {
+      sites: number;
+      users: number;
+      emails: number;
+      subscriptions: number;
+      webhooks: number;
+      featureOverrides: number;
+    };
+  }> {
+    return this.request(`/dev/runtime`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  }
+
+  async getDevWebhooks(token: string): Promise<
+    Array<{
+      id: string;
+      siteId: string;
+      siteName: string;
+      url: string;
+      events: string[];
+      active: boolean;
+      createdAt: string;
+      updatedAt: string;
+      lastDeliveryAt?: string;
+      lastStatus?: number;
+      lastError?: string;
+    }>
+  > {
+    return this.request(`/dev/webhooks`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  }
+
+  async getDevFlags(token: string): Promise<
+    Array<{
+      id: string;
+      siteId: string;
+      siteName: string;
+      key: string;
+      enabled: boolean;
+      createdAt: string;
+    }>
+  > {
+    return this.request(`/dev/flags`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  }
+
   // Site media (Site Panel)
   async listSiteMedia(token: string, siteId: string): Promise<MediaItem[]> {
     return this.request(`/site-panel/${encodeURIComponent(siteId)}/media`, {

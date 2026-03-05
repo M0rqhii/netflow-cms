@@ -6,10 +6,20 @@ import { SitePanelLayout } from "@/components/site-panel/SitePanelLayout";
 import { useTranslations } from "@/hooks/useTranslations";
 import { Modal, Button } from "@repo/ui";
 import { useToast } from "@/components/ui/Toast";
-import { fetchMySites, fetchSiteCollections, fetchContentEntries } from "@/lib/api";
+import { fetchMySites, fetchSiteCollections, fetchContentEntries, type ContentEntry } from "@/lib/api";
 import type { SiteInfo } from "@repo/sdk";
 import type { CollectionSummary } from "@/lib/api";
 import { timeAgo } from "@/lib/formatters";
+import Link from "next/link";
+
+type RecentEntry = {
+  id: string;
+  slug: string;
+  collectionName: string;
+  title: string;
+  status: string;
+  updatedAt: string;
+};
 
 export default function ContentPage() {
   const params = useParams<{ slug: string }>();
@@ -20,6 +30,9 @@ export default function ContentPage() {
   const [loading, setLoading] = useState(true);
   const [collections, setCollections] = useState<CollectionSummary[]>([]);
   const [counts, setCounts] = useState<Record<string, number>>({});
+  const [draftCounts, setDraftCounts] = useState<Record<string, number>>({});
+  const [publishedCounts, setPublishedCounts] = useState<Record<string, number>>({});
+  const [recentEntries, setRecentEntries] = useState<RecentEntry[]>([]);
   const [showImportModal, setShowImportModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
 
@@ -41,17 +54,63 @@ export default function ContentPage() {
       setCollections(collectionsData);
 
       if (collectionsData.length > 0) {
-        const totals = await Promise.all(
+        const totalsData = await Promise.all(
           collectionsData.map(async (collection) => {
             try {
-              const result = await fetchContentEntries(site.siteId, collection.slug, { page: 1, pageSize: 1 });
-              return [collection.slug, result.total] as const;
+              const [all, drafts, published, latest] = await Promise.all([
+                fetchContentEntries(site.siteId, collection.slug, { page: 1, pageSize: 1 }),
+                fetchContentEntries(site.siteId, collection.slug, { page: 1, pageSize: 1, status: "draft" }),
+                fetchContentEntries(site.siteId, collection.slug, { page: 1, pageSize: 1, status: "published" }),
+                fetchContentEntries(site.siteId, collection.slug, { page: 1, pageSize: 5 }),
+              ]);
+
+              const latestRows = Array.isArray(latest.entries)
+                ? latest.entries.map((entry: ContentEntry) => ({
+                    id: entry.id,
+                    slug: collection.slug,
+                    collectionName: collection.name,
+                    title:
+                      typeof entry.data?.title === "string" && entry.data.title.trim().length > 0
+                        ? entry.data.title.trim()
+                        : entry.id,
+                    status: String(entry.status || "draft"),
+                    updatedAt: entry.updatedAt || entry.createdAt,
+                  }))
+                : [];
+
+              return {
+                slug: collection.slug,
+                total: all.total || 0,
+                drafts: drafts.total || 0,
+                published: published.total || 0,
+                recent: latestRows,
+              };
             } catch {
-              return [collection.slug, 0] as const;
+              return {
+                slug: collection.slug,
+                total: 0,
+                drafts: 0,
+                published: 0,
+                recent: [] as RecentEntry[],
+              };
             }
           })
         );
-        setCounts(Object.fromEntries(totals));
+
+        setCounts(Object.fromEntries(totalsData.map((item) => [item.slug, item.total])));
+        setDraftCounts(Object.fromEntries(totalsData.map((item) => [item.slug, item.drafts])));
+        setPublishedCounts(Object.fromEntries(totalsData.map((item) => [item.slug, item.published])));
+        setRecentEntries(
+          totalsData
+            .flatMap((item) => item.recent)
+            .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+            .slice(0, 8)
+        );
+      } else {
+        setCounts({});
+        setDraftCounts({});
+        setPublishedCounts({});
+        setRecentEntries([]);
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : t("sitePanelShell.contentUi.toasts.loadError");
@@ -69,8 +128,15 @@ export default function ContentPage() {
     return Object.values(counts).reduce((acc, val) => acc + (Number.isFinite(val) ? val : 0), 0);
   }, [counts]);
 
-  const drafts = Math.max(0, Math.round(totalEntries * 0.25));
-  const scheduled = Math.max(0, Math.round(totalEntries * 0.15));
+  const drafts = useMemo(
+    () => Object.values(draftCounts).reduce((acc, value) => acc + (Number.isFinite(value) ? value : 0), 0),
+    [draftCounts]
+  );
+
+  const published = useMemo(
+    () => Object.values(publishedCounts).reduce((acc, value) => acc + (Number.isFinite(value) ? value : 0), 0),
+    [publishedCounts]
+  );
 
   return (
     <SitePanelLayout
@@ -100,12 +166,12 @@ export default function ContentPage() {
             <div className="spacer-sm" />
             <div className="stat-value">{drafts}</div>
             <div className="spacer-sm" />
-            <span className="badge blue">{t("sitePanelShell.contentUi.cards.scheduled", { count: scheduled })}</span>
+            <span className="badge blue">Published: {published}</span>
           </div>
           <div className="card tight card-pad">
             <div className="detail-label">{t("sitePanelShell.contentUi.cards.authors")}</div>
             <div className="spacer-sm" />
-            <div className="stat-value">{Math.max(3, Math.min(5, collections.length + 1))}</div>
+            <div className="stat-value">{collections.length}</div>
             <div className="spacer-sm" />
             <span className="badge green">{t("sitePanelShell.contentUi.cards.workflowOk")}</span>
           </div>
@@ -116,7 +182,7 @@ export default function ContentPage() {
         <div className="card card-pad">
           <div className="section-header">
             <div className="section-title">{t("sitePanelShell.contentUi.sections.collections")}</div>
-            <span className="badge gray">Mock</span>
+            <span className="badge gray">{t("sitePanelShell.contentUi.cards.collections", { count: collections.length })}</span>
           </div>
           <div className="spacer-sm" />
           <div className="row-wrap" style={{ justifyContent: "flex-start" }}>
@@ -140,28 +206,27 @@ export default function ContentPage() {
           <div className="spacer-sm" />
           {loading ? (
             <div className="text-muted">{t("common.loading")}</div>
-          ) : collections.length === 0 ? (
+          ) : recentEntries.length === 0 ? (
             <div className="text-muted">{t("sitePanelShell.contentUi.states.noEntries")}</div>
           ) : (
             <div>
-              {(collections || []).slice(0, 6).map((c, idx) => (
-                <div key={c.id} className="list-row">
+              {recentEntries.map((entry) => (
+                <div key={entry.id} className="list-row">
                   <div className="min-w-0">
                     <div className="truncate project-name">
-                      {c.name}
+                      {entry.title}
                     </div>
                     <div className="detail-label mt-2">
-                      {c.slug} - {timeAgo(Date.now() - idx * 1000 * 60 * 60 * 6)}
+                      {entry.slug} - {timeAgo(entry.updatedAt)}
                     </div>
                     <div className="tag-row">
-                      <span className="badge gray">#SEO</span>
-                      <span className="badge gray">#CMS</span>
-                      <span className="badge blue">SEO: {68 + idx * 3}</span>
+                      <span className="badge gray">{entry.collectionName}</span>
+                      <span className={entry.status === "published" ? "badge green" : "badge gray"}>{entry.status}</span>
                     </div>
                   </div>
                   <div className="row-wrap">
-                    <button className="btn" type="button">{t("common.edit")}</button>
-                    <button className="btn" type="button">{t("sitePanelShell.contentUi.actions.preview")}</button>
+                    <Link className="btn" href={`/sites/${encodeURIComponent(slug)}/panel/collections`}>{t("common.edit")}</Link>
+                    <Link className="btn" href={`/sites/${encodeURIComponent(slug)}/panel/content`}>{t("sitePanelShell.contentUi.actions.preview")}</Link>
                   </div>
                 </div>
               ))}

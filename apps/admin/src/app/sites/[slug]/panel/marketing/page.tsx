@@ -21,7 +21,7 @@ import {
   type PublishJob,
 } from "@/lib/api";
 import type { SiteInfo } from "@repo/sdk";
-import { timeAgo, clamp } from "@/lib/formatters";
+import { timeAgo } from "@/lib/formatters";
 
 function postStatusBadge(status: string) {
   if (status === "Published") return ["Published", "badge green"] as const;
@@ -42,7 +42,7 @@ export default function MarketingPage() {
   const [orgId, setOrgId] = useState<string | null>(null);
   const [campaigns, setCampaigns] = useState<MarketingCampaign[]>([]);
   const [drafts, setDrafts] = useState<DistributionDraft[]>([]);
-  const [, setJobs] = useState<PublishJob[]>([]);
+  const [jobs, setJobs] = useState<PublishJob[]>([]);
   const [showCreateCampaign, setShowCreateCampaign] = useState(false);
   const [showCreateDraft, setShowCreateDraft] = useState(false);
   const [showPublish, setShowPublish] = useState(false);
@@ -199,15 +199,18 @@ export default function MarketingPage() {
 
   const total = drafts.length;
   const draftsCount = drafts.filter((d) => d.status === "draft" || d.status === "ready").length;
-  const scheduled = Math.max(0, Math.round(total * 0.25));
+  const scheduled = jobs.filter((job) => job.status === "pending" || job.status === "processing").length;
 
   const collections = campaigns.map((c) => c.name).slice(0, 6);
+  const authorsCount = new Set(
+    [...drafts.map((draft) => draft.createdById), ...campaigns.map((campaign) => campaign.createdById)].filter(Boolean)
+  ).size;
 
   const list = drafts
     .slice()
     .sort((a, b) => new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime())
     .map((d) => {
-      const [txt, cls] = postStatusBadge(String(d.status || "Draft"));
+      const [txt, cls] = postStatusBadge(String(d.status || "Unknown"));
       const tags = (d.channels || []).slice(0, 3);
       return (
         <div key={d.id} className="list-row">
@@ -216,13 +219,12 @@ export default function MarketingPage() {
               {d.title}
             </div>
             <div className="detail-label mt-2">
-              {(d.campaign?.name || "Marketing")} - {(d.createdById || "Team")} - {timeAgo(d.updatedAt || d.createdAt)}
+              {(d.campaign?.name || t("sitePanelShell.marketingUi.states.noCollections"))} - {(d.createdById || "-")} - {timeAgo(d.updatedAt || d.createdAt)}
             </div>
             <div className="tag-row">
               {tags.map((t) => (
                 <span key={t} className="badge gray">#{t}</span>
               ))}
-              <span className="badge blue">SEO: {clamp(60 + tags.length * 6, 60, 95)}</span>
             </div>
           </div>
           <div className="row-wrap">
@@ -276,7 +278,7 @@ export default function MarketingPage() {
           <div className="card stat-card">
             <div className="detail-label">{t("sitePanelShell.marketingUi.cards.authors")}</div>
             <div className="spacer-sm" />
-            <div className="stat-value">{Math.max(3, Math.min(5, collections.length + 1))}</div>
+            <div className="stat-value">{authorsCount}</div>
             <div className="spacer-sm" />
             <span className="badge green">{t("sitePanelShell.marketingUi.cards.workflowOk")}</span>
           </div>
@@ -288,7 +290,7 @@ export default function MarketingPage() {
           <div className="card card-pad">
             <div className="section-header">
               <div className="section-title">{t("sitePanelShell.marketingUi.sections.collections")}</div>
-              <span className="badge gray">Mock</span>
+              <span className="badge gray">{t("sitePanelShell.marketingUi.cards.collections", { count: collections.length })}</span>
             </div>
             <div className="spacer-sm" />
             <div className="row-wrap">

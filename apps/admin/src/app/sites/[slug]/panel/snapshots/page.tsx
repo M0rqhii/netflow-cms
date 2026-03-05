@@ -6,7 +6,7 @@ import { SitePanelLayout } from "@/components/site-panel/SitePanelLayout";
 import { useTranslations } from "@/hooks/useTranslations";
 import { useToast } from "@/components/ui/Toast";
 import { fetchMySites, exchangeSiteToken, getSiteToken } from "@/lib/api";
-import { timeAgo, fmtBytes } from "@/lib/formatters";
+import { timeAgo } from "@/lib/formatters";
 import { createApiClient, type SiteInfo, type SiteSnapshot } from "@repo/sdk";
 
 export default function SnapshotsPage() {
@@ -17,8 +17,11 @@ export default function SnapshotsPage() {
   const apiClient = useMemo(() => createApiClient(), []);
 
   const [siteName, setSiteName] = useState<string | null>(null);
+  const [siteId, setSiteId] = useState<string | null>(null);
   const [snapshots, setSnapshots] = useState<SiteSnapshot[]>([]);
   const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
+  const [restoringId, setRestoringId] = useState<string | null>(null);
 
   const loadSnapshots = useCallback(async () => {
     if (!slug) return;
@@ -30,6 +33,7 @@ export default function SnapshotsPage() {
         throw new Error(t("sitePanelShell.snapshotsUi.toasts.siteNotFound", { slug }));
       }
       setSiteName(site.site?.name || slug);
+      setSiteId(site.siteId);
       let token = getSiteToken(site.siteId);
       if (!token) {
         token = await exchangeSiteToken(site.siteId);
@@ -48,6 +52,48 @@ export default function SnapshotsPage() {
     loadSnapshots();
   }, [loadSnapshots]);
 
+  const handleCreateSnapshot = useCallback(async () => {
+    if (!siteId) return;
+    try {
+      setCreating(true);
+      let token = getSiteToken(siteId);
+      if (!token) {
+        token = await exchangeSiteToken(siteId);
+      }
+      await apiClient.createSnapshot(token, siteId);
+      toast.push({ tone: "success", message: t("sitePanelShell.snapshotsUi.toasts.backupNowMock") });
+      await loadSnapshots();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : t("sitePanelShell.snapshotsUi.toasts.loadError");
+      toast.push({ tone: "error", message });
+    } finally {
+      setCreating(false);
+    }
+  }, [siteId, apiClient, toast, t, loadSnapshots]);
+
+  const handleRestoreSnapshot = useCallback(async (snapshotId: string) => {
+    if (!siteId) return;
+    try {
+      setRestoringId(snapshotId);
+      let token = getSiteToken(siteId);
+      if (!token) {
+        token = await exchangeSiteToken(siteId);
+      }
+      await apiClient.restoreSnapshot(token, siteId, snapshotId);
+      toast.push({ tone: "success", message: t("sitePanelShell.snapshotsUi.toasts.restoreMock") });
+      await loadSnapshots();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : t("sitePanelShell.snapshotsUi.toasts.loadError");
+      toast.push({ tone: "error", message });
+    } finally {
+      setRestoringId(null);
+    }
+  }, [siteId, apiClient, toast, t, loadSnapshots]);
+
+  const latestSnapshot = snapshots
+    .slice()
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+
   return (
     <SitePanelLayout
       slug={slug}
@@ -56,8 +102,10 @@ export default function SnapshotsPage() {
       subtitle={t("sitePanelShell.snapshots.subtitle")}
       actions={
         <>
-          <button className="btn" type="button" onClick={() => toast.push({ tone: "success", message: t("sitePanelShell.snapshotsUi.toasts.retentionMock") })}>{t("sitePanelShell.actions.retention")}</button>
-          <button className="btn btn-primary" type="button" onClick={() => toast.push({ tone: "success", message: t("sitePanelShell.snapshotsUi.toasts.backupNowMock") })}>{t("sitePanelShell.actions.runBackupNow")}</button>
+          <button className="btn" type="button" onClick={() => void loadSnapshots()}>{t("sitePanelShell.actions.retention")}</button>
+          <button className="btn btn-primary" type="button" disabled={!siteId || creating} onClick={() => void handleCreateSnapshot()}>
+            {creating ? t("common.loading") : t("sitePanelShell.actions.runBackupNow")}
+          </button>
         </>
       }
     >
@@ -68,10 +116,11 @@ export default function SnapshotsPage() {
             <div className="section-title">{t("sitePanelShell.snapshotsUi.sections.policy")}</div>
             <div className="spacer-sm" />
             <div className="row-wrap">
-              <span className="badge green">{t("sitePanelShell.snapshotsUi.labels.schedule")}</span>
-              <span className="badge blue">{t("sitePanelShell.snapshotsUi.labels.window")}</span>
-              <span className="badge gray">{t("sitePanelShell.snapshotsUi.labels.retention")}</span>
-              <span className="badge gray">{t("sitePanelShell.snapshotsUi.labels.encryption")}</span>
+              <span className="badge green">{t("sitePanelShell.snapshotsUi.labels.retention")}</span>
+              <span className="badge gray">{t("sitePanelShell.snapshotsUi.sections.snapshots")}: {snapshots.length}</span>
+              <span className="badge gray">
+                {t("sitePanelShell.snapshotsUi.labels.schedule")} {latestSnapshot ? timeAgo(latestSnapshot.createdAt) : "-"}
+              </span>
             </div>
             <div className="spacer-sm" />
             <div className="detail-label">
@@ -97,17 +146,17 @@ export default function SnapshotsPage() {
                       <div className="min-w-0">
                         <div className="truncate project-name">{b.label || b.id}</div>
                         <div className="detail-label mt-2">
-                          {timeAgo(b.createdAt)} - eu-central-1 - Daily
+                          {timeAgo(b.createdAt)} - {b.id.slice(0, 8)}
                         </div>
                         <div className="tag-row">
-                          <span className="badge gray">{t("sitePanelShell.snapshotsUi.labels.size", { value: fmtBytes(280 * 1024 * 1024) })}</span>
                           <span className="badge gray">{t("sitePanelShell.snapshotsUi.labels.retentionShort")}</span>
                         </div>
                       </div>
                       <div className="row-wrap" style={{ alignItems: "center" }}>
                         <span className={stCls}>{t("sitePanelShell.snapshotsUi.labels.ok")}</span>
-                        <button className="btn" type="button" onClick={() => toast.push({ tone: "success", message: t("sitePanelShell.snapshotsUi.toasts.restoreMock") })}>{t("sitePanelShell.snapshotsUi.actions.restore")}</button>
-                        <button className="btn" type="button" onClick={() => toast.push({ tone: "success", message: t("sitePanelShell.snapshotsUi.toasts.downloadMock") })}>{t("sitePanelShell.snapshotsUi.actions.download")}</button>
+                        <button className="btn" type="button" disabled={restoringId === b.id} onClick={() => void handleRestoreSnapshot(b.id)}>
+                          {restoringId === b.id ? t("common.loading") : t("sitePanelShell.snapshotsUi.actions.restore")}
+                        </button>
                       </div>
                     </div>
                   );

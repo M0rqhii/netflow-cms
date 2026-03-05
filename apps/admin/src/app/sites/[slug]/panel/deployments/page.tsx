@@ -19,6 +19,8 @@ export default function DeploymentsPage() {
   const [loading, setLoading] = useState(true);
   const [deployments, setDeployments] = useState<SiteDeployment[]>([]);
   const [siteName, setSiteName] = useState<string | null>(null);
+  const [siteId, setSiteId] = useState<string | null>(null);
+  const [publishing, setPublishing] = useState(false);
 
   const apiClient = useMemo(() => createApiClient(), []);
 
@@ -39,6 +41,7 @@ export default function DeploymentsPage() {
       }
 
       setSiteName(site.site?.name || slug);
+      setSiteId(site.siteId);
 
       const id = site.siteId;
       let token = getSiteToken(id);
@@ -60,6 +63,25 @@ export default function DeploymentsPage() {
     loadData();
   }, [loadData]);
 
+  const handlePublish = useCallback(async () => {
+    if (!siteId) return;
+    try {
+      setPublishing(true);
+      let token = getSiteToken(siteId);
+      if (!token) {
+        token = await exchangeSiteToken(siteId);
+      }
+      await apiClient.publishSite(token, siteId);
+      toast.push({ tone: "success", message: t("sitePanelShell.deploymentsUi.toasts.newDeploymentMock") });
+      await loadData();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : t("sitePanelShell.deploymentsUi.toasts.loadError");
+      toast.push({ tone: "error", message });
+    } finally {
+      setPublishing(false);
+    }
+  }, [siteId, apiClient, toast, t, loadData]);
+
   const current = deployments.slice().sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
 
   return (
@@ -70,8 +92,10 @@ export default function DeploymentsPage() {
       subtitle={t("sitePanelShell.deployments.subtitle")}
       actions={
         <>
-          <button className="btn" type="button" onClick={() => toast.push({ tone: "success", message: t("sitePanelShell.deploymentsUi.toasts.redeployMock") })}>{t("sitePanelShell.actions.redeploy")}</button>
-          <button className="btn btn-primary" type="button" onClick={() => toast.push({ tone: "success", message: t("sitePanelShell.deploymentsUi.toasts.newDeploymentMock") })}>{t("sitePanelShell.actions.newDeployment")}</button>
+          <button className="btn" type="button" onClick={() => void loadData()}>{t("sitePanelShell.actions.redeploy")}</button>
+          <button className="btn btn-primary" type="button" disabled={publishing || loading || !siteId} onClick={() => void handlePublish()}>
+            {publishing ? t("common.loading") : t("sitePanelShell.actions.newDeployment")}
+          </button>
         </>
       }
     >
@@ -85,7 +109,7 @@ export default function DeploymentsPage() {
               <>
                 <div className="row-wrap">
                   <span className="badge blue">{t("sitePanelShell.deploymentsUi.labels.env", { value: current.env })}</span>
-                  <span className="badge green">{t("sitePanelShell.deploymentsUi.labels.version")}</span>
+                  <span className="badge green">{current.type || t("sitePanelShell.deploymentsUi.labels.deploy")}</span>
                   <span className="badge gray">{t("sitePanelShell.deploymentsUi.labels.sha", { value: current.id.slice(0, 7) })}</span>
                   <span className="badge gray">{t("sitePanelShell.deploymentsUi.labels.last", { value: timeAgo(current.createdAt) })}</span>
                 </div>
@@ -116,10 +140,10 @@ export default function DeploymentsPage() {
                     <div key={d.id} className="list-row">
                       <div className="min-w-0">
                         <div className="truncate project-name">
-                          v1.0.0 - {d.env}
+                          {(d.type || t("sitePanelShell.deploymentsUi.labels.deploy"))} - {d.env}
                         </div>
                         <div className="detail-label mt-2">
-                          {timeAgo(d.createdAt)} - system - {d.id.slice(0, 7)} - 120s
+                          {timeAgo(d.createdAt)} - {d.id.slice(0, 7)}
                         </div>
                         <div className="tag-row">
                           <span className="badge gray">{d.message || t("sitePanelShell.deploymentsUi.labels.deploy")}</span>
@@ -127,8 +151,6 @@ export default function DeploymentsPage() {
                       </div>
                       <div className="row-wrap" style={{ alignItems: "center" }}>
                         <span className={stCls}>{d.status.toUpperCase()}</span>
-                        <button className="btn" type="button">{t("sitePanelShell.deploymentsUi.actions.rollback")}</button>
-                        <button className="btn" type="button">{t("sitePanelShell.deploymentsUi.actions.logs")}</button>
                       </div>
                     </div>
                   );

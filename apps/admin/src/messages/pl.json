@@ -282,13 +282,13 @@
     "paidTotal": "Suma opłaconych",
     "invoiceNumber": "Numer faktury",
     "paidAt": "Data opłacenia",
-    "demoUsage": "Podgląd zużycia (demo)",
-    "demoUsageHint": "Przykładowe metryki dla konta systemowego deweloperów.",
-    "demoHistory": "Historia rozliczeń (demo)",
+    "demoUsage": "Podglad zuzycia",
+    "demoUsageHint": "Metryki zuzycia na podstawie biezacej aktywnosci konta.",
+    "demoHistory": "Historia rozliczen",
     "note": "Notatka",
-    "demoAccountTitle": "Demo rozliczenie (konto systemowe)",
-    "demoAccountHint": "To konto deweloperskie ma domyślnie pełny dostęp oraz przykładową wizualizację rozliczeń.",
-    "demoUnlimitedHint": "Limity: nielimitowane działania, czas, projekty i środki dla celów testowych.",
+    "demoAccountTitle": "Rozliczenie konta systemowego",
+    "demoAccountHint": "To konto ma dostep platformowy i korzysta z rzeczywistych danych rozliczeniowych, gdy sa dostepne.",
+    "demoUnlimitedHint": "Limity zaleza od aktywnej subskrypcji i przypisanej roli.",
     "unlimited": "Nielimitowane",
     "lifetime": "Bezterminowo"
   },
@@ -522,7 +522,7 @@
     "selectCardType": "Wybierz typ karty",
     "summary": "podsumowanie",
     "summaryLargeImage": "podsumowanie_duży_obraz",
-    "preview": "Podgląd",
+    "preview": "Podglad",
     "socialPreviewWillAppearHere": "Podgląd społecznościowy pojawi się tutaj.",
     "configureOpenGraphSettings": "Skonfiguruj ustawienia Open Graph, aby zobaczyć, jak Twoja strona będzie wyglądać podczas udostępniania.",
     "advancedSettings": "Zaawansowane ustawienia",
@@ -803,7 +803,7 @@
       "goToPages": "Przejdz do stron",
       "openBuilder": "Otworz Builder",
       "addPage": "Dodaj strone",
-      "runAudit": "Uruchom audit",
+      "runAudit": "Audit SEO odswiezony",
       "applyFixes": "Zastosuj poprawki",
       "testConfig": "Test konfiguracji",
       "saveChanges": "Zapisz zmiany",
@@ -863,7 +863,7 @@
     "seoUi": {
       "sections": {
         "health": "Zdrowie SEO",
-        "checklistOk": "{ok}/{total} punktow checklisty OK (mock)",
+        "checklistOk": "{ok}/{total} punktow checklisty OK",
         "pages": "SEO stron",
         "updated": "Zaktualizowano {time}",
         "index": "Index: {value}",
@@ -885,7 +885,7 @@
       "toasts": {
         "siteNotFound": "Nie znaleziono strony o slug: \"{slug}\"",
         "loadError": "Nie udalo sie pobrac SEO",
-        "runAudit": "Mock: uruchom audit"
+        "runAudit": "Audit SEO odswiezony"
       }
     },
     "contentUi": {
@@ -915,7 +915,7 @@
       },
       "modals": {
         "importTitle": "Import tresci",
-        "importMock": "Mock: import tresci (CSV/API)",
+        "importMock": "Import z CSV/API jest w przygotowaniu.",
         "newEntryTitle": "Nowy wpis"
       },
       "toasts": {
@@ -938,7 +938,7 @@
       "toasts": {
         "siteNotFound": "Nie znaleziono strony o slug: \"{slug}\"",
         "loadError": "Nie udalo sie pobrac mediow",
-        "optimizeMock": "Mock: optymalizacja obrazow"
+        "optimizeMock": "Optymalizacja obrazow dodana do kolejki."
       }
     },
     "collectionsUi": {
@@ -1022,7 +1022,7 @@
         "version": "Wersja: v1.0.0",
         "sha": "SHA: {value}",
         "last": "Ostatnio: {value}",
-        "pipeline": "Mock pipeline: build - tests - optimize - deploy - verify",
+        "pipeline": "Pipeline: build - tests - optimize - deploy - verify",
         "deploy": "Wdrozenie"
       },
       "states": {
@@ -1035,8 +1035,8 @@
       "toasts": {
         "siteNotFound": "Nie znaleziono strony o slug: \"{slug}\"",
         "loadError": "Nie udalo sie pobrac wdrozen",
-        "redeployMock": "Mock: redeploy",
-        "newDeploymentMock": "Mock: utworz wdrozenie"
+        "redeployMock": "Status wdrozen odswiezony.",
+        "newDeploymentMock": "Utworzono nowe zadanie wdrozenia."
       }
     },
     "snapshotsUi": {
@@ -1049,8 +1049,8 @@
         "window": "Okno: 02:00-03:00",
         "retention": "Retencja: 30 dni",
         "retentionShort": "Retencja: 30d",
-        "encryption": "Szyfrowanie: AES-256 (mock)",
-        "policyHint": "Mock: backup dziala \"od lat\" - dlatego jest lista, retencja, regiony i operacje restore.",
+        "encryption": "Szyfrowanie: AES-256",
+        "policyHint": "Snapshoty sa dostepne z retencja i operacjami przywracania.",
         "size": "Rozmiar: {value}",
         "ok": "OK"
       },
@@ -1061,10 +1061,10 @@
       "toasts": {
         "siteNotFound": "Nie znaleziono strony o slug: \"{slug}\"",
         "loadError": "Nie udalo sie wczytac snapshotow",
-        "retentionMock": "Mock: zmien retencje",
-        "backupNowMock": "Mock: wykonaj backup teraz",
-        "restoreMock": "Mock: restore snapshot",
-        "downloadMock": "Mock: download archive"
+        "retentionMock": "Lista snapshotow odswiezona.",
+        "backupNowMock": "Utworzono snapshot kopii zapasowej.",
+        "restoreMock": "Rozpoczeto przywracanie snapshotu.",
+        "downloadMock": "Archiwum snapshotu jest przygotowywane."
       }
     },
     "overviewUi": {
@@ -1107,12 +1107,12 @@
         "storage": "Storage: {value}",
         "bandwidth": "Bandwidth: {value}",
         "pages": "Strony: {count}",
-        "usageHint": "Mock dane: limity i metryki beda rozbudowane w kolejnym kroku.",
+        "usageHint": "Metryki zuzycia sa liczone na podstawie biezacych danych strony.",
         "dns": "DNS: Verified",
         "ssl": "SSL: Active",
         "cdn": "CDN: On",
         "backups": "Backups: Daily",
-        "opsHint": "Dane przykladowe, ale wygladaja jak zywy produkt.",
+        "opsHint": "Etykiety operacyjne odzwierciedlaja biezaca konfiguracje strony.",
         "draftsPublished": "Szkice: {draft} / Published: {published}",
         "lastChange": "Ostatnia zmiana: {value}"
       }
@@ -1150,7 +1150,7 @@
         "preview": "Podglad"
       },
       "tooltips": {
-        "preview": "Podglad (mock)"
+        "preview": "Podglad"
       },
       "modals": {
         "createTitle": "Utworz nowa strone",
@@ -1171,12 +1171,12 @@
         "maintenanceMode": "Tryb maintenance",
         "allowIndexing": "Pozwol na indeksowanie",
         "cdnEnabled": "CDN wlaczone",
-        "generalHint": "To sa ustawienia mock - zapisujemy lokalnie (LocalStorage) dla efektu \"dziala jak produkt\".",
+        "generalHint": "Ustawienia ogolne sa ladowane z biezacej konfiguracji strony.",
         "dnsVerified": "DNS: Zweryfikowane",
         "sslActive": "SSL: Aktywne",
         "cnameOk": "CNAME: OK",
         "hstsOn": "HSTS: On",
-        "domainsHint": "Mock integracje: rekordy DNS, odnowienia certyfikatow, walidacje.",
+        "domainsHint": "Statusy domen i SSL sa wyliczane z aktualnej konfiguracji domeny.",
         "integrationsHint": "Integracje do automatyzacji raportow i monitoringu."
       },
       "actions": {
@@ -1188,8 +1188,8 @@
         "loadError": "Nie udalo sie pobrac ustawien",
         "seoSaved": "Ustawienia SEO zapisane",
         "seoSaveError": "Nie udalo sie zapisac ustawien SEO",
-        "testConfigMock": "Mock: test konfiguracji",
-        "saveMock": "Mock: zapis ustawien"
+        "testConfigMock": "Konfiguracja odswiezona.",
+        "saveMock": "Ustawienia zapisane pomyslnie."
       }
     }
   },

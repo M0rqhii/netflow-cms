@@ -126,7 +126,7 @@ export default function DashboardPage() {
     const token = getAuthToken();
     return token ? decodeAuthToken(token) : null;
   }, []);
-  const userEmail = userInfo?.email || 'user@example.com';
+  const userEmail = userInfo?.email || '-';
   const userOrgId = userInfo?.orgId || null;
 
 
@@ -730,7 +730,6 @@ export default function DashboardPage() {
     </div>
   );
 }
-
 
 
 

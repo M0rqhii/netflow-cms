@@ -1776,6 +1776,60 @@ export async function getDevLogs(): Promise<Array<{ id: string; timestamp: strin
   return client.getDevLogs(token);
 }
 
+export async function getDevRuntime(): Promise<{
+  profile: string;
+  node: string;
+  apiVersion: string;
+  generatedAt: string;
+  totals: {
+    sites: number;
+    users: number;
+    emails: number;
+    subscriptions: number;
+    webhooks: number;
+    featureOverrides: number;
+  };
+}> {
+  const token = getAuthToken();
+  if (!token) throw new Error('Missing auth token. Please login.');
+  return client.getDevRuntime(token);
+}
+
+export async function getDevWebhooks(): Promise<
+  Array<{
+    id: string;
+    siteId: string;
+    siteName: string;
+    url: string;
+    events: string[];
+    active: boolean;
+    createdAt: string;
+    updatedAt: string;
+    lastDeliveryAt?: string;
+    lastStatus?: number;
+    lastError?: string;
+  }>
+> {
+  const token = getAuthToken();
+  if (!token) throw new Error('Missing auth token. Please login.');
+  return client.getDevWebhooks(token);
+}
+
+export async function getDevFlags(): Promise<
+  Array<{
+    id: string;
+    siteId: string;
+    siteName: string;
+    key: string;
+    enabled: boolean;
+    createdAt: string;
+  }>
+> {
+  const token = getAuthToken();
+  if (!token) throw new Error('Missing auth token. Please login.');
+  return client.getDevFlags(token);
+}
+
 // Alias for getCurrentUser (as requested)
 export async function getCurrentUser(): Promise<AccountInfo> {
   return getAccount();
@@ -2582,5 +2636,4 @@ export async function createChannelConnection(
   }
   return res.json();
 }
-
 

@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from '@/hooks/useTranslations';
 import {
   applyReadState,
-  createMockShellNotifications,
   mapActivityToShellNotifications,
   mapDashboardAlertsToShellNotifications,
   markNotificationIdsRead,
@@ -20,9 +19,6 @@ import {
   getProfile,
 } from '@/lib/api';
 import { timeAgo } from '@/lib/formatters';
-
-const appProfile = process.env.NEXT_PUBLIC_APP_PROFILE || process.env.NODE_ENV || 'development';
-const isProduction = appProfile === 'production';
 
 function severityBadgeClass(severity: ShellNotification['severity']): string {
   if (severity === 'error') return 'orange';
@@ -104,10 +100,6 @@ export default function NotificationsMenu() {
       } catch {
         next = [];
       }
-    }
-
-    if (next.length === 0 && !isProduction) {
-      next = createMockShellNotifications(readIds);
     }
 
     setNotifications(applyReadState(next, readIds));
@@ -202,7 +194,6 @@ export default function NotificationsMenu() {
                   <div className="notification-head">
                     <span className={`badge ${severityBadgeClass(item.severity)}`}>{item.severity.toUpperCase()}</span>
                     {!item.isRead && <span className="notif-dot inline" aria-hidden="true" />}
-                    {item.isMock && <span className="badge gray">Mock</span>}
                   </div>
                   <div className="font-semibold text-sm text-left mt-1">{item.title}</div>
                   <div className="text-xs text-muted text-left mt-1">{item.body}</div>

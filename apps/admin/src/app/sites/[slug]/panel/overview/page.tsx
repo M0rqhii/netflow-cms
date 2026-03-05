@@ -47,7 +47,7 @@ export default function OverviewPage() {
   const [lastDeployment, setLastDeployment] = useState<SiteDeployment | null>(null);
   const [publishing, setPublishing] = useState(false);
   const [pages, setPages] = useState<SitePage[]>([]);
-  const [mediaFilesCount, setMediaFilesCount] = useState(0);
+  const [mediaBytes, setMediaBytes] = useState(0);
   const [showPageSelector, setShowPageSelector] = useState(false);
 
   const apiClient = createApiClient();
@@ -85,7 +85,7 @@ export default function OverviewPage() {
 
       setLastDeployment(deployment);
       setPages(pagesResponse);
-      setMediaFilesCount(media.length);
+      setMediaBytes(media.reduce((sum, item) => sum + (Number(item.size) || 0), 0));
     } catch (err) {
       const message = err instanceof Error ? err.message : t("sitePanelShell.overviewUi.toasts.loadError");
       toast.push({
@@ -141,7 +141,7 @@ export default function OverviewPage() {
 
   const siteName = siteInfo?.site?.name || slug || t("sitePanelShell.overviewUi.labels.site");
   const siteDomain = siteInfo?.site?.slug || slug || "";
-  const sitePlan = siteInfo?.site?.plan || "pro";
+  const sitePlan = siteInfo?.site?.plan || "unknown";
 
   const pagesCount = pages.length;
   const draftCount = pages.filter((p) => p.status === "draft").length;
@@ -154,10 +154,20 @@ export default function OverviewPage() {
   }, [pages]);
 
   const [planText, planBadge] = statusToBadge(sitePlan);
-  const [statusText, statusBadge] = statusToBadge("active");
+  const deploymentStatus = String(lastDeployment?.status || "").toLowerCase();
+  const statusText = deploymentStatus ? deploymentStatus.toUpperCase() : "UNKNOWN";
+  const statusBadge = deploymentStatus === "success" ? "badge green" : deploymentStatus === "failed" ? "badge orange" : "badge gray";
 
-  const storage = fmtBytes(mediaFilesCount * 6 * 1024 * 1024);
-  const bandwidth = fmtBytes(Math.max(1, pagesCount) * 180 * 1024 * 1024);
+  const storage = fmtBytes(mediaBytes);
+  const bandwidth = fmtBytes(
+    pages.reduce((sum, page) => {
+      try {
+        return sum + new TextEncoder().encode(JSON.stringify(page.content ?? {})).length;
+      } catch {
+        return sum;
+      }
+    }, 0)
+  );
 
   return (
     <SitePanelLayout
@@ -202,10 +212,10 @@ export default function OverviewPage() {
           />
           <StatCard
             title={t("sitePanelShell.overviewUi.labels.build")}
-            value="v1.0.0"
+            value={lastDeployment ? lastDeployment.id.slice(0, 7) : "-"}
             meta={t("sitePanelShell.overviewUi.labels.lastDeploy", { value: lastDeployment ? timeAgo(lastDeployment.createdAt) : "-" })}
             badgeClass="badge gray"
-            badgeText="build"
+            badgeText={lastDeployment?.env || "build"}
           />
         </div>
 

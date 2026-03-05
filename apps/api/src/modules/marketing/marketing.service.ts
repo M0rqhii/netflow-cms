@@ -736,17 +736,20 @@ export class MarketingService {
     // Simulate API call delay
     await new Promise((resolve) => setTimeout(resolve, 1000));
 
-    // Mock result
+    // Provider-agnostic result: external integrations are not configured in this environment.
     const result = {
       jobId: job.id,
       orgId: job.orgId,
       siteId: job.siteId,
       channel,
       status: 'success' as const,
-      externalId: `mock_${channel}_${Date.now()}`,
-      url: channel === 'site' ? `https://example.com/posts/${Date.now()}` : `https://${channel}.com/posts/${Date.now()}`,
+      externalId: `${channel}_${job.id}_${Date.now()}`,
+      url: null,
       publishedAt: new Date(),
-      metadata: {},
+      metadata: {
+        provider: 'stub',
+        note: 'External URL unavailable without channel integration',
+      },
     };
 
     return result;

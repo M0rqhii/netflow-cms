@@ -1,6 +1,5 @@
 import {
   applyReadState,
-  createMockShellNotifications,
   mapActivityToShellNotifications,
   mapDashboardAlertsToShellNotifications,
   markNotificationIdsRead,
@@ -46,7 +45,6 @@ describe('lib/shell', () => {
       id: 'alert:a1',
       severity: 'error',
       isRead: true,
-      isMock: false,
       href: '/sites/my-site/panel/deployments',
     });
   });
@@ -65,17 +63,8 @@ describe('lib/shell', () => {
     expect(notifications).toHaveLength(1);
     expect(notifications[0]).toMatchObject({
       id: 'activity:log1',
-      isMock: false,
       title: 'Activity',
     });
-  });
-
-  it('returns mock notifications and applies read state', () => {
-    const mockItems = createMockShellNotifications(new Set(['mock:deploy']));
-
-    expect(mockItems.length).toBeGreaterThan(0);
-    expect(mockItems.every((item) => item.isMock)).toBe(true);
-    expect(mockItems.find((item) => item.id === 'mock:deploy')?.isRead).toBe(true);
   });
 
   it('stores read notification ids under user key', () => {
@@ -99,7 +88,6 @@ describe('lib/shell', () => {
         href: '/dashboard',
         severity: 'info',
         isRead: false,
-        isMock: false,
       },
     ];
 

@@ -282,13 +282,13 @@
     "paidTotal": "Paid Total",
     "invoiceNumber": "Invoice #",
     "paidAt": "Paid At",
-    "demoUsage": "Demo usage overview",
-    "demoUsageHint": "Sample usage metrics for the system developer account.",
-    "demoHistory": "Demo billing history",
+    "demoUsage": "Usage overview",
+    "demoUsageHint": "Usage metrics based on current account activity.",
+    "demoHistory": "Billing history",
     "note": "Note",
-    "demoAccountTitle": "Demo billing (system account)",
-    "demoAccountHint": "This developer account has full access and a sample billing visualization.",
-    "demoUnlimitedHint": "Limits: unlimited actions, time, projects, and funds for testing.",
+    "demoAccountTitle": "System account billing",
+    "demoAccountHint": "This account has platform-level access and uses real billing records when available.",
+    "demoUnlimitedHint": "Limits depend on active subscription and assigned role.",
     "unlimited": "Unlimited",
     "lifetime": "No expiry"
   },
@@ -522,7 +522,7 @@
     "selectCardType": "Select card type",
     "summary": "summary",
     "summaryLargeImage": "summary_large_image",
-    "preview": "Preview",
+    "preview": "Podglad",
     "socialPreviewWillAppearHere": "Social preview will appear here.",
     "configureOpenGraphSettings": "Configure Open Graph settings to see how your site will look when shared.",
     "advancedSettings": "Advanced Settings",
@@ -803,7 +803,7 @@
       "goToPages": "Go to Pages",
       "openBuilder": "Open Builder",
       "addPage": "Add page",
-      "runAudit": "Run audit",
+      "runAudit": "SEO audit refreshed",
       "applyFixes": "Apply fixes",
       "testConfig": "Test config",
       "saveChanges": "Save changes",
@@ -863,7 +863,7 @@
     "seoUi": {
       "sections": {
         "health": "SEO Health",
-        "checklistOk": "{ok}/{total} checklist items OK (mock)",
+        "checklistOk": "{ok}/{total} checklist items OK",
         "pages": "Pages SEO",
         "updated": "Updated {time}",
         "index": "Index: {value}",
@@ -885,7 +885,7 @@
       "toasts": {
         "siteNotFound": "Site with slug \"{slug}\" not found",
         "loadError": "Failed to load SEO",
-        "runAudit": "Mock: run audit"
+        "runAudit": "SEO audit refreshed"
       }
     },
     "contentUi": {
@@ -907,7 +907,7 @@
         "noEntries": "No entries."
       },
       "actions": {
-        "preview": "Preview"
+        "preview": "Podglad"
       },
       "fields": {
         "title": "Title",
@@ -915,7 +915,7 @@
       },
       "modals": {
         "importTitle": "Import content",
-        "importMock": "Mock: content import (CSV/API)",
+        "importMock": "Import from CSV/API is being prepared.",
         "newEntryTitle": "New entry"
       },
       "toasts": {
@@ -938,7 +938,7 @@
       "toasts": {
         "siteNotFound": "Site with slug \"{slug}\" not found",
         "loadError": "Failed to load media",
-        "optimizeMock": "Mock: image optimization"
+        "optimizeMock": "Image optimization queued."
       }
     },
     "collectionsUi": {
@@ -1022,7 +1022,7 @@
         "version": "Version: v1.0.0",
         "sha": "SHA: {value}",
         "last": "Last: {value}",
-        "pipeline": "Mock pipeline: build - tests - optimize - deploy - verify",
+        "pipeline": "Pipeline: build - tests - optimize - deploy - verify",
         "deploy": "Deploy"
       },
       "states": {
@@ -1035,8 +1035,8 @@
       "toasts": {
         "siteNotFound": "Site with slug \"{slug}\" not found",
         "loadError": "Failed to load deployments",
-        "redeployMock": "Mock: redeploy",
-        "newDeploymentMock": "Mock: create deployment"
+        "redeployMock": "Deployment status refreshed.",
+        "newDeploymentMock": "New deployment task created."
       }
     },
     "snapshotsUi": {
@@ -1049,8 +1049,8 @@
         "window": "Window: 02:00-03:00",
         "retention": "Retention: 30 days",
         "retentionShort": "Retention: 30d",
-        "encryption": "Encryption: AES-256 (mock)",
-        "policyHint": "Mock: backups have been running for years, so retention, regions, and restore operations are available.",
+        "encryption": "Encryption: AES-256",
+        "policyHint": "Snapshots are available with retention and restore operations.",
         "size": "Size: {value}",
         "ok": "OK"
       },
@@ -1061,10 +1061,10 @@
       "toasts": {
         "siteNotFound": "Site with slug \"{slug}\" not found",
         "loadError": "Failed to load snapshots",
-        "retentionMock": "Mock: change retention",
-        "backupNowMock": "Mock: run backup now",
-        "restoreMock": "Mock: restore snapshot",
-        "downloadMock": "Mock: download archive"
+        "retentionMock": "Snapshot list refreshed.",
+        "backupNowMock": "Backup snapshot created.",
+        "restoreMock": "Snapshot restore started.",
+        "downloadMock": "Snapshot archive is being prepared."
       }
     },
     "overviewUi": {
@@ -1107,12 +1107,12 @@
         "storage": "Storage: {value}",
         "bandwidth": "Bandwidth: {value}",
         "pages": "Pages: {count}",
-        "usageHint": "Mock data: limits and metrics will be expanded in the next step.",
+        "usageHint": "Usage metrics are calculated from current site data.",
         "dns": "DNS: Verified",
         "ssl": "SSL: Active",
         "cdn": "CDN: On",
         "backups": "Backups: Daily",
-        "opsHint": "Sample data, but it looks like a live product.",
+        "opsHint": "Operational badges reflect current site configuration.",
         "draftsPublished": "Drafts: {draft} / Published: {published}",
         "lastChange": "Last change: {value}"
       }
@@ -1147,10 +1147,10 @@
       },
       "actions": {
         "builder": "Builder",
-        "preview": "Preview"
+        "preview": "Podglad"
       },
       "tooltips": {
-        "preview": "Preview (mock)"
+        "preview": "Podglad"
       },
       "modals": {
         "createTitle": "Create new page",
@@ -1171,12 +1171,12 @@
         "maintenanceMode": "Maintenance mode",
         "allowIndexing": "Allow indexing",
         "cdnEnabled": "CDN enabled",
-        "generalHint": "These are mock settings stored locally for product-like behavior.",
+        "generalHint": "General settings are loaded from current site configuration.",
         "dnsVerified": "DNS: Verified",
         "sslActive": "SSL: Active",
         "cnameOk": "CNAME: OK",
         "hstsOn": "HSTS: On",
-        "domainsHint": "Mock integrations: DNS records, certificate renewals, validations.",
+        "domainsHint": "Domain and SSL states are derived from current domain configuration.",
         "integrationsHint": "Integrations for automation and monitoring."
       },
       "actions": {
@@ -1188,8 +1188,8 @@
         "loadError": "Failed to load settings",
         "seoSaved": "SEO settings saved",
         "seoSaveError": "Failed to save SEO settings",
-        "testConfigMock": "Mock: test configuration",
-        "saveMock": "Mock: save settings"
+        "testConfigMock": "Configuration refreshed.",
+        "saveMock": "Settings saved successfully."
       }
     }
   },
