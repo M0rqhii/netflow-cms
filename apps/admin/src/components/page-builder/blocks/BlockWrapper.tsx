@@ -1,20 +1,20 @@
 /**
  * BlockWrapper
  * 
- * Wrapper dla wszystkich bloków z:
+ * Wrapper dla wszystkich blokĂłw z:
  * - Selection handling
  * - Hover states
  * - Drag attributes przekazane z BlockRenderer
  * - Block controls overlay
  * 
- * WAŻNE: React.memo() z custom comparison dla performance!
+ * WAĹ»NE: React.memo() z custom comparison dla performance!
  */
 
 import React, { memo, useCallback } from 'react';
 import type { DraggableAttributes } from '@dnd-kit/core';
 import type { SyntheticListenerMap } from '@dnd-kit/core/dist/hooks/utilities';
 import { cn } from '@/lib/utils';
-import { useBlockNode } from '@/stores/page-builder-store';
+import { useBlockNode, useIsBlockInSelectionPath } from '@/stores/page-builder-store';
 import { BlockControls } from './BlockControls';
 import styles from './BlockWrapper.module.css';
 
@@ -46,6 +46,7 @@ function BlockWrapperComponent({
   onClick,
 }: BlockWrapperProps) {
   const node = useBlockNode(nodeId);
+  const isInSelectionPath = useIsBlockInSelectionPath(nodeId);
   
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !isPreview) {
@@ -78,6 +79,7 @@ function BlockWrapperComponent({
       className={cn(
         styles.wrapper,
         isSelected && styles.selected,
+        isInSelectionPath && styles.pathActive,
         !isSelected && styles.hoverable,
         isDragging && styles.dragging,
         isLocked && styles.locked,
@@ -94,7 +96,7 @@ function BlockWrapperComponent({
       {...dragAttributes}
     >
       {/* Drag handle */}
-      {!isLocked && (
+      {!isLocked && !isStructure && (
         <div
           {...dragListeners}
           className={cn(
@@ -115,7 +117,7 @@ function BlockWrapperComponent({
       )}
       
       {/* Lock indicator */}
-      {isLocked && (
+      {isLocked && !isStructure && (
         <div className={styles.lockIndicator} title="Locked">
           <svg className={styles.lockIcon} viewBox="0 0 24 24" fill="currentColor">
             <path d="M12 17a2 2 0 002-2v-2a2 2 0 00-4 0v2a2 2 0 002 2zm6-7V8a6 6 0 00-12 0v2a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2v-8a2 2 0 00-2-2z" />
@@ -124,12 +126,12 @@ function BlockWrapperComponent({
       )}
       
       {/* Block type label (on hover) */}
-      <div className={cn(styles.typeLabel, (isSelected || isStructure) && styles.visible)}>
+      <div className={cn(styles.typeLabel, isSelected && styles.visible)}>
         {node.meta?.label || node.type}
       </div>
       
       {/* Block controls (on selection) */}
-      {isSelected && <BlockControls nodeId={nodeId} />}
+      {isSelected && !isStructure && <BlockControls nodeId={nodeId} />}
       
       {/* Content */}
       {children}
@@ -153,3 +155,8 @@ function arePropsEqual(
 }
 
 export const BlockWrapper = memo(BlockWrapperComponent, arePropsEqual);
+
+
+
+
+

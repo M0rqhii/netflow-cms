@@ -27,8 +27,13 @@ describe('CollectionItemsService', () => {
       delete: jest.fn(),
       count: jest.fn(),
     },
+    site: {
+      findUnique: jest.fn(),
+    },
     $transaction: jest.fn(),
   };
+
+  const orgId = 'org-123';
 
   const mockCache = {
     get: jest.fn(),
@@ -109,6 +114,11 @@ describe('CollectionItemsService', () => {
   afterEach(() => {
     jest.resetAllMocks();
   });
+
+  // Helper to mock site validation
+  const mockSiteValidation = (_siteId: string) => {
+    mockPrismaService.site.findUnique.mockResolvedValue({ orgId });
+  };
 
   describe('getCollection', () => {
     it('should return cached collection if available', async () => {
@@ -195,11 +205,12 @@ describe('CollectionItemsService', () => {
         },
       ];
 
+      mockSiteValidation(siteId);
       mockCache.get.mockResolvedValue(collection);
       mockPrismaOptimizationService.countOptimized.mockResolvedValue(1);
       mockPrismaOptimizationService.findManyOptimized.mockResolvedValue(items);
 
-      const result = await service.list(siteId, slug, {
+      const result = await service.list(siteId, orgId, slug, {
         page: 1,
         pageSize: 10,
       });
@@ -224,11 +235,12 @@ describe('CollectionItemsService', () => {
         schemaJson: {},
       };
 
+      mockSiteValidation(siteId);
       mockCache.get.mockResolvedValue(collection);
       mockPrismaOptimizationService.countOptimized.mockResolvedValue(0);
       mockPrismaOptimizationService.findManyOptimized.mockResolvedValue([]);
 
-      await service.list(siteId, slug, {
+      await service.list(siteId, orgId, slug, {
         page: 1,
         pageSize: 10,
         status: 'PUBLISHED',
@@ -252,11 +264,12 @@ describe('CollectionItemsService', () => {
         schemaJson: {},
       };
 
+      mockSiteValidation(siteId);
       mockCache.get.mockResolvedValue(collection);
       mockPrismaOptimizationService.countOptimized.mockResolvedValue(0);
       mockPrismaOptimizationService.findManyOptimized.mockResolvedValue([]);
 
-      await service.list(siteId, slug, {
+      await service.list(siteId, orgId, slug, {
         page: 1,
         pageSize: 10,
         sort: '-createdAt',
@@ -294,10 +307,11 @@ describe('CollectionItemsService', () => {
         version: 1,
       };
 
+      mockSiteValidation(siteId);
       mockCache.get.mockResolvedValue(collection);
       mockPrismaService.collectionItem.create.mockResolvedValue(createdItem);
 
-      const result = await service.create(siteId, slug, dto, 'user-1');
+      const result = await service.create(siteId, orgId, slug, dto, 'user-1');
 
       expect(result).toEqual(createdItem);
       expect(mockPrismaService.collectionItem.create).toHaveBeenCalledWith(
@@ -328,13 +342,14 @@ describe('CollectionItemsService', () => {
         status: 'DRAFT' as const,
       };
 
+      mockSiteValidation(siteId);
       mockCache.get.mockResolvedValue(collection);
       mockPrismaService.collectionItem.create.mockResolvedValue({
         id: 'item-1',
         ...dto,
       });
 
-      await service.create(siteId, slug, dto);
+      await service.create(siteId, orgId, slug, dto);
 
       expect(mockPrismaService.collectionItem.create).toHaveBeenCalled();
     });
@@ -360,10 +375,11 @@ describe('CollectionItemsService', () => {
         etag: 'abc123',
       };
 
+      mockSiteValidation(siteId);
       mockCache.get.mockResolvedValue(collection);
       mockPrismaService.collectionItem.findFirst.mockResolvedValue(item);
 
-      const result = await service.get(siteId, slug, 'item-1');
+      const result = await service.get(siteId, orgId, slug, 'item-1');
 
       expect(result).toEqual(item);
       expect(mockPrismaService.collectionItem.findFirst).toHaveBeenCalledWith(
@@ -387,11 +403,12 @@ describe('CollectionItemsService', () => {
         schemaJson: {},
       };
 
+      mockSiteValidation(siteId);
       mockCache.get.mockResolvedValue(collection);
       mockPrismaService.collectionItem.findFirst.mockResolvedValue(null);
 
       await expect(
-        service.get(siteId, slug, 'nonexistent')
+        service.get(siteId, orgId, slug, 'nonexistent')
       ).rejects.toThrow(NotFoundException);
     });
   });
@@ -428,13 +445,14 @@ describe('CollectionItemsService', () => {
         publishedAt: new Date(),
       };
 
+      mockSiteValidation(siteId);
       mockCache.get.mockResolvedValue(collection);
       mockPrismaService.collectionItem.findFirst
         .mockResolvedValueOnce(currentItem)
         .mockResolvedValueOnce(currentItem);
       mockPrismaService.collectionItem.update.mockResolvedValue(updatedItem);
 
-      const result = await service.update(siteId, slug, 'item-1', dto, 'user-1');
+      const result = await service.update(siteId, orgId, slug, 'item-1', dto, 'user-1');
 
       expect(result).toEqual(updatedItem);
       expect(mockPrismaService.collectionItem.update).toHaveBeenCalledWith(
@@ -475,11 +493,12 @@ describe('CollectionItemsService', () => {
         version: 1, // Wrong version - current is 2
       };
 
+      mockSiteValidation(siteId);
       mockCache.get.mockResolvedValue(collection);
       mockPrismaService.collectionItem.findFirst.mockResolvedValue(currentItem);
 
       await expect(
-        service.update(siteId, slug, 'item-1', dto)
+        service.update(siteId, orgId, slug, 'item-1', dto)
       ).rejects.toThrow(ConflictException);
     });
 
@@ -508,6 +527,7 @@ describe('CollectionItemsService', () => {
         version: 1,
       };
 
+      mockSiteValidation(siteId);
       mockCache.get.mockResolvedValue(collection);
       mockPrismaService.collectionItem.findFirst.mockResolvedValue(currentItem);
       mockPrismaService.collectionItem.update.mockResolvedValue({
@@ -515,7 +535,7 @@ describe('CollectionItemsService', () => {
         ...dto,
       });
 
-      await service.update(siteId, slug, 'item-1', dto);
+      await service.update(siteId, orgId, slug, 'item-1', dto);
 
       expect(mockPrismaService.collectionItem.update).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -544,11 +564,12 @@ describe('CollectionItemsService', () => {
         collectionId: 'col-1',
       };
 
+      mockSiteValidation(siteId);
       mockCache.get.mockResolvedValue(collection);
       mockPrismaService.collectionItem.findFirst.mockResolvedValue(item);
       mockPrismaService.collectionItem.delete.mockResolvedValue(item);
 
-      const result = await service.remove(siteId, slug, 'item-1');
+      const result = await service.remove(siteId, orgId, slug, 'item-1');
 
       expect(result).toEqual({ ok: true });
       expect(mockPrismaService.collectionItem.delete).toHaveBeenCalledWith({
@@ -566,11 +587,12 @@ describe('CollectionItemsService', () => {
         schemaJson: {},
       };
 
+      mockSiteValidation(siteId);
       mockCache.get.mockResolvedValue(collection);
       mockPrismaService.collectionItem.findFirst.mockResolvedValue(null);
 
       await expect(
-        service.remove(siteId, slug, 'nonexistent')
+        service.remove(siteId, orgId, slug, 'nonexistent')
       ).rejects.toThrow(NotFoundException);
     });
   });

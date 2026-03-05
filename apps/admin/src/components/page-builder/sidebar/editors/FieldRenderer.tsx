@@ -136,32 +136,209 @@ export const FieldRenderer: React.FC<FieldRendererProps> = ({
 // SPECIALIZED INPUTS
 // =============================================================================
 
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+
+const normalizeHex = (input: string | undefined) => {
+  if (!input) return null;
+  const trimmed = input.trim().replace(/^#/, '');
+  if (!/^[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/.test(trimmed)) return null;
+  const full = trimmed.length === 3 ? trimmed.split('').map((ch) => `${ch}${ch}`).join('') : trimmed;
+  return `#${full.toLowerCase()}`;
+};
+
+const hexToRgb = (hex: string) => {
+  const normalized = normalizeHex(hex) ?? '#3b82f6';
+  const raw = normalized.slice(1);
+  return {
+    r: parseInt(raw.slice(0, 2), 16),
+    g: parseInt(raw.slice(2, 4), 16),
+    b: parseInt(raw.slice(4, 6), 16),
+  };
+};
+
+const rgbToHex = (r: number, g: number, b: number) =>
+  `#${[r, g, b]
+    .map((part) => clamp(Math.round(part), 0, 255).toString(16).padStart(2, '0'))
+    .join('')}`;
+
+const rgbToHsv = (r: number, g: number, b: number) => {
+  const rn = r / 255;
+  const gn = g / 255;
+  const bn = b / 255;
+  const max = Math.max(rn, gn, bn);
+  const min = Math.min(rn, gn, bn);
+  const delta = max - min;
+
+  let h = 0;
+  if (delta !== 0) {
+    if (max === rn) h = ((gn - bn) / delta) % 6;
+    else if (max === gn) h = (bn - rn) / delta + 2;
+    else h = (rn - gn) / delta + 4;
+  }
+
+  return {
+    h: Math.round((h * 60 + 360) % 360),
+    s: max === 0 ? 0 : Math.round((delta / max) * 100),
+    v: Math.round(max * 100),
+  };
+};
+
+const hsvToRgb = (h: number, s: number, v: number) => {
+  const hn = ((h % 360) + 360) % 360;
+  const sn = clamp(s, 0, 100) / 100;
+  const vn = clamp(v, 0, 100) / 100;
+
+  const c = vn * sn;
+  const x = c * (1 - Math.abs(((hn / 60) % 2) - 1));
+  const m = vn - c;
+
+  let rp = 0;
+  let gp = 0;
+  let bp = 0;
+
+  if (hn < 60) [rp, gp, bp] = [c, x, 0];
+  else if (hn < 120) [rp, gp, bp] = [x, c, 0];
+  else if (hn < 180) [rp, gp, bp] = [0, c, x];
+  else if (hn < 240) [rp, gp, bp] = [0, x, c];
+  else if (hn < 300) [rp, gp, bp] = [x, 0, c];
+  else [rp, gp, bp] = [c, 0, x];
+
+  return {
+    r: Math.round((rp + m) * 255),
+    g: Math.round((gp + m) * 255),
+    b: Math.round((bp + m) * 255),
+  };
+};
+
+const PRESET_COLORS = [
+  '#ff4d6d', '#ff8a00', '#ffd600', '#70e000', '#00d4ff', '#4f8cff', '#7b61ff', '#d946ef',
+  '#ffffff', '#e2e8f0', '#94a3b8', '#475569', '#1f2937', '#0f172a', '#000000', '#0ea5e9',
+];
+
 const ColorInput: React.FC<{
   value: string | undefined;
   onChange: (value: string) => void;
 }> = ({ value, onChange }) => {
   const [isOpen, setIsOpen] = useState(false);
-  
+  const [hexInput, setHexInput] = useState(normalizeHex(value) ?? '#3b82f6');
+
+  const initialRgb = hexToRgb(hexInput);
+  const initialHsv = rgbToHsv(initialRgb.r, initialRgb.g, initialRgb.b);
+  const [hsv, setHsv] = useState(initialHsv);
+
+  useEffect(() => {
+    const normalized = normalizeHex(value) ?? '#3b82f6';
+    setHexInput(normalized);
+    const rgb = hexToRgb(normalized);
+    setHsv(rgbToHsv(rgb.r, rgb.g, rgb.b));
+  }, [value]);
+
+  const applyHsv = useCallback((nextHsv: { h: number; s: number; v: number }) => {
+    setHsv(nextHsv);
+    const rgb = hsvToRgb(nextHsv.h, nextHsv.s, nextHsv.v);
+    const hex = rgbToHex(rgb.r, rgb.g, rgb.b);
+    setHexInput(hex);
+    onChange(hex);
+  }, [onChange]);
+
+  const handleSVPick = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const x = clamp(event.clientX - rect.left, 0, rect.width);
+    const y = clamp(event.clientY - rect.top, 0, rect.height);
+    const s = Math.round((x / rect.width) * 100);
+    const v = Math.round(100 - (y / rect.height) * 100);
+    applyHsv({ ...hsv, s, v });
+  }, [hsv, applyHsv]);
+
+  const handleHuePick = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const x = clamp(event.clientX - rect.left, 0, rect.width);
+    const h = Math.round((x / rect.width) * 360);
+    applyHsv({ ...hsv, h });
+  }, [hsv, applyHsv]);
+
+  const hueColor = rgbToHex(...Object.values(hsvToRgb(hsv.h, 100, 100)) as [number, number, number]);
+  const currentHex = normalizeHex(hexInput) ?? '#3b82f6';
+
   return (
-    <div className={styles.colorInput}>
-      <div
-        className={styles.colorPreview}
-        style={{ backgroundColor: value || 'transparent' }}
-        onClick={() => setIsOpen(!isOpen)}
-      />
-      <input
-        type="text"
-        className={styles.colorText}
-        value={value ?? ''}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder="#000000"
-      />
-      <input
-        type="color"
-        className={styles.colorPicker}
-        value={value || '#000000'}
-        onChange={(e) => onChange(e.target.value)}
-      />
+    <div className={styles.colorInputWrap}>
+      <div className={styles.colorInput}>
+        <button
+          type="button"
+          className={styles.colorSwatchButton}
+          style={{ backgroundColor: currentHex }}
+          onClick={() => setIsOpen((prev) => !prev)}
+          aria-label="Open color picker"
+        />
+        <input
+          type="text"
+          className={styles.colorText}
+          value={hexInput}
+          onChange={(e) => setHexInput(e.target.value)}
+          onBlur={() => {
+            const normalized = normalizeHex(hexInput);
+            if (!normalized) {
+              setHexInput(currentHex);
+              return;
+            }
+            const rgb = hexToRgb(normalized);
+            setHsv(rgbToHsv(rgb.r, rgb.g, rgb.b));
+            setHexInput(normalized);
+            onChange(normalized);
+          }}
+          placeholder="#000000"
+        />
+      </div>
+
+      {isOpen && (
+        <div className={styles.colorPopover}>
+          <div
+            className={styles.colorSpectrum}
+            style={{ backgroundColor: hueColor }}
+            onMouseDown={handleSVPick}
+            onMouseMove={(e) => {
+              if (e.buttons !== 1) return;
+              handleSVPick(e);
+            }}
+          >
+            <div className={styles.colorSpectrumWhite} />
+            <div className={styles.colorSpectrumBlack} />
+            <span
+              className={styles.colorSpectrumHandle}
+              style={{ left: `${hsv.s}%`, top: `${100 - hsv.v}%` }}
+            />
+          </div>
+
+          <div
+            className={styles.colorHueBar}
+            onMouseDown={handleHuePick}
+            onMouseMove={(e) => {
+              if (e.buttons !== 1) return;
+              handleHuePick(e);
+            }}
+          >
+            <span className={styles.colorHueHandle} style={{ left: `${(hsv.h / 360) * 100}%` }} />
+          </div>
+
+          <div className={styles.colorPresets}>
+            {PRESET_COLORS.map((preset) => (
+              <button
+                key={preset}
+                type="button"
+                className={styles.colorPreset}
+                style={{ backgroundColor: preset }}
+                onClick={() => {
+                  setHexInput(preset);
+                  const rgb = hexToRgb(preset);
+                  setHsv(rgbToHsv(rgb.r, rgb.g, rgb.b));
+                  onChange(preset);
+                }}
+                aria-label={`Use ${preset}`}
+              />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -246,8 +423,8 @@ const SpacingInput: React.FC<{
 /**
  * Image Input with Media Picker
  * 
- * Pozwala na wybór obrazu z biblioteki mediów site'u
- * lub ręczne wpisanie URL.
+ * Pozwala na wybĂłr obrazu z biblioteki mediĂłw site'u
+ * lub rÄ™czne wpisanie URL.
  */
 const ImageInput: React.FC<{
   value: string | undefined;
@@ -268,21 +445,30 @@ const ImageInput: React.FC<{
     onChange('');
   }, [onChange]);
 
+  const showPreview = Boolean(value?.trim());
+
   return (
     <div className={styles.imageInput}>
-      {/* Thumbnail preview */}
-      {value && !previewError && (
+      {/* Thumbnail preview or broken placeholder */}
+      {showPreview && (
         <div className={styles.imagePreview}>
-          <Image
-            src={value}
-            alt="Preview"
-            width={64}
-            height={64}
-            sizes="64px"
-            className={styles.imageThumbnail}
-            unoptimized
-            onError={() => setPreviewError(true)}
-          />
+          {!previewError ? (
+            <Image
+              src={value!}
+              alt="Preview"
+              width={64}
+              height={64}
+              sizes="64px"
+              className={styles.imageThumbnail}
+              unoptimized
+              onError={() => setPreviewError(true)}
+            />
+          ) : (
+            <div className={styles.imagePreviewBroken} title={value}>
+              <FiImage aria-hidden />
+              <span>Invalid or inaccessible</span>
+            </div>
+          )}
           <button
             type="button"
             onClick={handleClear}
@@ -326,3 +512,12 @@ const ImageInput: React.FC<{
 };
 
 export default FieldRenderer;
+
+
+
+
+
+
+
+
+

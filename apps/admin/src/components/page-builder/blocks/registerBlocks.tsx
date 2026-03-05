@@ -84,8 +84,14 @@ const sectionBlockDefinition: BlockDefinition = {
   propsSchema: {
     style: {
       padding: { type: 'spacing', label: 'Padding' },
+      margin: { type: 'spacing', label: 'Margin' },
       backgroundColor: { type: 'color', label: 'Background Color' },
+      color: { type: 'color', label: 'Text Color' },
       maxWidth: { type: 'text', label: 'Max Width', placeholder: '1200px' },
+      minHeight: { type: 'text', label: 'Min Height', placeholder: '200px' },
+      borderRadius: { type: 'text', label: 'Border Radius', placeholder: '0' },
+      border: { type: 'text', label: 'Border', placeholder: '1px solid #eee' },
+      boxShadow: { type: 'text', label: 'Box Shadow', placeholder: '0 4px 6px rgba(0,0,0,0.1)' },
     },
   },
 };
@@ -126,7 +132,22 @@ const columnBlockDefinition: BlockDefinition = {
     },
     style: {
       padding: { type: 'spacing', label: 'Padding' },
+      margin: { type: 'spacing', label: 'Margin' },
       backgroundColor: { type: 'color', label: 'Background Color' },
+      color: { type: 'color', label: 'Text Color' },
+      borderRadius: { type: 'text', label: 'Border Radius', placeholder: '0' },
+      minHeight: { type: 'text', label: 'Min Height', placeholder: '0' },
+      alignSelf: {
+        type: 'select',
+        label: 'Align Self',
+        options: [
+          { value: 'auto', label: 'Auto' },
+          { value: 'flex-start', label: 'Start' },
+          { value: 'center', label: 'Center' },
+          { value: 'flex-end', label: 'End' },
+          { value: 'stretch', label: 'Stretch' },
+        ],
+      },
     },
   },
 };
@@ -139,7 +160,7 @@ const headingBlockDefinition: BlockDefinition = {
   category: 'typography',
   component: HeadingBlock,
   canHaveChildren: false,
-  allowedParents: ['section', 'column'],
+  allowedParents: undefined,
   defaultProps: {
     content: {
       text: 'Heading',
@@ -180,6 +201,12 @@ const headingBlockDefinition: BlockDefinition = {
       },
       color: { type: 'color', label: 'Color' },
       fontSize: { type: 'text', label: 'Font Size' },
+      fontWeight: { type: 'text', label: 'Font Weight', placeholder: '400' },
+      letterSpacing: { type: 'text', label: 'Letter Spacing', placeholder: '0' },
+      lineHeight: { type: 'text', label: 'Line Height', placeholder: '1.5' },
+      margin: { type: 'spacing', label: 'Margin' },
+      padding: { type: 'spacing', label: 'Padding' },
+      maxWidth: { type: 'text', label: 'Max Width', placeholder: '100%' },
     },
   },
 };
@@ -192,7 +219,7 @@ const textBlockDefinition: BlockDefinition = {
   category: 'typography',
   component: TextBlock,
   canHaveChildren: false,
-  allowedParents: ['section', 'column'],
+  allowedParents: undefined,
   defaultProps: {
     content: {
       html: '<p>Enter your text here...</p>',
@@ -221,7 +248,12 @@ const textBlockDefinition: BlockDefinition = {
       },
       color: { type: 'color', label: 'Color' },
       fontSize: { type: 'text', label: 'Font Size' },
+      fontWeight: { type: 'text', label: 'Font Weight', placeholder: '400' },
       lineHeight: { type: 'text', label: 'Line Height' },
+      letterSpacing: { type: 'text', label: 'Letter Spacing', placeholder: '0' },
+      margin: { type: 'spacing', label: 'Margin' },
+      padding: { type: 'spacing', label: 'Padding' },
+      maxWidth: { type: 'text', label: 'Max Width', placeholder: '100%' },
     },
   },
 };
@@ -234,7 +266,7 @@ const buttonBlockDefinition: BlockDefinition = {
   category: 'components',
   component: ButtonBlock,
   canHaveChildren: false,
-  allowedParents: ['section', 'column', 'tab-item', 'accordion-item'],
+  allowedParents: undefined,
   defaultProps: {
     content: {
       text: 'Click me',
@@ -268,8 +300,20 @@ const buttonBlockDefinition: BlockDefinition = {
       backgroundColor: { type: 'color', label: 'Background Color' },
       color: { type: 'color', label: 'Text Color' },
       padding: { type: 'spacing', label: 'Padding' },
+      margin: { type: 'spacing', label: 'Margin' },
       borderRadius: { type: 'text', label: 'Border Radius' },
+      border: { type: 'text', label: 'Border', placeholder: 'none' },
       fontSize: { type: 'text', label: 'Font Size' },
+      fontWeight: { type: 'text', label: 'Font Weight', placeholder: '500' },
+      textAlign: {
+        type: 'select',
+        label: 'Alignment',
+        options: [
+          { value: 'left', label: 'Left' },
+          { value: 'center', label: 'Center' },
+          { value: 'right', label: 'Right' },
+        ],
+      },
     },
   },
 };
@@ -300,6 +344,9 @@ const tabsBlockDefinition: BlockDefinition = {
     style: {
       backgroundColor: { type: 'color', label: 'Background Color' },
       borderRadius: { type: 'text', label: 'Border Radius' },
+      padding: { type: 'spacing', label: 'Padding' },
+      margin: { type: 'spacing', label: 'Margin' },
+      border: { type: 'text', label: 'Border', placeholder: '1px solid transparent' },
     },
   },
 };
@@ -323,6 +370,13 @@ const tabItemBlockDefinition: BlockDefinition = {
   propsSchema: {
     content: {
       title: { type: 'text', label: 'Tab Title' },
+    },
+    style: {
+      padding: { type: 'spacing', label: 'Content Padding' },
+      margin: { type: 'spacing', label: 'Margin' },
+      backgroundColor: { type: 'color', label: 'Background Color' },
+      color: { type: 'color', label: 'Text Color' },
+      borderRadius: { type: 'text', label: 'Border Radius' },
     },
   },
 };
@@ -354,6 +408,9 @@ const accordionBlockDefinition: BlockDefinition = {
     style: {
       backgroundColor: { type: 'color', label: 'Background Color' },
       borderRadius: { type: 'text', label: 'Border Radius' },
+      padding: { type: 'spacing', label: 'Padding' },
+      margin: { type: 'spacing', label: 'Margin' },
+      border: { type: 'text', label: 'Border', placeholder: '1px solid transparent' },
     },
   },
 };
@@ -377,6 +434,13 @@ const accordionItemBlockDefinition: BlockDefinition = {
   propsSchema: {
     content: {
       title: { type: 'text', label: 'Item Title' },
+    },
+    style: {
+      padding: { type: 'spacing', label: 'Content Padding' },
+      margin: { type: 'spacing', label: 'Margin' },
+      backgroundColor: { type: 'color', label: 'Background Color' },
+      color: { type: 'color', label: 'Text Color' },
+      borderRadius: { type: 'text', label: 'Border Radius' },
     },
   },
 };
@@ -423,6 +487,8 @@ export function registerAllBlocks(): void {
 }
 
 export default registerAllBlocks;
+
+
 
 
 

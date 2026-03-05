@@ -29,3 +29,5 @@ export const ModulePlaceholderBlock: React.FC<BlockComponentProps> = ({ node }) 
 };
 
 export default ModulePlaceholderBlock;
+
+

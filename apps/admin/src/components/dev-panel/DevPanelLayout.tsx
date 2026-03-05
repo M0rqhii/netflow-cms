@@ -1,8 +1,6 @@
 "use client";
 
-import React from 'react';
-import { DevPanelNav } from './DevPanelNav';
-import { Badge } from '@/components/ui/Badge';
+import React from "react";
 
 interface DevPanelLayoutProps {
   children: React.ReactNode;
@@ -12,37 +10,27 @@ interface DevPanelLayoutProps {
 }
 
 export function DevPanelLayout({ children, title, description, headerActions }: DevPanelLayoutProps) {
-  const appProfile = process.env.NEXT_PUBLIC_APP_PROFILE || process.env.NODE_ENV || 'development';
+  const appProfile = process.env.NEXT_PUBLIC_APP_PROFILE || process.env.NODE_ENV || "development";
 
   return (
-    <div className="container py-8">
-      <div className="mb-6 space-y-4">
-        <div className="flex items-center justify-between">
+    <div>
+      <div className="card card-pad">
+        <div className="row-start" style={{ flexWrap: "wrap" }}>
           <div>
-            <h1 className="text-2xl font-bold">{title || 'Dev Panel'}</h1>
-            <p className="text-sm text-muted mt-1">
-              {description || 'Internal visibility into dev-only providers and environment'}
-            </p>
+            <div className="view-title">{title || "Dev Panel"}</div>
+            <div className="view-sub">{description || "Internal visibility into dev-only providers and environment"}</div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="row-wrap">
             {headerActions}
-            <Badge tone="warning">Non-production only</Badge>
-            <Badge>{appProfile}</Badge>
+            <span className="badge orange">Non-production only</span>
+            <span className="badge gray">{appProfile}</span>
           </div>
         </div>
-        <DevPanelNav />
       </div>
 
-      <div className="mt-6">{children}</div>
+      <div className="spacer" />
+
+      {children}
     </div>
   );
 }
-
-
-
-
-
-
-
-
-

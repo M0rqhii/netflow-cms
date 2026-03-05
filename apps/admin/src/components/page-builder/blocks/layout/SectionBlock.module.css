@@ -1,10 +1,20 @@
-/**
+﻿/**
  * Section Block Styles
  */
 
 .section {
   width: 100%;
   position: relative;
+  border: 1px solid rgba(148, 166, 196, 0.45);
+  border-radius: 16px;
+  background: rgba(245, 248, 252, 0.75);
+}
+
+.section[data-empty='true'] {
+  border-style: dashed;
+  border-color: rgba(126, 152, 194, 0.62);
+  background:
+    linear-gradient(180deg, rgba(247, 250, 255, 0.96), rgba(241, 246, 253, 0.88));
 }
 
 .inner {
@@ -13,4 +23,5 @@
   display: flex;
   flex-wrap: wrap;
   gap: 16px;
+  min-height: 120px;
 }

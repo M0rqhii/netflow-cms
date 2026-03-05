@@ -316,11 +316,6 @@ export class BillingService {
     };
   }
 
-  // Backward compatibility alias
-  async getTenantInvoices(orgId: string, page = 1, pageSize = 20) {
-    return this.getOrgInvoices(orgId, page, pageSize);
-  }
-
   /**
    * Get subscription status summary (used by admin panel)
    */

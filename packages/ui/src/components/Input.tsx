@@ -1,5 +1,5 @@
 import React from 'react';
-import { clsx } from 'clsx';
+import { cn } from '../utils/cn';
 
 export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
@@ -13,7 +13,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
     const errorId = error ? `${inputId}-error` : undefined;
     const hintId = helperText ? `${inputId}-hint` : undefined;
     const describedBy = [errorId, hintId].filter(Boolean).join(' ') || undefined;
-    
+
     return (
       <div className="w-full">
         {label && (
@@ -25,13 +25,11 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
         <input
           ref={ref}
           id={inputId}
-          className={clsx(
-            'flex h-9 w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground',
-            'ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium',
-            'placeholder:text-muted',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-            'disabled:cursor-not-allowed disabled:opacity-50',
-            error && 'border-red-500 focus-visible:ring-red-500',
+          className={cn(
+            'input text-sm',
+            'placeholder:text-muted focus-visible:outline-none',
+            'disabled:cursor-not-allowed disabled:opacity-60',
+            error && 'border-red-500 ',
             className
           )}
           aria-invalid={error ? 'true' : undefined}
@@ -47,7 +45,6 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
 );
 
 Input.displayName = 'Input';
-
 
 
 

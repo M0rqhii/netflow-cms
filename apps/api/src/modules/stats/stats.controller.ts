@@ -1,9 +1,9 @@
 import { Controller, Get, UseGuards } from '@nestjs/common';
 import { StatsService } from './stats.service';
 import { AuthGuard } from '../../common/auth/guards/auth.guard';
-import { RolesGuard } from '../../common/auth/guards/roles.guard';
-import { Roles } from '../../common/auth/decorators/roles.decorator';
-import { Role } from '../../common/auth/roles.enum';
+import { PermissionsGuard } from '../../common/auth/guards/permissions.guard';
+import { Permissions } from '../../common/auth/decorators/permissions.decorator';
+import { Permission } from '../../common/auth/roles.enum';
 import { CurrentOrg } from '../../common/decorators/current-org.decorator';
 
 /**
@@ -11,8 +11,8 @@ import { CurrentOrg } from '../../common/decorators/current-org.decorator';
  * AI Note: Provides quick stats endpoint for dashboard
  */
 @Controller('stats')
-@UseGuards(AuthGuard, RolesGuard)
-@Roles(Role.SUPER_ADMIN, Role.ORG_ADMIN)
+@UseGuards(AuthGuard, PermissionsGuard)
+@Permissions(Permission.ORGANIZATIONS_READ)
 export class StatsController {
   constructor(private readonly statsService: StatsService) {}
 

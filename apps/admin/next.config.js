@@ -3,12 +3,12 @@ const nextConfig = {
   reactStrictMode: true,
   transpilePackages: ['@repo/ui', '@repo/sdk', '@repo/schemas'],
   output: 'standalone', // Required for Docker deployment
-  
+
   // Performance optimizations
   swcMinify: true,
   compress: true,
   poweredByHeader: false,
-  
+
   // Image optimization
   images: {
     formats: ['image/avif', 'image/webp'],
@@ -18,7 +18,7 @@ const nextConfig = {
     dangerouslyAllowSVG: true,
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
-  
+
   // Bundle optimization
   webpack: (config, { isServer }) => {
     if (!isServer) {
@@ -65,7 +65,7 @@ const nextConfig = {
     }
     return config;
   },
-  
+
   // Experimental features for better performance
   experimental: {
     optimizeCss: true,
@@ -79,24 +79,23 @@ const nextConfig = {
       },
     },
   },
-  
+
   // Production optimizations
   productionBrowserSourceMaps: false,
-  
+
   // Optimize fonts
   optimizeFonts: true,
-  
+
   // Compiler optimizations
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production' ? {
       exclude: ['error', 'warn'],
     } : false,
   },
-  
+
   // Output file tracing for better tree-shaking
   // Note: outputFileTracingIncludes is not a valid option in Next.js 14
   // Removed to fix warning
 }
 
 module.exports = nextConfig
-

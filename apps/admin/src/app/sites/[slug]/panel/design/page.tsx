@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -14,8 +14,18 @@ export default function DesignPage() {
   }, [router, slug]);
 
   return (
-    <div className="container py-8 text-center text-muted">
+    <div className="card card-pad" style={{ textAlign: "center" }}>
       Redirecting to Pages...
     </div>
   );
 }
+
+
+
+
+
+
+
+
+
+

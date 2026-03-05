@@ -1,15 +1,12 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { SitePanelLayout } from '@/components/site-panel/SitePanelLayout';
-import { SectionHeader } from '@/components/site-panel/SectionHeader';
-import { Card, CardContent } from '@repo/ui';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@repo/ui';
-import { EmptyState, Button, Input, Modal, LoadingSpinner } from '@repo/ui';
-import { Badge } from '@/components/ui/Badge';
-import { useToast } from '@/components/ui/Toast';
-import ConfirmDialog from '@/components/ui/ConfirmDialog';
+import React, { useState, useEffect, useCallback } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { SitePanelLayout } from "@/components/site-panel/SitePanelLayout";
+import { useTranslations } from "@/hooks/useTranslations";
+import { Modal, Button } from "@repo/ui";
+import { useToast } from "@/components/ui/Toast";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import {
   fetchMySites,
   exchangeSiteToken,
@@ -20,10 +17,10 @@ import {
   deleteCollection,
   getCollection,
   type CollectionSummary,
-} from '@/lib/api';
-import type { SiteInfo } from '@repo/sdk';
-import { FieldsEditor, type FieldDefinition } from '@/components/content/FieldsEditor';
-import { fieldsToSimpleSchema, simpleSchemaToFields } from '@/lib/schema-converter';
+} from "@/lib/api";
+import type { SiteInfo } from "@repo/sdk";
+import { FieldsEditor, type FieldDefinition } from "@/components/content/FieldsEditor";
+import { fieldsToSimpleSchema, simpleSchemaToFields } from "@/lib/schema-converter";
 
 type CollectionWithDetails = CollectionSummary & {
   schemaJson?: Record<string, unknown>;
@@ -34,20 +31,22 @@ export default function CollectionsPage() {
   const router = useRouter();
   const slug = params?.slug as string;
   const toast = useToast();
+  const t = useTranslations();
 
   const [loading, setLoading] = useState(true);
   const [collections, setCollections] = useState<CollectionSummary[]>([]);
   const [siteId, setSiteId] = useState<string | null>(null);
+  const [siteName, setSiteName] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingCollection, setEditingCollection] = useState<CollectionWithDetails | null>(null);
   const [deletingCollectionSlug, setDeletingCollectionSlug] = useState<string | null>(null);
 
-  const [createName, setCreateName] = useState('');
-  const [createSlug, setCreateSlug] = useState('');
+  const [createName, setCreateName] = useState("");
+  const [createSlug, setCreateSlug] = useState("");
   const [createFields, setCreateFields] = useState<FieldDefinition[]>([]);
   const [createSaving, setCreateSaving] = useState(false);
 
-  const [editName, setEditName] = useState('');
+  const [editName, setEditName] = useState("");
   const [editFields, setEditFields] = useState<FieldDefinition[]>([]);
   const [editSaving, setEditSaving] = useState(false);
 
@@ -64,11 +63,12 @@ export default function CollectionsPage() {
       const site = sites.find((s: SiteInfo) => s.site.slug === slug);
 
       if (!site) {
-        throw new Error(`Nie znaleziono strony o slug: "${slug}"`);
+        throw new Error(t("sitePanelShell.collectionsUi.toasts.siteNotFound", { slug }));
       }
 
       const id = site.siteId;
       setSiteId(id);
+      setSiteName(site.site?.name || slug);
 
       let token = getSiteToken(id);
       if (!token) {
@@ -78,12 +78,12 @@ export default function CollectionsPage() {
       const collectionsData = await fetchSiteCollections(id);
       setCollections(collectionsData);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Nie uda?o si? wczyta? kolekcji';
-      toast.push({ tone: 'error', message });
+      const message = err instanceof Error ? err.message : t("sitePanelShell.collectionsUi.toasts.loadError");
+      toast.push({ tone: "error", message });
     } finally {
       setLoading(false);
     }
-  }, [slug, toast]);
+  }, [slug, t, toast]);
 
   useEffect(() => {
     loadData();
@@ -104,16 +104,16 @@ export default function CollectionsPage() {
         schemaJson,
       });
 
-      toast.push({ tone: 'success', message: 'Kolekcja utworzona pomy?lnie' });
+      toast.push({ tone: "success", message: t("sitePanelShell.collectionsUi.toasts.createSuccess") });
 
       setShowCreateModal(false);
-      setCreateName('');
-      setCreateSlug('');
+      setCreateName("");
+      setCreateSlug("");
       setCreateFields([]);
       await loadData();
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Nie uda?o si? utworzy? kolekcji';
-      toast.push({ tone: 'error', message });
+      const message = err instanceof Error ? err.message : t("sitePanelShell.collectionsUi.toasts.createError");
+      toast.push({ tone: "error", message });
     } finally {
       setCreateSaving(false);
     }
@@ -133,15 +133,15 @@ export default function CollectionsPage() {
         schemaJson,
       });
 
-      toast.push({ tone: 'success', message: 'Kolekcja zaktualizowana' });
+      toast.push({ tone: "success", message: t("sitePanelShell.collectionsUi.toasts.updateSuccess") });
 
       setEditingCollection(null);
-      setEditName('');
+      setEditName("");
       setEditFields([]);
       await loadData();
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Nie uda?o si? zaktualizowa? kolekcji';
-      toast.push({ tone: 'error', message });
+      const message = err instanceof Error ? err.message : t("sitePanelShell.collectionsUi.toasts.updateError");
+      toast.push({ tone: "error", message });
     } finally {
       setEditSaving(false);
     }
@@ -153,13 +153,13 @@ export default function CollectionsPage() {
     try {
       await deleteCollection(siteId, deletingCollectionSlug);
 
-      toast.push({ tone: 'success', message: 'Kolekcja usuni?ta' });
+      toast.push({ tone: "success", message: t("sitePanelShell.collectionsUi.toasts.deleteSuccess") });
 
       setDeletingCollectionSlug(null);
       await loadData();
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Nie uda?o si? usun?? kolekcji';
-      toast.push({ tone: 'error', message });
+      const message = err instanceof Error ? err.message : t("sitePanelShell.collectionsUi.toasts.deleteError");
+      toast.push({ tone: "error", message });
     }
   };
 
@@ -176,144 +176,109 @@ export default function CollectionsPage() {
       setEditFields(fields);
     } catch (err) {
       toast.push({
-        tone: 'error',
-        message: err instanceof Error ? err.message : 'Nie uda?o si? wczyta? kolekcji',
+        tone: "error",
+        message: err instanceof Error ? err.message : t("sitePanelShell.collectionsUi.toasts.loadError"),
       });
     }
   };
 
   const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString('pl-PL', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
+    return new Date(date).toLocaleDateString("pl-PL", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
     });
   };
 
   return (
-    <SitePanelLayout>
-      <div className="space-y-6">
-        <SectionHeader
-          title="Kolekcje"
-          description="Modeluj dane i zarz?dzaj tre?ciami strukturalnymi (np. blog, aktualno?ci, wydarzenia)."
-          action={{
-            label: 'Nowa kolekcja',
-            onClick: () => setShowCreateModal(true),
-          }}
-        />
+    <SitePanelLayout
+      slug={slug}
+      activeTab="collections"
+      title={t("sitePanelShell.collections.title", { site: siteName || slug })}
+      subtitle={t("sitePanelShell.collections.subtitle")}
+      actions={
+        <button className="btn primary" type="button" onClick={() => setShowCreateModal(true)}>{t("sitePanelShell.actions.newCollection")}</button>
+      }
+    >
+      <div>
 
-        <Card>
-          <CardContent className="pt-6">
-            {loading ? (
-              <div className="py-12 flex justify-center">
-                <LoadingSpinner text="Wczytywanie kolekcji..." />
-              </div>
-            ) : collections.length === 0 ? (
-              <div className="py-12">
-                <EmptyState
-                  title="Brak kolekcji"
-                  description="Utw?rz pierwsz? kolekcj?, aby zacz?? zarz?dza? tre?ciami."
-                  icon={
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-10 w-10">
-                      <rect x="4" y="5" width="16" height="4" rx="1.5" />
-                      <rect x="4" y="11" width="8" height="8" rx="1.5" />
-                      <rect x="14" y="11" width="6" height="8" rx="1.5" />
-                    </svg>
-                  }
-                  action={{
-                    label: 'Utw?rz kolekcj?',
-                    onClick: () => setShowCreateModal(true),
-                  }}
-                />
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Nazwa</TableHead>
-                      <TableHead>Slug</TableHead>
-                      <TableHead>Pola</TableHead>
-                      <TableHead>Utworzono</TableHead>
-                      <TableHead className="text-right">Akcje</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {collections.map((collection) => {
-                      const schemaJson = ('schemaJson' in collection ? (collection as CollectionWithDetails).schemaJson : undefined) || {};
-                      const fieldCount = Object.keys(schemaJson).length;
-
-                      return (
-                        <TableRow key={collection.id}>
-                          <TableCell className="font-medium">
-                            {collection.name}
-                          </TableCell>
-                          <TableCell className="text-muted font-mono text-sm">
-                            {collection.slug}
-                          </TableCell>
-                          <TableCell>
-                            <Badge>{fieldCount} {fieldCount === 1 ? 'pole' : 'p?l'}</Badge>
-                          </TableCell>
-                          <TableCell className="text-muted text-sm">
-                            {formatDate(collection.createdAt)}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              <Button variant="outline" size="sm" onClick={() => openEditModal(collection)}>
-                                Edytuj
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => router.push(`/sites/${encodeURIComponent(slug)}/panel/collections/${collection.slug}`)}
-                              >
-                                Wpisy
-                              </Button>
-                              <Button variant="outline" size="sm" onClick={() => setDeletingCollectionSlug(collection.slug)}>
-                                Usu?
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <div className="grid cols-2">
+          {loading ? (
+            <div className="card card-pad text-muted">{t("common.loading")}</div>
+          ) : collections.length === 0 ? (
+            <div className="card card-pad text-muted">{t("sitePanelShell.collectionsUi.states.noCollections")}</div>
+          ) : (
+            collections.map((collection) => {
+              const schemaJson = ("schemaJson" in collection ? (collection as CollectionWithDetails).schemaJson : undefined) || {};
+              const fieldCount = Object.keys(schemaJson).length;
+              return (
+                <div key={collection.id} className="card tab-bar">
+                  <div className="row-between">
+                    <div className="min-w-0">
+                      <div className="project-name">{collection.name}</div>
+                      <div className="detail-label mt-1">
+                        {collection.slug} - {formatDate(collection.createdAt)}
+                      </div>
+                      <div className="tag-row">
+                        <span className="badge gray">{t("sitePanelShell.collectionsUi.labels.fields", { count: fieldCount })}</span>
+                      </div>
+                    </div>
+                    <div className="row-wrap">
+                      <button className="btn" type="button" onClick={() => openEditModal(collection)}>{t("common.edit")}</button>
+                      <button
+                        className="btn"
+                        type="button"
+                        onClick={() => router.push(`/sites/${encodeURIComponent(slug)}/panel/collections/${collection.slug}`)}
+                      >
+                        {t("sitePanelShell.collectionsUi.actions.entries")}
+                      </button>
+                      <button className="btn" type="button" onClick={() => setDeletingCollectionSlug(collection.slug)}>
+                        {t("common.delete")}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
 
         {showCreateModal && (
           <Modal
             isOpen={showCreateModal}
             onClose={() => {
               setShowCreateModal(false);
-              setCreateName('');
-              setCreateSlug('');
+              setCreateName("");
+              setCreateSlug("");
               setCreateFields([]);
             }}
-            title="Utw?rz kolekcj?"
+            title={t("sitePanelShell.collectionsUi.modals.createTitle")}
             size="lg"
           >
             <form onSubmit={handleCreate} className="space-y-4">
-              <Input
-                label="Nazwa kolekcji"
-                placeholder="np. Blog"
-                value={createName}
-                onChange={(e) => setCreateName(e.target.value)}
-                required
-              />
-              <Input
-                label="Slug kolekcji"
-                placeholder="np. blog"
-                value={createSlug}
-                onChange={(e) => setCreateSlug(e.target.value)}
-                required
-              />
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wide text-muted mb-1">{t("sitePanelShell.collectionsUi.fields.name")}</label>
+                <input
+                  className="input"
+                  placeholder={t("sitePanelShell.collectionsUi.fields.namePlaceholder")}
+                  value={createName}
+                  onChange={(e) => setCreateName(e.target.value)}
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wide text-muted mb-1">{t("sitePanelShell.collectionsUi.fields.slug")}</label>
+                <input
+                  className="input"
+                  placeholder={t("sitePanelShell.collectionsUi.fields.slugPlaceholder")}
+                  value={createSlug}
+                  onChange={(e) => setCreateSlug(e.target.value)}
+                  required
+                />
+              </div>
 
               <div>
-                <div className="text-sm font-medium mb-2">Pola</div>
+                <div className="text-sm font-medium mb-2">{t("sitePanelShell.collectionsUi.fields.fields")}</div>
                 <FieldsEditor fields={createFields} onChange={setCreateFields} />
               </div>
 
@@ -323,15 +288,15 @@ export default function CollectionsPage() {
                   variant="outline"
                   onClick={() => {
                     setShowCreateModal(false);
-                    setCreateName('');
-                    setCreateSlug('');
+                    setCreateName("");
+                    setCreateSlug("");
                     setCreateFields([]);
                   }}
                 >
-                  Anuluj
+                  {t("common.cancel")}
                 </Button>
                 <Button type="submit" variant="primary" disabled={createSaving}>
-                  {createSaving ? 'Tworzenie...' : 'Utw?rz kolekcj?'}
+                  {createSaving ? t("sitePanelShell.collectionsUi.actions.creating") : t("sitePanelShell.collectionsUi.actions.createCollection")}
                 </Button>
               </div>
             </form>
@@ -343,22 +308,25 @@ export default function CollectionsPage() {
             isOpen={!!editingCollection}
             onClose={() => {
               setEditingCollection(null);
-              setEditName('');
+              setEditName("");
               setEditFields([]);
             }}
-            title={`Edytuj kolekcj?: ${editingCollection.name}`}
+            title={t("sitePanelShell.collectionsUi.modals.editTitle", { name: editingCollection.name })}
             size="lg"
           >
             <form onSubmit={handleEdit} className="space-y-4">
-              <Input
-                label="Nazwa kolekcji"
-                value={editName}
-                onChange={(e) => setEditName(e.target.value)}
-                required
-              />
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wide text-muted mb-1">{t("sitePanelShell.collectionsUi.fields.name")}</label>
+                <input
+                  className="input"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  required
+                />
+              </div>
 
               <div>
-                <div className="text-sm font-medium mb-2">Pola</div>
+                <div className="text-sm font-medium mb-2">{t("sitePanelShell.collectionsUi.fields.fields")}</div>
                 <FieldsEditor fields={editFields} onChange={setEditFields} />
               </div>
 
@@ -368,14 +336,14 @@ export default function CollectionsPage() {
                   variant="outline"
                   onClick={() => {
                     setEditingCollection(null);
-                    setEditName('');
+                    setEditName("");
                     setEditFields([]);
                   }}
                 >
-                  Anuluj
+                  {t("common.cancel")}
                 </Button>
                 <Button type="submit" variant="primary" disabled={editSaving}>
-                  {editSaving ? 'Zapisywanie...' : 'Zapisz zmiany'}
+                  {editSaving ? t("sitePanelShell.collectionsUi.actions.saving") : t("sitePanelShell.collectionsUi.actions.saveChanges")}
                 </Button>
               </div>
             </form>
@@ -387,10 +355,10 @@ export default function CollectionsPage() {
             open={Boolean(deletingCollectionSlug)}
             onClose={() => setDeletingCollectionSlug(null)}
             onConfirm={handleDelete}
-            title="Usu? kolekcj?"
-            message={`Czy na pewno chcesz usun?? kolekcj? "${deletingCollectionSlug}"? Spowoduje to usuni?cie wszystkich wpis?w w tej kolekcji. Operacja jest nieodwracalna.`}
-            confirmLabel="Usu?"
-            cancelLabel="Anuluj"
+            title={t("sitePanelShell.collectionsUi.modals.deleteTitle")}
+            message={t("sitePanelShell.collectionsUi.modals.deleteMessage", { slug: deletingCollectionSlug })}
+            confirmLabel={t("common.delete")}
+            cancelLabel={t("common.cancel")}
             variant="danger"
           />
         )}

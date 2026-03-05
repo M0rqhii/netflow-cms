@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 
 interface TooltipProps {
   content?: string;
@@ -11,6 +11,16 @@ interface TooltipProps {
 
 export function Tooltip({ content, children, side = 'top', className = '' }: TooltipProps) {
   const [isVisible, setIsVisible] = useState(false);
+  const timeoutRef = useRef<NodeJS.Timeout>();
+
+  const show = useCallback(() => {
+    timeoutRef.current = setTimeout(() => setIsVisible(true), 200);
+  }, []);
+
+  const hide = useCallback(() => {
+    clearTimeout(timeoutRef.current);
+    setIsVisible(false);
+  }, []);
 
   if (!content) {
     return <>{children}</>;
@@ -23,34 +33,23 @@ export function Tooltip({ content, children, side = 'top', className = '' }: Too
     right: 'left-full top-1/2 -translate-y-1/2 ml-2',
   };
 
-  const arrowClasses = {
-    top: 'absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-gray-900',
-    bottom: 'absolute bottom-full left-1/2 -translate-x-1/2 -mb-1 border-4 border-transparent border-b-gray-900',
-    left: 'absolute left-full top-1/2 -translate-y-1/2 -ml-1 border-4 border-transparent border-l-gray-900',
-    right: 'absolute right-full top-1/2 -translate-y-1/2 -mr-1 border-4 border-transparent border-r-gray-900',
-  };
-
   return (
-    <div 
+    <div
       className={`relative inline-block ${className}`}
-      onMouseEnter={() => setIsVisible(true)}
-      onMouseLeave={() => setIsVisible(false)}
+      onMouseEnter={show}
+      onMouseLeave={hide}
+      onFocus={show}
+      onBlur={hide}
     >
       {children}
       {isVisible && (
-        <div 
-          className={`absolute ${positionClasses[side]} px-3 py-2 bg-gray-900 text-white text-xs rounded-lg whitespace-nowrap z-50 pointer-events-none`}
+        <div
+          className={`absolute ${positionClasses[side]} px-3 py-1.5 text-xs font-medium rounded-lg whitespace-nowrap z-50 pointer-events-none animate-fade-in bg-foreground text-background shadow-lg`}
           role="tooltip"
         >
           {content}
-          <div className={arrowClasses[side]}></div>
         </div>
       )}
     </div>
   );
 }
-
-
-
-
-

@@ -1,5 +1,5 @@
-import React from 'react';
-import { clsx } from 'clsx';
+﻿import React from 'react';
+import { cn } from '../utils/cn';
 
 export interface LoadingSpinnerProps {
   size?: 'sm' | 'md' | 'lg';
@@ -13,16 +13,17 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   text,
 }) => {
   const sizeClasses = {
-    sm: 'w-4 h-4',
-    md: 'w-8 h-8',
-    lg: 'w-12 h-12',
+    sm: 'w-4 h-4 border-2',
+    md: 'w-8 h-8 border-[3px]',
+    lg: 'w-12 h-12 border-4',
   };
 
   return (
-    <div className={clsx('flex flex-col items-center justify-center gap-2', className)}>
+    <div className={cn('flex flex-col items-center justify-center gap-2', className)}>
       <div
-        className={clsx(
-          'animate-spin rounded-full border-2 border-border border-t-primary',
+        className={cn(
+          'animate-spin rounded-full border-transparent',
+          'border-t-[color:var(--primary)] border-r-[color:var(--secondary)]',
           sizeClasses[size]
         )}
         role="status"
@@ -34,7 +35,3 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
     </div>
   );
 };
-
-
-
-

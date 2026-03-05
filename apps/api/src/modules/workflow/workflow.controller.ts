@@ -11,7 +11,7 @@ import { AuthGuard } from '../../common/auth/guards/auth.guard';
 import { SiteGuard } from '../../common/org-site/site.guard';
 import { RolesGuard } from '../../common/auth/guards/roles.guard';
 import { Roles } from '../../common/auth/decorators/roles.decorator';
-import { Role } from '../../common/auth/roles.enum';
+import { SiteRole } from '../../common/auth/roles.enum';
 import { CurrentUser, CurrentUserPayload } from '../../common/auth/decorators/current-user.decorator';
 import { WorkflowService } from './workflow.service';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
@@ -32,7 +32,7 @@ export class WorkflowController {
    * Create a workflow
    */
   @Post()
-  @Roles(Role.EDITOR, Role.ORG_ADMIN, Role.SUPER_ADMIN)
+  @Roles(SiteRole.EDITOR, SiteRole.ADMIN, SiteRole.OWNER)
   async create(
     @Body(new ZodValidationPipe(createWorkflowSchema))
     body: any,
@@ -46,7 +46,7 @@ export class WorkflowController {
    * List all workflows for a site
    */
   @Get()
-  @Roles(Role.VIEWER, Role.EDITOR, Role.ORG_ADMIN, Role.SUPER_ADMIN)
+  @Roles(SiteRole.VIEWER, SiteRole.EDITOR, SiteRole.ADMIN, SiteRole.OWNER)
   async findAll(@Req() req: Request & { siteId: string }) {
     return this.workflowService.findAll(req.siteId);
   }
@@ -56,7 +56,7 @@ export class WorkflowController {
    * Get a single workflow by ID
    */
   @Get(':id')
-  @Roles(Role.VIEWER, Role.EDITOR, Role.ORG_ADMIN, Role.SUPER_ADMIN)
+  @Roles(SiteRole.VIEWER, SiteRole.EDITOR, SiteRole.ADMIN, SiteRole.OWNER)
   async findOne(
     @Param('id') id: string,
     @Req() req: Request & { siteId: string },
@@ -69,7 +69,7 @@ export class WorkflowController {
    * Execute workflow transition
    */
   @Post(':id/execute')
-  @Roles(Role.EDITOR, Role.ORG_ADMIN, Role.SUPER_ADMIN)
+  @Roles(SiteRole.EDITOR, SiteRole.ADMIN, SiteRole.OWNER)
   async executeTransition(
     @Param('id') id: string,
     @Body() body: { entityId: string; entityType: 'content' | 'collection'; transitionName: string },

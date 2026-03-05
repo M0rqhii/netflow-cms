@@ -12,14 +12,12 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { AuthGuard } from '../../common/auth/guards/auth.guard';
-import { RolesGuard } from '../../common/auth/guards/roles.guard';
 import { PermissionsGuard } from '../../common/auth/guards/permissions.guard';
-import { Roles } from '../../common/auth/decorators/roles.decorator';
 import { Permissions } from '../../common/auth/decorators/permissions.decorator';
 import { CurrentUser } from '../../common/auth/decorators/current-user.decorator';
 import { CurrentSite } from '../../common/decorators/current-site.decorator';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
-import { Role, Permission } from '../../common/auth/roles.enum';
+import { Permission } from '../../common/auth/roles.enum';
 import { CurrentUserPayload } from '../../common/auth/decorators/current-user.decorator';
 import { TasksService } from './tasks.service';
 import {
@@ -32,7 +30,7 @@ import {
  * Tasks Controller
  * AI Note: RESTful API for workflow tasks
  */
-@UseGuards(AuthGuard, RolesGuard, PermissionsGuard)
+@UseGuards(AuthGuard, PermissionsGuard)
 @Controller('tasks')
 export class TasksController {
   constructor(private readonly tasksService: TasksService) {}
@@ -76,7 +74,6 @@ export class TasksController {
   }
 
   @Delete(':id')
-  @Roles(Role.ORG_ADMIN, Role.SUPER_ADMIN)
   @Permissions(Permission.CONTENT_DELETE)
   @HttpCode(HttpStatus.NO_CONTENT)
   delete(

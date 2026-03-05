@@ -78,8 +78,6 @@ async function bootstrap() {
       'Origin',
       'X-Org-ID',
       'X-Site-ID',
-      'X-Tenant-ID',
-      'X-Tenant-Id',
     ],
     exposedHeaders: ['Content-Range', 'X-Total-Count'],
     preflightContinue: false,

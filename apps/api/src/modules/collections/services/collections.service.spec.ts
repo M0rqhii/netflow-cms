@@ -15,7 +15,12 @@ describe('CollectionsService', () => {
       update: jest.fn(),
       delete: jest.fn(),
     },
+    site: {
+      findUnique: jest.fn(),
+    },
   };
+
+  const orgId = 'org-123';
 
   const mockCache = {
     get: jest.fn(),
@@ -45,6 +50,11 @@ describe('CollectionsService', () => {
     jest.clearAllMocks();
   });
 
+  // Helper to mock site validation
+  const mockSiteValidation = (_siteId: string) => {
+    mockPrismaService.site.findUnique.mockResolvedValue({ orgId });
+  };
+
   describe('create', () => {
     it('should create collection successfully', async () => {
       const siteId = 'site-123';
@@ -54,13 +64,14 @@ describe('CollectionsService', () => {
         schemaJson: { title: 'string' },
       };
 
+      mockSiteValidation(siteId);
       mockPrismaService.collection.create.mockResolvedValue({
         id: '1',
         siteId,
         ...dto,
       });
 
-      const result = await service.create(siteId, dto);
+      const result = await service.create(siteId, orgId, dto);
 
       expect(result).toHaveProperty('id');
       expect(mockPrismaService.collection.create).toHaveBeenCalledWith(
@@ -83,11 +94,12 @@ describe('CollectionsService', () => {
         schemaJson: {},
       };
 
+      mockSiteValidation(siteId);
       mockPrismaService.collection.create.mockRejectedValue({
         code: 'P2002',
       });
 
-      await expect(service.create(siteId, dto)).rejects.toThrow(
+      await expect(service.create(siteId, orgId, dto)).rejects.toThrow(
         ConflictException
       );
     });
@@ -100,9 +112,10 @@ describe('CollectionsService', () => {
         { id: '1', siteId, slug: 'articles', name: 'Articles' },
       ];
 
+      mockSiteValidation(siteId);
       mockPrismaService.collection.findMany.mockResolvedValue(mockCollections);
 
-      const result = await service.list(siteId, {});
+      const result = await service.list(siteId, orgId, {});
 
       expect(result).toEqual(mockCollections);
       expect(mockPrismaService.collection.findMany).toHaveBeenCalledWith(
@@ -125,9 +138,10 @@ describe('CollectionsService', () => {
         name: 'Articles',
       };
 
+      mockSiteValidation(siteId);
       mockPrismaService.collection.findFirst.mockResolvedValue(mockCollection);
 
-      const result = await service.getBySlug(siteId, slug);
+      const result = await service.getBySlug(siteId, orgId, slug);
 
       expect(result).toEqual(mockCollection);
       expect(mockPrismaService.collection.findFirst).toHaveBeenCalledWith(
@@ -141,9 +155,10 @@ describe('CollectionsService', () => {
       const siteId = 'site-123';
       const slug = 'nonexistent';
 
+      mockSiteValidation(siteId);
       mockPrismaService.collection.findFirst.mockResolvedValue(null);
 
-      await expect(service.getBySlug(siteId, slug)).rejects.toThrow(
+      await expect(service.getBySlug(siteId, orgId, slug)).rejects.toThrow(
         NotFoundException
       );
     });
@@ -161,13 +176,14 @@ describe('CollectionsService', () => {
         name: 'Articles',
       };
 
+      mockSiteValidation(siteId);
       mockPrismaService.collection.findFirst.mockResolvedValue(mockCollection);
       mockPrismaService.collection.update.mockResolvedValue({
         ...mockCollection,
         ...dto,
       });
 
-      const result = await service.update(siteId, slug, dto);
+      const result = await service.update(siteId, orgId, slug, dto);
 
       expect(result.name).toBe('Updated Articles');
       expect(mockPrismaService.collection.update).toHaveBeenCalledWith(
@@ -189,10 +205,11 @@ describe('CollectionsService', () => {
         slug,
       };
 
+      mockSiteValidation(siteId);
       mockPrismaService.collection.findFirst.mockResolvedValue(mockCollection);
       mockPrismaService.collection.delete.mockResolvedValue(mockCollection);
 
-      const result = await service.remove(siteId, slug);
+      const result = await service.remove(siteId, orgId, slug);
 
       expect(result).toEqual({ ok: true });
       expect(mockPrismaService.collection.delete).toHaveBeenCalledWith({
@@ -204,9 +221,10 @@ describe('CollectionsService', () => {
       const siteId = 'site-123';
       const slug = 'nonexistent';
 
+      mockSiteValidation(siteId);
       mockPrismaService.collection.findFirst.mockResolvedValue(null);
 
-      await expect(service.remove(siteId, slug)).rejects.toThrow(
+      await expect(service.remove(siteId, orgId, slug)).rejects.toThrow(
         NotFoundException
       );
     });
@@ -223,12 +241,13 @@ describe('CollectionsService', () => {
         { id: '2', siteId: siteId2, slug: 'articles' },
       ];
 
+      mockPrismaService.site.findUnique.mockResolvedValue({ orgId });
       mockPrismaService.collection.findMany
         .mockResolvedValueOnce(mockCollections1)
         .mockResolvedValueOnce(mockCollections2);
 
-      const result1 = await service.list(siteId1, {});
-      const result2 = await service.list(siteId2, {});
+      const result1 = await service.list(siteId1, orgId, {});
+      const result2 = await service.list(siteId2, orgId, {});
 
       expect(result1).toEqual(mockCollections1);
       expect(result2).toEqual(mockCollections2);

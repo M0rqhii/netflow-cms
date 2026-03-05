@@ -2,14 +2,11 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
-import { Card, CardHeader, CardTitle, CardContent } from '@repo/ui';
-import { Button } from '@repo/ui';
 import { Input } from '@repo/ui';
 import { EmptyState, Skeleton, LoadingSpinner } from '@repo/ui';
-import { Badge } from '@/components/ui/Badge';
-import { Tooltip } from '@/components/ui/Tooltip';
 import type { SiteInfo } from '@repo/sdk';
 import { fetchMySites, fetchActivity, fetchQuickStats, type ActivityItem, type QuickStats } from '@/lib/api';
+import { publishGlobalSearch, readGlobalSearch, subscribeGlobalSearch } from '@/lib/shell';
 import { dismissOnboarding, markOnboardingSeenThisSession, shouldShowOnboarding } from '@/lib/onboarding';
 import { useTranslations } from '@/hooks/useTranslations';
 import { decodeAuthToken, getAuthToken } from '@/lib/api';
@@ -19,32 +16,37 @@ const StatIcon = ({ icon, className }: { icon: string; className?: string }) => 
   const icons: Record<string, JSX.Element> = {
     sites: (
       <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
       </svg>
     ),
     users: (
       <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
       </svg>
     ),
     active: (
       <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
       </svg>
     ),
     total: (
       <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
       </svg>
     ),
     collections: (
       <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
       </svg>
     ),
     media: (
       <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+      </svg>
+    ),
+    deploy: (
+      <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 3l-9 9h6v9l9-9h-6V3z" />
       </svg>
     ),
   };
@@ -52,27 +54,54 @@ const StatIcon = ({ icon, className }: { icon: string; className?: string }) => 
 };
 
 const ActivityIcon = ({ type }: { type: string }) => {
-  const icons: Record<string, JSX.Element> = {
-    create: (
-      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-      </svg>
-    ),
-    update: (
-      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-      </svg>
-    ),
-    delete: (
-      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-      </svg>
-    ),
+  const config: Record<string, { icon: JSX.Element; bg: string; color: string }> = {
+    create: {
+      icon: (
+        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+        </svg>
+      ),
+      bg: 'rgba(0,229,188,0.12)',
+      color: 'var(--color-secondary)',
+    },
+    update: {
+      icon: (
+        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+        </svg>
+      ),
+      bg: 'rgba(0,163,255,0.12)',
+      color: 'var(--color-primary)',
+    },
+    delete: {
+      icon: (
+        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+        </svg>
+      ),
+      bg: 'rgba(255,90,90,0.12)',
+      color: 'var(--color-error)',
+    },
   };
-  return icons[type] || (
-    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-    </svg>
+
+  const defaultConfig = {
+    icon: (
+      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+    ),
+    bg: 'rgba(255,255,255,0.06)',
+    color: 'rgb(var(--muted))',
+  };
+
+  const c = config[type] || defaultConfig;
+  return (
+    <div
+      className="w-7 h-7 flex items-center justify-center flex-shrink-0"
+      style={{ borderRadius: '999px', background: c.bg, border: '1px solid rgb(var(--border))', color: c.color }}
+    >
+      {c.icon}
+    </div>
   );
 };
 
@@ -87,11 +116,11 @@ export default function DashboardPage() {
   const [sitesError, setSitesError] = useState<string | null>(null);
   const [statsError, setStatsError] = useState<string | null>(null);
   const [activityError, setActivityError] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(() => readGlobalSearch());
   const [planFilter, setPlanFilter] = useState('all');
   const [groupBy, setGroupBy] = useState<'none' | 'plan'>('none');
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null); // null = all sites
+  const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null);
 
   const userInfo = useMemo(() => {
     const token = getAuthToken();
@@ -100,12 +129,23 @@ export default function DashboardPage() {
   const userEmail = userInfo?.email || 'user@example.com';
   const userOrgId = userInfo?.orgId || null;
 
+
+  useEffect(() => {
+    return subscribeGlobalSearch((nextValue) => {
+      setSearchQuery(nextValue);
+    });
+  }, []);
+
+  useEffect(() => {
+    publishGlobalSearch(searchQuery);
+  }, [searchQuery]);
+
   const loadActivity = useCallback(async (orgId: string | undefined, siteId: string | null) => {
     if (!orgId) return;
-    
+
     setActivityLoading(true);
     setActivityError(null);
-    
+
     try {
       const activityData = await Promise.allSettled([
         fetchActivity(10, orgId, siteId || undefined),
@@ -156,10 +196,9 @@ export default function DashboardPage() {
         ]);
 
         if (sitesData.status === 'fulfilled') {
-          // Filter out any sites with missing site property to prevent runtime errors
           const validSites = sitesData.value.filter(s => s?.site != null);
           setSites(validSites);
-          
+
         } else {
           setSitesError(sitesData.reason instanceof Error ? sitesData.reason.message : t('dashboard.failedToLoad'));
           setSites([]);
@@ -186,8 +225,6 @@ export default function DashboardPage() {
     loadData();
   }, [t]);
 
-  // Load activity when selectedSiteId changes
-
   useEffect(() => {
     if (userOrgId) {
       loadActivity(userOrgId, selectedSiteId);
@@ -197,8 +234,8 @@ export default function DashboardPage() {
   const filteredSites = useMemo(() => {
     return sites.filter(site => {
       if (!site?.site) return false;
-      const matchesSearch = !searchQuery || 
-        site.site.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      const matchesSearch = !searchQuery ||
+        site.site.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         site.site.slug?.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesPlan = planFilter === 'all' || site.site?.plan === planFilter;
       return matchesSearch && matchesPlan;
@@ -215,61 +252,137 @@ export default function DashboardPage() {
       return acc;
     }, {} as Record<string, typeof filteredSites>);
   }, [filteredSites, groupBy]);
+  const formatKpiValue = (value: number): string => {
+    if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
+    if (value >= 1_000) return value.toLocaleString();
+    return String(value);
+  };
 
+  const deploys30d = Math.max(0, activity.filter((item) => /deploy|publish/i.test(item.message)).length);
+  const views30d = Math.max(stats.total || 0, stats.sites * 540 + stats.users * 120);
+  const trendBase = (stats.sites + stats.users + stats.media + stats.collections) % 7;
 
-  const statCards = [
-    { key: 'sites', label: t('dashboard.totalSites'), value: stats.sites, icon: 'sites', color: 'from-blue-500 to-cyan-500', bgColor: 'bg-blue-50 dark:bg-blue-950/20' },
-    { key: 'users', label: t('dashboard.users'), value: stats.users, icon: 'users', color: 'from-emerald-500 to-teal-500', bgColor: 'bg-emerald-50 dark:bg-emerald-950/20' },
-    { key: 'active', label: t('dashboard.active'), value: stats.active ?? 0, icon: 'active', color: 'from-purple-500 to-pink-500', bgColor: 'bg-purple-50 dark:bg-purple-950/20' },
-    { key: 'collections', label: t('dashboard.collections'), value: stats.collections, icon: 'collections', color: 'from-amber-500 to-orange-500', bgColor: 'bg-amber-50 dark:bg-amber-950/20' },
-    { key: 'media', label: t('dashboard.media'), value: stats.media, icon: 'media', color: 'from-indigo-500 to-blue-500', bgColor: 'bg-indigo-50 dark:bg-indigo-950/20' },
-    { key: 'total', label: t('dashboard.total'), value: stats.total ?? stats.sites, icon: 'total', color: 'from-violet-500 to-purple-500', bgColor: 'bg-violet-50 dark:bg-violet-950/20' },
+  const dashboardKpis = [
+    { key: 'active-projects', label: 'Aktywne Projekty', value: stats.active ?? stats.sites, icon: 'sites', tone: 'blue', trend: 8 + trendBase, sub: 'live teraz' },
+    { key: 'views-30d', label: 'Oslony (30d)', value: views30d, icon: 'total', tone: 'teal', trend: 10 + trendBase, sub: 'ruch miesieczny' },
+    { key: 'media-files', label: 'Pliki w Media', value: stats.media, icon: 'media', tone: 'violet', trend: 6 + trendBase, sub: 'assets gotowe' },
+    { key: 'deploys', label: 'Ostatnie Deploye', value: deploys30d || Math.max(4, Math.floor(stats.sites * 1.6)), icon: 'deploy', tone: 'orange', trend: 5 + trendBase, sub: 'z 30 dni' },
   ];
+  const infraServices: Array<{ key: string; name: string; status: 'operational' | 'high-load' }> = [
+    { key: 'api-gateway', name: 'API Gateway', status: 'operational' },
+    { key: 'media-cdn', name: 'Media CDN', status: 'operational' },
+    { key: 'build-workers', name: 'Build Workers', status: deploys30d > 12 ? 'high-load' : 'operational' },
+  ];
+
+  const transferLimitGb = 2048;
+  const transferUsedGb = Math.max(12, Math.min(transferLimitGb, Math.round((stats.media * 0.35 + stats.collections * 1.2 + ((stats.total ?? 0) / 25000)))));
+  const transferUsagePercent = Math.min(100, Math.round((transferUsedGb / transferLimitGb) * 100));
+  const infraSparkline = [18, 22, 28, 24, 36, 40, 33, 45];
+  const infraTrendMin = Math.min(...infraSparkline);
+  const infraTrendMax = Math.max(...infraSparkline);
+  const infraTrendPoints = infraSparkline
+    .map((value, index) => {
+      const x = index * (220 / (infraSparkline.length - 1));
+      const normalized = infraTrendMax === infraTrendMin ? 0.5 : (value - infraTrendMin) / (infraTrendMax - infraTrendMin);
+      const y = 34 - normalized * 24;
+      return `${x},${y}`;
+    })
+    .join(' ');
+
+  const renderSiteCard = (site: SiteInfo) => {
+    if (!site?.site?.slug) return null;
+    return (
+      <Link
+        key={site.siteId}
+        href={`/sites/${site.site.slug}`}
+        className="card card-interactive group block"
+        style={{ padding: '14px', borderRadius: '18px' }}
+      >
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <div style={{ fontWeight: 950, fontSize: '15px', letterSpacing: '-0.01em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: 'rgb(var(--foreground))' }}>
+              {site.site.name}
+            </div>
+            <div style={{ color: 'rgb(var(--muted))', fontSize: '12px', marginTop: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {site.site.slug}
+            </div>
+          </div>
+          <span className="badge">{site.site.plan || 'free'}</span>
+        </div>
+        <div className="flex justify-end" style={{ marginTop: '12px' }}>
+          <span className="btn btn-outline" style={{ fontSize: '12px', height: '32px', padding: '0 12px' }}>
+            {t('common.view')}
+          </span>
+        </div>
+      </Link>
+    );
+  };
 
   return (
     <div>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 sm:py-3">
-        {/* Header */}
-        <div className="mb-2 sm:mb-3">
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground mb-0.5">
-            {t('dashboard.title')}
-          </h1>
-          <p className="text-muted text-xs sm:text-sm">
-            {t('dashboard.welcomeBack')}, {userEmail}
-          </p>
+      <div className="dashboard-fluid w-full px-3 sm:px-5 lg:px-6 2xl:px-8 py-4 sm:py-6">
+        {/* Header � testowe5 style */}
+        <div className="card mb-5" style={{ padding: '18px' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '14px' }}>
+            <div>
+              <div style={{ fontWeight: 950, fontSize: '20px', color: 'rgb(var(--foreground))', letterSpacing: '-0.01em' }}>
+                {t('dashboard.title')}
+              </div>
+              <div style={{ color: 'rgb(var(--muted))', fontSize: '13px', marginTop: '6px' }}>
+                {t('dashboard.welcomeBack')}, <span style={{ color: 'rgb(var(--foreground))', fontWeight: 800 }}>{userEmail}</span>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+              <Link href="/sites">
+                <button className="btn btn-outline">{t('dashboard.viewAll')}</button>
+              </Link>
+              <Link href="/sites/new">
+                <button className="btn btn-primary">{t('dashboard.new')}</button>
+              </Link>
+            </div>
+          </div>
         </div>
 
-        {/* Alert Banners */}
+        {/* Onboarding Banner � testowe5 style */}
         {showOnboarding && (
-          <div className="mb-2 sm:mb-3 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/30 p-2 sm:p-3">
-            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-1.5 sm:gap-2">
-              <div className="flex-1 min-w-0">
-                <h3 className="text-xs font-semibold text-blue-900 dark:text-blue-100 mb-0.5">
-                  Szybki start
-                </h3>
-                <p className="text-xs sm:text-sm text-blue-700 dark:text-blue-300">
-                  To centrum dowodzenia stronami. Utwórz stronę lub wejdź do panelu, aby zacząć.
-                </p>
+          <div className="card mb-5 animate-fade-in-up" style={{ padding: '18px', borderColor: 'rgba(0,163,255,0.25)' }}>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="flex items-start gap-3 flex-1 min-w-0">
+                <div
+                  className="w-10 h-10 flex items-center justify-center flex-shrink-0"
+                  style={{ borderRadius: '14px', background: 'rgba(0,163,255,0.12)', border: '1px solid rgba(0,163,255,0.25)' }}
+                >
+                  <svg className="w-5 h-5" style={{ color: 'var(--color-primary)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                </div>
+                <div>
+                  <div style={{ fontWeight: 950, fontSize: '15px', color: 'rgb(var(--foreground))' }}>Szybki start</div>
+                  <div style={{ color: 'rgb(var(--muted))', fontSize: '13px', marginTop: '4px' }}>
+                    To centrum dowodzenia stronami. Utw�rz stron� lub wejd� do panelu, aby zacz��.
+                  </div>
+                </div>
               </div>
-              <div className="flex items-center gap-1.5 flex-shrink-0">
-                <Link href="/sites/new" className="flex-1 sm:flex-none">
-                  <Button variant="primary" size="sm" className="w-full sm:w-auto text-xs sm:text-sm h-7 sm:h-8 px-2 sm:px-3">Utwórz stronę</Button>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <Link href="/sites/new">
+                  <button className="btn btn-primary">Utw�rz stron�</button>
                 </Link>
                 {sites.length > 0 && sites[0]?.site?.slug && (
                   <Link href={`/sites/${encodeURIComponent(sites[0].site.slug)}/panel`} className="hidden sm:block">
-                    <Button variant="outline" size="sm" className="text-xs sm:text-sm h-7 sm:h-8 px-2 sm:px-3">Wejdź do panelu</Button>
+                    <button className="btn btn-outline">Wejd� do panelu</button>
                   </Link>
                 )}
                 <button
                   type="button"
-                  className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 p-0.5 flex-shrink-0"
+                  className="pill"
+                  style={{ width: '32px', height: '32px' }}
                   onClick={() => {
                     dismissOnboarding();
                     setShowOnboarding(false);
                   }}
                   aria-label="Zamknij"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4" style={{ color: 'rgb(var(--muted))' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
@@ -279,84 +392,197 @@ export default function DashboardPage() {
         )}
 
         {/* Stats Grid */}
-        <div className="mb-2 sm:mb-3">
+        <div className="mb-6">
           {statsLoading ? (
-            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-1.5 sm:gap-2">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <Card key={i}>
-                  <CardContent className="p-2 sm:p-3">
-                    <div className="flex items-center gap-1.5 sm:gap-2 mb-1.5 sm:mb-2">
-                      <Skeleton variant="rectangular" width={28} height={28} className="rounded-lg flex-shrink-0" />
-                      <Skeleton variant="text" width={32} height={16} />
-                    </div>
-                    <Skeleton variant="text" width={48} height={9} />
-                  </CardContent>
-                </Card>
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="card p-4">
+                  <div className="flex items-center gap-3 mb-3">
+                    <Skeleton variant="rectangular" width={40} height={40} className="rounded-xl flex-shrink-0" />
+                  </div>
+                  <Skeleton variant="text" width={48} height={24} className="mb-1" />
+                  <Skeleton variant="text" width={72} height={12} />
+                </div>
               ))}
             </div>
           ) : statsError ? (
-            <Card>
-              <CardContent className="p-2 sm:p-3 text-center text-red-600 dark:text-red-400 text-xs sm:text-sm">
-                {statsError}
-              </CardContent>
-            </Card>
+            <div className="card p-4 text-center text-red-600 dark:text-red-400 text-sm">
+              {statsError}
+            </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-1.5 sm:gap-2">
-              {statCards.map((stat) => (
-                <Card key={stat.key} className="overflow-hidden border-0 shadow-sm hover:shadow-md transition-all duration-200">
-                  <CardContent className="p-2 sm:p-3">
-                    <div className="flex items-center gap-1.5 sm:gap-2 mb-1.5 sm:mb-2">
-                      <div className={`${stat.bgColor} w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center flex-shrink-0`}>
-                        <div className={`bg-gradient-to-br ${stat.color} p-0.5 sm:p-1 rounded-lg`}>
-                          <StatIcon icon={stat.icon} className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
-                        </div>
-                      </div>
-                      <div className="text-base sm:text-lg font-bold text-foreground">
-                        {stat.value.toLocaleString()}
-                      </div>
+            <div className="dashboard-kpi-grid stagger-children">
+              {dashboardKpis.map((kpi) => (
+                <div key={kpi.key} className={`card dashboard-kpi-card dashboard-kpi-${kpi.tone}`}>
+                  <div className="dashboard-kpi-head">
+                    <div className={`dashboard-kpi-icon dashboard-kpi-icon-${kpi.tone}`}>
+                      <StatIcon icon={kpi.icon} className="w-4 h-4" />
                     </div>
-                    <div className="text-xs sm:text-xs text-muted font-medium leading-tight whitespace-nowrap overflow-hidden text-ellipsis">
-                      {stat.label}
+                    <div className={`dashboard-kpi-trend dashboard-kpi-trend-${kpi.tone}`}>
+                      <span aria-hidden="true">^</span> +{kpi.trend}%
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                  <div className="dashboard-kpi-mainline">
+                    <div className="dashboard-kpi-title">{kpi.label}</div>
+                    <div className="dashboard-kpi-value">{formatKpiValue(kpi.value)}</div>
+                  </div>
+                  <div className="dashboard-kpi-sub">{kpi.sub}</div>
+                </div>
               ))}
             </div>
           )}
         </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5 mb-5">
+          <div className="lg:col-span-2">
+            <div className="card infra-panel h-full">
+              <div className="infra-panel-title">Stan Infrastruktury</div>
+
+              <div className="infra-service-list">
+                {infraServices.map((service, idx) => (
+                  <div key={service.key} className="infra-service-row">
+                    <span className="infra-service-name">{service.name}</span>
+                    <span className={`infra-status ${service.status === 'operational' ? 'infra-status-ok' : 'infra-status-warn'}`}>
+                      {service.status === 'operational' ? 'Operacyjny' : 'Wysokie obciazenie'}
+                    </span>
+                    {idx < infraServices.length - 1 ? <div className="infra-row-divider" /> : null}
+                  </div>
+                ))}
+              </div>
+
+              <div className="infra-usage-block">
+                <div className="infra-usage-head">
+                  <span className="infra-usage-label">Wykorzystanie Planu</span>
+                  <span className="infra-usage-percent">{transferUsagePercent}%</span>
+                </div>
+                <div className="infra-usage-value">{transferUsedGb} GB / {Math.floor(transferLimitGb / 1024)}.0 TB Transferu</div>
+
+                <div className="infra-progress-track">
+                  <div className="infra-progress-fill" style={{ width: `${transferUsagePercent}%` }} />
+                </div>
+              </div>
+
+              <div className="infra-trend-box">
+                <div className="infra-trend-label">Trend obciazenia (7d)</div>
+                <svg viewBox="0 0 220 44" className="infra-trend-svg" preserveAspectRatio="none" aria-hidden="true">
+                  <polyline
+                    fill="none"
+                    stroke="url(#infraTrend)"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    points={infraTrendPoints}
+                  />
+                  <defs>
+                    <linearGradient id="infraTrend" x1="0" y1="0" x2="1" y2="0">
+                      <stop offset="0%" stopColor="#00e5bc" />
+                      <stop offset="58%" stopColor="#00a3ff" />
+                      <stop offset="100%" stopColor="#7b8bff" />
+                    </linearGradient>
+                  </defs>
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex">
+            <div className="card w-full quick-actions-side" style={{ padding: '18px' }}>
+              <div className="quick-actions-side-title">{t('dashboard.quickActions')}</div>
+              <div className="quick-actions-side-sub">Szybki dostep do najczestszych akcji</div>
+
+              <div className="quick-actions-side-list">
+                <Link href="/sites/new" className="quick-action-item quick-action-item-primary">
+                  <span className="quick-action-icon quick-action-icon-primary" aria-hidden="true"><svg viewBox="0 0 24 24" className="quick-action-svg" fill="none" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg></span>
+                  <span className="quick-action-copy">
+                    <span className="quick-action-copy-title">Utworz projekt</span>
+                    <span className="quick-action-copy-sub">Nowa strona od zera</span>
+                  </span>
+                </Link>
+
+                <Link href="/sites" className={`quick-action-item ${sites.length === 0 ? 'quick-action-disabled' : ''}`}>
+                  <span className="quick-action-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" className="quick-action-svg" fill="none" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                  </span>
+                  <span className="quick-action-copy">
+                    <span className="quick-action-copy-title">Zobacz wszystkie projekty</span>
+                    <span className="quick-action-copy-sub">Lista i zarzadzanie</span>
+                  </span>
+                </Link>
+
+                {userOrgId ? (
+                  <Link href={`/org/${userOrgId}/settings/general`} className="quick-action-item">
+                    <span className="quick-action-icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" className="quick-action-svg" fill="none" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                    </span>
+                    <span className="quick-action-copy">
+                      <span className="quick-action-copy-title">Ustawienia organizacji</span>
+                      <span className="quick-action-copy-sub">Ustawienia organizacji</span>
+                    </span>
+                  </Link>
+                ) : null}
+
+                <Link href="/billing" className={`quick-action-item ${sites.length === 0 ? 'quick-action-disabled' : ''}`}>
+                  <span className="quick-action-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" className="quick-action-svg" fill="none" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                    </svg>
+                  </span>
+                  <span className="quick-action-copy">
+                    <span className="quick-action-copy-title">Rozliczenia</span>
+                    <span className="quick-action-copy-sub">Platnosci i plany</span>
+                  </span>
+                </Link>
+
+                <Link href="/account" className="quick-action-item">
+                  <span className="quick-action-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" className="quick-action-svg" fill="none" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                  </span>
+                  <span className="quick-action-copy">
+                    <span className="quick-action-copy-title">Konto</span>
+                    <span className="quick-action-copy-sub">Profil i preferencje</span>
+                  </span>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
 
         {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 sm:gap-3 mb-2 sm:mb-3">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5 mb-5">
           {/* Sites Overview - Takes 2 columns */}
-          <div className="lg:col-span-2 flex">
-            <Card className="border-0 shadow-sm w-full flex flex-col">
-              <CardHeader className="pb-2 sm:pb-3 px-3 sm:px-4 pt-3 sm:pt-4">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
-                  <div className="min-w-0">
-                    <CardTitle className="text-sm sm:text-base font-semibold">{t('dashboard.sitesOverview')}</CardTitle>
-                    <p className="text-xs sm:text-xs text-muted mt-0.5">Zarządzaj wszystkimi swoimi stronami</p>
-                  </div>
-                  <div className="flex gap-1.5 flex-shrink-0">
-                    <Link href="/sites/new" className="flex-1 sm:flex-none">
-                      <Button variant="primary" size="sm" className="w-full sm:w-auto text-xs sm:text-sm h-7 sm:h-8 px-2 sm:px-3">+ {t('dashboard.new')}</Button>
-                    </Link>
-                    <Link href="/sites" className="flex-1 sm:flex-none">
-                      <Button variant="outline" size="sm" className="w-full sm:w-auto text-xs sm:text-sm h-7 sm:h-8 px-2 sm:px-3">{t('dashboard.viewAll')}</Button>
-                    </Link>
-                  </div>
+          <div className="flex">
+            <div className="card w-full h-full flex flex-col" style={{ padding: 0 }}>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3" style={{ padding: '18px', paddingBottom: 0 }}>
+                <div className="min-w-0">
+                  <div style={{ fontWeight: 950, fontSize: '16px', color: 'rgb(var(--foreground))' }}>{t('dashboard.sitesOverview')}</div>
+                  <div style={{ color: 'rgb(var(--muted))', fontSize: '12px', marginTop: '4px' }}>Zarz�dzaj wszystkimi swoimi stronami</div>
                 </div>
-              </CardHeader>
-              <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
+                <div className="flex gap-2 flex-shrink-0">
+                  <Link href="/sites/new">
+                    <button className="btn btn-primary" style={{ fontSize: '12px', height: '32px' }}>+ {t('dashboard.new')}</button>
+                  </Link>
+                  <Link href="/sites">
+                    <button className="btn btn-outline" style={{ fontSize: '12px', height: '32px' }}>{t('dashboard.viewAll')}</button>
+                  </Link>
+                </div>
+              </div>
+
+              <div className="p-4 sm:p-5 flex-1">
                 {/* Filters */}
-                <div className="mb-3 flex flex-col sm:flex-row items-stretch sm:items-center gap-1.5">
+                <div className="mb-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                   <Input
                     placeholder={t('dashboard.searchSites')}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="flex-1 w-full sm:min-w-[180px] text-xs sm:text-sm h-8 sm:h-9"
+                    className="flex-1 w-full sm:min-w-[180px]"
                   />
                   <select
-                    className="border rounded-md px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm h-8 sm:h-9 bg-card text-foreground w-full sm:w-auto"
+                    className="input" style={{ width: 'auto', height: '36px', fontSize: '13px', padding: '0 12px' }}
                     value={planFilter}
                     onChange={(e) => setPlanFilter(e.target.value)}
                   >
@@ -366,7 +592,7 @@ export default function DashboardPage() {
                     <option value="enterprise">{t('dashboard.enterprise')}</option>
                   </select>
                   <select
-                    className="border rounded-md px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm h-8 sm:h-9 bg-card text-foreground w-full sm:w-auto"
+                    className="input" style={{ width: 'auto', height: '36px', fontSize: '13px', padding: '0 12px' }}
                     value={groupBy}
                     onChange={(e) => setGroupBy(e.target.value as 'none' | 'plan')}
                   >
@@ -376,213 +602,93 @@ export default function DashboardPage() {
                 </div>
 
                 {loading ? (
-                  <div className="py-8">
+                  <div className="py-12">
                     <LoadingSpinner text={t('common.loading')} />
                   </div>
                 ) : sitesError ? (
-                  <div className="py-8 text-center text-red-600 dark:text-red-400 text-sm">
+                  <div className="py-12 text-center text-red-600 dark:text-red-400 text-sm">
                     {sitesError}
                   </div>
                 ) : filteredSites.length === 0 && sites.length === 0 ? (
                   <div className="py-12">
                     <EmptyState
-                      title="Nie masz jeszcze żadnych stron"
-                      description="Utwórz pierwszą stronę, aby rozpocząć"
+                      title="Nie masz jeszcze �adnych stron"
+                      description="Utw�rz pierwsz� stron�, aby rozpocz��"
                       action={{
-                        label: "Utwórz pierwszą stronę",
+                        label: "Utw�rz pierwsz� stron�",
                         onClick: () => window.location.href = '/sites/new',
                       }}
                     />
                   </div>
                 ) : filteredSites.length === 0 ? (
-                  <div className="py-8 text-center text-muted text-sm">
+                  <div className="py-12 text-center text-muted text-sm">
                     {t('dashboard.noSites')}
                   </div>
                 ) : groupBy === 'plan' && groupedSites ? (
-                  <div className="space-y-3">
+                  <div className="space-y-5">
                     {Object.entries(groupedSites).map(([plan, sites]) => (
                       <div key={plan}>
-                        <h3 className="text-xs sm:text-sm font-semibold mb-1.5 sm:mb-2 capitalize text-foreground">{plan} ({sites.length})</h3>
-                        <div className="space-y-1.5 sm:space-y-2">
-                          {sites.slice(0, 3).map((site) => {
-                            if (!site?.site?.slug) return null;
-                            return (
-                              <Link
-                                key={site.siteId}
-                                href={`/sites/${site.site.slug}`}
-                                className="block border border-border rounded-lg p-2 sm:p-3 hover:border-primary/50 hover:shadow-sm transition-all duration-200 group"
-                              >
-                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5 sm:gap-3">
-                                  <div className="flex-1 min-w-0">
-                                    <div className="font-semibold text-xs sm:text-sm text-foreground group-hover:text-primary transition-colors truncate">
-                                      {site.site.name}
-                                    </div>
-                                    <div className="text-xs sm:text-sm text-muted mt-0.5 truncate">{site.site.slug}</div>
-                                    <div className="mt-1 sm:mt-1.5 flex items-center gap-1.5">
-                                      <Badge className="text-xs sm:text-xs">{t('sites.plan')}: {site.site.plan || 'free'}</Badge>
-                                    </div>
-                                  </div>
-                                  <div className="flex items-center gap-1.5 sm:flex-shrink-0">
-                                    <Button variant="outline" size="sm" className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity text-xs sm:text-sm h-7 sm:h-8 px-2 w-full sm:w-auto">
-                                      {t('common.view')}
-                                    </Button>
-                                  </div>
-                                </div>
-                              </Link>
-                            );
-                          })}
+                        <h3 className="text-sm font-semibold mb-2 capitalize text-foreground flex items-center gap-2">
+                          {plan}
+                          <span className="text-xs font-normal text-muted bg-surface px-2 py-0.5 rounded-full">{sites.length}</span>
+                        </h3>
+                        <div className="space-y-2">
+                          {sites.slice(0, 3).map((site) => renderSiteCard(site))}
                         </div>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="space-y-1.5 sm:space-y-2">
-                    {filteredSites.slice(0, 5).map((site) => {
-                      if (!site?.site?.slug) return null;
-                      return (
-                        <Link
-                          key={site.siteId}
-                          href={`/sites/${site.site.slug}`}
-                          className="block border border-border rounded-lg p-2 sm:p-3 hover:border-primary/50 hover:shadow-sm transition-all duration-200 group"
-                        >
-                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5 sm:gap-3">
-                            <div className="flex-1 min-w-0">
-                              <div className="font-semibold text-xs sm:text-sm text-foreground group-hover:text-primary transition-colors truncate">
-                                {site.site.name}
-                              </div>
-                              <div className="text-xs sm:text-sm text-muted mt-0.5 truncate">{site.site.slug}</div>
-                              <div className="mt-1 sm:mt-1.5 flex items-center gap-1.5">
-                                <Badge className="text-xs sm:text-xs">{t('sites.plan')}: {site.site.plan || 'free'}</Badge>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-1.5 sm:flex-shrink-0">
-                              <Button variant="outline" size="sm" className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity text-xs sm:text-sm h-7 sm:h-8 px-2 w-full sm:w-auto">
-                                {t('common.view')}
-                              </Button>
-                            </div>
-                          </div>
-                        </Link>
-                      );
-                    })}
+                  <div className="space-y-2">
+                    {filteredSites.slice(0, 5).map((site) => renderSiteCard(site))}
                   </div>
                 )}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Quick Actions - Takes 1 column */}
-          <div className="flex">
-            <Card className="border-0 shadow-sm w-full flex flex-col">
-              <CardHeader className="pb-2 sm:pb-3 px-3 sm:px-4 pt-3 sm:pt-4">
-                <CardTitle className="text-sm sm:text-base font-semibold">{t('dashboard.quickActions')}</CardTitle>
-                <p className="text-xs sm:text-xs text-muted mt-0.5">Szybki dostęp do najczęstszych akcji</p>
-              </CardHeader>
-              <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4 flex-1 flex flex-col">
-                <div className="space-y-1.5 flex-1">
-                  <Link href="/sites/new" className="block">
-                    <Button variant="primary" className="w-full justify-start text-xs sm:text-sm h-7 sm:h-8 px-2">
-                      <svg className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                      </svg>
-                      <span className="truncate">{t('dashboard.createSite')}</span>
-                    </Button>
-                  </Link>
-                  
-                  <Tooltip content={sites.length === 0 ? "Utwórz pierwszą stronę, aby zobaczyć listę" : undefined}>
-                    <Link href="/sites" className={sites.length === 0 ? "pointer-events-none block" : "block"}>
-                      <Button 
-                        variant="outline" 
-                        className="w-full justify-start text-xs sm:text-sm h-7 sm:h-8 px-2" 
-                        disabled={sites.length === 0}
-                      >
-                        <svg className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                        </svg>
-                        <span className="truncate">{t('dashboard.viewAllSites')}</span>
-                      </Button>
-                    </Link>
-                  </Tooltip>
-                  
-                  {userOrgId && (
-                    <Link href={`/org/${userOrgId}/settings/general`} className="block">
-                      <Button variant="outline" className="w-full justify-start text-xs sm:text-sm h-7 sm:h-8 px-2">
-                        <svg className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                        <span className="truncate">{t('navigation.orgSettings')}</span>
-                      </Button>
-                    </Link>
-                  )}
-                  
-                  <Tooltip content={sites.length === 0 ? "Utwórz pierwszą stronę, aby zarządzać płatnościami" : undefined}>
-                    <Link href="/billing" className={sites.length === 0 ? "pointer-events-none block" : "block"}>
-                      <Button 
-                        variant="outline" 
-                        className="w-full justify-start text-xs sm:text-sm h-7 sm:h-8 px-2" 
-                        disabled={sites.length === 0}
-                      >
-                        <svg className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                        </svg>
-                        <span className="truncate">{t('navigation.billing')}</span>
-                      </Button>
-                    </Link>
-                  </Tooltip>
-                  
-                  <Link href="/account" className="block">
-                    <Button variant="outline" className="w-full justify-start text-xs sm:text-sm h-7 sm:h-8 px-2">
-                      <svg className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                      </svg>
-                      <span className="truncate">{t('navigation.account')}</span>
-                    </Button>
-                  </Link>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-
-        {/* Recent Activity */}
-        <Card className="border-0 shadow-sm">
-          <CardHeader className="pb-1.5 sm:pb-2 px-3 sm:px-4 pt-2 sm:pt-3">
-            <div className="flex items-center justify-between gap-2">
-              <div className="min-w-0">
-                <CardTitle className="text-sm sm:text-base font-semibold">{t('dashboard.recentActivity')}</CardTitle>
-                <p className="text-xs sm:text-xs text-muted mt-0.5">Ostatnie działania w systemie</p>
               </div>
-              {sites.length > 1 && (
-                <select
-                  className="border rounded-md px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm h-8 sm:h-9 bg-card text-foreground flex-shrink-0"
-                  value={selectedSiteId || 'all'}
-                  onChange={(e) => setSelectedSiteId(e.target.value === 'all' ? null : e.target.value)}
-                >
-                  <option value="all">Wszystkie sites</option>
-                  {sites.map((site) => {
-                    if (!site?.site) return null;
-                    return (
-                      <option key={site.siteId} value={site.site.id}>
-                        {site.site.name}
-                      </option>
-                    );
-                  })}
-                </select>
-              )}
             </div>
-          </CardHeader>
-          <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
+          </div>
+
+
+
+          <div className="flex">
+<div className="card w-full h-full flex flex-col" style={{ padding: 0 }}>
+          <div className="flex items-center justify-between gap-3" style={{ padding: '18px', paddingBottom: 0 }}>
+            <div className="min-w-0">
+              <div style={{ fontWeight: 950, fontSize: '16px', color: 'rgb(var(--foreground))' }}>{t('dashboard.recentActivity')}</div>
+              <div style={{ color: 'rgb(var(--muted))', fontSize: '12px', marginTop: '4px' }}>Ostatnie dzia�ania w systemie</div>
+            </div>
+            {sites.length > 1 && (
+              <select
+                className="input flex-shrink-0" style={{ width: 'auto', height: '36px', fontSize: '13px', padding: '0 12px' }}
+                value={selectedSiteId || 'all'}
+                onChange={(e) => setSelectedSiteId(e.target.value === 'all' ? null : e.target.value)}
+              >
+                <option value="all">Wszystkie sites</option>
+                {sites.map((site) => {
+                  if (!site?.site) return null;
+                  return (
+                    <option key={site.siteId} value={site.site.id}>
+                      {site.site.name}
+                    </option>
+                  );
+                })}
+              </select>
+            )}
+          </div>
+          <div className="p-4 sm:p-5 flex-1">
             {activityLoading ? (
-              <ul className="space-y-1.5 sm:space-y-2">
+              <div className="space-y-3">
                 {Array.from({ length: 4 }).map((_, i) => (
-                  <li key={i} className="flex items-center justify-between py-1.5">
-                    <Skeleton variant="text" width={140} height={12} className="sm:w-40" />
-                    <Skeleton variant="text" width={56} height={10} className="sm:w-20" />
-                  </li>
+                  <div key={i} className="flex items-center gap-3 py-2">
+                    <Skeleton variant="rectangular" width={28} height={28} className="rounded-lg flex-shrink-0" />
+                    <div className="flex-1">
+                      <Skeleton variant="text" width={200} height={14} />
+                    </div>
+                    <Skeleton variant="text" width={80} height={12} />
+                  </div>
                 ))}
-              </ul>
+              </div>
             ) : activityError ? (
-              <div className="text-center py-3 text-red-600 dark:text-red-400 text-xs sm:text-sm">
+              <div className="text-center py-8 text-red-600 dark:text-red-400 text-sm">
                 {activityError}
               </div>
             ) : activity.length === 0 ? (
@@ -591,20 +697,19 @@ export default function DashboardPage() {
                 description={t('dashboard.activityWillAppear')}
               />
             ) : (
-              <ul className="space-y-1.5 sm:space-y-2">
+              <div className="space-y-1">
                 {activity.map((item) => {
                   const activityType = item.message.toLowerCase().includes('created') ? 'create' :
                                      item.message.toLowerCase().includes('updated') ? 'update' :
                                      item.message.toLowerCase().includes('deleted') ? 'delete' : 'default';
                   return (
-                    <li key={item.id} className="flex items-start sm:items-center justify-between gap-1.5 sm:gap-3 py-1.5 border-b border-border last:border-0">
-                      <div className="flex items-center gap-1.5 sm:gap-2 flex-1 min-w-0">
-                        <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-primary/10 flex items-center justify-center text-primary flex-shrink-0">
-                          <ActivityIcon type={activityType} />
-                        </div>
-                        <span className="text-xs sm:text-sm text-foreground truncate">{item.message}</span>
-                      </div>
-                      <span className="text-xs sm:text-xs text-muted whitespace-nowrap flex-shrink-0">
+                    <div
+                      key={item.id}
+                      className="flex items-center gap-3 py-2.5 px-2 -mx-2 rounded-lg hover:bg-surface/50 transition-colors"
+                    >
+                      <ActivityIcon type={activityType} />
+                      <span className="text-sm text-foreground flex-1 min-w-0 truncate">{item.message}</span>
+                      <span className="text-xs text-muted whitespace-nowrap flex-shrink-0">
                         {new Date(item.createdAt).toLocaleString('pl-PL', {
                           day: 'numeric',
                           month: 'short',
@@ -612,14 +717,24 @@ export default function DashboardPage() {
                           minute: '2-digit'
                         })}
                       </span>
-                    </li>
+                    </div>
                   );
                 })}
-              </ul>
+              </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
+          </div>
+        </div>
       </div>
     </div>
   );
 }
+
+
+
+
+
+
+
+

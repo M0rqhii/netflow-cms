@@ -25,7 +25,7 @@ export function PageBuilderLayout({
       {/* Main Content Area */}
       <div className="flex-1 flex overflow-hidden">
         {/* Left Sidebar - Block Browser */}
-        <div className="w-64 border-r border-gray-200 bg-white flex-shrink-0">
+        <div className="w-64 border-r border-border bg-surface flex-shrink-0">
           <BlockBrowser />
         </div>
 
@@ -35,13 +35,15 @@ export function PageBuilderLayout({
         </div>
 
         {/* Right Sidebar - Properties Panel */}
-        <div className="w-80 border-l border-gray-200 bg-white flex-shrink-0">
+        <div className="w-80 border-l border-border bg-surface flex-shrink-0">
           <PropertiesPanel selectedBlockId={selectedBlockId} />
         </div>
       </div>
     </div>
   );
 }
+
+
 
 
 

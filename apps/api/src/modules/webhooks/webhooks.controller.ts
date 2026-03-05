@@ -10,11 +10,9 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '../../common/auth/guards/auth.guard';
-import { RolesGuard } from '../../common/auth/guards/roles.guard';
 import { PermissionsGuard } from '../../common/auth/guards/permissions.guard';
-import { Roles } from '../../common/auth/decorators/roles.decorator';
 import { Permissions } from '../../common/auth/decorators/permissions.decorator';
-import { Role, Permission } from '../../common/auth/roles.enum';
+import { Permission } from '../../common/auth/roles.enum';
 import { WebhooksService } from './webhooks.service';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 import { createWebhookSchema, updateWebhookSchema } from './dto';
@@ -24,7 +22,7 @@ import { CurrentSite } from '../../common/decorators/current-site.decorator';
  * Webhooks Controller - RESTful API for webhook management
  * AI Note: All endpoints require authentication and site context
  */
-@UseGuards(AuthGuard, RolesGuard, PermissionsGuard)
+@UseGuards(AuthGuard, PermissionsGuard)
 @Controller('webhooks')
 export class WebhooksController {
   constructor(private readonly webhooksService: WebhooksService) {}
@@ -34,7 +32,6 @@ export class WebhooksController {
    * Create a webhook
    */
   @Post()
-  @Roles(Role.EDITOR, Role.ORG_ADMIN, Role.SUPER_ADMIN)
   @Permissions(Permission.COLLECTIONS_WRITE) // Webhooks are collection-related
   async create(
     @Body(new ZodValidationPipe(createWebhookSchema))
@@ -75,7 +72,6 @@ export class WebhooksController {
    * Update a webhook
    */
   @Put(':id')
-  @Roles(Role.EDITOR, Role.ORG_ADMIN, Role.SUPER_ADMIN)
   @Permissions(Permission.COLLECTIONS_WRITE) // Webhooks are collection-related
   async update(
     @Param('id') id: string,
@@ -91,7 +87,6 @@ export class WebhooksController {
    * Delete a webhook
    */
   @Delete(':id')
-  @Roles(Role.ORG_ADMIN, Role.SUPER_ADMIN)
   @Permissions(Permission.COLLECTIONS_DELETE) // Webhooks are collection-related
   async remove(
     @Param('id') id: string,

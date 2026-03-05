@@ -1,10 +1,10 @@
-import { createParamDecorator, ExecutionContext } from '@nestjs/common';
+import { createParamDecorator, ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { CurrentUserPayload } from '../auth/decorators/current-user.decorator';
 
 /**
  * CurrentOrg decorator - pobiera orgId z requestu lub z user payload
  * AI Note: Używaj w controllerach: @CurrentOrg() orgId: string
- * 
+ *
  * Pobiera orgId w kolejności:
  * 1. Z request.orgId (ustawione przez middleware)
  * 2. Z user.orgId (z JWT token)
@@ -15,7 +15,7 @@ export const CurrentOrg = createParamDecorator(
       orgId?: string;
       user?: CurrentUserPayload;
     };
-    
+
     // Try to get from request (set by middleware)
     if (request.orgId) {
       return request.orgId;
@@ -25,6 +25,6 @@ export const CurrentOrg = createParamDecorator(
     if (user?.orgId) {
       return user.orgId;
     }
-    throw new Error('OrgId not found in request or user payload');
+    throw new ForbiddenException('Organization ID not found in request or user payload');
   }
 );

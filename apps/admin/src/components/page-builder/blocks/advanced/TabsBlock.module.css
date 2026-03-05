@@ -3,15 +3,15 @@
  */
 
 .tabs {
-  border: 1px solid var(--border-color, #e0e0e0);
-  border-radius: 8px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
   overflow: hidden;
 }
 
 .tabHeaders {
   display: flex;
-  background: var(--bg-secondary, #f5f5f5);
-  border-bottom: 1px solid var(--border-color, #e0e0e0);
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
 }
 
 .tabHeader {
@@ -21,20 +21,20 @@
   border-bottom: 2px solid transparent;
   font-size: 14px;
   font-weight: 500;
-  color: var(--text-secondary, #666);
+  color: var(--muted);
   cursor: pointer;
   transition: all 0.15s;
 }
 
 .tabHeader:hover {
-  color: var(--text-primary, #1a1a1a);
-  background: rgba(0, 0, 0, 0.03);
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .tabHeader.active {
-  color: var(--primary-color, #3b82f6);
-  border-bottom-color: var(--primary-color, #3b82f6);
-  background: white;
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+  background: var(--surface);
 }
 
 .addTabBtn {
@@ -45,17 +45,17 @@
   height: 36px;
   margin: 2px 4px;
   background: none;
-  border: 1px dashed var(--border-color, #e0e0e0);
-  border-radius: 4px;
-  color: var(--text-tertiary, #999);
+  border: 1px dashed var(--border);
+  border-radius: 14px;
+  color: var(--muted);
   cursor: pointer;
   transition: all 0.15s;
 }
 
 .addTabBtn:hover {
-  border-color: var(--primary-color, #3b82f6);
-  color: var(--primary-color, #3b82f6);
-  background: rgba(59, 130, 246, 0.05);
+  border-color: var(--primary);
+  color: var(--primary);
+  background: rgba(0, 163, 255, 0.08);
 }
 
 .addTabBtn svg {
@@ -79,10 +79,13 @@
 .emptyState {
   padding: 32px;
   text-align: center;
-  color: var(--text-tertiary, #999);
+  color: var(--muted);
 }
 
 .emptyState p {
   margin: 0;
   font-size: 14px;
 }
+
+
+

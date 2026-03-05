@@ -17,11 +17,11 @@ function ToggleSwitch({
       onClick={() => onChange(!checked)}
       disabled={disabled}
       className={`relative inline-flex h-6 w-11 items-center rounded-full transition ${
-        checked ? 'bg-emerald-500' : 'bg-gray-300'
+        checked ? 'bg-emerald-500' : 'bg-border'
       } ${disabled ? 'cursor-not-allowed opacity-60' : 'hover:opacity-90'}`}
     >
       <span
-        className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition ${
+        className={`inline-block h-5 w-5 transform rounded-full bg-surface shadow transition ${
           checked ? 'translate-x-5' : 'translate-x-1'
         }`}
       />
@@ -139,3 +139,5 @@ export function FeatureMatrix({ rows, onToggle, pendingKey, disabled }: FeatureM
     </Card>
   );
 }
+
+

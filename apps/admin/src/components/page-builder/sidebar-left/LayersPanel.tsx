@@ -63,11 +63,17 @@ function LayerRow({
 
   return (
     <div
-      className={`flex items-center gap-2 rounded px-2 py-1 text-xs cursor-pointer ${
-        isSelected ? 'bg-blue-50 text-blue-700' : 'hover:bg-gray-50'
-      }`}
-      style={{ paddingLeft: 8 + depth * 12 }}
+      className={`builder-layer-row ${isSelected ? 'is-selected' : ''}`}
+      style={{ paddingLeft: 10 + depth * 14 }}
       onClick={() => selectBlock(node.id)}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          selectBlock(node.id);
+        }
+      }}
     >
       <button
         type="button"
@@ -75,30 +81,36 @@ function LayerRow({
           e.stopPropagation();
           if (hasChildren) toggleExpanded(node.id);
         }}
-        className="text-gray-400"
+        className="builder-layer-icon"
+        aria-label={hasChildren ? (isExpanded ? 'Collapse' : 'Expand') : 'No children'}
       >
         {hasChildren ? (isExpanded ? <FiChevronDown /> : <FiChevronRight />) : <span className="w-3" />}
       </button>
-      <span className="flex-1 truncate">{label}</span>
+
+      <span className="builder-layer-label">{label}</span>
+
       <button
         type="button"
         onClick={(e) => {
           e.stopPropagation();
           updateBlockMeta(node.id, { hidden: !node.meta?.hidden });
         }}
-        className="text-gray-400 hover:text-gray-600"
+        className="builder-layer-icon"
         title={node.meta?.hidden ? 'Show' : 'Hide'}
+        aria-label={node.meta?.hidden ? 'Show layer' : 'Hide layer'}
       >
         {node.meta?.hidden ? <FiEyeOff /> : <FiEye />}
       </button>
+
       <button
         type="button"
         onClick={(e) => {
           e.stopPropagation();
           updateBlockMeta(node.id, { locked: !node.meta?.locked });
         }}
-        className="text-gray-400 hover:text-gray-600"
+        className="builder-layer-icon"
         title={node.meta?.locked ? 'Unlock' : 'Lock'}
+        aria-label={node.meta?.locked ? 'Unlock layer' : 'Lock layer'}
       >
         {node.meta?.locked ? <FiLock /> : <FiUnlock />}
       </button>
@@ -137,32 +149,36 @@ export function LayersPanel() {
           isVisible={isVisible}
         />
         {node.childIds.length > 0 && isExpanded && (
-          <div>
-            {node.childIds.map((childId) => renderTree(childId, depth + 1))}
-          </div>
+          <div>{node.childIds.map((childId) => renderTree(childId, depth + 1))}</div>
         )}
       </div>
     );
   };
 
+  const rootChildren = content.nodes[content.rootId]?.childIds || [];
+
   return (
-    <div className="h-full flex flex-col bg-white">
-      <div className="p-4 border-b border-gray-200">
-        <h2 className="text-sm font-semibold text-gray-900 mb-3">Warstwy</h2>
-        <div className="relative">
-          <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Szukaj warstw..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-md
-                       focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-        </div>
+    <div className="builder-layers-panel">
+      <div className="relative">
+        <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
+        <input
+          type="text"
+          placeholder="Szukaj warstw..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="input"
+          style={{ paddingLeft: 32 }}
+        />
       </div>
-      <div className="flex-1 overflow-y-auto p-2">
-        {content.rootId ? renderTree(content.rootId, 0) : null}
+
+      <div className="builder-layers-scroll">
+        {rootChildren.length === 0 ? (
+          <div className="card" style={{ padding: 12, borderRadius: 16, color: 'var(--muted)' }}>
+            Brak warstw. Dodaj pierwszy blok.
+          </div>
+        ) : (
+          rootChildren.map((childId) => renderTree(childId, 0))
+        )}
       </div>
     </div>
   );

@@ -661,41 +661,49 @@ export class AuthService {
       throw new NotFoundException('Site not found');
     }
 
-    const membership = await this.prisma.userOrg.findUnique({
-      where: { userId_orgId: { userId, orgId: site.orgId } },
-      select: { role: true },
+    // First check if user is super_admin - they have access to all sites
+    const currentUser = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, orgId: true, role: true, email: true, isSuperAdmin: true, systemRole: true },
     });
 
-    let role = membership?.role;
-    if (!role) {
-      const user = await this.prisma.user.findUnique({
-        where: { id: userId },
-        select: { orgId: true, role: true, email: true },
-      });
-      if (!user || user.orgId !== site.orgId) {
-        throw new UnauthorizedException('Not a member of the organization that owns this site');
-      }
-      role = user.role;
+    if (!currentUser) {
+      throw new UnauthorizedException('User not found');
     }
 
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { id: true, email: true },
-    });
-    if (!user) {
-      throw new UnauthorizedException('User not found');
+    const isSuperAdmin = currentUser.isSuperAdmin || currentUser.systemRole === 'super_admin';
+
+    let role: string | undefined;
+    if (isSuperAdmin) {
+      // Super admins get super_admin role for all sites
+      role = 'super_admin';
+    } else {
+      const membership = await this.prisma.userOrg.findUnique({
+        where: { userId_orgId: { userId, orgId: site.orgId } },
+        select: { role: true },
+      });
+
+      role = membership?.role;
+      if (!role) {
+        if (currentUser.orgId !== site.orgId) {
+          throw new UnauthorizedException('Not a member of the organization that owns this site');
+        }
+        role = currentUser.role;
+      }
     }
 
     const finalRole = role ?? 'viewer';
     const platformRole = this.mapRoleToPlatformRole(finalRole);
 
     const payload: JwtPayload = {
-      sub: user.id,
-      email: user.email,
+      sub: currentUser.id,
+      email: currentUser.email,
       orgId: site.orgId,
       siteId: site.id,
       role: finalRole,
       platformRole,
+      isSuperAdmin: isSuperAdmin || undefined,
+      systemRole: currentUser.systemRole || undefined,
     };
     const siteTokenExpiresIn = 60 * 60;
     return {
@@ -711,19 +719,29 @@ export class AuthService {
     });
     if (!organization) throw new NotFoundException('Organization not found');
 
+    // Check if user is super_admin - they have access to all organizations
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { orgId: true, isSuperAdmin: true, systemRole: true },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    const isSuperAdmin = user.isSuperAdmin || user.systemRole === 'super_admin';
+    if (isSuperAdmin) {
+      // Super admins have access to all organizations
+      return organization;
+    }
+
     const membership = await this.prisma.userOrg.findUnique({
       where: { userId_orgId: { userId, orgId: organization.id } },
       select: { role: true },
     });
 
-    if (!membership) {
-      const user = await this.prisma.user.findUnique({
-        where: { id: userId },
-        select: { orgId: true },
-      });
-      if (!user || user.orgId !== organization.id) {
-        throw new UnauthorizedException('Not a member of this organization');
-      }
+    if (!membership && user.orgId !== organization.id) {
+      throw new UnauthorizedException('Not a member of this organization');
     }
 
     return organization;

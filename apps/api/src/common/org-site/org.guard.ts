@@ -2,6 +2,7 @@ import { CanActivate, ExecutionContext, Injectable, BadRequestException } from '
 
 /**
  * OrgGuard - requires orgId to be present on the request
+ * Falls back to extracting from headers/params/query if not set by middleware
  */
 @Injectable()
 export class OrgGuard implements CanActivate {
@@ -10,6 +11,10 @@ export class OrgGuard implements CanActivate {
       orgId?: string;
       originalUrl?: string;
       route?: { path?: string };
+      params?: { orgId?: string };
+      headers?: Record<string, string | string[] | undefined>;
+      query?: { orgId?: string };
+      user?: { orgId?: string };
     };
 
     const routePath = req.route?.path || '';
@@ -23,6 +28,19 @@ export class OrgGuard implements CanActivate {
 
     if (isMeRoute || isPreferencesRoute) {
       return true;
+    }
+
+    // Fallback extraction if not set by middleware
+    if (!req.orgId) {
+      const headerOrgId = req.headers?.['x-org-id'];
+      const resolvedOrgId =
+        (typeof headerOrgId === 'string' ? headerOrgId : undefined) ||
+        req.params?.orgId ||
+        req.query?.orgId ||
+        req.user?.orgId;
+      if (resolvedOrgId) {
+        req.orgId = resolvedOrgId;
+      }
     }
 
     if (!req.orgId || typeof req.orgId !== 'string') {

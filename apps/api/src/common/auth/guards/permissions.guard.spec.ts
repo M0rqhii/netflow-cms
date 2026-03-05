@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { PermissionsGuard } from './permissions.guard';
-import { Permission, Role } from '../roles.enum';
+import { Permission, SiteRole, OrgRole, SystemRole } from '../roles.enum';
 
 describe('PermissionsGuard', () => {
   let guard: PermissionsGuard;
@@ -26,13 +26,16 @@ describe('PermissionsGuard', () => {
   });
 
   const createMockContext = (
-    userRole: Role | undefined,
+    user: { siteRole?: SiteRole; orgRole?: OrgRole; systemRole?: SystemRole; isSuperAdmin?: boolean } | undefined,
     requiredPermissions?: Permission[]
   ): ExecutionContext => {
     const request: any = {
-      user: userRole
+      user: user
         ? {
-            role: userRole,
+            siteRole: user.siteRole,
+            orgRole: user.orgRole,
+            systemRole: user.systemRole,
+            isSuperAdmin: user.isSuperAdmin,
           }
         : undefined,
     };
@@ -50,27 +53,48 @@ describe('PermissionsGuard', () => {
 
   describe('canActivate', () => {
     it('should allow access if no permissions are required', () => {
-      const context = createMockContext(Role.VIEWER, undefined);
+      const context = createMockContext({ siteRole: SiteRole.VIEWER }, undefined);
       expect(guard.canActivate(context)).toBe(true);
     });
 
-    it('should allow access if user has required permission', () => {
-      const context = createMockContext(Role.VIEWER, [
+    it('should allow access if user has required site permission', () => {
+      const context = createMockContext({ siteRole: SiteRole.VIEWER }, [
         Permission.ITEMS_READ,
       ]);
       expect(guard.canActivate(context)).toBe(true);
     });
 
-    it('should allow access if user has any of the required permissions', () => {
-      const context = createMockContext(Role.EDITOR, [
+    it('should allow access if user has any of the required permissions via site role', () => {
+      const context = createMockContext({ siteRole: SiteRole.EDITOR }, [
         Permission.ITEMS_CREATE,
         Permission.USERS_WRITE, // Editor doesn't have this
       ]);
       expect(guard.canActivate(context)).toBe(true);
     });
 
+    it('should allow access for super admin regardless of permissions', () => {
+      const context = createMockContext({ isSuperAdmin: true }, [
+        Permission.SYSTEM_MANAGE, // High privilege permission
+      ]);
+      expect(guard.canActivate(context)).toBe(true);
+    });
+
+    it('should allow access via system role permissions', () => {
+      const context = createMockContext({ systemRole: SystemRole.SYSTEM_ADMIN }, [
+        Permission.SYSTEM_ACCESS,
+      ]);
+      expect(guard.canActivate(context)).toBe(true);
+    });
+
+    it('should allow access via org role permissions', () => {
+      const context = createMockContext({ orgRole: OrgRole.ADMIN }, [
+        Permission.USERS_READ,
+      ]);
+      expect(guard.canActivate(context)).toBe(true);
+    });
+
     it('should throw ForbiddenException if user does not have required permissions', () => {
-      const context = createMockContext(Role.VIEWER, [
+      const context = createMockContext({ siteRole: SiteRole.VIEWER }, [
         Permission.USERS_WRITE,
       ]);
       expect(() => guard.canActivate(context)).toThrow(ForbiddenException);

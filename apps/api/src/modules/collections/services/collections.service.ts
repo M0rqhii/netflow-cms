@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  ForbiddenException,
   Inject,
 } from '@nestjs/common';
 import { PrismaService } from '../../../common/prisma/prisma.service';
@@ -14,7 +15,7 @@ import {
 
 /**
  * CollectionsService - business logic dla Collections
- * AI Note: Zawsze filtruj po siteId - site isolation
+ * AI Note: Zawsze filtruj po siteId i waliduj orgId - site isolation
  */
 @Injectable()
 export class CollectionsService {
@@ -23,10 +24,30 @@ export class CollectionsService {
     @Inject(CACHE_MANAGER) private readonly cache: Cache,
   ) {}
 
+  /**
+   * Validates that the site belongs to the organization
+   * @throws ForbiddenException if site doesn't belong to org
+   */
+  private async validateSiteBelongsToOrg(siteId: string, orgId: string): Promise<void> {
+    const site = await this.prisma.site.findUnique({
+      where: { id: siteId },
+      select: { orgId: true },
+    });
+    if (!site) {
+      throw new NotFoundException('Site not found');
+    }
+    if (site.orgId !== orgId) {
+      throw new ForbiddenException('Site does not belong to this organization');
+    }
+  }
+
   async create(
     siteId: string,
+    orgId: string,
     dto: CreateCollectionDto
   ) {
+    await this.validateSiteBelongsToOrg(siteId, orgId);
+
     try {
       const result = await this.prisma.collection.create({
         data: {
@@ -57,7 +78,9 @@ export class CollectionsService {
       throw e;
     }
   }
-  async list(siteId: string, query: { page?: number; pageSize?: number; sort?: string }) {
+  async list(siteId: string, orgId: string, query: { page?: number; pageSize?: number; sort?: string }) {
+    await this.validateSiteBelongsToOrg(siteId, orgId);
+
     const page = query.page || 1;
     const pageSize = Math.min(query.pageSize || 50, 100);
     const sort = (query.sort || '').trim();
@@ -104,7 +127,7 @@ export class CollectionsService {
     return result;
   }
 
-  async getBySlug(siteId: string, slug: string): Promise<{
+  async getBySlug(siteId: string, orgId: string, slug: string): Promise<{
     id: string;
     siteId: string;
     slug: string;
@@ -113,6 +136,8 @@ export class CollectionsService {
     createdAt: Date;
     updatedAt: Date;
   }> {
+    await this.validateSiteBelongsToOrg(siteId, orgId);
+
     const cacheKey = `col:${siteId}:${slug}`;
     const cached = await this.cache.get<{
       id: string;
@@ -151,10 +176,11 @@ export class CollectionsService {
 
   async update(
     siteId: string,
+    orgId: string,
     slug: string,
     dto: UpdateCollectionDto
   ) {
-    const found = await this.getBySlug(siteId, slug);
+    const found = await this.getBySlug(siteId, orgId, slug);
     if (!found) {
       throw new NotFoundException('Collection not found');
     }
@@ -189,8 +215,8 @@ export class CollectionsService {
     return result;
   }
 
-  async remove(siteId: string, slug: string) {
-    const found = await this.getBySlug(siteId, slug);
+  async remove(siteId: string, orgId: string, slug: string) {
+    const found = await this.getBySlug(siteId, orgId, slug);
     await this.prisma.collection.delete({
       where: { id: found.id },
     });

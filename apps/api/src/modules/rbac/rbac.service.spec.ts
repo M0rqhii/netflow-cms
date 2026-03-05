@@ -77,26 +77,53 @@ describe('RbacService', () => {
   describe('getRoles', () => {
     it('should return roles with capabilities', async () => {
       const orgId = 'org-1';
-      mockPrismaService.role.findMany.mockResolvedValue([
-        {
-          id: 'role-1',
-          name: 'Test Role',
-          type: 'CUSTOM',
-          scope: 'ORG',
-          isImmutable: false,
-          roleCapabilities: [
-            {
-              capability: {
-                key: 'builder.view',
-                module: 'builder',
-                label: 'View Builder',
-              },
-            },
-          ],
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
+      // Mock capabilities for ensureSystemRoles
+      mockPrismaService.capability.findMany.mockResolvedValue([
+        { id: 'cap-1', key: 'builder.view' },
+        { id: 'cap-2', key: 'builder.edit' },
+        { id: 'cap-3', key: 'builder.publish' },
       ]);
+
+      // First call: ensureSystemRoles checks existing system roles
+      // Second call: getRoles fetches all roles
+      // Return all system roles as existing so no upsert is needed
+      mockPrismaService.role.findMany
+        .mockResolvedValueOnce([
+          // All system roles already exist - matches roleDefinitions in ensureSystemRoles
+          { name: 'Org Owner', scope: 'ORG' },
+          { name: 'Org Admin', scope: 'ORG' },
+          { name: 'Org Member', scope: 'ORG' },
+          { name: 'Site Admin', scope: 'SITE' },
+          { name: 'Editor-in-Chief', scope: 'SITE' },
+          { name: 'Editor', scope: 'SITE' },
+          { name: 'Publisher', scope: 'SITE' },
+          { name: 'Viewer', scope: 'SITE' },
+          { name: 'Marketing Manager', scope: 'SITE' },
+          { name: 'Marketing Editor', scope: 'SITE' },
+          { name: 'Marketing Publisher', scope: 'SITE' },
+          { name: 'Marketing Viewer', scope: 'SITE' },
+        ])
+        .mockResolvedValueOnce([
+          // Second call: actual roles to return
+          {
+            id: 'role-1',
+            name: 'Test Role',
+            type: 'CUSTOM',
+            scope: 'ORG',
+            isImmutable: false,
+            roleCapabilities: [
+              {
+                capability: {
+                  key: 'builder.view',
+                  module: 'builder',
+                  label: 'View Builder',
+                },
+              },
+            ],
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        ]);
 
       const result = await service.getRoles(orgId);
 

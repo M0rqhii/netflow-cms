@@ -43,14 +43,15 @@ export function mergeStyles(
 
 /**
  * Merguje styles z BlockStyle object.
+ * Safe: przyjmuje style undefined (np. stary content z API).
  */
 export function mergeBlockStyles(
-  style: BlockStyle,
+  style: BlockStyle | undefined,
   breakpoint: Breakpoint
 ): Record<string, unknown> {
   return mergeStyles(
-    style.base,
-    style.responsive?.[breakpoint as 'tablet' | 'mobile'],
+    style?.base ?? {},
+    style?.responsive?.[breakpoint as 'tablet' | 'mobile'],
     breakpoint
   );
 }

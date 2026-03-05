@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ForbiddenException,
   Inject,
 } from '@nestjs/common';
 import { PrismaService } from '../../../common/prisma/prisma.service';
@@ -16,7 +17,7 @@ import {
 
 /**
  * ContentEntriesService - business logic dla Content Entries
- * AI Note: Zawsze filtruj po siteId - site isolation
+ * AI Note: Zawsze filtruj po siteId i waliduj orgId - site isolation
  */
 @Injectable()
 export class ContentEntriesService {
@@ -27,9 +28,26 @@ export class ContentEntriesService {
   ) {}
 
   /**
+   * Validates that the site belongs to the organization
+   * @throws ForbiddenException if site doesn't belong to org
+   */
+  private async validateSiteBelongsToOrg(siteId: string, orgId: string): Promise<void> {
+    const site = await this.prisma.site.findUnique({
+      where: { id: siteId },
+      select: { orgId: true },
+    });
+    if (!site) {
+      throw new NotFoundException('Site not found');
+    }
+    if (site.orgId !== orgId) {
+      throw new ForbiddenException('Site does not belong to this organization');
+    }
+  }
+
+  /**
    * Get content type by slug with caching
    */
-  private async getContentType(siteId: string, slug: string): Promise<{
+  private async getContentType(siteId: string, orgId: string, slug: string): Promise<{
     id: string;
     siteId: string;
     slug: string;
@@ -44,12 +62,12 @@ export class ContentEntriesService {
       name: string;
       schema: Record<string, any>;
     }>(cacheKey);
-    
+
     if (cached) {
       return cached;
     }
 
-    const contentType = await this.contentTypesService.getBySlug(siteId, slug);
+    const contentType = await this.contentTypesService.getBySlug(siteId, orgId, slug);
 
     // Optimized: Increased TTL for content types (they change infrequently)
     await this.cache.set(cacheKey, contentType, 600 * 1000); // 10 minutes TTL in milliseconds
@@ -152,11 +170,13 @@ export class ContentEntriesService {
    */
   async create(
     siteId: string,
+    orgId: string,
     contentTypeSlug: string,
     dto: CreateContentEntryDto,
     userId?: string
   ) {
-    const contentType = await this.getContentType(siteId, contentTypeSlug);
+    await this.validateSiteBelongsToOrg(siteId, orgId);
+    const contentType = await this.getContentType(siteId, orgId, contentTypeSlug);
     const schema = contentType.schema as Record<string, any>;
     
     await this.validateDataAgainstSchema(schema, dto.data);
@@ -193,10 +213,12 @@ export class ContentEntriesService {
    */
   async list(
     siteId: string,
+    orgId: string,
     contentTypeSlug: string,
     query: ContentEntryQueryDto
   ) {
-    const contentType = await this.getContentType(siteId, contentTypeSlug);
+    await this.validateSiteBelongsToOrg(siteId, orgId);
+    const contentType = await this.getContentType(siteId, orgId, contentTypeSlug);
     const skip = (query.page - 1) * query.pageSize;
 
     // Validate filter fields exist in schema to prevent injection
@@ -365,8 +387,9 @@ export class ContentEntriesService {
   /**
    * Get a single content entry by ID
    */
-  async get(siteId: string, contentTypeSlug: string, id: string) {
-    const contentType = await this.getContentType(siteId, contentTypeSlug);
+  async get(siteId: string, orgId: string, contentTypeSlug: string, id: string) {
+    await this.validateSiteBelongsToOrg(siteId, orgId);
+    const contentType = await this.getContentType(siteId, orgId, contentTypeSlug);
     
     const entry = await this.prisma.contentEntry.findFirst({
       where: {
@@ -409,12 +432,14 @@ export class ContentEntriesService {
    */
   async update(
     siteId: string,
+    orgId: string,
     contentTypeSlug: string,
     id: string,
     dto: UpdateContentEntryDto,
     userId?: string
   ) {
-    const contentType = await this.getContentType(siteId, contentTypeSlug);
+    await this.validateSiteBelongsToOrg(siteId, orgId);
+    const contentType = await this.getContentType(siteId, orgId, contentTypeSlug);
     
     const current = await this.prisma.contentEntry.findFirst({
       where: {
@@ -492,8 +517,9 @@ export class ContentEntriesService {
   /**
    * Delete a content entry
    */
-  async remove(siteId: string, contentTypeSlug: string, id: string) {
-    const contentType = await this.getContentType(siteId, contentTypeSlug);
+  async remove(siteId: string, orgId: string, contentTypeSlug: string, id: string) {
+    await this.validateSiteBelongsToOrg(siteId, orgId);
+    const contentType = await this.getContentType(siteId, orgId, contentTypeSlug);
     
     const entry = await this.prisma.contentEntry.findFirst({
       where: {

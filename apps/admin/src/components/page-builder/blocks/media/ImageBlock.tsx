@@ -9,30 +9,25 @@ import Image from 'next/image';
 import { FiImage } from 'react-icons/fi';
 import { isValidLink } from '@/lib/page-builder/sanitize';
 import type { BlockComponentProps } from '@/lib/page-builder/types';
-import { mergeStyles } from '@/lib/page-builder/style-utils';
+import { mergeBlockStyles, toSpacingCSS } from '@/lib/page-builder/style-utils';
 import { useCurrentBreakpoint } from '@/stores/page-builder-store';
 import styles from './ImageBlock.module.css';
 
 export const ImageBlock: React.FC<BlockComponentProps> = ({ node, isPreview, isStructure }) => {
   const currentBreakpoint = useCurrentBreakpoint();
   
-  const { content, style } = node.props;
+  const content = node.props?.content ?? {};
   const src = content.src as string | undefined;
   const alt = (content.alt as string) || '';
   const caption = content.caption as string | undefined;
   const linkUrl = content.linkUrl as string | undefined;
-  
-  // Merge styles for current breakpoint
-  const mergedStyles = mergeStyles(
-    style.base,
-    style.responsive?.[currentBreakpoint as 'tablet' | 'mobile'],
-    currentBreakpoint
-  );
-  
+  const openInLightbox = content.openInLightbox === true;
+
+  const mergedStyles = mergeBlockStyles(node.props?.style, currentBreakpoint);
   const containerStyle: React.CSSProperties = {
-    textAlign: mergedStyles.textAlign as React.CSSProperties['textAlign'] || 'center',
-    padding: mergedStyles.padding as string,
-    margin: mergedStyles.margin as string,
+    textAlign: (mergedStyles.textAlign as React.CSSProperties['textAlign']) || 'center',
+    padding: mergedStyles.padding != null ? toSpacingCSS(mergedStyles.padding) : undefined,
+    margin: mergedStyles.margin != null ? toSpacingCSS(mergedStyles.margin) : undefined,
   };
 
   if (isStructure) {
@@ -46,11 +41,13 @@ export const ImageBlock: React.FC<BlockComponentProps> = ({ node, isPreview, isS
 
   
   const imageStyle: React.CSSProperties = {
-    maxWidth: mergedStyles.maxWidth as string || '100%',
-    width: mergedStyles.width as string,
-    height: mergedStyles.height as string,
-    borderRadius: mergedStyles.borderRadius as string,
-    objectFit: mergedStyles.objectFit as React.CSSProperties['objectFit'] || 'cover',
+    maxWidth: (mergedStyles.maxWidth as string) || '100%',
+    width: (mergedStyles.width as string) || undefined,
+    height: (mergedStyles.height as string) || undefined,
+    borderRadius: (mergedStyles.borderRadius as string) || undefined,
+    objectFit: (mergedStyles.objectFit as React.CSSProperties['objectFit']) || 'cover',
+    objectPosition: (mergedStyles.objectPosition as string) || undefined,
+    aspectRatio: (mergedStyles.aspectRatio as string) || undefined,
   };
   
   // Empty state
@@ -93,22 +90,37 @@ export const ImageBlock: React.FC<BlockComponentProps> = ({ node, isPreview, isS
     />
   );
   
-  // Wrap in link if provided
-  const linkedImage = linkUrl && isValidLink(linkUrl) ? (
-    <a
-      href={linkUrl}
-      target="_blank"
-      rel="noopener noreferrer"
-      className={styles.link}
-      onClick={(e) => {
-        if (!isPreview) e.preventDefault();
-      }}
-    >
-      {imageElement}
-    </a>
-  ) : (
-    imageElement
-  );
+  // Wrap: external link > lightbox > plain image
+  const linkedImage =
+    linkUrl && isValidLink(linkUrl)
+      ? (
+          <a
+            href={linkUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={styles.link}
+            onClick={(e) => {
+              if (!isPreview) e.preventDefault();
+            }}
+          >
+            {imageElement}
+          </a>
+        )
+      : openInLightbox
+        ? (
+            <a
+              href={validSrc}
+              data-lightbox="true"
+              data-caption={caption ?? ''}
+              className={styles.link}
+              onClick={(e) => {
+                if (!isPreview) e.preventDefault();
+              }}
+            >
+              {imageElement}
+            </a>
+          )
+        : imageElement;
   
   return (
     <figure className={styles.figure} style={containerStyle}>
@@ -135,6 +147,7 @@ export const imageBlockDefinition = {
       alt: '',
       caption: '',
       linkUrl: '',
+      openInLightbox: false,
     },
     style: {
       base: {
@@ -149,6 +162,7 @@ export const imageBlockDefinition = {
       alt: { type: 'text' as const, label: 'Alt Text', placeholder: 'Describe the image...' },
       caption: { type: 'text' as const, label: 'Caption' },
       linkUrl: { type: 'link' as const, label: 'Link URL' },
+      openInLightbox: { type: 'boolean' as const, label: 'Open in lightbox' },
     },
     style: {
       textAlign: {
@@ -160,10 +174,28 @@ export const imageBlockDefinition = {
           { value: 'right', label: 'Right' },
         ],
       },
+      padding: { type: 'spacing' as const, label: 'Padding' },
+      margin: { type: 'spacing' as const, label: 'Margin' },
       maxWidth: { type: 'text' as const, label: 'Max Width', placeholder: '100%' },
+      width: { type: 'text' as const, label: 'Width', placeholder: '100%' },
+      height: { type: 'text' as const, label: 'Height', placeholder: 'auto' },
       borderRadius: { type: 'text' as const, label: 'Border Radius', placeholder: '0px' },
+      objectFit: {
+        type: 'select' as const,
+        label: 'Object Fit',
+        options: [
+          { value: 'cover', label: 'Cover' },
+          { value: 'contain', label: 'Contain' },
+          { value: 'fill', label: 'Fill' },
+          { value: 'none', label: 'None' },
+        ],
+      },
+      objectPosition: { type: 'text' as const, label: 'Object Position', placeholder: 'center' },
+      aspectRatio: { type: 'text' as const, label: 'Aspect Ratio', placeholder: 'auto' },
     },
   },
 };
 
 export default ImageBlock;
+
+

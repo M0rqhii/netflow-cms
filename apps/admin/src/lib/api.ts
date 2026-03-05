@@ -756,12 +756,13 @@ export async function fetchSiteMedia(siteId: string): Promise<MediaItem[]> {
   // API returns { items: MediaItem[], pagination: {...} }
   const items = Array.isArray(data.items) ? data.items : (Array.isArray(data) ? data : []);
   // Map API fields to MediaItem type (mimeType -> mime, createdAt -> uploadedAt)
-  return items.map((item: MediaItem & { filename?: string; name?: string; mimeType?: string; createdAt?: string; uploadedAt?: string }) => ({
+  return items.map((item: MediaItem & { filename?: string; name?: string; mimeType?: string; createdAt?: string; uploadedAt?: string; thumbnailUrl?: string }) => ({
     ...item,
     fileName: item.fileName || item.filename || item.name || '',
     path: item.path,
     mime: item.mimeType || item.mime || '',
     uploadedAt: item.createdAt || item.uploadedAt || new Date().toISOString(),
+    thumbnailUrl: item.thumbnailUrl,
   }));
 }
 
@@ -787,6 +788,7 @@ export async function uploadSiteMedia(siteId: string, file: File): Promise<Media
     path: item.path,
     mime: item.mimeType || item.mime || '',
     uploadedAt: item.createdAt || item.uploadedAt || new Date().toISOString(),
+    thumbnailUrl: item.thumbnailUrl,
   };
 }
 
@@ -1800,7 +1802,6 @@ function buildOrgHeaders(token: string, orgId: string): HeadersInit {
   return {
     Authorization: `Bearer ${token}`,
     'X-Org-ID': orgId,
-    'X-Tenant-ID': orgId, // Backward compatibility
   };
 }
 

@@ -1,29 +1,21 @@
-"use client";
+﻿"use client";
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useTranslations } from '@/hooks/useTranslations';
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useTranslations } from "@/hooks/useTranslations";
 
-/**
- * Redirect /types to /sites
- * Content Types are managed per-site in Site Panel (/sites/[slug]/types)
- * This global page is deprecated - use Platform Panel (/sites) instead
- */
 export default function TypesRedirectPage() {
   const router = useRouter();
   const t = useTranslations();
-  
+
   useEffect(() => {
-    // Redirect to sites page with message
-    router.replace('/sites');
+    router.replace("/sites");
   }, [router]);
 
   return (
-    <div className="container py-8">
-      <div className="text-center">
-        <p className="text-muted">{t('sites.sitePanelComingSoon')}</p>
-        <p className="text-sm text-muted mt-2">{t('redirects.contentTypesManagedInSitePanel')}</p>
-      </div>
+    <div className="card card-pad" style={{ textAlign: "center" }}>
+      <div className="text-muted">{t("sites.sitePanelComingSoon")}</div>
+      <div className="detail-label" style={{ marginTop: 6 }}>{t("redirects.contentTypesManagedInSitePanel")}</div>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-// Shared UI Components
+﻿// Shared UI Components
 export * from './components/Button';
 export * from './components/Input';
 export * from './components/Select';
@@ -21,6 +21,10 @@ export * from './components/EmptyState';
 export * from './components/ErrorBoundary';
 export * from './components/Skeleton';
 export * from './components/UpgradePlanBanner';
+export * from './components/Checkbox';
+export * from './components/Radio';
+export * from './components/ToggleSwitch';
+export * from './components/Avatar';
 
 // Theme
 export * from './theme/theme';

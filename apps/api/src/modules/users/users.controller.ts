@@ -12,15 +12,13 @@ import {
   } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { AuthGuard } from '../../common/auth/guards/auth.guard';
-import { RolesGuard } from '../../common/auth/guards/roles.guard';
 import { PermissionsGuard } from '../../common/auth/guards/permissions.guard';
 import { OrgGuard } from '../../common/org-site/org.guard';
-import { Roles } from '../../common/auth/decorators/roles.decorator';
 import { Permissions } from '../../common/auth/decorators/permissions.decorator';
 import { CurrentUser } from '../../common/auth/decorators/current-user.decorator';
 import { CurrentOrg } from '../../common/decorators/current-org.decorator';
 import { CurrentSite } from '../../common/decorators/current-site.decorator';
-import { Role, Permission } from '../../common/auth/roles.enum';
+import { Permission } from '../../common/auth/roles.enum';
 import { UsersService } from './users.service';
 import { z } from 'zod';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
@@ -29,7 +27,7 @@ import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
  * UsersController - RESTful API for user management
  * AI Note: All endpoints require authentication and organization context
  */
-@UseGuards(AuthGuard, OrgGuard, RolesGuard, PermissionsGuard)
+@UseGuards(AuthGuard, OrgGuard, PermissionsGuard)
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
@@ -65,7 +63,6 @@ export class UsersController {
    */
   @Get()
   @Throttle(1000, 60) // 1000 requests per minute (very high limit for development)
-  @Roles(Role.ORG_ADMIN, Role.SUPER_ADMIN)
   @Permissions(Permission.USERS_READ)
   listUsers(
     @CurrentOrg() orgId: string,
@@ -80,7 +77,6 @@ export class UsersController {
    */
   @Get('invites')
   @Throttle(1000, 60) // 1000 requests per minute (very high limit for development)
-  @Roles(Role.ORG_ADMIN, Role.SUPER_ADMIN)
   @Permissions(Permission.USERS_READ)
   getInvites(@CurrentOrg() orgId: string, @CurrentSite() siteId: string) {
     return this.usersService.listInvites(orgId, siteId);
@@ -92,7 +88,6 @@ export class UsersController {
    */
   @Post('invites')
   @Throttle(1000, 60) // 1000 requests per minute (very high limit for development)
-  @Roles(Role.ORG_ADMIN, Role.SUPER_ADMIN)
   @Permissions(Permission.USERS_WRITE)
   @HttpCode(HttpStatus.CREATED)
   createInvite(
@@ -113,7 +108,6 @@ export class UsersController {
    */
   @Delete('invites/:id')
   @Throttle(1000, 60) // 1000 requests per minute (very high limit for development)
-  @Roles(Role.ORG_ADMIN, Role.SUPER_ADMIN)
   @Permissions(Permission.USERS_WRITE)
   @HttpCode(HttpStatus.NO_CONTENT)
   async revokeInvite(
@@ -131,7 +125,6 @@ export class UsersController {
    * Get user by ID (admin only)
    */
   @Get(':id')
-  @Roles(Role.ORG_ADMIN, Role.SUPER_ADMIN)
   @Permissions(Permission.USERS_READ)
   getUserById(
     @Param('id') userId: string,
@@ -147,7 +140,6 @@ export class UsersController {
    * Security: Only super_admin can create super_admin users
    */
   @Post()
-  @Roles(Role.ORG_ADMIN, Role.SUPER_ADMIN)
   @Permissions(Permission.USERS_WRITE)
   @HttpCode(HttpStatus.CREATED)
   createUser(
@@ -169,7 +161,6 @@ export class UsersController {
    * Security: Only super_admin can assign super_admin role
    */
   @Patch(':id/role')
-  @Roles(Role.ORG_ADMIN, Role.SUPER_ADMIN)
   @Permissions(Permission.USERS_WRITE)
   updateUserRole(
     @Param('id') userId: string,

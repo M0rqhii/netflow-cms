@@ -215,13 +215,13 @@ export function MediaManager({ siteSlug }: Props) {
   }
 
   return (
-    <div className="grid grid-cols-1 gap-4 xl:grid-cols-[240px_minmax(0,1fr)_360px]">
+    <div className="grid grid-cols-1 gap-5 xl:grid-cols-[284px_minmax(0,1fr)_360px]">
       <input
         ref={fileInputRef}
         type="file"
         className="hidden"
         multiple
-        accept="image/*,video/*,application/pdf"
+        accept="image/*,video/*,application/pdf,.doc,.docx,text/plain"
         onChange={handleFileChange}
       />
 
@@ -270,3 +270,6 @@ export function MediaManager({ siteSlug }: Props) {
     </div>
   );
 }
+
+
+

@@ -31,21 +31,21 @@ export function MediaGrid({
         </div>
 
         <div
-          className={`relative rounded-lg border border-dashed border-transparent ${
-            isDragOver ? 'border-blue-400 bg-blue-50/40' : ''
+          className={`relative rounded-[18px] border border-dashed border-transparent ${
+            isDragOver ? 'border-[rgba(0,163,255,0.35)] bg-[rgba(0,163,255,0.08)]' : ''
           }`}
           onDragOver={onDragOver}
           onDragLeave={onDragLeave}
           onDrop={onDrop}
         >
           {isDragOver && (
-            <div className="absolute inset-0 flex items-center justify-center text-sm text-blue-700 bg-white/70 z-10 rounded-lg">
+            <div className="absolute inset-0 flex items-center justify-center text-sm text-primary bg-surface opacity-70 z-10 rounded-[18px]">
               Drop files to upload
             </div>
           )}
 
           {items.length > 0 ? (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
               {items.map((item) => (
                 <button key={item.id} type="button" onClick={() => onSelect?.(item.id)}>
                   <MediaGridItem item={item} selected={item.id === selectedId} />
@@ -56,7 +56,7 @@ export function MediaGrid({
             <div className="py-6">
               <EmptyState
                 title="No files in this view"
-                description="Use the filters or search to refine results."
+                description="Upload files using the button above or drag and drop here. Use filters or search to refine results."
               />
             </div>
           )}
@@ -65,3 +65,7 @@ export function MediaGrid({
     </Card>
   );
 }
+
+
+
+

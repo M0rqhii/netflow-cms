@@ -1,4 +1,4 @@
-﻿﻿﻿import React from 'react';
+import React from 'react';
 import {
   FiLayout,
   FiType,
@@ -103,7 +103,17 @@ const CONTAINER_SCHEMA: BlockPropsSchema = {
         { value: 'wrap', label: 'Wrap' },
       ],
     },
-    gridTemplateColumns: { type: 'text', label: 'Grid Columns' },
+    gridTemplateColumns: { type: 'text', label: 'Grid Columns (np. 1fr 1fr)' },
+    columns: { type: 'number' as const, label: 'Liczba kolumn', min: 1, max: 12 },
+    proportions: {
+      type: 'select' as const,
+      label: 'Proporcje (2 kolumny)',
+      options: [
+        { value: '50/50', label: '50 / 50' },
+        { value: '30/70', label: '30 / 70' },
+        { value: '70/30', label: '70 / 30' },
+      ],
+    },
     position: {
       type: 'select',
       label: 'Position',
@@ -121,6 +131,15 @@ const CONTAINER_SCHEMA: BlockPropsSchema = {
         { value: 'hidden', label: 'Hidden' },
         { value: 'auto', label: 'Auto' },
         { value: 'scroll', label: 'Scroll' },
+      ],
+    },
+    layoutVariant: {
+      type: 'select',
+      label: 'Spacer / Divider',
+      options: [
+        { value: 'spacer', label: 'Odstęp (spacer)' },
+        { value: 'divider', label: 'Linia (divider)' },
+        { value: 'shape', label: 'Kształt (shape)' },
       ],
     },
   },
@@ -175,7 +194,7 @@ const TEXT_SCHEMA: BlockPropsSchema = {
 
 const MEDIA_SCHEMA: BlockPropsSchema = {
   content: {
-    src: { type: 'text', label: 'Source URL' },
+    src: { type: 'text', label: 'URL / plik' },
     alt: { type: 'text', label: 'Alt text' },
     kind: {
       type: 'select',
@@ -186,6 +205,14 @@ const MEDIA_SCHEMA: BlockPropsSchema = {
         { value: 'audio', label: 'Audio' },
         { value: 'embed', label: 'Embed' },
         { value: 'iframe', label: 'iFrame' },
+      ],
+    },
+    sourceType: {
+      type: 'select',
+      label: 'Źródło wideo',
+      options: [
+        { value: 'embed', label: 'Link (YouTube, Vimeo…)' },
+        { value: 'file', label: 'Plik' },
       ],
     },
   },
@@ -216,6 +243,10 @@ const FORM_SCHEMA: BlockPropsSchema = {
     fieldType: { type: 'text', label: 'Field type' },
     placeholder: { type: 'text', label: 'Placeholder' },
     options: { type: 'text', label: 'Options (comma separated)' },
+  },
+  style: {
+    padding: { type: 'spacing', label: 'Padding' },
+    margin: { type: 'spacing', label: 'Margin' },
   },
 };
 
@@ -309,21 +340,11 @@ const iconMap: Record<CatalogItem['component'], React.ReactNode> = {
   button: <FiZap />,
 };
 const layoutItems: CatalogItem[] = [
-  { type: 'container', title: 'Container', category: 'layout', component: 'container' },
-  { type: 'grid', title: 'Grid', category: 'layout', component: 'container', defaultContent: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px' } },
-  { type: 'columns', title: 'Columns (Preset)', category: 'layout', component: 'container', defaultContent: { display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '24px' } },
-  { type: 'flex-row', title: 'Flex Row', category: 'layout', component: 'container', defaultContent: { display: 'flex', flexDirection: 'row', gap: '16px' } },
-  { type: 'flex-column', title: 'Flex Column', category: 'layout', component: 'container', defaultContent: { display: 'flex', flexDirection: 'column', gap: '16px' } },
-  { type: 'stack', title: 'Stack', category: 'layout', component: 'container', defaultContent: { display: 'flex', flexDirection: 'column', gap: '12px' } },
-  { type: 'wrap', title: 'Wrap', category: 'layout', component: 'container', defaultContent: { display: 'flex', flexWrap: 'wrap', gap: '12px' } },
-  { type: 'card', title: 'Card', category: 'layout', component: 'container', defaultStyle: { backgroundColor: '#0f172a', color: '#e2e8f0', borderRadius: '16px', padding: '24px' } },
-  { type: 'card-grid', title: 'Card Grid', category: 'layout', component: 'container', defaultContent: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' } },
-  { type: 'split-layout', title: 'Split Layout', category: 'layout', component: 'container', defaultContent: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px' } },
+  { type: 'container', title: 'Layout', category: 'layout', component: 'container', description: 'Grid, flex, columns – ustaw w panelu Display, Grid Columns, Direction, Gap' },
+  { type: 'card', title: 'Cards', category: 'layout', component: 'container', defaultContent: { display: 'grid', columns: 1 }, defaultStyle: { backgroundColor: '#0f172a', color: '#e2e8f0', borderRadius: '16px', padding: '24px' }, description: 'Karta lub siatka kart – ustaw Liczba kolumn (1 = jedna karta, 3 = grid)' },
   { type: 'sticky-container', title: 'Sticky Container', category: 'layout', component: 'container', defaultContent: { position: 'sticky' }, defaultStyle: { top: '0px' } },
   { type: 'absolute-layer', title: 'Absolute Layer', category: 'layout', component: 'container', defaultContent: { position: 'absolute' }, defaultStyle: { top: '0px', left: '0px' } },
-  { type: 'spacer', title: 'Spacer', category: 'layout', component: 'container', canHaveChildren: false, defaultStyle: { minHeight: '24px' } },
-  { type: 'divider', title: 'Divider', category: 'layout', component: 'container', canHaveChildren: false, defaultStyle: { minHeight: '1px', backgroundColor: '#1f2a3a' } },
-  { type: 'shape-divider', title: 'Shape Divider', category: 'layout', component: 'container', canHaveChildren: false, defaultStyle: { minHeight: '48px', backgroundColor: '#1f2a3a' } },
+  { type: 'spacer-divider', title: 'Spacer / Divider', category: 'layout', component: 'container', canHaveChildren: false, defaultContent: { layoutVariant: 'spacer' }, description: 'Odstęp, linia lub kształt – wybór w polu Spacer / Divider' },
   { type: 'background-layer', title: 'Background Layer', category: 'layout', component: 'container', defaultStyle: { backgroundColor: '#0b1220' } },
   { type: 'overlay', title: 'Overlay', category: 'layout', component: 'container', canHaveChildren: false, defaultStyle: { backgroundColor: 'rgba(15, 23, 42, 0.6)' } },
   { type: 'anchor', title: 'Anchor', category: 'layout', component: 'text', defaultContent: { tag: 'a', text: 'Anchor' } },
@@ -345,22 +366,15 @@ const typographyItems: CatalogItem[] = [
 ];
 
 const mediaItems: CatalogItem[] = [
-  { type: 'image-with-caption', title: 'Image with Caption', category: 'media', component: 'container', defaultContent: { tag: 'figure' } },
-  { type: 'gallery-grid', title: 'Gallery Grid', category: 'media', component: 'container', defaultContent: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' } },
-  { type: 'masonry-gallery', title: 'Masonry Gallery', category: 'media', component: 'container', defaultContent: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' } },
-  { type: 'carousel-images', title: 'Carousel (Images)', category: 'media', component: 'container', defaultContent: { display: 'flex', flexWrap: 'nowrap', gap: '16px', overflow: 'auto' } },
-  { type: 'carousel-content', title: 'Carousel (Content)', category: 'media', component: 'container', defaultContent: { display: 'flex', flexWrap: 'nowrap', gap: '16px', overflow: 'auto' } },
-  { type: 'lightbox-viewer', title: 'Lightbox Viewer', category: 'media', component: 'media', defaultContent: { kind: 'image' } },
-  { type: 'video-embed', title: 'Video Embed', category: 'media', component: 'media', defaultContent: { kind: 'video' } },
-  { type: 'video-file', title: 'Video File', category: 'media', component: 'media', defaultContent: { kind: 'video' } },
-  { type: 'background-video', title: 'Background Video', category: 'media', component: 'media', defaultContent: { kind: 'video' } },
+  { type: 'gallery', title: 'Gallery', category: 'media', component: 'container', defaultContent: { display: 'grid', columns: 3, gap: '12px' }, description: 'Siatka zdjęć lub treści – Liczba kolumn w panelu (grid/masonry to ten sam layout)' },
+  { type: 'carousel', title: 'Carousel', category: 'media', component: 'container', defaultContent: { display: 'flex', flexWrap: 'nowrap', gap: '16px', overflow: 'auto' }, description: 'Poziomy slider – obrazy lub dowolna treść' },
+  { type: 'video', title: 'Video', category: 'media', component: 'media', defaultContent: { kind: 'video', sourceType: 'embed' }, description: 'Link (embed) lub plik – wybór w polu Źródło wideo' },
+  { type: 'background-video', title: 'Background Video', category: 'media', component: 'media', defaultContent: { kind: 'video', sourceType: 'embed' } },
   { type: 'audio-player', title: 'Audio Player', category: 'media', component: 'media', defaultContent: { kind: 'audio' } },
   { type: 'icon', title: 'Icon', category: 'media', component: 'text', defaultContent: { text: '?', tag: 'span' } },
   { type: 'icon-list', title: 'Icon List', category: 'media', component: 'list', defaultContent: { items: ['? Feature', '? Benefit'] } },
   { type: 'lottie-animation', title: 'Lottie Animation', category: 'media', component: 'media', defaultContent: { kind: 'embed' } },
   { type: 'svg', title: 'SVG', category: 'media', component: 'media', defaultContent: { kind: 'image' } },
-  { type: 'before-after-slider', title: 'Before/After Slider', category: 'media', component: 'container', defaultContent: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' } },
-  { type: 'map-snapshot', title: 'Map Snapshot Image', category: 'media', component: 'media', defaultContent: { kind: 'image' } },
 ];
 
 
@@ -375,7 +389,6 @@ const navItems: CatalogItem[] = [
   { type: 'pagination', title: 'Pagination', category: 'components', component: 'list', defaultContent: { items: ['1', '2', '3'] } },
   { type: 'step-navigator', title: 'Step Navigator', category: 'components', component: 'container', defaultContent: { display: 'flex', gap: '12px' } },
   { type: 'toc', title: 'Table of Contents', category: 'components', component: 'list', defaultContent: { items: ['Intro', 'Features', 'FAQ'] } },
-  { type: 'back-to-top', title: 'Back to Top', category: 'components', component: 'button', defaultContent: { text: 'Back to top', url: '#' } },
 ];
 const marketingItems: CatalogItem[] = [
   { type: 'hero', title: 'Hero', category: 'components', component: 'container', defaultContent: { display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '32px' } },
@@ -396,7 +409,6 @@ const marketingItems: CatalogItem[] = [
   { type: 'alert', title: 'Alert / Notice', category: 'components', component: 'alert' },
   { type: 'banner-top', title: 'Banner (Top)', category: 'components', component: 'container' },
   { type: 'cookie-notice', title: 'Cookie Notice', category: 'components', component: 'container', moduleKey: 'consent-security' },
-  { type: 'modal', title: 'Modal', category: 'components', component: 'container' },
   { type: 'popover', title: 'Popover / Tooltip', category: 'components', component: 'container' },
   { type: 'progress-bar', title: 'Progress Bar', category: 'components', component: 'progress', defaultContent: { value: 65, label: '65%' } },
   { type: 'skeleton-placeholder', title: 'Skeleton Placeholder', category: 'components', component: 'container', canHaveChildren: false, defaultStyle: { minHeight: '120px', backgroundColor: '#1f2a3a' } },
@@ -440,7 +452,6 @@ const dataItems: CatalogItem[] = [
   { type: 'search-bar', title: 'Search Bar', category: 'components', component: 'form', defaultContent: { fieldType: 'text', label: 'Search', placeholder: 'Search...' } },
   { type: 'filter-bar', title: 'Filter Bar', category: 'components', component: 'container' },
   { type: 'sort-dropdown', title: 'Sort Dropdown', category: 'components', component: 'form', defaultContent: { fieldType: 'select', label: 'Sort', options: ['Newest', 'Oldest'] } },
-  { type: 'collection-empty-state', title: 'Empty State (Collection)', category: 'components', component: 'container' },
   { type: 'load-more', title: 'Load More / Infinite Scroll', category: 'components', component: 'button', defaultContent: { text: 'Load more', url: '#' } },
 ];
 
@@ -461,8 +472,7 @@ const commerceItems: CatalogItem[] = [
 
 
 const integrationItems: CatalogItem[] = [
-  { type: 'html-embed', title: 'HTML Embed', category: 'components', component: 'media', defaultContent: { kind: 'embed' }, moduleKey: 'embeds-media' },
-  { type: 'iframe-embed', title: 'iFrame Embed', category: 'components', component: 'media', defaultContent: { kind: 'iframe' }, moduleKey: 'embeds-media' },
+  { type: 'embed', title: 'Embed', category: 'components', component: 'media', defaultContent: { kind: 'embed' }, moduleKey: 'embeds-media', description: 'HTML / iframe – wybór Kind w panelu (embed lub iFrame)' },
   { type: 'script-embed', title: 'Script Embed (Gated)', category: 'components', component: 'text', moduleKey: 'tag-manager', defaultContent: { text: '<script></script>', tag: 'code' } },
   { type: 'google-map', title: 'Google Maps / OSM Map', category: 'components', component: 'media', moduleKey: 'maps', defaultContent: { kind: 'embed' } },
   { type: 'calendly-embed', title: 'Calendly Embed', category: 'components', component: 'media', moduleKey: 'embeds-media', defaultContent: { kind: 'embed' } },
@@ -470,21 +480,13 @@ const integrationItems: CatalogItem[] = [
   { type: 'youtube-playlist', title: 'YouTube Playlist', category: 'components', component: 'media', moduleKey: 'embeds-media', defaultContent: { kind: 'embed' } },
   { type: 'spotify-embed', title: 'Spotify Embed', category: 'components', component: 'media', moduleKey: 'embeds-media', defaultContent: { kind: 'embed' } },
   { type: 'social-post-embed', title: 'Social Post Embed', category: 'components', component: 'media', moduleKey: 'embeds-media', defaultContent: { kind: 'embed' } },
-  { type: 'analytics-pixel', title: 'Analytics Pixel (Gated)', category: 'components', component: 'container', moduleKey: 'analytics' },
-  { type: 'tag-manager-slot', title: 'Tag Manager Slot (Gated)', category: 'components', component: 'container', moduleKey: 'tag-manager' },
 ];
 
 
 const utilityItems: CatalogItem[] = [
-  { type: 'html-anchor-link', title: 'HTML Anchor Link', category: 'components', component: 'text', defaultContent: { text: 'Anchor link', tag: 'a' } },
   { type: 'custom-css', title: 'Custom CSS (Gated)', category: 'components', component: 'text', moduleKey: 'forms-pro', defaultContent: { text: '.class { }', tag: 'code' } },
-  { type: 'custom-class-presets', title: 'Custom Class Presets', category: 'components', component: 'container' },
   { type: 'aria-wrapper', title: 'ARIA Wrapper', category: 'components', component: 'container' },
-  { type: 'seo-block', title: 'SEO Block (Page)', category: 'components', component: 'container' },
-  { type: 'opengraph-preview', title: 'OpenGraph Preview', category: 'components', component: 'container' },
-  { type: 'error-boundary-placeholder', title: 'Error Boundary Placeholder', category: 'components', component: 'alert', defaultContent: { title: 'Error boundary', message: 'This block failed to render.' } },
-  { type: 'debug-outline-toggle', title: 'Debug Outline Toggle', category: 'components', component: 'button', defaultContent: { text: 'Toggle outlines', url: '#' } },
-  { type: 'comment-annotation', title: 'Comment / Annotation', category: 'components', component: 'text', defaultContent: { text: 'Comment...', tag: 'p' } },
+  { type: 'seo-block', title: 'SEO Block (Page)', category: 'components', component: 'container', description: 'Tylko gdy potrzeba meta per sekcję; zwykle SEO w ustawieniach strony.' },
 ];
 
 
@@ -555,6 +557,9 @@ function buildDefinition(item: CatalogItem): BlockDefinition {
 export const catalogBlockDefinitions: BlockDefinition[] = ALL_ITEMS.map(buildDefinition);
 
 export default catalogBlockDefinitions;
+
+
+
 
 
 

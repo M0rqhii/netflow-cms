@@ -1,11 +1,11 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import clsx from 'clsx';
 
 const isMac = typeof navigator !== 'undefined' && navigator.platform.toLowerCase().includes('mac');
-const shortcutHint = isMac ? '⌘K' : 'Ctrl+K';
+const shortcutHint = isMac ? '?K' : 'Ctrl+K';
 
 const actions = [
   { id: 'dashboard', label: 'Dashboard', href: '/dashboard', keywords: ['home', 'overview'] },
@@ -117,3 +117,5 @@ export default function CommandPalette() {
     </div>
   );
 }
+
+

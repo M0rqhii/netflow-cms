@@ -1,39 +1,37 @@
 /**
  * TextBlock
- * 
- * Blok tekstu z sanityzacją HTML.
+ *
+ * Rich text with sanitized HTML and full style customization.
  */
 
 import React from 'react';
 import type { BlockComponentProps } from '@/lib/page-builder/types';
-import { mergeBlockStyles } from '@/lib/page-builder/style-utils';
+import { mergeBlockStyles, toSpacingCSS } from '@/lib/page-builder/style-utils';
 import { sanitizeHtml } from '@/lib/page-builder/sanitize';
 import { useCurrentBreakpoint } from '@/stores/page-builder-store';
 import styles from './TextBlock.module.css';
 
-export const TextBlock: React.FC<BlockComponentProps> = ({ 
-  node,
-}) => {
+export const TextBlock: React.FC<BlockComponentProps> = ({ node }) => {
   const breakpoint = useCurrentBreakpoint();
-  
-  const html = (node.props.content.html as string) || '<p>Enter text here...</p>';
-  
-  // Sanitize HTML
+  const content = node.props?.content ?? {};
+  const html = (content.html as string) || '<p>Enter text here...</p>';
   const sanitizedHtml = sanitizeHtml(html);
-  
-  // Merge styles for current breakpoint
-  const mergedStyles = mergeBlockStyles(node.props.style, breakpoint);
-  
+  const merged = mergeBlockStyles(node.props?.style, breakpoint);
+
   const textStyle: React.CSSProperties = {
-    textAlign: mergedStyles.textAlign as React.CSSProperties['textAlign'],
-    color: mergedStyles.color as string,
-    fontSize: mergedStyles.fontSize as string,
-    lineHeight: mergedStyles.lineHeight as string,
-    margin: mergedStyles.margin as string,
+    textAlign: (merged.textAlign as React.CSSProperties['textAlign']) || undefined,
+    color: (merged.color as string) || undefined,
+    fontSize: (merged.fontSize as string) || undefined,
+    fontWeight: (merged.fontWeight as string) || undefined,
+    lineHeight: (merged.lineHeight as string) || undefined,
+    letterSpacing: (merged.letterSpacing as string) || undefined,
+    margin: merged.margin != null ? toSpacingCSS(merged.margin) : undefined,
+    padding: merged.padding != null ? toSpacingCSS(merged.padding) : undefined,
+    maxWidth: (merged.maxWidth as string) || undefined,
   };
-  
+
   return (
-    <div 
+    <div
       className={styles.text}
       style={textStyle}
       data-block-type="text"
@@ -43,3 +41,5 @@ export const TextBlock: React.FC<BlockComponentProps> = ({
 };
 
 export default TextBlock;
+
+

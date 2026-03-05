@@ -42,10 +42,10 @@ export default function HelpMenu() {
         <span className="sm:hidden">?</span>
       </button>
       {open ? (
-        <div className="absolute right-0 mt-2 w-48 sm:w-52 rounded-md border border-border bg-card shadow-lg z-50">
+        <div className="absolute right-0 mt-2 w-48 sm:w-52 rounded-[14px] border border-border bg-surface shadow-soft z-50">
           <button
             type="button"
-            className="w-full px-3 sm:px-4 py-2 text-left text-xs sm:text-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+            className="w-full px-3 sm:px-4 py-2 text-left text-xs sm:text-sm hover:bg-[var(--hover)] transition-colors"
             onClick={handleShowTips}
             role="menuitem"
           >
@@ -56,3 +56,6 @@ export default function HelpMenu() {
     </div>
   );
 }
+
+
+

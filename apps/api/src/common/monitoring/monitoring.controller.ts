@@ -1,18 +1,19 @@
 import { Controller, Get, UseGuards } from '@nestjs/common';
 import { MonitoringService } from './monitoring.service';
 import { AuthGuard } from '../auth/guards/auth.guard';
-import { Roles } from '../auth/decorators/roles.decorator';
-import { Role } from '../auth/roles.enum';
+import { PermissionsGuard } from '../auth/guards/permissions.guard';
+import { Permissions } from '../auth/decorators/permissions.decorator';
+import { Permission } from '../auth/roles.enum';
 
 /**
  * Monitoring Controller
  * Provides endpoints for viewing performance metrics
- * 
- * Note: Only accessible to super_admin users
+ *
+ * Note: Only accessible to users with SYSTEM_ACCESS permission (super_admin, system roles)
  */
 @Controller('monitoring')
-@UseGuards(AuthGuard)
-@Roles(Role.SUPER_ADMIN)
+@UseGuards(AuthGuard, PermissionsGuard)
+@Permissions(Permission.SYSTEM_ACCESS)
 export class MonitoringController {
   constructor(private monitoringService: MonitoringService) {}
 

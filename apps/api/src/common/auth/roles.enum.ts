@@ -20,11 +20,11 @@ export enum SiteRole {
 }
 
 /**
- * Platform Role - rola na poziomie platformy/organizacji
+ * Org Role - rola na poziomie organizacji
  * Kolejność: od najmniejszych do największych praw
  * UWAGA: user jest najniższą rolą!
  */
-export enum PlatformRole {
+export enum OrgRole {
   USER = 'user',                       // Najniższa rola - zwykły użytkownik
   EDITOR_IN_CHIEF = 'editor-in-chief', // Może recenzować treść na platformie
   ADMIN = 'admin',                     // Może zarządzać organizacją
@@ -224,8 +224,8 @@ export const SITE_ROLE_PERMISSIONS: Record<SiteRole, Permission[]> = {
     Permission.CONTENT_DELETE,
     Permission.MEDIA_DELETE,
     Permission.ENVIRONMENTS_MANAGE,
-    // UWAGA: SITES_READ/WRITE s� tylko dla PlatformRole, nie SiteRole
-    // SiteRole.ADMIN zarz�dza tre�ci� w site, nie tworzy nowych sites
+    // UWAGA: SITES_READ/WRITE s� tylko dla PlatformRole, nie SiteRole
+    // SiteRole.ADMIN zarz�dza tre�ci� w site, nie tworzy nowych sites
   ],
   
   [SiteRole.OWNER]: [
@@ -238,24 +238,24 @@ export const SITE_ROLE_PERMISSIONS: Record<SiteRole, Permission[]> = {
 };
 
 /**
- * Platform Role Permissions - przywileje dla ról platformowych
+ * Org Role Permissions - przywileje dla ról organizacyjnych
  * Kolejność: od najmniejszych do największych praw
  * UWAGA: user jest najniższą rolą!
  */
-export const PLATFORM_ROLE_PERMISSIONS: Record<PlatformRole, Permission[]> = {
-  [PlatformRole.USER]: [
-    // Najniższa rola - brak uprawnień platformowych
+export const ORG_ROLE_PERMISSIONS: Record<OrgRole, Permission[]> = {
+  [OrgRole.USER]: [
+    // Najniższa rola - brak uprawnień organizacyjnych
     // Ma tylko uprawnienia z Site Role
   ],
-  
-  [PlatformRole.EDITOR_IN_CHIEF]: [
-    // Może recenzować treść na poziomie platformy
+
+  [OrgRole.EDITOR_IN_CHIEF]: [
+    // Może recenzować treść na poziomie organizacji
     Permission.CONTENT_REVIEW,
     Permission.CONTENT_READ,
     Permission.CONTENT_UPDATE,
   ],
-  
-  [PlatformRole.ADMIN]: [
+
+  [OrgRole.ADMIN]: [
     // Może zarządzać organizacją
     Permission.USERS_READ,
     Permission.USERS_WRITE,
@@ -264,8 +264,8 @@ export const PLATFORM_ROLE_PERMISSIONS: Record<PlatformRole, Permission[]> = {
     Permission.BILLING_READ,
     Permission.BILLING_WRITE,
   ],
-  
-  [PlatformRole.OWNER]: [
+
+  [OrgRole.OWNER]: [
     // Właściciel organizacji - pełny dostęp do organizacji
     Permission.USERS_READ,
     Permission.USERS_WRITE,
@@ -331,23 +331,6 @@ export const SYSTEM_ROLE_PERMISSIONS: Record<SystemRole, Permission[]> = {
   ],
 };
 
-// Backward compatibility - stary enum Role
-export enum Role {
-  SUPER_ADMIN = 'super_admin',
-  ORG_ADMIN = 'org_admin',
-  EDITOR = 'editor',
-  VIEWER = 'viewer',
-}
-
-// Backward compatibility - mapowanie starych ról do nowych
-// UWAGA: org_admin powinien mieć uprawnienia platformowe (zarządzanie organizacją),
-// nie site'owe (zarządzanie treścią). Dlatego mapujemy do PLATFORM_ROLE_PERMISSIONS[PlatformRole.ADMIN]
-export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
-  [Role.SUPER_ADMIN]: SYSTEM_ROLE_PERMISSIONS[SystemRole.SUPER_ADMIN],
-  [Role.ORG_ADMIN]: PLATFORM_ROLE_PERMISSIONS[PlatformRole.ADMIN], // Zarządzanie organizacją (sites, users, billing)
-  [Role.EDITOR]: SITE_ROLE_PERMISSIONS[SiteRole.EDITOR],
-  [Role.VIEWER]: SITE_ROLE_PERMISSIONS[SiteRole.VIEWER],
-};
 
 /**
  * Sprawdź czy rola ma uprawnienie (Site Role)
@@ -358,25 +341,25 @@ export function hasSitePermission(role: SiteRole, permission: Permission): boole
 }
 
 /**
- * Sprawdź czy rola ma uprawnienie (Platform Role)
+ * Sprawdź czy rola ma uprawnienie (Org Role)
  */
-export function hasPlatformPermission(platformRole: PlatformRole, permission: Permission): boolean {
-  const permissions = PLATFORM_ROLE_PERMISSIONS[platformRole] || [];
+export function hasOrgPermission(orgRole: OrgRole, permission: Permission): boolean {
+  const permissions = ORG_ROLE_PERMISSIONS[orgRole] || [];
   return permissions.includes(permission);
 }
 
 /**
- * Sprawdź czy rola ma którekolwiek z uprawnień (Platform Role)
+ * Sprawdź czy rola ma którekolwiek z uprawnień (Org Role)
  */
-export function hasAnyPlatformPermission(platformRole: PlatformRole, permissions: Permission[]): boolean {
-  return permissions.some(permission => hasPlatformPermission(platformRole, permission));
+export function hasAnyOrgPermission(orgRole: OrgRole, permissions: Permission[]): boolean {
+  return permissions.some(permission => hasOrgPermission(orgRole, permission));
 }
 
 /**
- * Sprawdź czy rola ma wszystkie uprawnienia (Platform Role)
+ * Sprawdź czy rola ma wszystkie uprawnienia (Org Role)
  */
-export function hasAllPlatformPermissions(platformRole: PlatformRole, permissions: Permission[]): boolean {
-  return permissions.every(permission => hasPlatformPermission(platformRole, permission));
+export function hasAllOrgPermissions(orgRole: OrgRole, permissions: Permission[]): boolean {
+  return permissions.every(permission => hasOrgPermission(orgRole, permission));
 }
 
 /**
@@ -390,42 +373,6 @@ export function hasSystemPermission(systemRole: SystemRole, permission: Permissi
   return permissions.includes(permission);
 }
 
-/**
- * Check if a role has a specific permission (backward compatibility)
- * Super admin always has all permissions
- */
-export function hasPermission(role: Role, permission: Permission): boolean {
-  // Super admin has all permissions
-  if (role === Role.SUPER_ADMIN) {
-    return true;
-  }
-  const permissions = ROLE_PERMISSIONS[role] || [];
-  return permissions.includes(permission);
-}
-
-/**
- * Check if a role has any of the specified permissions (backward compatibility)
- * Super admin always has all permissions
- */
-export function hasAnyPermission(role: Role, permissions: Permission[]): boolean {
-  // Super admin has all permissions
-  if (role === Role.SUPER_ADMIN) {
-    return true;
-  }
-  return permissions.some(permission => hasPermission(role, permission));
-}
-
-/**
- * Check if a role has all of the specified permissions (backward compatibility)
- * Super admin always has all permissions
- */
-export function hasAllPermissions(role: Role, permissions: Permission[]): boolean {
-  // Super admin has all permissions
-  if (role === Role.SUPER_ADMIN) {
-    return true;
-  }
-  return permissions.every(permission => hasPermission(role, permission));
-}
 
 
 

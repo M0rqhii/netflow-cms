@@ -102,7 +102,7 @@ export function FieldsEditor({ fields, onChange, availableContentTypes = [] }: F
       ) : (
         <div className="space-y-2">
           {fields.map((field, index) => (
-            <div key={index} className="border rounded p-3 bg-gray-50">
+            <div key={index} className="border rounded p-3 bg-surface-2">
               <div className="flex items-start gap-2">
                 <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-2">
                   <div>
@@ -263,7 +263,7 @@ export function FieldsEditor({ fields, onChange, availableContentTypes = [] }: F
                       <label className="block text-xs font-medium mb-1">Nested Fields</label>
                       <div className="space-y-2 mt-2 pl-4 border-l-2">
                         {field.fields?.map((nestedField, nestedIndex) => (
-                          <div key={nestedIndex} className="border rounded p-2 bg-white">
+                          <div key={nestedIndex} className="border rounded p-2 bg-surface">
                             <div className="grid grid-cols-2 gap-2">
                               <input
                                 type="text"
@@ -319,4 +319,6 @@ export function FieldsEditor({ fields, onChange, availableContentTypes = [] }: F
     </div>
   );
 }
+
+
 

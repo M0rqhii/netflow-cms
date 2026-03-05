@@ -1,54 +1,50 @@
 "use client";
 
-import { useEffect, useMemo, useState, useCallback } from 'react';
-import { useParams } from 'next/navigation';
-import clsx from 'clsx';
+import { useEffect, useMemo, useState, useCallback } from "react";
+import { useParams } from "next/navigation";
+import clsx from "clsx";
 import {
   fetchRbacCapabilities,
   updateRbacPolicy,
   getAuthToken,
   decodeAuthToken,
-} from '@/lib/api';
-import { CAPABILITY_MODULES, type CapabilityModule, type RbacCapability } from '@repo/schemas';
-import { Card, CardContent, CardHeader, CardTitle, EmptyState, LoadingSpinner } from '@repo/ui';
-import Badge from '@/components/ui/Badge';
-import SearchAndFilters from '@/components/ui/SearchAndFilters';
-import { useToast } from '@/components/ui/Toast';
-import { toFriendlyMessage } from '@/lib/errors';
+} from "@/lib/api";
+import { CAPABILITY_MODULES, type CapabilityModule, type RbacCapability } from "@repo/schemas";
+import SearchAndFilters from "@/components/ui/SearchAndFilters";
+import { useToast } from "@/components/ui/Toast";
+import { toFriendlyMessage } from "@/lib/errors";
 
 const MODULE_LABELS: Record<CapabilityModule, string> = {
-  org: 'Organization',
-  billing: 'Billing',
-  sites: 'Sites',
-  builder: 'Builder',
-  content: 'Content',
-  hosting: 'Hosting',
-  domains: 'Domains',
-  marketing: 'Marketing',
-  analytics: 'Analytics',
+  org: "Organization",
+  billing: "Billing",
+  sites: "Sites",
+  builder: "Builder",
+  content: "Content",
+  hosting: "Hosting",
+  domains: "Domains",
+  marketing: "Marketing",
+  analytics: "Analytics",
 };
 
 const DANGEROUS_CAPABILITY_KEYS = new Set([
-  'builder.custom_code',
-  'domains.dns.manage',
-  'marketing.ads.manage',
+  "builder.custom_code",
+  "domains.dns.manage",
+  "marketing.ads.manage",
 ]);
 
-function getRiskTone(riskLevel?: string | null, isDangerous?: boolean) {
-  if (isDangerous) return { tone: 'error' as const, label: 'Dangerous' };
-  const normalized = String(riskLevel ?? '').toUpperCase();
-  if (normalized === 'LOW') return { tone: 'success' as const, label: 'Low' };
-  if (normalized === 'MED' || normalized === 'MEDIUM') return { tone: 'warning' as const, label: 'Medium' };
-  if (normalized === 'HIGH' || normalized === 'DANGEROUS' || normalized === 'CRITICAL') {
-    return { tone: 'error' as const, label: 'Dangerous' };
-  }
-  return { tone: 'default' as const, label: normalized || 'Unknown' };
+function getRiskLabel(riskLevel?: string | null, isDangerous?: boolean) {
+  if (isDangerous) return "Dangerous";
+  const normalized = String(riskLevel ?? "").toUpperCase();
+  if (normalized === "LOW") return "Low";
+  if (normalized === "MED" || normalized === "MEDIUM") return "Medium";
+  if (normalized === "HIGH" || normalized === "DANGEROUS" || normalized === "CRITICAL") return "Dangerous";
+  return normalized || "Unknown";
 }
 
 function getOwnerFlag(): boolean {
   const payload = decodeAuthToken(getAuthToken());
-  const roleMarker = String(payload?.platformRole ?? payload?.role ?? '').toLowerCase();
-  return roleMarker === 'org_owner' || roleMarker === 'owner' || roleMarker === 'platform_owner';
+  const roleMarker = String(payload?.platformRole ?? payload?.role ?? "").toLowerCase();
+  return roleMarker === "org_owner" || roleMarker === "owner" || roleMarker === "platform_owner";
 }
 
 function ToggleSwitch({
@@ -66,15 +62,15 @@ function ToggleSwitch({
       onClick={() => onChange(!checked)}
       disabled={disabled}
       className={clsx(
-        'relative inline-flex h-6 w-11 items-center rounded-full transition',
-        checked ? 'bg-emerald-500' : 'bg-gray-300',
-        disabled ? 'cursor-not-allowed opacity-60' : 'hover:opacity-90',
+        "relative inline-flex h-6 w-11 items-center rounded-full transition",
+        checked ? "bg-emerald-500" : "bg-border",
+        disabled ? "cursor-not-allowed opacity-60" : "hover:opacity-90"
       )}
     >
       <span
         className={clsx(
-          'inline-block h-5 w-5 transform rounded-full bg-white shadow transition',
-          checked ? 'translate-x-5' : 'translate-x-1',
+          "inline-block h-5 w-5 transform rounded-full bg-surface shadow transition",
+          checked ? "translate-x-5" : "translate-x-1"
         )}
       />
     </button>
@@ -83,14 +79,14 @@ function ToggleSwitch({
 
 export default function OrgPoliciesPage() {
   const params = useParams<{ orgId: string }>();
-  const orgId = params?.orgId ?? '';
+  const orgId = params?.orgId ?? "";
   const { push } = useToast();
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [capabilities, setCapabilities] = useState<RbacCapability[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [moduleFilter, setModuleFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [moduleFilter, setModuleFilter] = useState("all");
   const [updatingKey, setUpdatingKey] = useState<string | null>(null);
 
   const isOwner = useMemo(() => getOwnerFlag(), []);
@@ -102,7 +98,7 @@ export default function OrgPoliciesPage() {
       const data = await fetchRbacCapabilities(orgId);
       setCapabilities(data);
     } catch (err) {
-      setError(toFriendlyMessage(err, 'Nie udało się wczytać ustawień.'));
+      setError(toFriendlyMessage(err, "Failed to load settings."));
     } finally {
       setLoading(false);
     }
@@ -115,16 +111,16 @@ export default function OrgPoliciesPage() {
 
   const filteredCapabilities = useMemo(() => {
     return capabilities.filter((capability) => {
-      if (!isOwner && capability.module === 'billing') return false;
-      const matchesModule = moduleFilter === 'all' || capability.module === moduleFilter;
-      const searchValue = `${capability.label} ${capability.key} ${capability.description ?? ''}`.toLowerCase();
+      if (!isOwner && capability.module === "billing") return false;
+      const matchesModule = moduleFilter === "all" || capability.module === moduleFilter;
+      const searchValue = `${capability.label} ${capability.key} ${capability.description ?? ""}`.toLowerCase();
       const matchesSearch = !searchQuery || searchValue.includes(searchQuery.toLowerCase());
       return matchesModule && matchesSearch;
     });
   }, [capabilities, moduleFilter, searchQuery, isOwner]);
 
   const groupedCapabilities = useMemo(() => {
-    return CAPABILITY_MODULES.filter((module) => (isOwner ? true : module !== 'billing'))
+    return CAPABILITY_MODULES.filter((module) => (isOwner ? true : module !== "billing"))
       .map((module) => ({
         module,
         items: filteredCapabilities.filter((capability) => capability.module === module),
@@ -139,60 +135,57 @@ export default function OrgPoliciesPage() {
     try {
       await updateRbacPolicy(orgId, capability.key, nextValue);
       setCapabilities((prev) =>
-        prev.map((item) =>
-          item.key === capability.key ? { ...item, policyEnabled: nextValue } : item,
-        ),
+        prev.map((item) => (item.key === capability.key ? { ...item, policyEnabled: nextValue } : item))
       );
-      push({ tone: 'success', message: 'Ustawienie zapisane.' });
+      push({ tone: "success", message: "Setting saved." });
     } catch (err) {
-      push({ tone: 'error', message: toFriendlyMessage(err, 'Nie udało się zapisać ustawień.') });
+      push({ tone: "error", message: toFriendlyMessage(err, "Failed to save settings.") });
     } finally {
       setUpdatingKey(null);
     }
   };
 
   if (loading) {
-    return <LoadingSpinner text="Loading policies..." />;
+    return (
+      <div className="card card-pad">
+        <div style={{ color: "var(--muted)" }}>Loading policies...</div>
+      </div>
+    );
   }
 
   if (error) {
     return (
-      <Card>
-        <CardContent>
-          <p className="text-red-600">{error}</p>
-          <button className="mt-4 inline-flex items-center justify-center rounded-md border border-gray-300 bg-transparent px-4 py-2 text-sm font-medium hover:bg-gray-50">
-            Retry
-          </button>
-        </CardContent>
-      </Card>
+      <div className="card card-pad">
+        <div className="text-error">{error}</div>
+        <div className="spacer-sm" />
+        <button className="btn" onClick={loadCapabilities}>Retry</button>
+      </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Ustawienia organizacji</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted">
-            ⚠️ Wybrane opcje można włączyć lub wyłączyć dla całej organizacji. Gdy są wyłączone, nie pojawią się w rolach niestandardowych.
-          </p>
-        </CardContent>
-      </Card>
+    <div>
+      <div className="card card-pad">
+        <div className="section-title">Organization policies</div>
+        <div className="detail-label" style={{ marginTop: 6 }}>
+          Toggle features on/off for the whole organization. Disabled items will not appear in custom roles.
+        </div>
+      </div>
+
+      <div className="spacer" />
 
       <SearchAndFilters
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
-        placeholder="Szukaj opcji"
+        placeholder="Search options"
         filters={[
           {
-            key: 'module',
-            label: 'Module',
+            key: "module",
+            label: "Module",
             value: moduleFilter,
             options: [
-              { value: 'all', label: 'All' },
-              ...CAPABILITY_MODULES.filter((module) => (isOwner ? true : module !== 'billing')).map((module) => ({
+              { value: "all", label: "All" },
+              ...CAPABILITY_MODULES.filter((module) => (isOwner ? true : module !== "billing")).map((module) => ({
                 value: module,
                 label: MODULE_LABELS[module],
               })),
@@ -202,70 +195,57 @@ export default function OrgPoliciesPage() {
         ]}
       />
 
+      <div className="spacer" />
+
       {groupedCapabilities.length === 0 ? (
-        <EmptyState title="Brak opcji" description="Nic nie pasuje do wybranych filtrów." />
+        <div className="card card-pad" style={{ color: "var(--muted)" }}>No options for the selected filters.</div>
       ) : (
         groupedCapabilities.map((group) => (
-          <Card key={group.module}>
-            <CardHeader>
-              <CardTitle className="text-lg">{MODULE_LABELS[group.module]}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <caption className="sr-only">Policies for {MODULE_LABELS[group.module]}</caption>
-                  <thead>
-                    <tr className="text-left text-muted border-b">
-                      <th className="py-3 px-4 font-semibold">Opcja</th>
-                      <th className="py-3 px-4 font-semibold">Key</th>
-                      <th className="py-3 px-4 font-semibold">Ustawienie</th>
-                      <th className="py-3 px-4 font-semibold">Risk</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {group.items.map((capability) => {
-                      const policyEnabled = capability.policyEnabled ?? true;
-                      const toggleDisabled = !capability.canBePolicyControlled || updatingKey === capability.key;
-                      return (
-                        <tr key={capability.key} className="border-b border-border hover:bg-muted/30 transition-colors">
-                          <td className="py-3 px-4 align-top">
-                            <div className="font-semibold text-foreground flex items-center gap-2">
-                              {capability.label}
-                              {capability.canBePolicyControlled ? (
-                                <span className="text-xs text-amber-600 font-semibold">⚠️</span>
-                              ) : null}
-                            </div>
-                            {capability.description ? (
-                              <div className="text-xs text-muted mt-1">{capability.description}</div>
-                            ) : null}
-                          </td>
-                          <td className="py-3 px-4 align-top text-muted">{capability.key}</td>
-                          <td className="py-3 px-4 align-top">
-                            <div className="flex items-center gap-3">
-                              <ToggleSwitch
-                                checked={policyEnabled}
-                                disabled={toggleDisabled}
-                                onChange={() => handleToggle(capability)}
-                              />
-                              <span className="text-xs text-muted">
-                                {!capability.canBePolicyControlled ? 'Stałe' : policyEnabled ? 'Włączone' : 'Wyłączone'}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="py-3 px-4 align-top">
-                            {(() => {
-                              const risk = getRiskTone(capability.riskLevel, capability.isDangerous || DANGEROUS_CAPABILITY_KEYS.has(capability.key));
-                              return <Badge tone={risk.tone}>{risk.label}</Badge>;
-                            })()}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
+          <div key={group.module} className="card card-pad" style={{ marginBottom: 14 }}>
+            <div style={{ fontWeight: 900, fontSize: 14, marginBottom: 10 }}>{MODULE_LABELS[group.module]}</div>
+            <div className="overflow-x-auto">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Option</th>
+                    <th>Key</th>
+                    <th>Policy</th>
+                    <th>Risk</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {group.items.map((capability) => {
+                    const policyEnabled = capability.policyEnabled ?? true;
+                    const toggleDisabled = !capability.canBePolicyControlled || updatingKey === capability.key;
+                    return (
+                      <tr key={capability.key}>
+                        <td>
+                          <div style={{ fontWeight: 700 }}>{capability.label}</div>
+                          {capability.description ? (
+                            <div className="detail-label" style={{ marginTop: 4 }}>{capability.description}</div>
+                          ) : null}
+                        </td>
+                        <td style={{ color: "var(--muted)" }}>{capability.key}</td>
+                        <td>
+                          <div className="row">
+                            <ToggleSwitch checked={policyEnabled} disabled={toggleDisabled} onChange={() => handleToggle(capability)} />
+                            <span className="detail-label">
+                              {!capability.canBePolicyControlled ? "Fixed" : policyEnabled ? "Enabled" : "Disabled"}
+                            </span>
+                          </div>
+                        </td>
+                        <td>
+                          <span className={`badge ${getRiskLabel(capability.riskLevel, capability.isDangerous || DANGEROUS_CAPABILITY_KEYS.has(capability.key)) === "Dangerous" ? "orange" : "gray"}`}>
+                            {getRiskLabel(capability.riskLevel, capability.isDangerous || DANGEROUS_CAPABILITY_KEYS.has(capability.key))}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
         ))
       )}
     </div>

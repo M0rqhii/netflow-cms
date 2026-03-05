@@ -10,7 +10,7 @@ import { ReviewContentDto, CreateCommentDto, UpdateCommentDto } from '../dto';
 
 /**
  * ContentWorkflowService - business logic dla workflow treści (review, comments)
- * AI Note: Zawsze filtruj po siteId - site isolation
+ * AI Note: Zawsze filtruj po siteId i waliduj orgId - site isolation
  */
 @Injectable()
 export class ContentWorkflowService {
@@ -20,15 +20,34 @@ export class ContentWorkflowService {
   ) {}
 
   /**
+   * Validates that the site belongs to the organization
+   * @throws ForbiddenException if site doesn't belong to org
+   */
+  private async validateSiteBelongsToOrg(siteId: string, orgId: string): Promise<void> {
+    const site = await this.prisma.site.findUnique({
+      where: { id: siteId },
+      select: { orgId: true },
+    });
+    if (!site) {
+      throw new NotFoundException('Site not found');
+    }
+    if (site.orgId !== orgId) {
+      throw new ForbiddenException('Site does not belong to this organization');
+    }
+  }
+
+  /**
    * Submit content for review
    */
   async submitForReview(
     siteId: string,
+    orgId: string,
     contentTypeSlug: string,
     entryId: string,
     userId: string,
   ) {
-    const contentType = await this.contentTypesService.getBySlug(siteId, contentTypeSlug);
+    await this.validateSiteBelongsToOrg(siteId, orgId);
+    const contentType = await this.contentTypesService.getBySlug(siteId, orgId, contentTypeSlug);
     
     const entry = await this.prisma.contentEntry.findFirst({
       where: {
@@ -73,12 +92,14 @@ export class ContentWorkflowService {
    */
   async reviewContent(
     siteId: string,
+    orgId: string,
     contentTypeSlug: string,
     entryId: string,
     reviewerId: string,
     dto: ReviewContentDto,
   ) {
-    const contentType = await this.contentTypesService.getBySlug(siteId, contentTypeSlug);
+    await this.validateSiteBelongsToOrg(siteId, orgId);
+    const contentType = await this.contentTypesService.getBySlug(siteId, orgId, contentTypeSlug);
     
     const entry = await this.prisma.contentEntry.findFirst({
       where: {
@@ -149,10 +170,12 @@ export class ContentWorkflowService {
    */
   async getReviewHistory(
     siteId: string,
+    orgId: string,
     contentTypeSlug: string,
     entryId: string,
   ) {
-    const contentType = await this.contentTypesService.getBySlug(siteId, contentTypeSlug);
+    await this.validateSiteBelongsToOrg(siteId, orgId);
+    const contentType = await this.contentTypesService.getBySlug(siteId, orgId, contentTypeSlug);
     
     const entry = await this.prisma.contentEntry.findFirst({
       where: {
@@ -180,12 +203,14 @@ export class ContentWorkflowService {
    */
   async createComment(
     siteId: string,
+    orgId: string,
     contentTypeSlug: string,
     entryId: string,
     authorId: string,
     dto: CreateCommentDto,
   ) {
-    const contentType = await this.contentTypesService.getBySlug(siteId, contentTypeSlug);
+    await this.validateSiteBelongsToOrg(siteId, orgId);
+    const contentType = await this.contentTypesService.getBySlug(siteId, orgId, contentTypeSlug);
     
     const entry = await this.prisma.contentEntry.findFirst({
       where: {
@@ -214,11 +239,13 @@ export class ContentWorkflowService {
    */
   async getComments(
     siteId: string,
+    orgId: string,
     contentTypeSlug: string,
     entryId: string,
     includeResolved: boolean = false,
   ) {
-    const contentType = await this.contentTypesService.getBySlug(siteId, contentTypeSlug);
+    await this.validateSiteBelongsToOrg(siteId, orgId);
+    const contentType = await this.contentTypesService.getBySlug(siteId, orgId, contentTypeSlug);
     
     const entry = await this.prisma.contentEntry.findFirst({
       where: {
@@ -247,13 +274,15 @@ export class ContentWorkflowService {
    */
   async updateComment(
     siteId: string,
+    orgId: string,
     contentTypeSlug: string,
     entryId: string,
     commentId: string,
     authorId: string,
     dto: UpdateCommentDto,
   ) {
-    const contentType = await this.contentTypesService.getBySlug(siteId, contentTypeSlug);
+    await this.validateSiteBelongsToOrg(siteId, orgId);
+    const contentType = await this.contentTypesService.getBySlug(siteId, orgId, contentTypeSlug);
     
     const entry = await this.prisma.contentEntry.findFirst({
       where: {
@@ -298,12 +327,14 @@ export class ContentWorkflowService {
    */
   async deleteComment(
     siteId: string,
+    orgId: string,
     contentTypeSlug: string,
     entryId: string,
     commentId: string,
     userId: string,
   ) {
-    const contentType = await this.contentTypesService.getBySlug(siteId, contentTypeSlug);
+    await this.validateSiteBelongsToOrg(siteId, orgId);
+    const contentType = await this.contentTypesService.getBySlug(siteId, orgId, contentTypeSlug);
     
     const entry = await this.prisma.contentEntry.findFirst({
       where: {

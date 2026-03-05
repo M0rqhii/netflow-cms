@@ -2,7 +2,16 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException, ForbiddenException } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { Role } from '../../common/auth/roles.enum';
+
+/**
+ * Legacy role values matching UsersService internal LegacyRole
+ */
+const LegacyRole = {
+  SUPER_ADMIN: 'super_admin',
+  ORG_ADMIN: 'org_admin',
+  EDITOR: 'editor',
+  VIEWER: 'viewer',
+} as const;
 
 describe('UsersService', () => {
   let service: UsersService;
@@ -111,7 +120,7 @@ describe('UsersService', () => {
 
       mockPrismaService.user.findMany.mockResolvedValue(mockUsers);
 
-      const result = await service.listUsers(orgId, Role.ORG_ADMIN);
+      const result = await service.listUsers(orgId, LegacyRole.ORG_ADMIN);
 
       expect(result).toEqual(mockUsers);
       expect(mockPrismaService.user.findMany).toHaveBeenCalledWith({
@@ -133,7 +142,7 @@ describe('UsersService', () => {
 
       mockPrismaService.user.findMany.mockResolvedValue(mockUsers);
 
-      const result = await service.listUsers(orgId, Role.SUPER_ADMIN);
+      const result = await service.listUsers(orgId, LegacyRole.SUPER_ADMIN);
 
       expect(result).toEqual(mockUsers);
     });
@@ -142,11 +151,11 @@ describe('UsersService', () => {
       const orgId = 'org-123';
 
       await expect(
-        service.listUsers(orgId, Role.EDITOR)
+        service.listUsers(orgId, LegacyRole.EDITOR)
       ).rejects.toThrow(ForbiddenException);
 
       await expect(
-        service.listUsers(orgId, Role.VIEWER)
+        service.listUsers(orgId, LegacyRole.VIEWER)
       ).rejects.toThrow(ForbiddenException);
     });
   });
@@ -168,7 +177,7 @@ describe('UsersService', () => {
       const result = await service.getUserById(
         userId,
         orgId,
-        Role.ORG_ADMIN
+        LegacyRole.ORG_ADMIN
       );
 
       expect(result).toEqual(mockUser);
@@ -192,7 +201,7 @@ describe('UsersService', () => {
       const orgId = 'org-123';
 
       await expect(
-        service.getUserById(userId, orgId, Role.EDITOR)
+        service.getUserById(userId, orgId, LegacyRole.EDITOR)
       ).rejects.toThrow(ForbiddenException);
     });
 
@@ -203,10 +212,8 @@ describe('UsersService', () => {
       mockPrismaService.user.findFirst.mockResolvedValue(null);
 
       await expect(
-        service.getUserById(userId, orgId, Role.ORG_ADMIN)
+        service.getUserById(userId, orgId, LegacyRole.ORG_ADMIN)
       ).rejects.toThrow(NotFoundException);
     });
   });
 });
-
-

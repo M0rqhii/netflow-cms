@@ -1,29 +1,21 @@
 "use client";
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useTranslations } from '@/hooks/useTranslations';
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useTranslations } from "@/hooks/useTranslations";
 
-/**
- * Redirect /collections to /sites
- * Collections are managed per-site in Site Panel (/sites/[slug]/collections)
- * This global page is deprecated - use Platform Panel (/sites) instead
- */
 export default function CollectionsRedirectPage() {
   const router = useRouter();
   const t = useTranslations();
-  
+
   useEffect(() => {
-    // Redirect to sites page with message
-    router.replace('/sites');
+    router.replace("/sites");
   }, [router]);
 
   return (
-    <div className="container py-8">
-      <div className="text-center">
-        <p className="text-muted">{t('sites.sitePanelComingSoon')}</p>
-        <p className="text-sm text-muted mt-2">{t('redirects.collectionsManagedInSitePanel')}</p>
-      </div>
+    <div className="card card-pad text-center">
+      <div className="text-muted">{t("sites.sitePanelComingSoon")}</div>
+      <div className="text-muted text-xs mt-1.5">{t("redirects.collectionsManagedInSitePanel")}</div>
     </div>
   );
 }

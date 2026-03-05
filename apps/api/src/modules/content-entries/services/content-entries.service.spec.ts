@@ -17,9 +17,14 @@ describe('ContentEntriesService', () => {
       delete: jest.fn(),
       count: jest.fn(),
     },
+    site: {
+      findUnique: jest.fn(),
+    },
     $transaction: jest.fn(),
     $queryRawUnsafe: jest.fn(),
   };
+
+  const orgId = 'org-123';
 
   const mockContentTypesService = {
     getBySlug: jest.fn(),
@@ -55,6 +60,11 @@ describe('ContentEntriesService', () => {
   afterEach(() => {
     jest.clearAllMocks();
   });
+
+  // Helper to mock site validation
+  const mockSiteValidation = (_siteId: string) => {
+    mockPrismaService.site.findUnique.mockResolvedValue({ orgId });
+  };
 
   describe('create', () => {
     const siteId = 'site-123';
@@ -100,13 +110,15 @@ describe('ContentEntriesService', () => {
         updatedById: undefined,
       };
 
+      mockSiteValidation(siteId);
       mockPrismaService.contentEntry.create.mockResolvedValue(createdEntry);
 
-      const result = await service.create(siteId, contentTypeSlug, dto);
+      const result = await service.create(siteId, orgId, contentTypeSlug, dto);
 
       expect(result).toEqual(createdEntry);
       expect(mockContentTypesService.getBySlug).toHaveBeenCalledWith(
         siteId,
+        orgId,
         contentTypeSlug
       );
       expect(mockPrismaService.contentEntry.create).toHaveBeenCalledWith({
@@ -131,8 +143,10 @@ describe('ContentEntriesService', () => {
         status: 'draft' as const,
       };
 
+      mockSiteValidation(siteId);
+
       await expect(
-        service.create(siteId, contentTypeSlug, dto)
+        service.create(siteId, orgId, contentTypeSlug, dto)
       ).rejects.toThrow(BadRequestException);
     });
 
@@ -145,12 +159,15 @@ describe('ContentEntriesService', () => {
         status: 'draft' as const,
       };
 
+      mockSiteValidation(siteId);
+
       await expect(
-        service.create(siteId, contentTypeSlug, dto)
+        service.create(siteId, orgId, contentTypeSlug, dto)
       ).rejects.toThrow(BadRequestException);
     });
 
     it('should use cached content type if available', async () => {
+      mockSiteValidation(siteId);
       mockCache.get.mockResolvedValue(contentType);
       const dto = {
         data: { title: 'Test', content: 'Content' },
@@ -167,7 +184,7 @@ describe('ContentEntriesService', () => {
         updatedAt: new Date(),
       });
 
-      await service.create(siteId, contentTypeSlug, dto);
+      await service.create(siteId, orgId, contentTypeSlug, dto);
 
       expect(mockCache.get).toHaveBeenCalledWith(`ct:${siteId}:${contentTypeSlug}`);
       expect(mockContentTypesService.getBySlug).not.toHaveBeenCalled();
@@ -219,11 +236,12 @@ describe('ContentEntriesService', () => {
         },
       ];
 
+      mockSiteValidation(siteId);
       mockPrismaService.$queryRawUnsafe
         .mockResolvedValueOnce(entries)
         .mockResolvedValueOnce([{ count: BigInt(1) }]);
 
-      const result = await service.list(siteId, contentTypeSlug, query);
+      const result = await service.list(siteId, orgId, contentTypeSlug, query);
 
       expect(result.total).toBe(1);
       expect(result.page).toBe(1);
@@ -238,11 +256,12 @@ describe('ContentEntriesService', () => {
         status: 'published' as const,
       };
 
+      mockSiteValidation(siteId);
       mockPrismaService.$queryRawUnsafe
         .mockResolvedValueOnce([])
         .mockResolvedValueOnce([{ count: BigInt(0) }]);
 
-      await service.list(siteId, contentTypeSlug, query);
+      await service.list(siteId, orgId, contentTypeSlug, query);
 
       const [sql] = mockPrismaService.$queryRawUnsafe.mock.calls[0];
       expect(String(sql)).toContain('ce.status');
@@ -254,11 +273,12 @@ describe('ContentEntriesService', () => {
         pageSize: 20,
       };
 
+      mockSiteValidation(siteId);
       mockPrismaService.$queryRawUnsafe
         .mockResolvedValueOnce([])
         .mockResolvedValueOnce([{ count: BigInt(0) }]);
 
-      await service.list(siteId, contentTypeSlug, query);
+      await service.list(siteId, orgId, contentTypeSlug, query);
 
       const [sql] = mockPrismaService.$queryRawUnsafe.mock.calls[0];
       expect(String(sql)).toContain('ORDER BY ce."createdAt" DESC');
@@ -271,11 +291,12 @@ describe('ContentEntriesService', () => {
         sort: '-updatedAt,status',
       };
 
+      mockSiteValidation(siteId);
       mockPrismaService.$queryRawUnsafe
         .mockResolvedValueOnce([])
         .mockResolvedValueOnce([{ count: BigInt(0) }]);
 
-      await service.list(siteId, contentTypeSlug, query);
+      await service.list(siteId, orgId, contentTypeSlug, query);
 
       const [sql] = mockPrismaService.$queryRawUnsafe.mock.calls[0];
       expect(String(sql)).toContain('ORDER BY ce."updatedAt" DESC, ce."status" ASC');
@@ -300,11 +321,12 @@ describe('ContentEntriesService', () => {
         },
       ];
 
+      mockSiteValidation(siteId);
       mockPrismaService.$queryRawUnsafe
         .mockResolvedValueOnce(filteredEntries)
         .mockResolvedValueOnce([{ count: BigInt(1) }]);
 
-      const result = await service.list(siteId, contentTypeSlug, query);
+      const result = await service.list(siteId, orgId, contentTypeSlug, query);
 
       expect(result.entries.length).toBe(1);
       expect(result.entries[0].data).toMatchObject({ title: 'Test Article' });
@@ -329,11 +351,12 @@ describe('ContentEntriesService', () => {
         },
       ];
 
+      mockSiteValidation(siteId);
       mockPrismaService.$queryRawUnsafe
         .mockResolvedValueOnce(filteredEntries)
         .mockResolvedValueOnce([{ count: BigInt(1) }]);
 
-      const result = await service.list(siteId, contentTypeSlug, query);
+      const result = await service.list(siteId, orgId, contentTypeSlug, query);
 
       expect(result.entries.length).toBe(1);
       expect(result.entries[0].data).toMatchObject({ title: 'Test Article' });
@@ -373,9 +396,10 @@ describe('ContentEntriesService', () => {
         },
       };
 
+      mockSiteValidation(siteId);
       mockPrismaService.contentEntry.findFirst.mockResolvedValue(entry);
 
-      const result = await service.get(siteId, contentTypeSlug, entryId);
+      const result = await service.get(siteId, orgId, contentTypeSlug, entryId);
 
       expect(result).toEqual(entry);
       expect(mockPrismaService.contentEntry.findFirst).toHaveBeenCalledWith({
@@ -409,10 +433,11 @@ describe('ContentEntriesService', () => {
     });
 
     it('should throw NotFoundException if entry not found', async () => {
+      mockSiteValidation(siteId);
       mockPrismaService.contentEntry.findFirst.mockResolvedValue(null);
 
       await expect(
-        service.get(siteId, contentTypeSlug, 'non-existent')
+        service.get(siteId, orgId, contentTypeSlug, 'non-existent')
       ).rejects.toThrow(NotFoundException);
     });
   });
@@ -466,10 +491,11 @@ describe('ContentEntriesService', () => {
         },
       };
 
+      mockSiteValidation(siteId);
       mockPrismaService.contentEntry.findFirst.mockResolvedValue(currentEntry);
       mockPrismaService.contentEntry.update.mockResolvedValue(updatedEntry);
 
-      const result = await service.update(siteId, contentTypeSlug, entryId, dto);
+      const result = await service.update(siteId, orgId, contentTypeSlug, entryId, dto);
 
       expect(result).toEqual(updatedEntry);
       expect(mockPrismaService.contentEntry.update).toHaveBeenCalledWith({
@@ -495,13 +521,14 @@ describe('ContentEntriesService', () => {
         status: 'published' as const,
       };
 
+      mockSiteValidation(siteId);
       mockPrismaService.contentEntry.findFirst.mockResolvedValue(currentEntry);
       mockPrismaService.contentEntry.update.mockResolvedValue({
         ...currentEntry,
         status: 'published',
       });
 
-      await service.update(siteId, contentTypeSlug, entryId, dto);
+      await service.update(siteId, orgId, contentTypeSlug, entryId, dto);
 
       expect(mockPrismaService.contentEntry.update).toHaveBeenCalledWith({
         where: { id: entryId },
@@ -511,10 +538,11 @@ describe('ContentEntriesService', () => {
     });
 
     it('should throw NotFoundException if entry not found', async () => {
+      mockSiteValidation(siteId);
       mockPrismaService.contentEntry.findFirst.mockResolvedValue(null);
 
       await expect(
-        service.update(siteId, contentTypeSlug, 'non-existent', {})
+        service.update(siteId, orgId, contentTypeSlug, 'non-existent', {})
       ).rejects.toThrow(NotFoundException);
     });
   });
@@ -547,10 +575,11 @@ describe('ContentEntriesService', () => {
         updatedAt: new Date(),
       };
 
+      mockSiteValidation(siteId);
       mockPrismaService.contentEntry.findFirst.mockResolvedValue(entry);
       mockPrismaService.contentEntry.delete.mockResolvedValue(entry);
 
-      const result = await service.remove(siteId, contentTypeSlug, entryId);
+      const result = await service.remove(siteId, orgId, contentTypeSlug, entryId);
 
       expect(result).toEqual({ ok: true });
       expect(mockPrismaService.contentEntry.delete).toHaveBeenCalledWith({
@@ -559,10 +588,11 @@ describe('ContentEntriesService', () => {
     });
 
     it('should throw NotFoundException if entry not found', async () => {
+      mockSiteValidation(siteId);
       mockPrismaService.contentEntry.findFirst.mockResolvedValue(null);
 
       await expect(
-        service.remove(siteId, contentTypeSlug, 'non-existent')
+        service.remove(siteId, orgId, contentTypeSlug, 'non-existent')
       ).rejects.toThrow(NotFoundException);
     });
   });

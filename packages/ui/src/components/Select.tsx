@@ -1,5 +1,5 @@
 import React from 'react';
-import { clsx } from 'clsx';
+import { cn } from '../utils/cn';
 
 export interface SelectOption {
   value: string;
@@ -18,7 +18,7 @@ export interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElemen
 export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
   ({ className, label, error, helperText, id, options, placeholder, ...props }, ref) => {
     const selectId = id || `select-${Math.random().toString(36).substr(2, 9)}`;
-    
+
     return (
       <div className="w-full">
         {label && (
@@ -30,11 +30,10 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
         <select
           ref={ref}
           id={selectId}
-          className={clsx(
-            'flex h-9 w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground',
-            'ring-offset-background',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-            'disabled:cursor-not-allowed disabled:opacity-50',
+          className={cn(
+            'w-full input text-sm',
+            'focus-visible:outline-none',
+            'disabled:cursor-not-allowed disabled:opacity-60',
             error && 'border-red-500 focus-visible:ring-red-500',
             className
           )}
@@ -55,7 +54,6 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
 );
 
 Select.displayName = 'Select';
-
 
 
 

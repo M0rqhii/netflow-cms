@@ -133,7 +133,7 @@ export const Form: React.FC<FormProps> = ({
               className="h-4 w-4 rounded border-border text-primary focus:ring-ring"
               {...inputProps}
             />
-            <label htmlFor={field.name} className="text-sm font-medium text-foreground">
+            <label htmlFor={field.name} className="text-sm font-medium text-text">
               {field.label}
               {field.required && <span className="text-red-500 ml-1">*</span>}
             </label>
@@ -261,4 +261,5 @@ export const Form: React.FC<FormProps> = ({
     </form>
   );
 };
+
 

@@ -16,7 +16,6 @@ import {
 } from 'react-icons/fi';
 import {
   BUILDER_MODULES as SCHEMA_MODULES,
-  getBuilderModule,
   getBuilderModuleDependencies,
   getBuilderModuleDependents,
   isBuilderModuleKey,
@@ -164,7 +163,9 @@ export function getBuilderModuleKeys(): BuilderModuleKey[] {
 export { getBuilderModuleDependencies, getBuilderModuleDependents, isBuilderModuleKey };
 
 export function getModuleDisplayTitle(key: string): string {
-  return (getBuilderModule(key as BuilderModuleKey) ?? { title: key }).title;
+  const module = EFFECTIVE_MODULES.find((mod) => mod.key === key);
+  return module?.title ?? key;
 }
 
 export default BUILDER_MODULES;
+

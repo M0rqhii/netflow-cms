@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState, useCallback } from 'react';
-import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useEffect, useMemo, useState, useCallback } from "react";
+import Link from "next/link";
+import { useParams } from "next/navigation";
 import {
   createRbacAssignment,
   deleteRbacAssignment,
@@ -13,26 +13,24 @@ import {
   type RbacAssignment,
   type RbacRole,
   type UserSummary,
-} from '@/lib/api';
-import type { SiteInfo } from '@repo/sdk';
-import { Button, Card, CardContent, CardHeader, CardTitle, EmptyState, LoadingSpinner } from '@repo/ui';
-import Badge from '@/components/ui/Badge';
-import SearchAndFilters from '@/components/ui/SearchAndFilters';
-import ConfirmDialog from '@/components/ui/ConfirmDialog';
-import { useToast } from '@/components/ui/Toast';
-import { toFriendlyMessage } from '@/lib/errors';
+} from "@/lib/api";
+import type { SiteInfo } from "@repo/sdk";
+import SearchAndFilters from "@/components/ui/SearchAndFilters";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import { useToast } from "@/components/ui/Toast";
+import { toFriendlyMessage } from "@/lib/errors";
 
 function normalizeRoleScope(scope?: string | null): string {
-  return String(scope ?? '').toUpperCase();
+  return String(scope ?? "").toUpperCase();
 }
 
 function normalizeRoleType(type?: string | null): string {
-  return String(type ?? '').toUpperCase();
+  return String(type ?? "").toUpperCase();
 }
 
 export default function OrgAssignmentsPage() {
   const params = useParams<{ orgId: string }>();
-  const orgId = params?.orgId ?? '';
+  const orgId = params?.orgId ?? "";
   const { push } = useToast();
 
   const [loading, setLoading] = useState(true);
@@ -41,22 +39,20 @@ export default function OrgAssignmentsPage() {
   const [roles, setRoles] = useState<RbacRole[]>([]);
   const [sites, setSites] = useState<SiteInfo[]>([]);
   const [assignments, setAssignments] = useState<RbacAssignment[]>([]);
-  const [selectedUserId, setSelectedUserId] = useState('');
-  const [orgRoleId, setOrgRoleId] = useState('');
-  const [siteRoleId, setSiteRoleId] = useState('');
-  const [siteId, setSiteId] = useState('');
+  const [selectedUserId, setSelectedUserId] = useState("");
+  const [orgRoleId, setOrgRoleId] = useState("");
+  const [siteRoleId, setSiteRoleId] = useState("");
+  const [siteId, setSiteId] = useState("");
   const [loadingAssignments, setLoadingAssignments] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [scopeFilter, setScopeFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [scopeFilter, setScopeFilter] = useState("all");
   const [removeAssignmentId, setRemoveAssignmentId] = useState<string | null>(null);
   const [removing, setRemoving] = useState(false);
 
-  const orgRoles = roles.filter((role) => normalizeRoleScope(role.scope) === 'ORG');
-  const siteRoles = roles.filter((role) => normalizeRoleScope(role.scope) === 'SITE');
+  const orgRoles = roles.filter((role) => normalizeRoleScope(role.scope) === "ORG");
+  const siteRoles = roles.filter((role) => normalizeRoleScope(role.scope) === "SITE");
 
-  const siteMap = useMemo(() => {
-    return new Map(sites.map((site) => [site.siteId, site.site.name]));
-  }, [sites]);
+  const siteMap = useMemo(() => new Map(sites.map((site) => [site.siteId, site.site.name])), [sites]);
 
   const loadBaseData = useCallback(async () => {
     setLoading(true);
@@ -64,15 +60,15 @@ export default function OrgAssignmentsPage() {
     try {
       const [usersData, orgRolesData, siteRolesData, sitesData] = await Promise.all([
         fetchOrgUsers(orgId),
-        fetchRbacRoles(orgId, 'ORG'),
-        fetchRbacRoles(orgId, 'SITE'),
+        fetchRbacRoles(orgId, "ORG"),
+        fetchRbacRoles(orgId, "SITE"),
         fetchMySites(),
       ]);
       setUsers(usersData);
       setRoles([...(orgRolesData || []), ...(siteRolesData || [])]);
       setSites(sitesData);
     } catch (err) {
-      setError(toFriendlyMessage(err, 'Nie udało się wczytać danych przypisań.'));
+      setError(toFriendlyMessage(err, "Failed to load assignments."));
     } finally {
       setLoading(false);
     }
@@ -88,7 +84,7 @@ export default function OrgAssignmentsPage() {
       const data = await fetchRbacAssignments(orgId, { userId });
       setAssignments(data);
     } catch (err) {
-      push({ tone: 'error', message: toFriendlyMessage(err, 'Nie udało się wczytać przypisań.') });
+      push({ tone: "error", message: toFriendlyMessage(err, "Failed to load assignments.") });
     } finally {
       setLoadingAssignments(false);
     }
@@ -105,7 +101,7 @@ export default function OrgAssignmentsPage() {
 
   const filteredAssignments = useMemo(() => {
     return assignments.filter((assignment) => {
-      const matchesScope = scopeFilter === 'all' || normalizeRoleScope(assignment.role.scope) == normalizeRoleScope(scopeFilter);
+      const matchesScope = scopeFilter === "all" || normalizeRoleScope(assignment.role.scope) === normalizeRoleScope(scopeFilter);
       const searchValue = `${assignment.role.name} ${normalizeRoleScope(assignment.role.scope)} ${normalizeRoleType(assignment.role.type)}`.toLowerCase();
       const matchesSearch = !searchQuery || searchValue.includes(searchQuery.toLowerCase());
       return matchesScope && matchesSearch;
@@ -114,29 +110,29 @@ export default function OrgAssignmentsPage() {
 
   const handleAssignOrgRole = async () => {
     if (!selectedUserId || !orgRoleId) {
-      push({ tone: 'error', message: 'Wybierz użytkownika i rolę organizacji.' });
+      push({ tone: "error", message: "Select a user and an org role." });
       return;
     }
     try {
       await createRbacAssignment(orgId, { userId: selectedUserId, roleId: orgRoleId, siteId: null });
-      push({ tone: 'success', message: 'Org role assigned.' });
+      push({ tone: "success", message: "Org role assigned." });
       await loadAssignments(selectedUserId);
     } catch (err) {
-      push({ tone: 'error', message: toFriendlyMessage(err, 'Nie udało się przypisać roli.') });
+      push({ tone: "error", message: toFriendlyMessage(err, "Failed to assign role.") });
     }
   };
 
   const handleAssignSiteRole = async () => {
     if (!selectedUserId || !siteRoleId || !siteId) {
-      push({ tone: 'error', message: 'Wybierz stronę, aby przypisać tę rolę.' });
+      push({ tone: "error", message: "Select a site and a role." });
       return;
     }
     try {
       await createRbacAssignment(orgId, { userId: selectedUserId, roleId: siteRoleId, siteId });
-      push({ tone: 'success', message: 'Site role assigned.' });
+      push({ tone: "success", message: "Site role assigned." });
       await loadAssignments(selectedUserId);
     } catch (err) {
-      push({ tone: 'error', message: toFriendlyMessage(err, 'Nie udało się przypisać roli.') });
+      push({ tone: "error", message: toFriendlyMessage(err, "Failed to assign role.") });
     }
   };
 
@@ -145,208 +141,164 @@ export default function OrgAssignmentsPage() {
     setRemoving(true);
     try {
       await deleteRbacAssignment(orgId, removeAssignmentId);
-      push({ tone: 'success', message: 'Assignment removed.' });
+      push({ tone: "success", message: "Assignment removed." });
       setRemoveAssignmentId(null);
       await loadAssignments(selectedUserId);
     } catch (err) {
-      push({ tone: 'error', message: toFriendlyMessage(err, 'Nie udało się usunąć przypisania.') });
+      push({ tone: "error", message: toFriendlyMessage(err, "Failed to remove assignment.") });
     } finally {
       setRemoving(false);
     }
   };
 
   if (loading) {
-    return <LoadingSpinner text="Loading assignments..." />;
+    return (
+      <div className="card card-pad">
+        <div style={{ color: "var(--muted)" }}>Loading assignments...</div>
+      </div>
+    );
   }
 
   if (error) {
     return (
-      <Card>
-        <CardContent>
-          <p className="text-red-600">{error}</p>
-          <Button variant="outline" className="mt-4" onClick={loadBaseData}>
-            Retry
-          </Button>
-        </CardContent>
-      </Card>
+      <div className="card card-pad">
+        <div className="text-error">{error}</div>
+        <div className="spacer-sm" />
+        <button className="btn" onClick={loadBaseData}>Retry</button>
+      </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Assignments</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
-            Assignments pokazuje przypisane role. Realny dostęp (po uwzględnieniu polityk organizacji) zobaczysz w zakładce{' '}
-            <Link className="font-semibold underline underline-offset-2" href={`/org/${orgId}/settings/effective`}>
-              Effective
-            </Link>.
-          </div>
+    <div>
+      <div className="card card-pad">
+        <div className="section-title">Assignments</div>
+        <div className="detail-label" style={{ marginTop: 6 }}>
+          Assign roles to users. Real access is shown in the Effective tab.
+        </div>
+        <div className="spacer-sm" />
+        <div className="card" style={{ padding: 12, borderRadius: 18, background: "rgba(0,163,255,0.08)", border: "1px solid rgba(0,163,255,0.25)" }}>
+          <span style={{ fontSize: 12 }}>
+            See effective permissions here: <Link className="btn" href={`/org/${orgId}/settings/effective`}>Effective</Link>
+          </span>
+        </div>
+      </div>
+
+      <div className="spacer" />
+
+      <div className="card card-pad">
+        <div className="grid" style={{ gap: 12 }}>
           <div>
-            <label className="block text-sm font-medium mb-1">User</label>
-            <select
-              className="border rounded w-full p-2 bg-white"
-              value={selectedUserId}
-              onChange={(event) => setSelectedUserId(event.target.value)}
-            >
+            <label className="block text-xs font-semibold uppercase tracking-wide text-muted mb-1">User</label>
+            <select className="input" value={selectedUserId} onChange={(event) => setSelectedUserId(event.target.value)}>
               <option value="">Select a user</option>
               {users.map((user) => (
-                <option key={user.id} value={user.id}>
-                  {user.email}
-                </option>
+                <option key={user.id} value={user.id}>{user.email}</option>
               ))}
             </select>
           </div>
-
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-            <div className="space-y-3">
-              <h3 className="text-sm font-semibold">Assign org role</h3>
-              <select
-                className="border rounded w-full p-2 bg-white"
-                value={orgRoleId}
-                onChange={(event) => setOrgRoleId(event.target.value)}
-              >
+          <div className="grid" style={{ gap: 12 }}>
+            <div>
+              <div style={{ fontWeight: 800, fontSize: 12 }}>Assign org role</div>
+              <select className="input" value={orgRoleId} onChange={(event) => setOrgRoleId(event.target.value)}>
                 <option value="">Select org role</option>
                 {orgRoles.map((role) => (
-                  <option key={role.id} value={role.id}>
-                    {role.name} ({normalizeRoleType(role.type) || 'ROLE'})
-                  </option>
+                  <option key={role.id} value={role.id}>{role.name} ({normalizeRoleType(role.type) || "ROLE"})</option>
                 ))}
               </select>
-              <Button
-                variant="primary"
-                onClick={handleAssignOrgRole}
-                disabled={!selectedUserId}
-                title={!selectedUserId ? 'Wybierz użytkownika, aby przypisać rolę.' : undefined}
-              >
-                Assign org role
-              </Button>
+              <div className="spacer-sm" />
+              <button className="btn primary" onClick={handleAssignOrgRole} disabled={!selectedUserId}>Assign org role</button>
             </div>
-
-            <div className="space-y-3">
-              <h3 className="text-sm font-semibold">Assign site role</h3>
-              <select
-                className="border rounded w-full p-2 bg-white"
-                value={siteId}
-                onChange={(event) => setSiteId(event.target.value)}
-              >
+            <div>
+              <div style={{ fontWeight: 800, fontSize: 12 }}>Assign site role</div>
+              <select className="input" value={siteId} onChange={(event) => setSiteId(event.target.value)}>
                 <option value="">Select site</option>
                 {sites.map((site) => (
-                  <option key={site.siteId} value={site.siteId}>
-                    {site.site.name}
-                  </option>
+                  <option key={site.siteId} value={site.siteId}>{site.site.name}</option>
                 ))}
               </select>
-              <select
-                className="border rounded w-full p-2 bg-white"
-                value={siteRoleId}
-                onChange={(event) => setSiteRoleId(event.target.value)}
-              >
+              <div className="spacer-sm" />
+              <select className="input" value={siteRoleId} onChange={(event) => setSiteRoleId(event.target.value)}>
                 <option value="">Select site role</option>
                 {siteRoles.map((role) => (
-                  <option key={role.id} value={role.id}>
-                    {role.name} ({normalizeRoleType(role.type) || 'ROLE'})
-                  </option>
+                  <option key={role.id} value={role.id}>{role.name} ({normalizeRoleType(role.type) || "ROLE"})</option>
                 ))}
               </select>
-              <Button
-                variant="primary"
-                onClick={handleAssignSiteRole}
-                disabled={!selectedUserId}
-                title={!selectedUserId ? 'Wybierz użytkownika, aby przypisać rolę.' : undefined}
-              >
-                Assign site role
-              </Button>
+              <div className="spacer-sm" />
+              <button className="btn primary" onClick={handleAssignSiteRole} disabled={!selectedUserId}>Assign site role</button>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Current assignments</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {!selectedUserId ? (
-            <EmptyState
-              title="Select a user"
-              description="Choose a user to view and manage role assignments."
+      <div className="spacer" />
+
+      <div className="card card-pad">
+        <div className="section-title">Current assignments</div>
+        <div className="spacer-sm" />
+        {!selectedUserId ? (
+          <div style={{ color: "var(--muted)" }}>Select a user to view assignments.</div>
+        ) : (
+          <>
+            <SearchAndFilters
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              placeholder="Search assignments"
+              filters={[
+                {
+                  key: "scope",
+                  label: "Scope",
+                  value: scopeFilter,
+                  options: [
+                    { value: "all", label: "All" },
+                    { value: "ORG", label: "ORG" },
+                    { value: "SITE", label: "SITE" },
+                  ],
+                  onChange: setScopeFilter,
+                },
+              ]}
             />
-          ) : (
-            <>
-              <SearchAndFilters
-                searchQuery={searchQuery}
-                onSearchChange={setSearchQuery}
-                placeholder="Search assignments"
-                filters={[
-                  {
-                    key: 'scope',
-                    label: 'Scope',
-                    value: scopeFilter,
-                    options: [
-                      { value: 'all', label: 'All' },
-                      { value: 'ORG', label: 'ORG' },
-                      { value: 'SITE', label: 'SITE' },
-                    ],
-                    onChange: setScopeFilter,
-                  },
-                ]}
-              />
 
-              {loadingAssignments ? (
-                <LoadingSpinner text="Loading assignments..." />
-              ) : filteredAssignments.length === 0 ? (
-                <EmptyState
-                  title="No assignments"
-                  description="This user has no role assignments."
-                />
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <caption className="sr-only">Assignments table</caption>
-                    <thead>
-                      <tr className="text-left text-muted border-b">
-                        <th className="py-3 px-4 font-semibold">Role</th>
-                        <th className="py-3 px-4 font-semibold">Scope</th>
-                        <th className="py-3 px-4 font-semibold">Site</th>
-                        <th className="py-3 px-4 font-semibold text-right">Actions</th>
+            <div className="spacer-sm" />
+
+            {loadingAssignments ? (
+              <div style={{ color: "var(--muted)" }}>Loading assignments...</div>
+            ) : filteredAssignments.length === 0 ? (
+              <div style={{ color: "var(--muted)" }}>No assignments for this user.</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>Role</th>
+                      <th>Scope</th>
+                      <th>Site</th>
+                      <th style={{ textAlign: "right" }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredAssignments.map((assignment) => (
+                      <tr key={assignment.id}>
+                        <td>
+                          <div style={{ fontWeight: 700 }}>{assignment.role.name}</div>
+                          <div className="detail-label">{normalizeRoleType(assignment.role.type) || "ROLE"}</div>
+                        </td>
+                        <td><span className="badge gray">{assignment.role.scope}</span></td>
+                        <td>
+                          {assignment.role.scope === "ORG" ? "Organization" : siteMap.get(assignment.siteId ?? "") || assignment.siteId || "Unknown"}
+                        </td>
+                        <td style={{ textAlign: "right" }}>
+                          <button className="btn" onClick={() => setRemoveAssignmentId(assignment.id)}>Remove</button>
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {filteredAssignments.map((assignment) => (
-                        <tr key={assignment.id} className="border-b border-border hover:bg-muted/30 transition-colors">
-                          <td className="py-3 px-4">
-                            <div className="font-semibold">{assignment.role.name}</div>
-                            <div className="text-xs text-muted">{normalizeRoleType(assignment.role.type) || 'ROLE'}</div>
-                          </td>
-                          <td className="py-3 px-4">
-                            <Badge tone="default" className="uppercase">
-                              {assignment.role.scope}
-                            </Badge>
-                          </td>
-                          <td className="py-3 px-4">
-                            {assignment.role.scope === 'ORG'
-                              ? 'Organization'
-                              : siteMap.get(assignment.siteId ?? '') || assignment.siteId || 'Unknown'}
-                          </td>
-                          <td className="py-3 px-4 text-right">
-                            <Button variant="danger" size="sm" onClick={() => setRemoveAssignmentId(assignment.id)}>
-                              Remove
-                            </Button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </>
-          )}
-        </CardContent>
-      </Card>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </>
+        )}
+      </div>
 
       <ConfirmDialog
         open={Boolean(removeAssignmentId)}

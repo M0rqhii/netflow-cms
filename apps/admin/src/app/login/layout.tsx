@@ -19,7 +19,7 @@ export default function LoginLayout({
   const locale = routing.defaultLocale;
 
   return (
-    <html lang={locale} suppressHydrationWarning>
+    <html lang={locale} data-theme="dark" suppressHydrationWarning>
       <body suppressHydrationWarning>
         {/* Inline theme init to avoid FOUC between SSR and client */}
         <Script
@@ -31,7 +31,7 @@ export default function LoginLayout({
                 try {
                   var key = 'nf-theme';
                   var saved = localStorage.getItem(key);
-                  var theme = saved || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                  var theme = saved || 'dark';
                   document.documentElement.setAttribute('data-theme', theme);
                   document.documentElement.classList.toggle('dark', theme === 'dark');
                 } catch (e) {}
@@ -48,4 +48,8 @@ export default function LoginLayout({
     </html>
   );
 }
+
+
+
+
 

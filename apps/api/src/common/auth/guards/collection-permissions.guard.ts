@@ -1,21 +1,22 @@
 import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { Permission, Role, hasAnyPermission } from '../roles.enum';
+import { Permission, SiteRole, SystemRole, hasSitePermission } from '../roles.enum';
 import { PERMISSIONS_KEY } from '../decorators/permissions.decorator';
 import { CurrentUserPayload } from '../decorators/current-user.decorator';
 import { CollectionRolesService } from '../../../modules/collection-roles/collection-roles.service';
 
 /**
  * CollectionPermissionsGuard - checks permissions per collection
- * AI Note: Checks both org-level permissions and collection-specific roles
- * 
+ * AI Note: Checks both site-level permissions and collection-specific roles
+ *
  * Usage:
  * @CollectionPermissions('collectionId', Permission.ITEMS_CREATE)
- * 
+ *
  * This guard:
- * 1. Checks org-level permissions first (Role-based)
- * 2. If collectionId is provided, checks collection-specific roles
- * 3. Allows access if either check passes
+ * 1. Checks if user is super admin first
+ * 2. Checks site-level permissions (SiteRole-based)
+ * 3. If collectionId is provided, checks collection-specific roles
+ * 4. Allows access if any check passes
  */
 @Injectable()
 export class CollectionPermissionsGuard implements CanActivate {
@@ -41,18 +42,20 @@ export class CollectionPermissionsGuard implements CanActivate {
       throw new ForbiddenException('User not authenticated');
     }
 
-    const userRole = user.role as Role;
     const siteId = request.siteId || user.siteId;
 
     // Super admin has all permissions
-    if (userRole === Role.SUPER_ADMIN) {
+    if (user.isSuperAdmin || user.systemRole === SystemRole.SUPER_ADMIN) {
       return true;
     }
 
-    // Check org-level permissions first
-    const hasOrgPermission = hasAnyPermission(userRole, requiredPermissions);
-    if (hasOrgPermission) {
-      return true;
+    // Check site-level permissions based on siteRole
+    if (user.siteRole) {
+      const userSiteRole = user.siteRole as SiteRole;
+      const hasSitePerm = requiredPermissions.some(perm => hasSitePermission(userSiteRole, perm));
+      if (hasSitePerm) {
+        return true;
+      }
     }
 
     // If collectionId is in params/body, check collection-specific permissions

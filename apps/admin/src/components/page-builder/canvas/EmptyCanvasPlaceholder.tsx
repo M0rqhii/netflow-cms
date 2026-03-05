@@ -47,3 +47,5 @@ export const EmptyCanvasPlaceholder: React.FC<EmptyCanvasPlaceholderProps> = ({
 };
 
 export default EmptyCanvasPlaceholder;
+
+

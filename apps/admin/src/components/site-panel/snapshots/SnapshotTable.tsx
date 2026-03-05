@@ -22,13 +22,13 @@ export function SnapshotTable({ snapshots, loading, restoringId, onRestore }: Sn
       <EmptyState
         title="No snapshots yet"
         description="Create a snapshot to capture pages and SEO settings for this site."
-        className="border border-dashed"
+        className="rounded-[18px] border border-dashed border-border bg-surface"
       />
     );
   }
 
   return (
-    <div className="overflow-hidden border rounded-md">
+    <div className="overflow-hidden rounded-[18px] border border-border bg-surface">
       <Table>
         <TableHeader>
           <TableRow>
@@ -64,3 +64,6 @@ export function SnapshotTable({ snapshots, loading, restoringId, onRestore }: Sn
     </div>
   );
 }
+
+
+

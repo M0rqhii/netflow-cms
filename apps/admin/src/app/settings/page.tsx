@@ -10,7 +10,7 @@ import { useRouter } from 'next/navigation';
  */
 export default function SettingsRedirectPage() {
   const router = useRouter();
-  
+
   useEffect(() => {
     router.replace('/account');
   }, [router]);

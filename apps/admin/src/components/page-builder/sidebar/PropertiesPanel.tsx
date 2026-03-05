@@ -44,10 +44,10 @@ export const PropertiesPanel: React.FC = () => {
   
   const updateBlockProps = usePageBuilderStore((state) => state.updateBlockProps);
   const updateBlockMeta = usePageBuilderStore((state) => state.updateBlockMeta);
+  const commit = usePageBuilderStore((state) => state.commit);
   const deleteBlock = usePageBuilderStore((state) => state.deleteBlock);
   const copyBlock = usePageBuilderStore((state) => state.copyBlock);
   const selectBlock = usePageBuilderStore((state) => state.selectBlock);
-  const commit = usePageBuilderStore((state) => state.commit);
   const scheduleCommit = usePageBuilderStore((state) => state.scheduleCommit);
   
   const [activeTab, setActiveTab] = useState<Tab>('content');
@@ -143,6 +143,13 @@ export const PropertiesPanel: React.FC = () => {
     copyBlock(selectedBlock.id);
   }, [selectedBlock, copyBlock]);
   
+  // Handle meta change (label, comment)
+  const handleMetaChange = useCallback((key: string, value: unknown) => {
+    if (!selectedBlock) return;
+    updateBlockMeta(selectedBlock.id, { ...selectedBlock.meta, [key]: value });
+    commit('apply');
+  }, [selectedBlock, updateBlockMeta, commit]);
+
   // Handle lock toggle
   const handleLockToggle = useCallback(() => {
     if (!selectedBlock) return;
@@ -272,6 +279,7 @@ export const PropertiesPanel: React.FC = () => {
             props={draftProps}
             schema={definition?.propsSchema?.advanced}
             onChange={(key, value) => handlePropChange('advanced', key, value)}
+            onMetaChange={handleMetaChange}
           />
         )}
       </div>
@@ -280,3 +288,5 @@ export const PropertiesPanel: React.FC = () => {
 };
 
 export default PropertiesPanel;
+
+

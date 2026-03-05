@@ -18,6 +18,7 @@ import { Permissions } from '../../../common/auth/decorators/permissions.decorat
 import { Permission } from '../../../common/auth/roles.enum';
 import { CurrentUser, CurrentUserPayload } from '../../../common/auth/decorators/current-user.decorator';
 import { CurrentSite } from '../../../common/decorators/current-site.decorator';
+import { CurrentOrg } from '../../../common/decorators/current-org.decorator';
 import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe';
 import { ContentWorkflowService } from '../services/content-workflow.service';
 import {
@@ -44,11 +45,12 @@ export class ContentWorkflowController {
   @HttpCode(HttpStatus.OK)
   submitForReview(
     @CurrentSite() siteId: string,
+    @CurrentOrg() orgId: string,
     @CurrentUser() user: CurrentUserPayload,
     @Param('contentTypeSlug') contentTypeSlug: string,
     @Param('entryId') entryId: string,
   ) {
-    return this.workflowService.submitForReview(siteId, contentTypeSlug, entryId, user.id);
+    return this.workflowService.submitForReview(siteId, orgId, contentTypeSlug, entryId, user.id);
   }
 
   /**
@@ -60,6 +62,7 @@ export class ContentWorkflowController {
   @HttpCode(HttpStatus.OK)
   reviewContent(
     @CurrentSite() siteId: string,
+    @CurrentOrg() orgId: string,
     @CurrentUser() user: CurrentUserPayload,
     @Param('contentTypeSlug') contentTypeSlug: string,
     @Param('entryId') entryId: string,
@@ -67,6 +70,7 @@ export class ContentWorkflowController {
   ) {
     return this.workflowService.reviewContent(
       siteId,
+      orgId,
       contentTypeSlug,
       entryId,
       user.id,
@@ -82,10 +86,11 @@ export class ContentWorkflowController {
   @Permissions(Permission.CONTENT_READ)
   getReviewHistory(
     @CurrentSite() siteId: string,
+    @CurrentOrg() orgId: string,
     @Param('contentTypeSlug') contentTypeSlug: string,
     @Param('entryId') entryId: string,
   ) {
-    return this.workflowService.getReviewHistory(siteId, contentTypeSlug, entryId);
+    return this.workflowService.getReviewHistory(siteId, orgId, contentTypeSlug, entryId);
   }
 
   /**
@@ -96,6 +101,7 @@ export class ContentWorkflowController {
   @Permissions(Permission.CONTENT_COMMENT)
   createComment(
     @CurrentSite() siteId: string,
+    @CurrentOrg() orgId: string,
     @CurrentUser() user: CurrentUserPayload,
     @Param('contentTypeSlug') contentTypeSlug: string,
     @Param('entryId') entryId: string,
@@ -103,6 +109,7 @@ export class ContentWorkflowController {
   ) {
     return this.workflowService.createComment(
       siteId,
+      orgId,
       contentTypeSlug,
       entryId,
       user.id,
@@ -118,12 +125,14 @@ export class ContentWorkflowController {
   @Permissions(Permission.CONTENT_READ)
   getComments(
     @CurrentSite() siteId: string,
+    @CurrentOrg() orgId: string,
     @Param('contentTypeSlug') contentTypeSlug: string,
     @Param('entryId') entryId: string,
     @Query('includeResolved') includeResolved?: string,
   ) {
     return this.workflowService.getComments(
       siteId,
+      orgId,
       contentTypeSlug,
       entryId,
       includeResolved === 'true',
@@ -138,6 +147,7 @@ export class ContentWorkflowController {
   @Permissions(Permission.CONTENT_COMMENT)
   updateComment(
     @CurrentSite() siteId: string,
+    @CurrentOrg() orgId: string,
     @CurrentUser() user: CurrentUserPayload,
     @Param('contentTypeSlug') contentTypeSlug: string,
     @Param('entryId') entryId: string,
@@ -146,6 +156,7 @@ export class ContentWorkflowController {
   ) {
     return this.workflowService.updateComment(
       siteId,
+      orgId,
       contentTypeSlug,
       entryId,
       commentId,
@@ -163,6 +174,7 @@ export class ContentWorkflowController {
   @HttpCode(HttpStatus.OK)
   deleteComment(
     @CurrentSite() siteId: string,
+    @CurrentOrg() orgId: string,
     @CurrentUser() user: CurrentUserPayload,
     @Param('contentTypeSlug') contentTypeSlug: string,
     @Param('entryId') entryId: string,
@@ -170,6 +182,7 @@ export class ContentWorkflowController {
   ) {
     return this.workflowService.deleteComment(
       siteId,
+      orgId,
       contentTypeSlug,
       entryId,
       commentId,
