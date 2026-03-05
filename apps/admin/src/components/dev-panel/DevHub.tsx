@@ -460,7 +460,7 @@ export function DevHub({ activeTab }: { activeTab: DevHubTab }) {
     },
     [pushToast],
   );
-  if (isProd) {
+  if (isProd && !isSuperAdmin) {
     return (
       <div className="card card-pad">
         <div className="font-black">Dev Panel disabled</div>

@@ -30,8 +30,9 @@ export default function DevSitesPage() {
   const payload = useMemo(() => decodeAuthToken(token), [token]);
   const userRole = (payload?.role as string) || "";
   const userPlatformRole = (payload?.platformRole as string) || "";
+  const isSuperAdmin = Boolean(payload?.isSuperAdmin) || userRole === "super_admin";
   const isPrivileged =
-    PRIVILEGED_ROLES.includes(userRole) || PRIVILEGED_PLATFORM_ROLES.includes(userPlatformRole);
+    isSuperAdmin || PRIVILEGED_ROLES.includes(userRole) || PRIVILEGED_PLATFORM_ROLES.includes(userPlatformRole);
 
   const [sites, setSites] = useState<SiteInfo[]>([]);
   const [loading, setLoading] = useState(false);
@@ -73,7 +74,7 @@ export default function DevSitesPage() {
       .finally(() => setLoading(false));
   }, [isProd, isPrivileged]);
 
-  if (isProd) {
+  if (isProd && !isSuperAdmin) {
     return (
       <div className="card card-pad">
         <div className="font-black">Dev Panel disabled</div>

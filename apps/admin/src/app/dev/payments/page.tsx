@@ -15,8 +15,9 @@ export default function DevPaymentsPage() {
   const payload = useMemo(() => decodeAuthToken(token), [token]);
   const userRole = (payload?.role as string) || "";
   const userPlatformRole = (payload?.platformRole as string) || "";
+  const isSuperAdmin = Boolean(payload?.isSuperAdmin) || userRole === "super_admin";
   const isPrivileged =
-    PRIVILEGED_ROLES.includes(userRole) || PRIVILEGED_PLATFORM_ROLES.includes(userPlatformRole);
+    isSuperAdmin || PRIVILEGED_ROLES.includes(userRole) || PRIVILEGED_PLATFORM_ROLES.includes(userPlatformRole);
   const [payments, setPayments] = useState<
     Array<{ id: string; orgId: string; plan?: string; status: string; currentPeriodStart?: string; currentPeriodEnd?: string; createdAt?: string }>
   >([]);
@@ -42,7 +43,7 @@ export default function DevPaymentsPage() {
       .finally(() => setLoading(false));
   }, [isProd, isPrivileged]);
 
-  if (isProd) {
+  if (isProd && !isSuperAdmin) {
     return (
       <div className="card card-pad">
         <div className="font-black">Dev Panel disabled</div>
