@@ -2,12 +2,18 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
-import { createApiClient } from '@repo/sdk';
+import { createApiClient, type LoginResponse, type LoginTwoFactorRequiredResponse } from '@repo/sdk';
 import { setAuthToken, getAuthToken } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from '@/hooks/useTranslations';
 import { useLanguage } from '@/hooks/useLanguage';
 import LanguageToggle from '@/components/ui/LanguageToggle';
+
+function isTwoFactorRequiredResponse(
+  response: LoginResponse,
+): response is LoginTwoFactorRequiredResponse {
+  return 'requiresTwoFactor' in response && response.requiresTwoFactor === true;
+}
 
 export default function LoginPage() {
   const api = createApiClient();
@@ -17,10 +23,15 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [twoFactorToken, setTwoFactorToken] = useState<string | null>(null);
+  const [twoFactorCode, setTwoFactorCode] = useState('');
+  const [twoFactorMethod, setTwoFactorMethod] = useState<'auth_app' | 'email' | null>(null);
+  const [twoFactorDelivery, setTwoFactorDelivery] = useState<'email' | 'none' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showLanguageModal, setShowLanguageModal] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const isTwoFactorStep = Boolean(twoFactorToken);
 
   useEffect(() => {
     setMounted(true);
@@ -44,31 +55,53 @@ export default function LoginPage() {
     setError(null);
     setLoading(true);
 
-    if (!email || !password) {
-      setError(t('auth.invalidCredentials'));
-      setLoading(false);
-      return;
-    }
-
     try {
-      const emailValue = email.trim();
-      const passwordValue = password;
+      let accessToken = '';
+      let user: { preferredLanguage?: string } | null = null;
 
-      if (!emailValue || !passwordValue) {
-        setError(t('auth.invalidCredentials'));
-        setLoading(false);
-        return;
+      if (isTwoFactorStep) {
+        const token = twoFactorToken;
+        const code = twoFactorCode.trim();
+
+        if (!token || !code) {
+          setError(t('auth.twoFactorCodeRequired'));
+          setLoading(false);
+          return;
+        }
+
+        const verified = await api.loginWithTwoFactor(token, code);
+        accessToken = verified.access_token;
+        user = verified.user as { preferredLanguage?: string } | null;
+      } else {
+        const emailValue = email.trim();
+        const passwordValue = password;
+
+        if (!emailValue || !passwordValue) {
+          setError(t('auth.invalidCredentials'));
+          setLoading(false);
+          return;
+        }
+
+        const loginResponse = await api.login(undefined, emailValue, passwordValue);
+        if (isTwoFactorRequiredResponse(loginResponse)) {
+          setTwoFactorToken(loginResponse.twoFactorToken);
+          setTwoFactorMethod(loginResponse.twoFactorMethod);
+          setTwoFactorDelivery(loginResponse.codeDelivery);
+          setTwoFactorCode('');
+          setLoading(false);
+          return;
+        }
+
+        accessToken = loginResponse.access_token;
+        user = loginResponse.user as { preferredLanguage?: string } | null;
       }
 
-      const res = await api.login(undefined, emailValue, passwordValue);
-      setAuthToken(res.access_token);
-
-      const user = res.user as { preferredLanguage?: string } | null;
+      setAuthToken(accessToken);
       if (user && !user.preferredLanguage && language) {
         try {
           await api.patch('/users/me/preferences', {
             preferredLanguage: language,
-          }, res.access_token);
+          }, accessToken);
         } catch (err) {
           // Silent fail
         }
@@ -81,7 +114,15 @@ export default function LoginPage() {
     } finally {
       setLoading(false);
     }
-  }, [email, password, api, language, router, t]);
+  }, [email, password, twoFactorCode, twoFactorToken, isTwoFactorStep, api, language, router, t]);
+
+  const handleBackToLogin = useCallback(() => {
+    setTwoFactorToken(null);
+    setTwoFactorCode('');
+    setTwoFactorMethod(null);
+    setTwoFactorDelivery(null);
+    setError(null);
+  }, []);
 
   const handleLanguageSelect = useCallback((lang: 'pl' | 'en') => {
     changeLanguage(lang);
@@ -171,82 +212,123 @@ export default function LoginPage() {
           <div className="p-6 sm:p-8">
             <div className="flex items-start justify-between gap-4 mb-6">
               <div>
-                <h1 className="text-xl font-semibold tracking-tight text-foreground">{t('auth.loginTitle')}</h1>
-                <p className="text-sm text-muted mt-1">{t('auth.loginSubtitle')}</p>
+                <h1 className="text-xl font-semibold tracking-tight text-foreground">
+                  {isTwoFactorStep ? t('auth.twoFactorTitle') : t('auth.loginTitle')}
+                </h1>
+                <p className="text-sm text-muted mt-1">
+                  {isTwoFactorStep ? t('auth.twoFactorSubtitle') : t('auth.loginSubtitle')}
+                </p>
+                {isTwoFactorStep && (
+                  <p className="text-xs text-muted mt-2">
+                    {twoFactorDelivery === 'email'
+                      ? t('auth.twoFactorHintEmail')
+                      : t('auth.twoFactorHintRecovery')}
+                  </p>
+                )}
               </div>
               <LanguageToggle />
             </div>
 
             <form onSubmit={onSubmit} className="space-y-4" noValidate>
-              <div className="space-y-1.5">
-                <label htmlFor="login-email" className="block text-sm font-medium text-foreground">
-                  {t('auth.email')}
-                </label>
-                <div className="relative">
-                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted pointer-events-none">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                    </svg>
+              {!isTwoFactorStep && (
+                <>
+                  <div className="space-y-1.5">
+                    <label htmlFor="login-email" className="block text-sm font-medium text-foreground">
+                      {t('auth.email')}
+                    </label>
+                    <div className="relative">
+                      <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted pointer-events-none">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                      <input
+                        id="login-email"
+                        type="email"
+                        className="input h-11 pl-10 pr-3 text-sm placeholder:text-muted/60"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="name@company.com"
+                        required
+                        aria-required="true"
+                        aria-invalid={error ? 'true' : undefined}
+                        aria-describedby={error ? 'login-error' : undefined}
+                        autoComplete="email"
+                      />
+                    </div>
                   </div>
-                  <input
-                    id="login-email"
-                    type="email"
-                    className="input h-11 pl-10 pr-3 text-sm placeholder:text-muted/60"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="name@company.com"
-                    required
-                    aria-required="true"
-                    aria-invalid={error ? 'true' : undefined}
-                    aria-describedby={error ? 'login-error' : undefined}
-                    autoComplete="email"
-                  />
-                </div>
-              </div>
 
-              <div className="space-y-1.5">
-                <label htmlFor="login-password" className="block text-sm font-medium text-foreground">
-                  {t('auth.password')}
-                </label>
-                <div className="relative">
-                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted pointer-events-none">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                    </svg>
+                  <div className="space-y-1.5">
+                    <label htmlFor="login-password" className="block text-sm font-medium text-foreground">
+                      {t('auth.password')}
+                    </label>
+                    <div className="relative">
+                      <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted pointer-events-none">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                      </div>
+                      <input
+                        id="login-password"
+                        type={showPassword ? 'text' : 'password'}
+                        className="input h-11 pl-10 pr-11 text-sm placeholder:text-muted/60"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="Enter your password"
+                        required
+                        aria-required="true"
+                        aria-invalid={error ? 'true' : undefined}
+                        aria-describedby={error ? 'login-error' : undefined}
+                        autoComplete="current-password"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-foreground transition-colors focus:outline-none"
+                        aria-label={showPassword ? t('auth.hidePassword') : t('auth.showPassword')}
+                        aria-pressed={showPassword}
+                      >
+                        {showPassword ? (
+                          <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                          </svg>
+                        ) : (
+                          <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
+                        )}
+                      </button>
+                    </div>
                   </div>
+                </>
+              )}
+
+              {isTwoFactorStep && (
+                <div className="space-y-1.5">
+                  <label htmlFor="login-2fa-code" className="block text-sm font-medium text-foreground">
+                    {t('auth.twoFactorCode')}
+                  </label>
                   <input
-                    id="login-password"
-                    type={showPassword ? 'text' : 'password'}
-                    className="input h-11 pl-10 pr-11 text-sm placeholder:text-muted/60"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Enter your password"
+                    id="login-2fa-code"
+                    type="text"
+                    className="input h-11 px-3 text-sm placeholder:text-muted/60"
+                    value={twoFactorCode}
+                    onChange={(e) => setTwoFactorCode(e.target.value)}
+                    placeholder={t('auth.twoFactorCodePlaceholder')}
                     required
                     aria-required="true"
                     aria-invalid={error ? 'true' : undefined}
                     aria-describedby={error ? 'login-error' : undefined}
-                    autoComplete="current-password"
+                    autoComplete="one-time-code"
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-foreground transition-colors focus:outline-none"
-                    aria-label={showPassword ? t('auth.hidePassword') : t('auth.showPassword')}
-                    aria-pressed={showPassword}
-                  >
-                    {showPassword ? (
-                      <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                      </svg>
-                    ) : (
-                      <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                      </svg>
-                    )}
-                  </button>
+                  <p className="text-xs text-muted">
+                    {twoFactorMethod === 'email'
+                      ? t('auth.twoFactorMethodEmail')
+                      : t('auth.twoFactorMethodAuthApp')}
+                  </p>
                 </div>
-              </div>
+              )}
 
               {error && (
                 <div
@@ -275,11 +357,11 @@ export default function LoginPage() {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                     </svg>
-                    {t('auth.loggingIn')}
+                    {isTwoFactorStep ? t('auth.verifyingTwoFactor') : t('auth.loggingIn')}
                   </span>
                 ) : (
                   <span className="flex items-center justify-center gap-2">
-                    {t('auth.login')}
+                    {isTwoFactorStep ? t('auth.verifyAndLogin') : t('auth.login')}
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                     </svg>
@@ -287,8 +369,19 @@ export default function LoginPage() {
                 )}
               </button>
 
+              {isTwoFactorStep && (
+                <button
+                  type="button"
+                  className="btn w-full h-11 text-sm font-medium rounded-xl"
+                  onClick={handleBackToLogin}
+                  disabled={loading}
+                >
+                  {t('auth.backToLogin')}
+                </button>
+              )}
+
               <p className="text-xs text-muted text-center pt-2">
-                {t('auth.loginNote')}
+                {isTwoFactorStep ? t('auth.twoFactorStepNote') : t('auth.loginNote')}
               </p>
             </form>
           </div>

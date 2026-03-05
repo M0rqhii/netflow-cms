@@ -2,7 +2,7 @@ import { Controller, Post, Body, HttpCode, HttpStatus, UseGuards, Get, Param, Re
 import { Throttle } from '@nestjs/throttler';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
-import { LoginDto, RegisterDto, loginSchema, registerSchema } from './dto';
+import { LoginDto, LoginTwoFactorDto, RegisterDto, loginSchema, loginTwoFactorSchema, registerSchema } from './dto';
 import { Public } from '../../common/auth/decorators/public.decorator';
 import { AuthGuard } from '../../common/auth/guards/auth.guard';
 import { CurrentUser, CurrentUserPayload } from '../../common/auth/decorators/current-user.decorator';
@@ -30,6 +30,24 @@ export class AuthController {
   @ApiBody({ description: 'Login credentials', schema: { type: 'object', properties: { email: { type: 'string' }, password: { type: 'string' }, orgId: { type: 'string' } } } })
   async login(@Body(new ZodValidationPipe(loginSchema)) loginDto: LoginDto) {
     return this.authService.login(loginDto);
+  }
+
+  @Public()
+  @Throttle(8, 60) // 8 requests per minute
+  @Post('login/2fa')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Complete 2FA login', description: 'Verify second factor and issue JWT token' })
+  @ApiResponse({ status: 200, description: '2FA verification successful' })
+  @ApiResponse({ status: 401, description: 'Invalid or expired verification code' })
+  @ApiResponse({ status: 429, description: 'Too many requests' })
+  @ApiBody({
+    description: 'Two-factor verification payload',
+    schema: { type: 'object', properties: { token: { type: 'string' }, code: { type: 'string' } } },
+  })
+  async loginWithTwoFactor(
+    @Body(new ZodValidationPipe(loginTwoFactorSchema)) dto: LoginTwoFactorDto,
+  ) {
+    return this.authService.loginWithTwoFactor(dto);
   }
 
   @Public()

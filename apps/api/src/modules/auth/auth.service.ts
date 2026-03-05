@@ -1,15 +1,16 @@
-import { Injectable, UnauthorizedException, ConflictException, NotFoundException, BadRequestException, Inject } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ConflictException, NotFoundException, BadRequestException, Inject, Optional, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
-import { LoginDto } from './dto/login.dto';
+import { LoginDto, LoginTwoFactorDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { JwtPayload } from '../../common/auth/strategies/jwt.strategy';
 import { ConfigService } from '@nestjs/config';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
-import { randomUUID } from 'crypto';
+import { randomInt, randomUUID } from 'crypto';
 import { AuditService, AuditEvent } from '../../common/audit/audit.service';
+import { Mailer } from '../../common/providers/interfaces';
 
 export interface AuthResponse {
   access_token: string;
@@ -21,15 +22,180 @@ export interface AuthResponse {
   };
 }
 
+type TwoFactorMethod = 'auth_app' | 'email';
+type TwoFactorCodeDelivery = 'email' | 'none';
+
+export interface TwoFactorChallengeResponse {
+  requiresTwoFactor: true;
+  twoFactorToken: string;
+  twoFactorMethod: TwoFactorMethod;
+  codeDelivery: TwoFactorCodeDelivery;
+  expiresInSeconds: number;
+}
+
+type LoginSuccessResponse = AuthResponse & { refresh_token: string };
+export type LoginResponse = LoginSuccessResponse | TwoFactorChallengeResponse;
+
+type TwoFactorChallengePayload = {
+  userId: string;
+  email: string;
+  role: string;
+  baseOrgId: string;
+  finalOrgId?: string;
+  siteRole: string;
+  platformRole: string;
+  systemRole?: string;
+  isSuperAdmin: boolean;
+  isGlobalLogin: boolean;
+  twoFactorMethod: TwoFactorMethod;
+  codeDelivery: TwoFactorCodeDelivery;
+  oneTimeCode?: string;
+};
+
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
     private configService: ConfigService,
     @Inject(CACHE_MANAGER) private cache: Cache,
     private auditService: AuditService,
+    @Optional() @Inject('Mailer') private readonly mailer?: Mailer,
   ) {}
+
+  private asJsonObject(value: unknown): Record<string, unknown> {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return {};
+    }
+    return value as Record<string, unknown>;
+  }
+
+  private normalizeVerificationCode(value: string): string {
+    return value.trim().toUpperCase();
+  }
+
+  private readTwoFactorSettings(rawBillingInfo: unknown): {
+    enabled: boolean;
+    method: TwoFactorMethod;
+    recoveryCodes: string[];
+  } {
+    const rawBilling = this.asJsonObject(rawBillingInfo);
+    const rawSecurity = this.asJsonObject(rawBilling.security);
+    const method: TwoFactorMethod = rawSecurity.twoFactorMethod === 'email' ? 'email' : 'auth_app';
+    const recoveryCodes = Array.isArray(rawSecurity.recoveryCodes)
+      ? rawSecurity.recoveryCodes
+          .filter((code): code is string => typeof code === 'string' && code.trim().length > 0)
+          .map((code) => this.normalizeVerificationCode(code))
+      : [];
+
+    return {
+      enabled: Boolean(rawSecurity.twoFactorEnabled),
+      method,
+      recoveryCodes,
+    };
+  }
+
+  private getTwoFactorChallengeTtlSeconds(): number {
+    const raw = this.configService.get<string | number>('LOGIN_2FA_TTL_SECONDS');
+    const parsed = Number(raw);
+    if (Number.isFinite(parsed) && parsed >= 60 && parsed <= 900) {
+      return Math.round(parsed);
+    }
+    return 300;
+  }
+
+  private getTwoFactorChallengeCacheKey(token: string): string {
+    return `auth:2fa:challenge:${token}`;
+  }
+
+  private async getTwoFactorChallenge(token: string): Promise<TwoFactorChallengePayload | null> {
+    const raw = await this.cache.get<string | TwoFactorChallengePayload>(this.getTwoFactorChallengeCacheKey(token));
+    if (!raw) return null;
+
+    if (typeof raw === 'string') {
+      try {
+        return JSON.parse(raw) as TwoFactorChallengePayload;
+      } catch {
+        return null;
+      }
+    }
+
+    return raw as TwoFactorChallengePayload;
+  }
+
+  private async sendTwoFactorEmailCode(email: string, code: string, ttlSeconds: number): Promise<boolean> {
+    if (!this.mailer) {
+      return false;
+    }
+
+    await this.mailer.sendEmail({
+      to: email,
+      subject: 'Your Net-Flow CMS verification code',
+      body: `<p>Your verification code is <strong>${code}</strong>.</p><p>This code expires in ${Math.max(
+        1,
+        Math.floor(ttlSeconds / 60),
+      )} minute(s).</p>`,
+      metadata: {
+        category: 'auth_2fa_login',
+      },
+    });
+
+    return true;
+  }
+
+  private async hasMatchingRecoveryCode(userId: string, providedCode: string): Promise<boolean> {
+    const normalized = this.normalizeVerificationCode(providedCode);
+    if (!normalized) {
+      return false;
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, billingInfo: true },
+    });
+    if (!user) {
+      return false;
+    }
+
+    const settings = this.readTwoFactorSettings(user.billingInfo);
+    return settings.recoveryCodes.includes(normalized);
+  }
+
+  private async buildLoginResponse(params: {
+    userId: string;
+    email: string;
+    role: string;
+    finalOrgId?: string;
+    baseOrgId: string;
+    siteRole: string;
+    platformRole: string;
+    systemRole?: string;
+    isSuperAdmin: boolean;
+  }): Promise<LoginSuccessResponse> {
+    const payload: JwtPayload = {
+      sub: params.userId,
+      email: params.email,
+      orgId: params.finalOrgId,
+      role: params.role, // Backward compatibility
+      siteRole: params.siteRole !== params.role ? params.siteRole : undefined,
+      platformRole: params.platformRole,
+      systemRole: params.systemRole,
+      isSuperAdmin: params.isSuperAdmin,
+    };
+
+    return {
+      access_token: await this.issueAccessToken(payload),
+      refresh_token: await this.issueRefreshToken(payload),
+      user: {
+        id: params.userId,
+        email: params.email,
+        role: params.role,
+        orgId: params.finalOrgId || params.baseOrgId,
+      },
+    };
+  }
 
   /**
    * Helper method to find user by email with fallback logic
@@ -55,6 +221,7 @@ export class AuthService {
           systemRole: true,
           isSuperAdmin: true,
           orgId: true,
+          billingInfo: true,
         },
       });
     }
@@ -85,6 +252,7 @@ export class AuthService {
             systemRole: true,
             isSuperAdmin: true,
             orgId: true,
+            billingInfo: true,
           },
         },
       },
@@ -108,6 +276,7 @@ export class AuthService {
         systemRole: true,
         isSuperAdmin: true,
         orgId: true,
+        billingInfo: true,
       },
     });
     return users[0] || null;
@@ -162,7 +331,7 @@ export class AuthService {
     return 'user';
   }
 
-  async login(loginDto: LoginDto): Promise<AuthResponse & { refresh_token: string }> {
+  async login(loginDto: LoginDto): Promise<LoginResponse> {
     const orgId = loginDto.orgId;
     
     const user = await this.validateUser(
@@ -204,27 +373,66 @@ export class AuthService {
     const systemRole = user.systemRole || (user.role === 'super_admin' ? 'super_admin' : undefined);
     const isSuperAdmin = user.isSuperAdmin || user.role === 'super_admin' || user.systemRole === 'super_admin';
 
-    const payload: JwtPayload = {
-      sub: user.id,
+    const twoFactor = this.readTwoFactorSettings(user.billingInfo);
+    if (twoFactor.enabled) {
+      const ttlSeconds = this.getTwoFactorChallengeTtlSeconds();
+      const twoFactorToken = randomUUID();
+      const oneTimeCode = String(randomInt(100000, 1000000));
+
+      let codeDelivery: TwoFactorCodeDelivery = 'none';
+      try {
+        const delivered = await this.sendTwoFactorEmailCode(user.email, oneTimeCode, ttlSeconds);
+        codeDelivery = delivered ? 'email' : 'none';
+      } catch (error) {
+        this.logger.warn(`2FA code delivery failed for user ${user.id}: ${error instanceof Error ? error.message : String(error)}`);
+      }
+
+      if (twoFactor.method === 'email' && codeDelivery !== 'email') {
+        throw new UnauthorizedException('Unable to deliver two-factor verification code');
+      }
+
+      const challengePayload: TwoFactorChallengePayload = {
+        userId: user.id,
+        email: user.email,
+        role: user.role,
+        baseOrgId: user.orgId,
+        finalOrgId,
+        siteRole,
+        platformRole,
+        systemRole,
+        isSuperAdmin,
+        isGlobalLogin,
+        twoFactorMethod: twoFactor.method,
+        codeDelivery,
+        oneTimeCode: codeDelivery === 'email' ? oneTimeCode : undefined,
+      };
+
+      await this.cache.set(
+        this.getTwoFactorChallengeCacheKey(twoFactorToken),
+        JSON.stringify(challengePayload),
+        ttlSeconds,
+      );
+
+      return {
+        requiresTwoFactor: true,
+        twoFactorToken,
+        twoFactorMethod: twoFactor.method,
+        codeDelivery,
+        expiresInSeconds: ttlSeconds,
+      };
+    }
+
+    const response = await this.buildLoginResponse({
+      userId: user.id,
       email: user.email,
-      orgId: finalOrgId, // undefined for global token
-      role: user.role, // Backward compatibility
-      siteRole: siteRole !== user.role ? siteRole : undefined,
+      role: user.role,
+      finalOrgId,
+      baseOrgId: user.orgId,
+      siteRole,
       platformRole,
       systemRole,
       isSuperAdmin,
-    };
-
-    const response = {
-      access_token: await this.issueAccessToken(payload),
-      refresh_token: await this.issueRefreshToken(payload),
-      user: {
-        id: user.id,
-        email: user.email,
-        role: user.role,
-        orgId: finalOrgId || user.orgId, // Return orgId
-      },
-    };
+    });
 
     // Audit log: Global login
     await this.auditService.log({
@@ -233,6 +441,79 @@ export class AuthService {
       metadata: {
         isGlobalLogin: isGlobalLogin,
         hasMultipleOrgs: isGlobalLogin && !finalOrgId,
+        twoFactorRequired: false,
+      },
+    });
+
+    return response;
+  }
+
+  async loginWithTwoFactor(dto: LoginTwoFactorDto): Promise<LoginSuccessResponse> {
+    const challenge = await this.getTwoFactorChallenge(dto.token);
+    if (!challenge) {
+      throw new UnauthorizedException('Two-factor challenge expired or invalid');
+    }
+
+    const providedCode = this.normalizeVerificationCode(dto.code);
+    const matchesEmailCode =
+      challenge.codeDelivery === 'email' &&
+      Boolean(challenge.oneTimeCode) &&
+      providedCode === this.normalizeVerificationCode(challenge.oneTimeCode || '');
+    const matchesRecoveryCode = await this.hasMatchingRecoveryCode(challenge.userId, providedCode);
+
+    if (!matchesEmailCode && !matchesRecoveryCode) {
+      throw new UnauthorizedException('Invalid two-factor verification code');
+    }
+
+    const currentUser = await this.prisma.user.findUnique({
+      where: { id: challenge.userId },
+      select: {
+        id: true,
+        email: true,
+        role: true, // Backward compatibility
+        siteRole: true,
+        platformRole: true,
+        systemRole: true,
+        isSuperAdmin: true,
+        orgId: true,
+      },
+    });
+
+    if (!currentUser) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    await this.cache.del(this.getTwoFactorChallengeCacheKey(dto.token) as any);
+
+    const siteRole = currentUser.siteRole || this.mapRoleToSiteRole(currentUser.role);
+    const platformRole = currentUser.platformRole || this.mapRoleToPlatformRole(currentUser.role);
+    const systemRole = currentUser.systemRole || (currentUser.role === 'super_admin' ? 'super_admin' : undefined);
+    const isSuperAdmin =
+      currentUser.isSuperAdmin ||
+      currentUser.role === 'super_admin' ||
+      currentUser.systemRole === 'super_admin';
+
+    const response = await this.buildLoginResponse({
+      userId: currentUser.id,
+      email: currentUser.email,
+      role: currentUser.role,
+      finalOrgId: challenge.finalOrgId,
+      baseOrgId: currentUser.orgId,
+      siteRole,
+      platformRole,
+      systemRole,
+      isSuperAdmin,
+    });
+
+    await this.auditService.log({
+      event: AuditEvent.GLOBAL_LOGIN,
+      userId: currentUser.id,
+      metadata: {
+        isGlobalLogin: challenge.isGlobalLogin,
+        hasMultipleOrgs: challenge.isGlobalLogin && !challenge.finalOrgId,
+        twoFactorRequired: true,
+        twoFactorMethod: challenge.twoFactorMethod,
+        usedRecoveryCode: matchesRecoveryCode && !matchesEmailCode,
       },
     });
 

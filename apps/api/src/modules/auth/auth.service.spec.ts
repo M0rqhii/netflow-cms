@@ -128,6 +128,7 @@ describe('AuthService', () => {
           systemRole: true,
           isSuperAdmin: true,
           orgId: true,
+          billingInfo: true,
         },
       });
     });

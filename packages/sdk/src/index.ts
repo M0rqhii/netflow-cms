@@ -150,6 +150,22 @@ export type DevLogEntry = {
   metadata?: Record<string, unknown>;
 };
 
+export type LoginSuccessResponse = {
+  access_token: string;
+  refresh_token?: string;
+  user: unknown;
+};
+
+export type LoginTwoFactorRequiredResponse = {
+  requiresTwoFactor: true;
+  twoFactorToken: string;
+  twoFactorMethod: 'auth_app' | 'email';
+  codeDelivery: 'email' | 'none';
+  expiresInSeconds: number;
+};
+
+export type LoginResponse = LoginSuccessResponse | LoginTwoFactorRequiredResponse;
+
 export class ApiClient {
   constructor(private baseUrl: string) {}
 
@@ -267,10 +283,17 @@ export class ApiClient {
     });
   }
 
-  async login(orgId: string | undefined, email: string, password: string): Promise<{ access_token: string; user: unknown }> {
+  async login(orgId: string | undefined, email: string, password: string): Promise<LoginResponse> {
     return this.request(`/auth/login`, {
       method: 'POST',
       body: JSON.stringify({ ...(orgId ? { orgId } : {}), email, password }),
+    });
+  }
+
+  async loginWithTwoFactor(token: string, code: string): Promise<LoginSuccessResponse> {
+    return this.request<LoginSuccessResponse>(`/auth/login/2fa`, {
+      method: 'POST',
+      body: JSON.stringify({ token, code }),
     });
   }
 

@@ -1,18 +1,81 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { EmptyState, Skeleton } from "@repo/ui";
 import { useTranslations } from "@/hooks/useTranslations";
-import { getCurrentUser, getGlobalBillingInfo, type AccountInfo, type GlobalBillingInfo, type GlobalInvoice } from "@/lib/api";
+import {
+  getCurrentUser,
+  getGlobalBillingInfo,
+  type AccountInfo,
+  type GlobalBillingInfo,
+  type GlobalInvoice,
+  type GlobalSubscription,
+} from "@/lib/api";
 import { useToast } from "@/components/ui/Toast";
+
+function formatDate(value: string | null | undefined): string {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+  return date.toLocaleDateString();
+}
+
+function formatStatus(value: string | null | undefined): string {
+  if (!value) return "-";
+  return value
+    .replace(/_/g, " ")
+    .trim()
+    .replace(/\b\w/g, (match) => match.toUpperCase());
+}
+
+function normalizeAmount(value: unknown): number {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string") {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+  return 0;
+}
+
+function formatCurrency(amount: unknown, currency: string | null | undefined): string {
+  const normalizedAmount = normalizeAmount(amount);
+  const normalizedCurrency = (currency || "USD").toUpperCase();
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency: normalizedCurrency,
+      maximumFractionDigits: 2,
+    }).format(normalizedAmount);
+  } catch {
+    return `${normalizedAmount.toFixed(2)} ${normalizedCurrency}`;
+  }
+}
+
+function getStatusBadgeClass(status: string | null | undefined): string {
+  const normalized = String(status || "").toLowerCase();
+  if (normalized === "paid" || normalized === "active" || normalized === "trialing") return "badge green";
+  if (normalized === "open" || normalized === "draft" || normalized === "pending") return "badge orange";
+  return "badge gray";
+}
+
+function MobileLine({ label, value }: { label: string; value: ReactNode }) {
+  return (
+    <div className="row-between" style={{ alignItems: "flex-start" }}>
+      <span className="detail-label">{label}</span>
+      <span className="text-sm font-semibold text-right" style={{ maxWidth: "62%" }}>
+        {value}
+      </span>
+    </div>
+  );
+}
 
 export default function BillingPage() {
   const t = useTranslations();
   const { push: pushToast } = useToast();
+
   const [loading, setLoading] = useState(true);
-  const [invoices, setInvoices] = useState<GlobalInvoice[]>([]);
-  const [organizations, setOrganizations] = useState<GlobalBillingInfo["organizations"]>([]);
   const [currentUser, setCurrentUser] = useState<AccountInfo | null>(null);
+  const [billing, setBilling] = useState<GlobalBillingInfo | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -20,10 +83,20 @@ export default function BillingPage() {
       try {
         setLoading(true);
         setError(null);
-        const [user, data] = await Promise.all([getCurrentUser(), getGlobalBillingInfo()]);
-        setCurrentUser(user);
-        setInvoices(data.invoices || []);
-        setOrganizations(data.organizations || []);
+        const [userResult, billingResult] = await Promise.allSettled([
+          getCurrentUser(),
+          getGlobalBillingInfo(),
+        ]);
+
+        if (userResult.status === "fulfilled") {
+          setCurrentUser(userResult.value);
+        }
+
+        if (billingResult.status === "rejected") {
+          throw billingResult.reason;
+        }
+
+        setBilling(billingResult.value);
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : t("billing.failedToLoadBillingData");
         setError(errorMessage);
@@ -40,45 +113,50 @@ export default function BillingPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [t]);
 
-  const isDemoAccount =
-    currentUser?.email?.toLowerCase() === "liwiusz01@gmail.com" &&
-    organizations.some((org) => org.orgName?.toLowerCase() === "platform admin");
+  const organizations = billing?.organizations || [];
+  const subscriptions = billing?.subscriptions || [];
+  const invoices = billing?.invoices || [];
 
-  const demoOrg = organizations.find((org) => org.orgName?.toLowerCase() === "platform admin");
+  const activeSubscriptions = useMemo(
+    () => subscriptions.filter((sub) => ["active", "trialing"].includes(sub.status?.toLowerCase())).length,
+    [subscriptions],
+  );
 
-  const demoHighlights = [
-    { label: t("billing.organization"), value: demoOrg?.orgName ?? "Platform Admin" },
-    { label: t("billing.plan"), value: demoOrg?.plan ?? "Developer Sandbox" },
-    { label: t("billing.status"), value: demoOrg?.status ?? "active" },
-    { label: t("billing.nextRenewal"), value: t("billing.lifetime") },
-  ];
+  const openInvoices = useMemo(
+    () => invoices.filter((inv) => ["open", "draft", "pending", "uncollectible"].includes(inv.status?.toLowerCase())).length,
+    [invoices],
+  );
 
-  const demoUsage = [
-    { label: "Storage", value: 86, unit: "GB", max: null },
-    { label: "Bandwidth", value: 320, unit: "GB", max: null },
-    { label: "Build minutes", value: 1200, unit: "min", max: null },
-    { label: "API calls", value: 86000, unit: "", max: null },
-  ];
+  const paidTotal = useMemo(
+    () =>
+      invoices.reduce((sum, inv) => {
+        if ((inv.status || "").toLowerCase() !== "paid") return sum;
+        return sum + normalizeAmount(inv.amount);
+      }, 0),
+    [invoices],
+  );
 
-  const demoSpendSeries = [
-    { month: "Aug", value: 12 },
-    { month: "Sep", value: 24 },
-    { month: "Oct", value: 36 },
-    { month: "Nov", value: 28 },
-    { month: "Dec", value: 44 },
-    { month: "Jan", value: 32 },
-  ];
+  const mainCurrency = useMemo(() => {
+    const candidate =
+      invoices.find((inv) => typeof inv.currency === "string" && inv.currency.length >= 3)?.currency || "USD";
+    return candidate.toUpperCase();
+  }, [invoices]);
 
-  const demoHistory = [
-    { id: "demo-1", date: "2026-01-05", amount: 0, currency: "USD", status: "paid", note: "Developer sandbox" },
-    { id: "demo-2", date: "2025-12-05", amount: 0, currency: "USD", status: "paid", note: "Developer sandbox" },
-    { id: "demo-3", date: "2025-11-05", amount: 0, currency: "USD", status: "paid", note: "Developer sandbox" },
-    { id: "demo-4", date: "2025-10-05", amount: 0, currency: "USD", status: "paid", note: "Developer sandbox" },
-  ];
+  const latestRenewal = useMemo(() => {
+    const allRenewals = organizations
+      .map((org) => org.renewalDate)
+      .filter((value): value is string => typeof value === "string" && value.length > 0)
+      .map((value) => new Date(value))
+      .filter((date) => !Number.isNaN(date.getTime()))
+      .sort((a, b) => b.getTime() - a.getTime());
+    return allRenewals[0]?.toISOString() || null;
+  }, [organizations]);
 
-  const demoMethods = [
-    { label: "Virtual card", value: "**** 4242", status: "primary" },
-    { label: "Test transfer", value: "Sandbox", status: "backup" },
+  const summaryCards = [
+    { label: t("billing.organizationPlans"), value: String(organizations.length) },
+    { label: t("billing.currentPlans"), value: String(activeSubscriptions) },
+    { label: t("billing.openInvoices"), value: String(openInvoices) },
+    { label: t("billing.paidTotal"), value: formatCurrency(paidTotal, mainCurrency) },
   ];
 
   if (error) {
@@ -101,214 +179,210 @@ export default function BillingPage() {
   return (
     <div className="billing-page-frame w-full px-3 sm:px-5 lg:px-6 2xl:px-8 py-4 sm:py-6">
       <div className="billing-page-shell">
-      <div className="card card-pad">
-        <div className="view-title">{t("billing.title")}</div>
-        <div className="view-sub">{t("billing.manageOrganizationBilling")}</div>
-      </div>
-
-      <div className="spacer" />
-
-      {isDemoAccount && (
-        <div>
-          <div className="card card-pad">
-            <div className="row-between" style={{ flexWrap: "wrap" }}>
-              <div className="section-title">{t("billing.demoAccountTitle")}</div>
-              <span className="badge green">{t("billing.unlimited")}</span>
+        <div className="card card-pad">
+          <div className="row-start flex-wrap">
+            <div>
+              <div className="view-title">{t("billing.title")}</div>
+              <div className="view-sub">{t("billing.manageOrganizationBilling")}</div>
             </div>
-            <div className="text-muted text-xs mt-1.5">
-              Demo account with full access and sample billing data.
-            </div>
-            <div className="spacer-sm" />
-            <div className="grid cols-4">
-              {demoHighlights.map((item) => (
-                <div key={item.label} className="card card-pad tight">
-                  <div className="detail-label">{item.label}</div>
-                  <div className="font-extrabold mt-1.5">{item.value}</div>
-                </div>
-              ))}
+            <div className="row-wrap">
+              {currentUser?.email && <span className="badge gray">{currentUser.email}</span>}
+              <span className="badge blue">{`${t("billing.organization")}: ${organizations.length}`}</span>
+              <span className="badge gray">
+                {`${t("billing.nextRenewal")}: ${latestRenewal ? formatDate(latestRenewal) : t("billing.noRenewal")}`}
+              </span>
             </div>
           </div>
+        </div>
 
-          <div className="spacer" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+          {loading
+            ? Array.from({ length: 4 }, (_, index) => (
+                <div key={index} className="card card-pad">
+                  <Skeleton variant="text" width={100} height={16} />
+                  <div className="spacer-sm" />
+                  <Skeleton variant="text" width={140} height={28} />
+                </div>
+              ))
+            : summaryCards.map((card) => (
+                <div key={card.label} className="card card-pad tight">
+                  <div className="detail-label">{card.label}</div>
+                  <div className="spacer-sm" />
+                  <div className="text-xl font-extrabold leading-tight">{card.value}</div>
+                </div>
+              ))}
+        </div>
 
-          <div className="grid cols-3">
-            <div className="card card-pad">
-              <div className="section-title">Usage and limits (demo)</div>
-              <div className="text-muted text-xs mt-1.5">
-                Sample resource usage for the demo account.
-              </div>
-              <div className="spacer-sm" />
-              <div className="grid" style={{ gap: 10 }}>
-                {demoUsage.map((metric) => {
-                  const percent = metric.max ? Math.min(100, Math.round((metric.value / metric.max) * 100)) : 100;
-                  const limitLabel = metric.max ? `${metric.max}${metric.unit ? ` ${metric.unit}` : ""}` : "infinite";
-                  return (
-                    <div key={metric.label} className="card" style={{ padding: 12, borderRadius: 16 }}>
-                      <div className="row-between text-xs text-muted">
-                        <span>{metric.label}</span>
-                        <span>{metric.value}{metric.unit ? ` ${metric.unit}` : ""}</span>
-                      </div>
-                      <div className="spacer-sm" />
-                      <div style={{ height: 6, borderRadius: 999, background: "rgba(148,163,184,0.25)" }}>
-                        <div style={{ height: 6, borderRadius: 999, width: `${percent}%`, background: "#10b981" }} />
-                      </div>
-                      <div className="text-muted mt-1.5" style={{ fontSize: 11 }}>Limit: {limitLabel}</div>
+        <div className="card card-pad">
+          <div className="section-title">{t("billing.organizationPlans")}</div>
+          <div className="spacer-sm" />
+          {loading ? (
+            <Skeleton variant="rectangular" width="100%" height={220} />
+          ) : organizations.length === 0 ? (
+            <EmptyState title={t("billing.noOrganizations")} description={t("billing.organizationsWillAppear")} />
+          ) : (
+            <div>
+              <div className="grid gap-2 md:hidden">
+                {organizations.map((org) => (
+                  <div key={org.orgId} className="card card-pad tight">
+                    <div className="row-between">
+                      <div className="font-semibold">{org.orgName || "-"}</div>
+                      <span className={getStatusBadgeClass(org.status)}>{formatStatus(org.status)}</span>
                     </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="card card-pad">
-              <div className="section-title">Billing activity (demo)</div>
-              <div className="text-muted text-xs mt-1.5">
-                Simulated spend trend.
-              </div>
-              <div className="spacer-sm" />
-              <div className="flex items-end gap-2" style={{ height: 90 }}>
-                {demoSpendSeries.map((item) => {
-                  const maxValue = Math.max(...demoSpendSeries.map((s) => s.value));
-                  const height = maxValue ? Math.max(8, Math.round((item.value / maxValue) * 80)) : 8;
-                  return (
-                    <div key={item.month} className="flex flex-col items-center gap-1.5">
-                      <div style={{ width: 20, borderRadius: 12, background: "rgba(16,185,129,0.8)", height }} />
-                      <span className="text-muted" style={{ fontSize: 10 }}>{item.month}</span>
-                    </div>
-                  );
-                })}
-              </div>
-              <div className="text-muted text-xs mt-2">Sandbox spend: 0.00 USD</div>
-            </div>
-
-            <div className="card card-pad">
-              <div className="section-title">Payment methods (demo)</div>
-              <div className="spacer-sm" />
-              <div className="grid" style={{ gap: 10 }}>
-                {demoMethods.map((method) => (
-                  <div key={method.label} className="card row-between" style={{ padding: 12, borderRadius: 16 }}>
-                    <div>
-                      <div className="detail-label">{method.label}</div>
-                      <div className="font-extrabold">{method.value}</div>
-                    </div>
-                    <span className={method.status === "primary" ? "badge green" : "badge gray"}>{method.status}</span>
+                    <div className="spacer-sm" />
+                    <MobileLine label={t("billing.plan")} value={org.plan || "-"} />
+                    <MobileLine label={t("billing.nextRenewal")} value={org.renewalDate ? formatDate(org.renewalDate) : t("billing.noRenewal")} />
+                    <MobileLine label={t("billing.role")} value={org.role || "-"} />
                   </div>
                 ))}
               </div>
-            </div>
-          </div>
 
-          <div className="spacer" />
-
-          <div className="card card-pad">
-            <div className="section-title">{t("billing.demoHistory")}</div>
-            <div className="spacer-sm" />
-            <div className="overflow-x-auto">
+              <div className="hidden md:block overflow-x-auto">
               <table className="table">
                 <thead>
                   <tr>
-                    <th>{t("billing.date")}</th>
-                    <th>{t("billing.amount")}</th>
+                    <th>{t("billing.organization")}</th>
+                    <th>{t("billing.plan")}</th>
                     <th>{t("billing.status")}</th>
-                    <th>{t("billing.note")}</th>
+                    <th>{t("billing.nextRenewal")}</th>
+                    <th>{t("billing.role")}</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {demoHistory.map((inv) => (
-                    <tr key={inv.id}>
-                      <td className="text-muted">{new Date(inv.date).toLocaleDateString()}</td>
-                      <td>{inv.amount} {inv.currency}</td>
+                  {organizations.map((org) => (
+                    <tr key={org.orgId}>
+                      <td>{org.orgName || "-"}</td>
+                      <td>{org.plan || "-"}</td>
                       <td>
-                        <span className={inv.status === "paid" ? "badge green" : "badge gray"}>{inv.status}</span>
+                        <span className={getStatusBadgeClass(org.status)}>{formatStatus(org.status)}</span>
                       </td>
-                      <td className="text-muted">{inv.note}</td>
+                      <td className="text-muted">{org.renewalDate ? formatDate(org.renewalDate) : t("billing.noRenewal")}</td>
+                      <td className="text-muted">{org.role || "-"}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
-          </div>
-
-          <div className="spacer" />
+          )}
         </div>
-      )}
 
-      <div className="card card-pad">
-        <div className="section-title">{t("billing.organizationPlans")}</div>
-        <div className="spacer-sm" />
-        {loading ? (
-          <Skeleton variant="rectangular" width="100%" height={200} />
-        ) : organizations.length === 0 ? (
-          <EmptyState title={t("billing.noOrganizations")} description={t("billing.organizationsWillAppear")} />
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>{t("billing.organization")}</th>
-                  <th>{t("billing.plan")}</th>
-                  <th>{t("billing.status")}</th>
-                  <th>{t("billing.nextRenewal")}</th>
-                  <th>{t("billing.role")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {organizations.map((org) => (
-                  <tr key={org.orgId}>
-                    <td>{org.orgName || "-"}</td>
-                    <td>{org.plan}</td>
-                    <td>
-                      <span className={org.status === "active" ? "badge green" : org.status === "past_due" ? "badge orange" : "badge gray"}>
-                        {org.status}
-                      </span>
-                    </td>
-                    <td className="text-muted">
-                      {org.renewalDate ? new Date(org.renewalDate).toLocaleDateString() : t("billing.noRenewal")}
-                    </td>
-                    <td className="text-muted">{org.role}</td>
+        <div className="card card-pad">
+          <div className="section-title">{t("billing.currentPlans")}</div>
+          <div className="spacer-sm" />
+          {loading ? (
+            <Skeleton variant="rectangular" width="100%" height={220} />
+          ) : subscriptions.length === 0 ? (
+            <EmptyState title={t("billing.noActiveSubscriptions")} description={t("billing.subscriptionsWillAppear")} />
+          ) : (
+            <div>
+              <div className="grid gap-2 md:hidden">
+                {subscriptions.map((sub: GlobalSubscription) => {
+                  const orgName = sub.organization?.name || organizations.find((org) => org.orgId === sub.orgId)?.orgName || "-";
+                  return (
+                    <div key={sub.id} className="card card-pad tight">
+                      <div className="row-between">
+                        <div className="font-semibold">{orgName}</div>
+                        <span className={getStatusBadgeClass(sub.status)}>{formatStatus(sub.status)}</span>
+                      </div>
+                      <div className="spacer-sm" />
+                      <MobileLine label={t("billing.plan")} value={sub.plan || "-"} />
+                      <MobileLine label={t("billing.date")} value={formatDate(sub.currentPeriodStart)} />
+                      <MobileLine label={t("billing.nextRenewal")} value={sub.currentPeriodEnd ? formatDate(sub.currentPeriodEnd) : t("billing.noRenewal")} />
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="hidden md:block overflow-x-auto">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>{t("billing.organization")}</th>
+                    <th>{t("billing.plan")}</th>
+                    <th>{t("billing.status")}</th>
+                    <th>{t("billing.date")}</th>
+                    <th>{t("billing.nextRenewal")}</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+                </thead>
+                <tbody>
+                  {subscriptions.map((sub: GlobalSubscription) => (
+                    <tr key={sub.id}>
+                      <td>{sub.organization?.name || organizations.find((org) => org.orgId === sub.orgId)?.orgName || "-"}</td>
+                      <td>{sub.plan || "-"}</td>
+                      <td>
+                        <span className={getStatusBadgeClass(sub.status)}>{formatStatus(sub.status)}</span>
+                      </td>
+                      <td className="text-muted">{formatDate(sub.currentPeriodStart)}</td>
+                      <td className="text-muted">{sub.currentPeriodEnd ? formatDate(sub.currentPeriodEnd) : t("billing.noRenewal")}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              </div>
+            </div>
+          )}
+        </div>
 
-      <div className="spacer" />
+        <div className="card card-pad">
+          <div className="section-title">{t("billing.paymentHistory")}</div>
+          <div className="spacer-sm" />
+          {loading ? (
+            <Skeleton variant="rectangular" width="100%" height={220} />
+          ) : invoices.length === 0 ? (
+            <EmptyState title={t("billing.noPaymentHistory")} description={t("billing.invoicesWillAppear")} />
+          ) : (
+            <div>
+              <div className="grid gap-2 md:hidden">
+                {invoices.map((inv: GlobalInvoice) => {
+                  const orgName = inv.organization?.name || organizations.find((org) => org.orgId === inv.orgId)?.orgName || "-";
+                  return (
+                    <div key={inv.id} className="card card-pad tight">
+                      <div className="row-between">
+                        <div className="font-semibold">{orgName}</div>
+                        <span className={getStatusBadgeClass(inv.status)}>{formatStatus(inv.status)}</span>
+                      </div>
+                      <div className="spacer-sm" />
+                      <MobileLine label={t("billing.invoiceNumber")} value={inv.invoiceNumber || "-"} />
+                      <MobileLine label={t("billing.date")} value={formatDate(inv.createdAt)} />
+                      <MobileLine label={t("billing.amount")} value={formatCurrency(inv.amount, inv.currency)} />
+                      <MobileLine label={t("billing.paidAt")} value={formatDate(inv.paidAt)} />
+                    </div>
+                  );
+                })}
+              </div>
 
-      <div className="card card-pad">
-        <div className="section-title">{t("billing.paymentHistory")}</div>
-        <div className="spacer-sm" />
-        {loading ? (
-          <Skeleton variant="rectangular" width="100%" height={200} />
-        ) : invoices.length === 0 ? (
-          <EmptyState title={t("billing.noPaymentHistory")} description={t("billing.invoicesWillAppear")} />
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>{t("billing.organization")}</th>
-                  <th>{t("billing.date")}</th>
-                  <th>{t("billing.amount")}</th>
-                  <th>{t("billing.status")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {invoices.map((inv) => (
-                  <tr key={inv.id}>
-                    <td>{inv.organization?.name || "-"}</td>
-                    <td className="text-muted">{new Date(inv.createdAt).toLocaleDateString()}</td>
-                    <td>{inv.amount} {inv.currency}</td>
-                    <td>
-                      <span className={inv.status === "paid" ? "badge green" : "badge gray"}>{inv.status}</span>
-                    </td>
+              <div className="hidden md:block overflow-x-auto">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>{t("billing.organization")}</th>
+                    <th>{t("billing.invoiceNumber")}</th>
+                    <th>{t("billing.date")}</th>
+                    <th>{t("billing.amount")}</th>
+                    <th>{t("billing.status")}</th>
+                    <th>{t("billing.paidAt")}</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+                </thead>
+                <tbody>
+                  {invoices.map((inv: GlobalInvoice) => (
+                    <tr key={inv.id}>
+                      <td>{inv.organization?.name || organizations.find((org) => org.orgId === inv.orgId)?.orgName || "-"}</td>
+                      <td className="text-muted">{inv.invoiceNumber || "-"}</td>
+                      <td className="text-muted">{formatDate(inv.createdAt)}</td>
+                      <td>{formatCurrency(inv.amount, inv.currency)}</td>
+                      <td>
+                        <span className={getStatusBadgeClass(inv.status)}>{formatStatus(inv.status)}</span>
+                      </td>
+                      <td className="text-muted">{formatDate(inv.paidAt)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
