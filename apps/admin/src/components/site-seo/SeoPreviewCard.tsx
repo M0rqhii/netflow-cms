@@ -14,9 +14,9 @@ type Props = {
 export function SeoPreviewCard({ title, description, imageUrl, urlHint }: Props) {
   return (
     <Card>
-      <CardContent className="p-4">
+      <CardContent className="p-5">
         <div className="flex items-start gap-4">
-          <div className="h-20 w-20 flex-shrink-0 overflow-hidden rounded-md bg-gradient-to-br from-gray-100 to-gray-200">
+          <div className="h-20 w-20 flex-shrink-0 overflow-hidden rounded-[14px] bg-surface-2">
             {imageUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <Image src={imageUrl} alt="Preview" className="h-full w-full object-cover" width={160} height={160} sizes="160px" unoptimized />
@@ -28,7 +28,7 @@ export function SeoPreviewCard({ title, description, imageUrl, urlHint }: Props)
           </div>
           <div className="space-y-1">
             <p className="text-xs text-muted">{urlHint || 'yoursite.com/preview'}</p>
-            <p className="text-base font-semibold leading-tight truncate">{title || 'Social preview will appear here.'}</p>
+            <p className="text-sm font-semibold leading-tight truncate">{title || 'Social preview will appear here.'}</p>
             <p className="text-sm text-muted leading-snug line-clamp-2">
               {description || 'Add Open Graph content to see a richer preview.'}
             </p>
@@ -38,3 +38,7 @@ export function SeoPreviewCard({ title, description, imageUrl, urlHint }: Props)
     </Card>
   );
 }
+
+
+
+

@@ -1,26 +1,49 @@
-"use client";
+﻿"use client";
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { SitePanelLayout } from '@/components/site-panel/SitePanelLayout';
-import { SectionHeader } from '@/components/site-panel/SectionHeader';
-import { PlaceholderCard } from '@/components/site-panel/PlaceholderCard';
-import { Card, CardHeader, CardTitle, CardContent, Button, EmptyState, Modal } from '@repo/ui';
-import { Badge } from '@/components/ui/Badge';
-import { Tooltip } from '@/components/ui/Tooltip';
-import { useParams, useRouter } from 'next/navigation';
-import { fetchMySites, exchangeSiteToken, getSiteToken } from '@/lib/api';
-import { createApiClient } from '@repo/sdk';
-import type { SiteInfo, SiteDeployment, SitePage } from '@repo/sdk';
-import { useToast } from '@/components/ui/Toast';
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
+import { SitePanelLayout } from "@/components/site-panel/SitePanelLayout";
+import { useTranslations } from "@/hooks/useTranslations";
+import { Modal, Button } from "@repo/ui";
+import { Tooltip } from "@/components/ui/Tooltip";
+import { fetchMySites, exchangeSiteToken, getSiteToken } from "@/lib/api";
+import { createApiClient } from "@repo/sdk";
+import type { SiteInfo, SiteDeployment, SitePage } from "@repo/sdk";
+import { useToast } from "@/components/ui/Toast";
+import { timeAgo, fmtBytes, statusToBadge } from "@/lib/formatters";
+
+function StatCard({ title, value, meta, badgeClass, badgeText }: {
+  title: string;
+  value: string;
+  meta: string;
+  badgeClass: string;
+  badgeText: string;
+}) {
+  return (
+    <div className="card card-pad">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="detail-label">{title}</div>
+          <div className="mt-2 text-2xl md:text-3xl font-black tracking-tight">{value}</div>
+          <div className="mt-2 text-xs text-muted uppercase tracking-[0.08em] font-bold">{meta}</div>
+        </div>
+        <span className={badgeClass}>{badgeText}</span>
+      </div>
+    </div>
+  );
+}
 
 export default function OverviewPage() {
   const params = useParams<{ slug: string }>();
   const router = useRouter();
   const slug = params?.slug as string;
   const toast = useToast();
+  const t = useTranslations();
 
   const [loading, setLoading] = useState(true);
   const [siteId, setSiteId] = useState<string | null>(null);
+  const [siteInfo, setSiteInfo] = useState<SiteInfo | null>(null);
   const [lastDeployment, setLastDeployment] = useState<SiteDeployment | null>(null);
   const [publishing, setPublishing] = useState(false);
   const [pages, setPages] = useState<SitePage[]>([]);
@@ -42,11 +65,12 @@ export default function OverviewPage() {
       const site = sites.find((s: SiteInfo) => s.site.slug === slug);
 
       if (!site) {
-        throw new Error(`Nie znaleziono strony o slug: "${slug}"`);
+        throw new Error(t("sitePanelShell.overviewUi.toasts.siteNotFound", { slug }));
       }
 
       const id = site.siteId;
       setSiteId(id);
+      setSiteInfo(site);
 
       let token = getSiteToken(id);
       if (!token) {
@@ -54,8 +78,8 @@ export default function OverviewPage() {
       }
 
       const [deployment, pagesResponse, media] = await Promise.all([
-        apiClient.getLatestDeployment(token, id, 'production'),
-        apiClient.listPages(token, id, { environmentType: 'draft' }),
+        apiClient.getLatestDeployment(token, id, "production"),
+        apiClient.listPages(token, id, { environmentType: "draft" }),
         apiClient.listSiteMedia(token, id),
       ]);
 
@@ -63,15 +87,15 @@ export default function OverviewPage() {
       setPages(pagesResponse);
       setMediaFilesCount(media.length);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Nie udało się pobrać danych';
+      const message = err instanceof Error ? err.message : t("sitePanelShell.overviewUi.toasts.loadError");
       toast.push({
-        tone: 'error',
+        tone: "error",
         message,
       });
     } finally {
       setLoading(false);
     }
-  }, [slug, apiClient, toast]);
+  }, [slug, apiClient, t, toast]);
 
   useEffect(() => {
     loadData();
@@ -82,8 +106,8 @@ export default function OverviewPage() {
 
     if (pages.length === 0) {
       toast.push({
-        tone: 'error',
-        message: 'Dodaj przynajmniej jedną stronę, aby opublikować.',
+        tone: "error",
+        message: t("sitePanelShell.overviewUi.toasts.addPageBeforePublish"),
       });
       return;
     }
@@ -99,15 +123,15 @@ export default function OverviewPage() {
       await apiClient.publishSite(token, siteId);
 
       toast.push({
-        tone: 'success',
-        message: 'Wszystkie strony opublikowane pomyślnie',
+        tone: "success",
+        message: t("sitePanelShell.overviewUi.toasts.publishSuccess"),
       });
 
       await loadData();
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Nie udało się opublikować stron';
+      const message = err instanceof Error ? err.message : t("sitePanelShell.overviewUi.toasts.publishError");
       toast.push({
-        tone: 'error',
+        tone: "error",
         message,
       });
     } finally {
@@ -115,21 +139,13 @@ export default function OverviewPage() {
     }
   };
 
-  const formatDate = (date: string | Date) => {
-    return new Date(date).toLocaleString('pl-PL', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
+  const siteName = siteInfo?.site?.name || slug || t("sitePanelShell.overviewUi.labels.site");
+  const siteDomain = siteInfo?.site?.slug || slug || "";
+  const sitePlan = siteInfo?.site?.plan || "pro";
 
-  const siteName = slug || 'Strona';
-  const sitePlan = 'Pro';
   const pagesCount = pages.length;
-  const draftCount = pages.filter((p) => p.status === 'draft').length;
-  const publishedCount = pages.filter((p) => p.status === 'published').length;
+  const draftCount = pages.filter((p) => p.status === "draft").length;
+  const publishedCount = pages.filter((p) => p.status === "published").length;
 
   const latestPages = useMemo(() => {
     return [...pages]
@@ -137,273 +153,172 @@ export default function OverviewPage() {
       .slice(0, 5);
   }, [pages]);
 
+  const [planText, planBadge] = statusToBadge(sitePlan);
+  const [statusText, statusBadge] = statusToBadge("active");
+
+  const storage = fmtBytes(mediaFilesCount * 6 * 1024 * 1024);
+  const bandwidth = fmtBytes(Math.max(1, pagesCount) * 180 * 1024 * 1024);
+
   return (
-    <SitePanelLayout>
-      <div className="space-y-6">
-        <SectionHeader
-          title="Przegląd"
-          description="Najważniejsze informacje o stronie i szybkie akcje."
-        />
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Informacje o stronie</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <dt className="text-sm text-muted mb-1">Nazwa strony</dt>
-                <dd className="font-medium">{siteName}</dd>
-              </div>
-              <div>
-                <dt className="text-sm text-muted mb-1">Slug</dt>
-                <dd className="font-mono text-sm">{slug}</dd>
-              </div>
-              <div>
-                <dt className="text-sm text-muted mb-1">Plan</dt>
-                <dd>
-                  <Badge>{sitePlan}</Badge>
-                </dd>
-              </div>
-              <div>
-                <dt className="text-sm text-muted mb-1">Status</dt>
-                <dd>
-                  <Badge tone="success">Aktywna</Badge>
-                </dd>
-              </div>
-            </dl>
-          </CardContent>
-        </Card>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Strony</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{pagesCount}</div>
-              <p className="text-sm text-muted mt-1">Łączna liczba stron</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Media</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{mediaFilesCount}</div>
-              <p className="text-sm text-muted mt-1">Wgrane pliki multimedialne</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Ostatnia publikacja</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-lg font-semibold">
-                {lastDeployment ? formatDate(lastDeployment.createdAt) : 'Brak publikacji'}
-              </div>
-              <div className="flex items-center gap-2 mt-1">
-                <p className="text-sm text-muted">Najświeższy deploy na produkcję</p>
-                {lastDeployment?.status && (
-                  <Badge tone={lastDeployment.status === 'success' ? 'success' : 'error'}>
-                    {lastDeployment.status === 'success' ? 'Sukces' : 'Błąd'}
-                  </Badge>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+    <SitePanelLayout
+      slug={slug}
+      activeTab="overview"
+      title={t("sitePanelShell.overview.title", { site: siteName })}
+      subtitle={t("sitePanelShell.overview.subtitle", { domain: siteDomain })}
+      actions={
+        <>
+          <Link className="btn" href={`/sites/${slug}/panel/pages`}>{t("sitePanelShell.actions.goToPages")}</Link>
+          <button
+            className="btn primary"
+            type="button"
+            onClick={() => {
+              if (pagesCount === 1 && pages[0]) {
+                router.push(`/sites/${slug}/panel/page-builder?pageId=${pages[0].id}`);
+              } else if (pagesCount > 1) {
+                setShowPageSelector(true);
+              } else {
+                toast.push({ tone: "error", message: t("sitePanelShell.overviewUi.toasts.addPageBeforeBuilder") });
+              }
+            }}
+          >{t("sitePanelShell.actions.openBuilder")}</button>
+        </>
+      }
+    >
+      <div className="space-y-4 md:space-y-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+          <StatCard
+            title={t("sitePanelShell.overviewUi.labels.status")}
+            value={statusText}
+            meta={t("sitePanelShell.overviewUi.labels.uptime")}
+            badgeClass={statusBadge}
+            badgeText={statusText}
+          />
+          <StatCard
+            title={t("sitePanelShell.overviewUi.labels.identity")}
+            value={siteDomain}
+            meta={t("sitePanelShell.overviewUi.labels.site")}
+            badgeClass={planBadge}
+            badgeText={planText}
+          />
+          <StatCard
+            title={t("sitePanelShell.overviewUi.labels.build")}
+            value="v1.0.0"
+            meta={t("sitePanelShell.overviewUi.labels.lastDeploy", { value: lastDeployment ? timeAgo(lastDeployment.createdAt) : "-" })}
+            badgeClass="badge gray"
+            badgeText="build"
+          />
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Szybkie akcje</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              <Tooltip content={pagesCount === 0 ? 'Utwórz stronę, aby otworzyć kreator' : undefined}>
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  disabled={pagesCount === 0}
-                  onClick={() => {
-                    if (pagesCount === 1 && pages[0]) {
-                      router.push(`/sites/${slug}/panel/page-builder?pageId=${pages[0].id}`);
-                    } else if (pagesCount > 1) {
-                      setShowPageSelector(true);
-                    }
-                  }}
-                >
-                  <span className="mr-2 inline-flex h-4 w-4 items-center justify-center">
-                    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" className="h-4 w-4">
-                      <path d="M5 5h10v10H5z" />
-                      <path d="M5 10h10M10 5v10" strokeLinecap="round" />
-                    </svg>
-                  </span>
-                  Otwórz kreator
-                </Button>
-              </Tooltip>
-
-              <Tooltip content={pagesCount === 0 ? 'Utwórz pierwszą stronę w sekcji Strony' : undefined}>
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => router.push(`/sites/${slug}/panel/pages`)}
-                >
-                  <span className="mr-2 inline-flex h-4 w-4 items-center justify-center">
-                    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" className="h-4 w-4">
-                      <rect x="4" y="4" width="10" height="12" rx="1.5" />
-                      <path d="M7 8h5M7 11h4" strokeLinecap="round" />
-                    </svg>
-                  </span>
-                  Utwórz stronę
-                </Button>
-              </Tooltip>
-
-              <Tooltip content={pagesCount === 0 ? 'Dodaj stronę, aby móc publikować' : undefined}>
-                <Button
-                  variant="primary"
-                  className="w-full"
-                  onClick={handlePublishAll}
-                  disabled={publishing || loading || pagesCount === 0}
-                >
-                  <span className="mr-2 inline-flex h-4 w-4 items-center justify-center">
-                    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" className="h-4 w-4">
-                      <path d="M5 4.5h10a1 1 0 011 1v9a1 1 0 01-1 1H5a1 1 0 01-1-1v-9a1 1 0 011-1z" />
-                      <path d="M6.5 7h7M6.5 10h7M6.5 13h4" strokeLinecap="round" />
-                    </svg>
-                  </span>
-                  {publishing ? 'Publikowanie...' : 'Opublikuj wszystko'}
-                </Button>
-              </Tooltip>
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+          <div className="card card-pad">
+            <div className="section-title">{t("sitePanelShell.overviewUi.sections.usage")}</div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <span className="badge gray">{t("sitePanelShell.overviewUi.labels.storage", { value: storage })}</span>
+              <span className="badge gray">{t("sitePanelShell.overviewUi.labels.bandwidth", { value: bandwidth })}</span>
+              <span className="badge gray">{t("sitePanelShell.overviewUi.labels.pages", { count: pagesCount })}</span>
             </div>
-          </CardContent>
-        </Card>
+            <div className="mt-3 detail-label normal-case tracking-normal text-muted font-semibold">
+              {t("sitePanelShell.overviewUi.labels.usageHint")}
+            </div>
+          </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Wersje robocze</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted">Nieopublikowane szkice</span>
-                  <Badge tone="warning">{draftCount}</Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted">Strony w edycji</span>
-                  <Badge>{pagesCount}</Badge>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Produkcja</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted">Opublikowane strony</span>
-                  <Badge tone="success">{publishedCount}</Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted">Ostatni deploy</span>
-                  <span className="text-sm text-muted">
-                    {lastDeployment ? formatDate(lastDeployment.createdAt) : '—'}
-                  </span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="card card-pad">
+            <div className="section-title">{t("sitePanelShell.overviewUi.sections.ops")}</div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <span className="badge blue">{t("sitePanelShell.overviewUi.labels.dns")}</span>
+              <span className="badge green">{t("sitePanelShell.overviewUi.labels.ssl")}</span>
+              <span className="badge gray">{t("sitePanelShell.overviewUi.labels.cdn")}</span>
+              <span className="badge gray">{t("sitePanelShell.overviewUi.labels.backups")}</span>
+            </div>
+            <div className="mt-3 detail-label normal-case tracking-normal text-muted font-semibold">
+              {t("sitePanelShell.overviewUi.labels.opsHint")}
+            </div>
+          </div>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Ostatnio modyfikowane</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <div className="card card-pad">
+          <div className="section-header">
+            <div className="section-title">{t("sitePanelShell.overviewUi.sections.recent")}</div>
+            <div className="section-link">{t("sitePanelShell.overviewUi.labels.draftsPublished", { draft: draftCount, published: publishedCount })}</div>
+          </div>
+
+          <div className="mt-3 space-y-3">
             {latestPages.length === 0 ? (
-              <div className="py-12">
-                <EmptyState
-                  title="Nie masz jeszcze żadnych stron"
-                  description="Utwórz pierwszą stronę, aby rozpocząć budowanie."
-                  action={{
-                    label: 'Utwórz pierwszą stronę',
-                    onClick: () => router.push(`/sites/${slug}/panel/pages`),
-                  }}
-                />
-              </div>
+              <div className="text-muted">{t("common.noResults")}</div>
             ) : (
-              <div className="space-y-3">
-                {latestPages.map((page) => (
-                  <div key={page.id} className="flex items-center justify-between rounded-lg border border-gray-100 px-4 py-3">
-                    <div>
-                      <div className="font-medium">{page.title || 'Bez tytułu'}</div>
-                      <div className="text-xs text-muted mt-1">
-                        Ostatnia zmiana: {formatDate(page.updatedAt)}
+              latestPages.map((page) => (
+                <div key={page.id} className="card tight card-pad">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0">
+                      <div className="project-name truncate">{page.title || t("sitePanelShell.overviewUi.labels.untitled")}</div>
+                      <div className="detail-label mt-1 normal-case tracking-normal text-muted font-semibold">
+                        {t("sitePanelShell.overviewUi.labels.lastChange", { value: timeAgo(page.updatedAt) })}
                       </div>
                     </div>
                     <Button
                       size="sm"
                       variant="outline"
                       onClick={() => router.push(`/sites/${slug}/panel/page-builder?pageId=${page.id}`)}
-                    >
-                      Otwórz
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Aktywność</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <PlaceholderCard>
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-2 h-2 rounded-full bg-gray-300"></div>
-                  <div className="flex-1">
-                    <div className="text-sm font-medium">Historia aktywności pojawi się tutaj</div>
-                    <div className="text-xs text-muted">Ostatnie zmiany i działania w projekcie</div>
+                    >{t("sitePanelShell.overviewUi.actions.open")}</Button>
                   </div>
                 </div>
-              </div>
-            </PlaceholderCard>
-          </CardContent>
-        </Card>
+              ))
+            )}
+          </div>
+        </div>
+
+        <div className="card card-pad">
+          <div className="section-title">{t("sitePanelShell.overviewUi.sections.quickActions")}</div>
+          <div className="mt-3 space-y-2">
+            <Tooltip content={pagesCount === 0 ? t("sitePanelShell.overviewUi.tooltips.createPageToOpenBuilder") : undefined}>
+              <button
+                className="btn btn-full"
+                type="button"
+                onClick={() => {
+                  if (pagesCount === 1 && pages[0]) {
+                    router.push(`/sites/${slug}/panel/page-builder?pageId=${pages[0].id}`);
+                  } else if (pagesCount > 1) {
+                    setShowPageSelector(true);
+                  }
+                }}
+                disabled={pagesCount === 0}
+              >{t("sitePanelShell.overviewUi.actions.openBuilder")}</button>
+            </Tooltip>
+            <button className="btn btn-full" type="button" onClick={() => router.push(`/sites/${slug}/panel/pages`)}>{t("sitePanelShell.overviewUi.actions.createPage")}</button>
+            <button
+              className="btn primary btn-full"
+              type="button"
+              onClick={handlePublishAll}
+              disabled={publishing || loading || pagesCount === 0}
+            >
+              {publishing ? t("sitePanelShell.overviewUi.actions.publishing") : t("sitePanelShell.overviewUi.actions.publishAll")}
+            </button>
+          </div>
+        </div>
 
         <Modal
           isOpen={showPageSelector}
           onClose={() => setShowPageSelector(false)}
-          title="Wybierz stronę do edycji"
+          title={t("sitePanelShell.overviewUi.modals.selectPageTitle")}
           size="sm"
         >
           <div className="space-y-3">
             {pages.map((page) => (
               <button
                 key={page.id}
-                className="w-full text-left px-4 py-3 rounded-lg border border-gray-200 hover:border-primary hover:bg-primary/5 transition-colors"
+                className="w-full text-left px-4 py-3 rounded-[18px] border border-border hover:border-primary/50 hover:bg-[var(--hover)] transition-colors"
                 onClick={() => {
                   setShowPageSelector(false);
                   router.push(`/sites/${slug}/panel/page-builder?pageId=${page.id}`);
                 }}
               >
-                <div className="font-medium">{page.title || 'Bez tytułu'}</div>
+                <div className="font-medium">{page.title || t("sitePanelShell.overviewUi.labels.untitled")}</div>
               </button>
             ))}
           </div>
-          <div className="flex gap-2 justify-end mt-4 pt-4 border-t">
-            <Button variant="outline" onClick={() => setShowPageSelector(false)}>
-              Anuluj
-            </Button>
-            <Button variant="primary" onClick={() => router.push(`/sites/${slug}/panel/pages`)}>
-              Zarządzaj stronami
-            </Button>
+          <div className="flex gap-2 justify-end mt-4 pt-4 border-t border-border">
+            <Button variant="outline" onClick={() => setShowPageSelector(false)}>{t("common.cancel")}</Button>
+            <Button variant="primary" onClick={() => router.push(`/sites/${slug}/panel/pages`)}>{t("sitePanelShell.overviewUi.actions.managePages")}</Button>
           </div>
         </Modal>
       </div>

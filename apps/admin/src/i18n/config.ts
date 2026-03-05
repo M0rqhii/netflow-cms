@@ -9,7 +9,7 @@ export default getRequestConfig(async ({ requestLocale: _requestLocale }) => {
 
   return {
     locale,
-    messages: (await import(`../../messages/${locale}.json`)).default,
+    messages: (await import(`../messages/${locale}.json`)).default,
     timeZone: 'UTC',
   };
 });

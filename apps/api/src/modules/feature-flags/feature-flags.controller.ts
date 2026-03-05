@@ -8,11 +8,10 @@ import {
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { AuthGuard } from '../../common/auth/guards/auth.guard';
-import { RolesGuard } from '../../common/auth/guards/roles.guard';
 import { PermissionsGuard } from '../../common/auth/guards/permissions.guard';
-import { Roles } from '../../common/auth/decorators/roles.decorator';
+import { Permissions } from '../../common/auth/decorators/permissions.decorator';
 import { CurrentSite } from '../../common/decorators/current-site.decorator';
-import { Role } from '../../common/auth/roles.enum';
+import { Permission } from '../../common/auth/roles.enum';
 import { FeatureFlagsService } from './feature-flags.service';
 import { FeatureOverrideDtoSchema } from './dto';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
@@ -21,7 +20,7 @@ import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
  * FeatureFlagsController - RESTful API for feature flags management
  * AI Note: Only accessible to platform admins (super_admin, org admin role)
  */
-@UseGuards(AuthGuard, RolesGuard, PermissionsGuard)
+@UseGuards(AuthGuard, PermissionsGuard)
 @Controller('sites/:siteId/features')
 export class FeatureFlagsController {
   constructor(private readonly featureFlagsService: FeatureFlagsService) {}
@@ -32,7 +31,7 @@ export class FeatureFlagsController {
    */
   @Get()
   @Throttle(300, 60) // 300 requests per minute (higher limit for feature flag checks)
-  @Roles(Role.ORG_ADMIN, Role.SUPER_ADMIN)
+  @Permissions(Permission.SITES_READ)
   async getSiteFeatures(
     @Param('siteId') siteId: string,
     @CurrentSite() _: string, // Validated by middleware
@@ -46,7 +45,7 @@ export class FeatureFlagsController {
    */
   @Patch('override')
   @Throttle(50, 60) // 50 requests per minute (lower limit for write operations)
-  @Roles(Role.SUPER_ADMIN, Role.ORG_ADMIN) // Allow org admins to manage site modules
+  @Permissions(Permission.SITES_WRITE) // Allow org admins to manage site modules
   async setFeatureOverride(
     @Param('siteId') siteId: string,
     @CurrentSite() _: string, // Validated by middleware

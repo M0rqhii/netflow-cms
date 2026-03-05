@@ -1,5 +1,6 @@
 import React from 'react';
 import Image from 'next/image';
+import { FiFileText } from 'react-icons/fi';
 import { Button, EmptyState } from '@repo/ui';
 import { MediaItem } from '../types';
 
@@ -17,31 +18,61 @@ export function MediaPreviewPanel({ item, onDelete }: MediaPreviewPanelProps) {
     );
   }
 
-  const isImage = item.isImage;
+  const isImage = item.type === 'image';
+  const isVideo = item.type === 'video';
+  const isDocument = item.type === 'document' || item.type === 'other';
 
   return (
-    <div className="flex h-full flex-col space-y-4 p-4">
-      <div className="aspect-video w-full overflow-hidden rounded-lg border border-gray-200 bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+    <div className="flex h-full flex-col space-y-4 p-5">
+      <div className="aspect-video w-full overflow-hidden rounded-[18px] border border-border bg-surface-2 flex items-center justify-center min-h-[180px]">
         {isImage ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <Image src={item.url} alt={item.alt || item.fileName} className="h-full w-full object-contain" width={320} height={240} sizes="320px" unoptimized />
+          <Image
+            src={item.url}
+            alt={item.alt || item.fileName}
+            className="h-full w-full object-contain"
+            width={320}
+            height={240}
+            sizes="320px"
+            unoptimized
+          />
+        ) : isVideo ? (
+          <video
+            src={item.url}
+            controls
+            className="max-h-full w-full object-contain"
+            preload="metadata"
+          />
+        ) : isDocument ? (
+          <div className="flex flex-col items-center justify-center gap-3 p-6 text-center">
+            <FiFileText className="w-14 h-14 text-muted" />
+            <span className="text-xs font-semibold uppercase tracking-wide text-muted">{item.extension}</span>
+            <Button variant="outline" size="sm" onClick={() => window.open(item.url, '_blank')}>
+              Open file
+            </Button>
+          </div>
         ) : (
-          <div className="text-sm text-muted">
-            {item.extension.toUpperCase()} preview not available
+          <div className="flex flex-col items-center gap-2 text-sm text-muted">
+            <FiFileText className="w-10 h-10" />
+            <span>{item.extension} — preview not available</span>
+            <Button variant="outline" size="sm" onClick={() => window.open(item.url, '_blank')}>
+              Open
+            </Button>
           </div>
         )}
       </div>
 
       <div className="space-y-1">
-        <h3 className="text-base font-semibold text-gray-900">{item.fileName}</h3>
+        <h3 className="text-base font-semibold text-text truncate" title={item.fileName}>
+          {item.fileName}
+        </h3>
         <p className="text-sm text-muted">
-          {item.mimeType} · {item.sizeLabel} {item.dimensions ? `· ${item.dimensions}` : ''} · Uploaded{' '}
-          {new Date(item.createdAt).toLocaleString()}
+          {item.mimeType} · {item.sizeLabel}
+          {item.dimensions ? ` · ${item.dimensions}` : ''} · Uploaded {new Date(item.createdAt).toLocaleString()}
         </p>
         {item.alt && <p className="text-xs text-muted">Alt: {item.alt}</p>}
       </div>
 
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-3 gap-3">
         <Button variant="outline" size="sm" onClick={() => window.open(item.url, '_blank')}>
           Open
         </Button>
@@ -53,10 +84,14 @@ export function MediaPreviewPanel({ item, onDelete }: MediaPreviewPanelProps) {
         </Button>
       </div>
 
-      <div className="rounded-md border border-dashed border-gray-200 bg-white p-3 text-sm text-muted space-y-1">
+      <div className="rounded-[14px] border border-dashed border-border bg-surface-2 p-3 text-sm text-muted space-y-1">
         <div>Path: {item.path || '—'}</div>
         <div>Extension: {item.extension.toUpperCase()}</div>
       </div>
     </div>
   );
 }
+
+
+
+

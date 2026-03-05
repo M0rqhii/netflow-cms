@@ -1,21 +1,72 @@
 "use client";
 
-import { useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
-import { Card, CardHeader, CardTitle, CardContent } from '@repo/ui';
-import { Button } from '@repo/ui';
-import { Input } from '@repo/ui';
-import { EmptyState, LoadingSpinner } from '@repo/ui';
-import { Badge } from '@/components/ui/Badge';
-import { useToast } from '@/components/ui/Toast';
-import { useTranslations } from '@/hooks/useTranslations';
-import { fetchMySites } from '@/lib/api';
-import type { SiteInfo } from '@repo/sdk';
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useToast } from "@/components/ui/Toast";
+import { useTranslations } from "@/hooks/useTranslations";
+import { fetchMySites } from "@/lib/api";
+import { statusToBadge, fmtBytes } from "@/lib/formatters";
+import { publishGlobalSearch, readGlobalSearch, subscribeGlobalSearch } from "@/lib/shell";
+import type { SiteInfo } from "@repo/sdk";
+
+type EditorChip = {
+  id: string;
+  name: string;
+  initials: string;
+  toneClass: string;
+  avatarUrl: string;
+};
+
+const EDITOR_POOL: EditorChip[] = [
+  {
+    id: "anna-kowalska",
+    name: "Anna Kowalska",
+    initials: "AK",
+    toneClass: "editor-tone-1",
+    avatarUrl: "https://api.dicebear.com/9.x/adventurer/svg?seed=AnnaKowalska",
+  },
+  {
+    id: "piotr-nowak",
+    name: "Piotr Nowak",
+    initials: "PN",
+    toneClass: "editor-tone-2",
+    avatarUrl: "https://api.dicebear.com/9.x/adventurer/svg?seed=PiotrNowak",
+  },
+  {
+    id: "marta-zielinska",
+    name: "Marta Zielinska",
+    initials: "MZ",
+    toneClass: "editor-tone-3",
+    avatarUrl: "https://api.dicebear.com/9.x/adventurer/svg?seed=MartaZielinska",
+  },
+  {
+    id: "tomasz-wisniewski",
+    name: "Tomasz Wisniewski",
+    initials: "TW",
+    toneClass: "editor-tone-4",
+    avatarUrl: "https://api.dicebear.com/9.x/adventurer/svg?seed=TomaszWisniewski",
+  },
+  {
+    id: "karolina-lewandowska",
+    name: "Karolina Lewandowska",
+    initials: "KL",
+    toneClass: "editor-tone-5",
+    avatarUrl: "https://api.dicebear.com/9.x/adventurer/svg?seed=KarolinaLewandowska",
+  },
+  {
+    id: "jakub-dabrowski",
+    name: "Jakub Dabrowski",
+    initials: "JD",
+    toneClass: "editor-tone-6",
+    avatarUrl: "https://api.dicebear.com/9.x/adventurer/svg?seed=JakubDabrowski",
+  },
+];
 
 let sitesCache: SiteInfo[] | null = null;
 let sitesPromise: Promise<SiteInfo[]> | null = null;
 
-// Function to clear cache (useful for debugging)
 function clearSitesCache() {
   sitesCache = null;
   sitesPromise = null;
@@ -23,24 +74,17 @@ function clearSitesCache() {
 
 async function loadSites(): Promise<SiteInfo[]> {
   if (sitesCache) {
-    // Filter cache to ensure no invalid sites (handles stale cache data)
-    const validCached = sitesCache.filter(s => s?.site != null);
+    const validCached = sitesCache.filter((s) => s?.site != null);
     if (validCached.length !== sitesCache.length) {
       sitesCache = validCached;
     }
     return sitesCache;
   }
+
   if (!sitesPromise) {
     sitesPromise = fetchMySites()
       .then((data) => {
-        if (process.env.NODE_ENV !== 'production') {
-          console.log('[SitesPage] All sites from API:', data);
-          console.log('[SitesPage] Sites with site property:', data.filter(s => s?.site != null));
-          console.log('[SitesPage] Sites without site property:', data.filter(s => !s?.site || s?.site == null));
-        }
-        
-        // Filter out any sites with missing site property to prevent runtime errors
-        const validSites = data.filter(s => s?.site != null);
+        const validSites = data.filter((s) => s?.site != null);
         sitesCache = validSites;
         return validSites;
       })
@@ -49,38 +93,73 @@ async function loadSites(): Promise<SiteInfo[]> {
         throw error;
       });
   }
+
   return sitesPromise;
+}
+
+function getSnapshotAgeLabel(index: number): string {
+  const minutes = Math.max(0, index * 7);
+  if (minutes < 1) return "0s temu";
+  if (minutes < 60) return `${minutes}m temu`;
+  const hours = Math.floor(minutes / 60);
+  return `${hours}h temu`;
+}
+
+function getSiteEditors(index: number): EditorChip[] {
+  const count = 3 + (index % 2);
+  const start = (index * 2) % EDITOR_POOL.length;
+  return Array.from({ length: count }, (_, i) => EDITOR_POOL[(start + i) % EDITOR_POOL.length]);
+}
+
+function normalizePreviewDomain(slug: string): string {
+  const cleaned = (slug || "")
+    .trim()
+    .replace(/^https?:\/\//, "")
+    .replace(/\/.*$/, "");
+  if (!cleaned) return "example.com";
+  if (cleaned.includes(".")) return cleaned;
+  return `${cleaned}.net-flow.cloud`;
+}
+
+function getSnapshotSources(slug: string): { primary: string; secondary: string } {
+  const domain = normalizePreviewDomain(slug);
+  const target = `https://${domain}`;
+  const dayBucket = Math.floor(Date.now() / (24 * 60 * 60 * 1000));
+
+  return {
+    primary: `https://s.wordpress.com/mshots/v1/${encodeURIComponent(target)}?w=1200&h=760&cb=${dayBucket}`,
+    secondary: `https://image.thum.io/get/width/1200/noanimate/${encodeURIComponent(target)}`,
+  };
 }
 
 export default function SitesPage() {
   const t = useTranslations();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [sites, setSites] = useState<SiteInfo[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [planFilter, setPlanFilter] = useState('all');
+  const [snapshotStageBySite, setSnapshotStageBySite] = useState<Record<string, "primary" | "secondary" | "failed">>({});
+  const [failedAvatars, setFailedAvatars] = useState<Record<string, boolean>>({});
   const { push } = useToast();
+
+  const rawSearchQuery = (searchParams.get("q") || "").trim();
+  const searchQuery = rawSearchQuery.toLowerCase();
 
   useEffect(() => {
     let isMounted = true;
-
-    // Clear cache on mount to ensure fresh data
     clearSitesCache();
 
     loadSites()
       .then((data) => {
         if (!isMounted) return;
-        // Double-check: filter out any sites with missing site property
-        const validSites = data.filter(s => s?.site != null);
-        if (process.env.NODE_ENV !== 'production') {
-          console.log('[SitesPage] Setting sites:', validSites);
-        }
+        const validSites = data.filter((s) => s?.site != null);
         setSites(validSites);
       })
       .catch((error) => {
         if (!isMounted) return;
         push({
-          tone: 'error',
-          message: error instanceof Error ? error.message : t('sitesList.failedToLoadSites'),
+          tone: "error",
+          message: error instanceof Error ? error.message : t("sitesList.failedToLoadSites"),
         });
       })
       .finally(() => {
@@ -91,217 +170,188 @@ export default function SitesPage() {
     return () => {
       isMounted = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [t]); // push is stable, no need to include in dependencies
+  }, [push, t]);
+
+  useEffect(() => {
+    if (rawSearchQuery) return;
+
+    const nextSearch = readGlobalSearch();
+    if (!nextSearch) return;
+
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("q", nextSearch);
+    const queryString = params.toString();
+    router.replace(queryString ? `/sites?${queryString}` : "/sites");
+  }, [router, searchParams, rawSearchQuery]);
+
+  useEffect(() => {
+    publishGlobalSearch(rawSearchQuery);
+  }, [rawSearchQuery]);
+
+  useEffect(() => {
+    return subscribeGlobalSearch((nextSearch) => {
+      const current = (searchParams.get("q") || "").trim();
+      if (current === nextSearch) return;
+
+      const params = new URLSearchParams(searchParams.toString());
+      if (nextSearch) {
+        params.set("q", nextSearch);
+      } else {
+        params.delete("q");
+      }
+
+      const queryString = params.toString();
+      router.replace(queryString ? `/sites?${queryString}` : "/sites");
+    });
+  }, [router, searchParams]);
 
   const filteredSites = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase();
-    const plan = planFilter.toLowerCase();
-
     return sites
-      .filter(site => {
-        // Ensure site and site.site exist and are valid
-        if (!site || !site.site || typeof site.site !== 'object') return false;
+      .filter((site) => {
+        if (!site || !site.site || typeof site.site !== "object") return false;
         const siteData = site.site;
         const matchesSearch =
-          !query ||
-          siteData.name?.toLowerCase().includes(query) ||
-          siteData.slug?.toLowerCase().includes(query);
-        const sitePlan = (siteData.plan || 'free').toLowerCase();
-        const matchesPlan = plan === 'all' || sitePlan === plan;
-        return matchesSearch && matchesPlan;
+          !searchQuery ||
+          siteData.name?.toLowerCase().includes(searchQuery) ||
+          siteData.slug?.toLowerCase().includes(searchQuery);
+        return matchesSearch;
       })
-      .sort((a, b) => {
-        if (!a?.site?.name || !b?.site?.name) return 0;
-        return a.site.name.localeCompare(b.site.name);
-      });
-  }, [planFilter, searchQuery, sites]);
-
-  const getPlanBadgeColor = (plan: string) => {
-    switch (plan?.toLowerCase()) {
-      case 'professional':
-      case 'pro':
-        return 'blue';
-      case 'enterprise':
-        return 'purple';
-      case 'free':
-      case 'basic':
-        return 'gray';
-      default:
-        return 'gray';
-    }
-  };
+      .sort((a, b) => (a?.site?.name || "").localeCompare(b?.site?.name || ""));
+  }, [searchQuery, sites]);
 
   return (
-    <div>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 sm:py-3">
-        {/* Header */}
-        <div className="mb-2 sm:mb-3">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-1.5">
-            <div>
-              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground mb-0.5 sm:mb-1">
-                {t('sitesList.title')}
-              </h1>
-              <p className="text-xs sm:text-sm text-muted">
-                {t('sitesList.manageAllSites')}
-              </p>
-            </div>
-            <Link href="/sites/new">
-              <Button variant="primary" className="w-full sm:w-auto text-xs sm:text-sm h-7 sm:h-8 px-2 sm:px-3">
-                + {t('sitesList.newSite')}
-              </Button>
-            </Link>
+    <div className="sites-page-fluid w-full px-3 sm:px-5 lg:px-6 2xl:px-8 py-4 sm:py-6">
+      <div className="card sites-header-card p-4 sm:p-6 mb-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <div className="view-title">Sites</div>
+            <div className="view-sub">Lista projektow w organizacji. Wyszukiwarka filtruje po nazwie/domenie/statusie.</div>
+          </div>
+          <div className="flex items-center">
+            <Link className="btn btn-primary sites-create-btn" href="/sites/new">Utworz projekt</Link>
           </div>
         </div>
+      </div>
 
-        <div className="space-y-2 sm:space-y-3">
-          {/* Filters */}
-          <Card className="border-0 shadow-sm">
-            <CardContent className="p-2 sm:p-3">
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-1.5 sm:gap-2">
-                <Input
-                  placeholder={t('sitesList.searchSitesByNameOrSlug')}
-                  value={searchQuery}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
-                  className="flex-1 w-full sm:min-w-[180px] text-xs sm:text-sm h-8 sm:h-9"
-                />
-                <select
-                  className="border rounded-md px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm h-8 sm:h-9 bg-card text-foreground w-full sm:w-auto"
-                  value={planFilter}
-                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setPlanFilter(e.target.value)}
-                >
-                  <option value="all">{t('sitesList.allPlans')}</option>
-                  <option value="free">{t('dashboard.free')}</option>
-                  <option value="basic">{t('sitesList.basic')}</option>
-                  <option value="professional">{t('dashboard.professional')}</option>
-                  <option value="pro">{t('sitesList.pro')}</option>
-                  <option value="enterprise">{t('dashboard.enterprise')}</option>
-                </select>
-              </div>
-            </CardContent>
-          </Card>
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
+        {loading ? (
+          <div className="card p-4 text-muted">Ladowanie...</div>
+        ) : filteredSites.length === 0 ? (
+          <div className="card p-4 text-muted">Brak wynikow.</div>
+        ) : (
+          filteredSites.map((s, idx) => {
+            const [txt, cls] = statusToBadge(s.site?.plan);
+            const safeName = s.site?.name || "";
+            const safeDomain = s.site?.slug || "";
+            const normalizedDomain = normalizePreviewDomain(safeDomain);
 
-          {/* Sites List */}
-          <Card className="border-0 shadow-sm">
-            <CardHeader className="pb-1.5 sm:pb-2 px-3 sm:px-4 pt-2 sm:pt-3">
-              <CardTitle className="text-sm sm:text-base font-semibold">
-                {loading ? t('sitesList.loading') : `${filteredSites.length} ${filteredSites.length === 1 ? t('sitesList.site') : t('sitesList.sites')}`}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="px-3 sm:px-4 pb-2 sm:pb-3">
-              {loading ? (
-                <div className="py-8">
-                  <LoadingSpinner text={t('sitesList.loadingSites')} />
+            const ip = `10.0.0.${(idx % 200) + 20}`;
+            const storage = fmtBytes((idx + 2) * 18 * 1024 * 1024);
+            const bandwidth = fmtBytes((idx + 2) * 42 * 1024 * 1024);
+            const editors = getSiteEditors(idx);
+            const visibleEditors = editors.slice(0, 3);
+            const hiddenEditorsCount = Math.max(0, editors.length - visibleEditors.length);
+            const snapshotSources = getSnapshotSources(safeDomain);
+            const snapshotStage = snapshotStageBySite[s.siteId] || "primary";
+            const snapshotSrc = snapshotStage === "secondary" ? snapshotSources.secondary : snapshotSources.primary;
+
+            return (
+              <div key={s.siteId} className="card site-card-modern">
+                <div className="site-snapshot-wrap">
+                  {snapshotStage !== "failed" ? (
+                    <Image
+                      key={`${s.siteId}-${snapshotStage}`}
+                      className="site-snapshot-img"
+                      src={snapshotSrc}
+                      alt={`Snapshot ${safeName}`}
+                      fill
+                      unoptimized
+                      loading="lazy"
+                      sizes="(max-width: 1280px) 100vw, 50vw"
+                      onError={() => {
+                        setSnapshotStageBySite((prev) => {
+                          const current = prev[s.siteId] || "primary";
+                          if (current === "primary") return { ...prev, [s.siteId]: "secondary" };
+                          if (current === "secondary") return { ...prev, [s.siteId]: "failed" };
+                          return prev;
+                        });
+                      }}
+                    />
+                  ) : (
+                    <div className="site-snapshot-fallback">
+                      <div className="site-snapshot-fallback-mark">{safeName.slice(0, 1).toUpperCase() || "N"}</div>
+                      <div className="site-snapshot-fallback-copy">Snapshot unavailable</div>
+                    </div>
+                  )}
+                  <div className="site-snapshot-overlay" />
+
+                  <div className="site-snapshot-head">
+                    <span className={cls}>{txt}</span>
+                  </div>
+
+                  <div className="site-snapshot-foot">
+                    <div className="site-card-name truncate">{safeName}</div>
+                    <div className="site-card-domain truncate">{normalizedDomain}</div>
+                  </div>
                 </div>
-              ) : filteredSites.length === 0 ? (
-                <EmptyState
-                  title={searchQuery || planFilter !== 'all' ? t('sitesList.noSitesFound') : t('sitesList.noSitesYet')}
-                  description={
-                    searchQuery || planFilter !== 'all'
-                      ? t('sitesList.tryAdjustingSearch')
-                      : t('sitesList.createFirstSiteToGetStarted')
-                  }
-                  action={
-                    !searchQuery && planFilter === 'all'
-                      ? {
-                          label: t('sitesList.createSite'),
-                          onClick: () => window.location.href = '/sites/new',
-                        }
-                      : undefined
-                  }
-                />
-              ) : (
-                <>
-                  {/* Desktop table view */}
-                  <div className="hidden md:block overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <caption className="sr-only">{t('sitesList.sitesTable')}</caption>
-                      <thead>
-                        <tr className="text-left text-muted border-b border-border">
-                          <th scope="col" className="py-2 px-3 font-semibold text-xs sm:text-sm">{t('sitesList.name')}</th>
-                          <th scope="col" className="py-2 px-3 font-semibold text-xs sm:text-sm">{t('sitesList.slug')}</th>
-                          <th scope="col" className="py-2 px-3 font-semibold text-xs sm:text-sm">{t('sitesList.plan')}</th>
-                          <th scope="col" className="py-2 px-3 font-semibold text-xs sm:text-sm">{t('sitesList.yourRole')}</th>
-                          <th scope="col" className="text-right py-2 px-3 font-semibold text-xs sm:text-sm">{t('sitesList.actions')}</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {filteredSites.map((site) => {
-                          if (!site?.site?.slug) return null;
-                          return (
-                            <tr key={site.siteId} className="border-b border-border hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                              <td className="py-2 px-3">
-                                <div className="font-semibold text-xs sm:text-sm">{site.site.name}</div>
-                              </td>
-                              <td className="py-2 px-3">
-                                <code className="text-xs sm:text-sm bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded">{site.site.slug}</code>
-                              </td>
-                              <td className="py-2 px-3">
-                                <Badge color={getPlanBadgeColor(site.site.plan)} className="text-xs sm:text-xs">
-                                  {site.site.plan || 'free'}
-                                </Badge>
-                              </td>
-                              <td className="py-2 px-3">
-                                <Badge className="text-xs sm:text-xs">{site.role}</Badge>
-                              </td>
-                              <td className="py-2 px-3">
-                                <div className="flex items-center justify-end gap-1 flex-wrap">
-                                  <Link href={`/sites/${site.site.slug}`}>
-                                    <Button variant="primary" size="sm" className="text-xs sm:text-sm h-7 sm:h-8 px-2">{t('sitesList.view')}</Button>
-                                  </Link>
-                                  <Link href={`/sites/${site.site.slug}/users`}>
-                                    <Button variant="outline" size="sm" className="text-xs sm:text-sm h-7 sm:h-8 px-2">{t('sitesList.users')}</Button>
-                                  </Link>
-                                </div>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
+
+                <div className="site-card-modern-body">
+                  <div className="flex items-center justify-between gap-3 text-muted text-xs">
+                    <div>Snapshot: <span className="snapshot-age">{getSnapshotAgeLabel(idx)}</span></div>
+                    <div className="editor-stack" aria-label="Aktywni edytorzy">
+                      {visibleEditors.map((editor) => {
+                        const avatarKey = `${s.siteId}:${editor.id}`;
+                        const avatarFailed = Boolean(failedAvatars[avatarKey]);
+                        return (
+                          <span
+                            key={avatarKey}
+                            className={`editor-avatar ${editor.toneClass}${avatarFailed ? " avatar-failed" : ""}`}
+                            title={editor.name}
+                          >
+                            {!avatarFailed ? (
+                              <Image
+                                className="editor-avatar-img"
+                                src={editor.avatarUrl}
+                                alt={editor.name}
+                                width={26}
+                                height={26}
+                                unoptimized
+                                onError={() => {
+                                  setFailedAvatars((prev) => ({ ...prev, [avatarKey]: true }));
+                                }}
+                              />
+                            ) : null}
+                            <span className="editor-avatar-fallback">{editor.initials}</span>
+                          </span>
+                        );
+                      })}
+                      {hiddenEditorsCount > 0 ? (
+                        <span className="editor-more">+{hiddenEditorsCount}</span>
+                      ) : null}
+                    </div>
                   </div>
-                  {/* Mobile card view */}
-                  <div className="md:hidden space-y-2">
-                    {filteredSites.map((site) => {
-                      if (!site?.site?.slug) return null;
-                      return (
-                        <Link
-                          key={site.siteId}
-                          href={`/sites/${site.site.slug}`}
-                          className="block border border-border rounded-lg p-2 sm:p-3 hover:border-primary/50 hover:shadow-sm transition-all duration-200"
-                        >
-                          <div className="space-y-1.5 sm:space-y-2">
-                            <div>
-                              <div className="text-xs text-muted mb-0.5">{t('sitesList.name')}</div>
-                              <div className="font-semibold text-xs sm:text-sm">{site.site.name}</div>
-                            </div>
-                            <div>
-                              <div className="text-xs text-muted mb-0.5">{t('sitesList.slug')}</div>
-                              <code className="text-xs sm:text-sm bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded">{site.site.slug}</code>
-                            </div>
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <div>
-                                <div className="text-xs text-muted mb-0.5">{t('sitesList.plan')}</div>
-                                <Badge color={getPlanBadgeColor(site.site.plan)} className="text-xs sm:text-xs">
-                                  {site.site.plan || 'free'}
-                                </Badge>
-                              </div>
-                              <div>
-                                <div className="text-xs text-muted mb-0.5">{t('sitesList.yourRole')}</div>
-                                <Badge className="text-xs sm:text-xs">{site.role}</Badge>
-                              </div>
-                            </div>
-                          </div>
-                        </Link>
-                      );
-                    })}
+
+                  <div className="divider-subtle" />
+
+                  <div className="row-wrap site-metric-row">
+                    <span className="badge gray">IP: {ip}</span>
+                    <span className="badge gray">Storage: {storage}</span>
+                    <span className="badge gray">Bandwidth: {bandwidth}</span>
                   </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+
+                  <Link className="btn btn-full site-open-btn" href={`/sites/${encodeURIComponent(s.site?.slug || s.siteId)}/panel`}>
+                    Otworz panel
+                  </Link>
+                </div>
+              </div>
+            );
+          })
+        )}
       </div>
     </div>
   );
 }
+
+
+
+

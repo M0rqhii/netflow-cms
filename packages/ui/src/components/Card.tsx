@@ -1,5 +1,5 @@
-import React from 'react';
-import { clsx } from 'clsx';
+﻿import React from 'react';
+import { cn } from '../utils/cn';
 
 export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   variant?: 'default' | 'interactive' | 'outlined';
@@ -9,17 +9,13 @@ export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
 export const Card = React.forwardRef<HTMLDivElement, CardProps>(
   ({ className, variant = 'default', children, ...props }, ref) => {
     const variants = {
-      default: 'bg-card border-border shadow-card',
-      interactive: 'bg-card border-border shadow-card hover:shadow-card-hover transition-shadow cursor-pointer',
-      outlined: 'border-2 border-border bg-transparent shadow-none',
+      default: 'card',
+      interactive: 'card hover:shadow-heavy transition-shadow cursor-pointer',
+      outlined: 'border border-border bg-transparent rounded-[18px] shadow-none',
     };
-    
+
     return (
-      <div
-        ref={ref}
-        className={clsx('rounded-lg border', variants[variant], className)}
-        {...props}
-      >
+      <div ref={ref} className={cn(variants[variant], className)} {...props}>
         {children}
       </div>
     );
@@ -35,7 +31,7 @@ export interface CardHeaderProps extends React.HTMLAttributes<HTMLDivElement> {
 export const CardHeader = React.forwardRef<HTMLDivElement, CardHeaderProps>(
   ({ className, children, ...props }, ref) => {
     return (
-      <div ref={ref} className={clsx('px-5 pt-5 pb-3 flex flex-col space-y-1.5', className)} {...props}>
+      <div ref={ref} className={cn('px-6 pt-5 pb-3 border-b border-border', className)} {...props}>
         {children}
       </div>
     );
@@ -51,7 +47,7 @@ export interface CardTitleProps extends React.HTMLAttributes<HTMLHeadingElement>
 export const CardTitle = React.forwardRef<HTMLHeadingElement, CardTitleProps>(
   ({ className, children, ...props }, ref) => {
     return (
-      <h3 ref={ref} className={clsx('text-base font-semibold leading-tight tracking-tight', className)} {...props}>
+      <h3 ref={ref} className={cn('text-sm font-semibold tracking-tight', className)} {...props}>
         {children}
       </h3>
     );
@@ -67,7 +63,7 @@ export interface CardContentProps extends React.HTMLAttributes<HTMLDivElement> {
 export const CardContent = React.forwardRef<HTMLDivElement, CardContentProps>(
   ({ className, children, ...props }, ref) => {
     return (
-      <div ref={ref} className={clsx('px-5 pb-5 pt-0', className)} {...props}>
+      <div ref={ref} className={cn('px-6 pb-5 pt-0', className)} {...props}>
         {children}
       </div>
     );
@@ -75,7 +71,3 @@ export const CardContent = React.forwardRef<HTMLDivElement, CardContentProps>(
 );
 
 CardContent.displayName = 'CardContent';
-
-
-
-

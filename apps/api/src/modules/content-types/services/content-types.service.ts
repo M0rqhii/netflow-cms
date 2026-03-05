@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  ForbiddenException,
   Inject,
 } from '@nestjs/common';
 import { PrismaService } from '../../../common/prisma/prisma.service';
@@ -15,7 +16,7 @@ import {
 
 /**
  * ContentTypesService - business logic dla Content Types
- * AI Note: Zawsze filtruj po siteId - site isolation
+ * AI Note: Zawsze filtruj po siteId i waliduj orgId - site isolation
  */
 @Injectable()
 export class ContentTypesService {
@@ -23,6 +24,23 @@ export class ContentTypesService {
     private readonly prisma: PrismaService,
     @Inject(CACHE_MANAGER) private readonly cache: Cache,
   ) {}
+
+  /**
+   * Validates that the site belongs to the organization
+   * @throws ForbiddenException if site doesn't belong to org
+   */
+  private async validateSiteBelongsToOrg(siteId: string, orgId: string): Promise<void> {
+    const site = await this.prisma.site.findUnique({
+      where: { id: siteId },
+      select: { orgId: true },
+    });
+    if (!site) {
+      throw new NotFoundException('Site not found');
+    }
+    if (site.orgId !== orgId) {
+      throw new ForbiddenException('Site does not belong to this organization');
+    }
+  }
 
   /**
    * Convert fields array to JSON Schema format
@@ -123,8 +141,11 @@ export class ContentTypesService {
 
   async create(
     siteId: string,
+    orgId: string,
     dto: CreateContentTypeDto
   ) {
+    await this.validateSiteBelongsToOrg(siteId, orgId);
+
     try {
       let schema: Record<string, any>;
 
@@ -166,7 +187,9 @@ export class ContentTypesService {
     }
   }
 
-  async list(siteId: string) {
+  async list(siteId: string, orgId: string) {
+    await this.validateSiteBelongsToOrg(siteId, orgId);
+
     const cacheKey = `content-types:${siteId}:list`;
     const cached = await this.cache.get(cacheKey);
     if (cached) {
@@ -192,7 +215,7 @@ export class ContentTypesService {
     return result;
   }
 
-  async getById(siteId: string, id: string): Promise<{
+  async getById(siteId: string, orgId: string, id: string): Promise<{
     id: string;
     siteId: string;
     name: string;
@@ -201,6 +224,8 @@ export class ContentTypesService {
     createdAt: Date;
     updatedAt: Date;
   }> {
+    await this.validateSiteBelongsToOrg(siteId, orgId);
+
     const cacheKey = `content-types:${siteId}:${id}`;
     const cached = await this.cache.get<{
       id: string;
@@ -237,7 +262,7 @@ export class ContentTypesService {
     return contentType;
   }
 
-  async getBySlug(siteId: string, slug: string): Promise<{
+  async getBySlug(siteId: string, orgId: string, slug: string): Promise<{
     id: string;
     siteId: string;
     name: string;
@@ -246,6 +271,8 @@ export class ContentTypesService {
     createdAt: Date;
     updatedAt: Date;
   }> {
+    await this.validateSiteBelongsToOrg(siteId, orgId);
+
     const cacheKey = `content-types:${siteId}:slug:${slug}`;
     const cached = await this.cache.get<{
       id: string;
@@ -284,10 +311,11 @@ export class ContentTypesService {
 
   async update(
     siteId: string,
+    orgId: string,
     id: string,
     dto: UpdateContentTypeDto
   ) {
-    const found = await this.getById(siteId, id);
+    const found = await this.getById(siteId, orgId, id);
     if (!found) {
       throw new NotFoundException('Content type not found');
     }
@@ -342,8 +370,8 @@ export class ContentTypesService {
     }
   }
 
-  async remove(siteId: string, id: string) {
-    const found = await this.getById(siteId, id);
+  async remove(siteId: string, orgId: string, id: string) {
+    const found = await this.getById(siteId, orgId, id);
     if (!found) {
       throw new NotFoundException('Content type not found');
     }

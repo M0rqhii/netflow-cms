@@ -1,11 +1,21 @@
 import { Injectable, NotFoundException, ForbiddenException, ConflictException, BadRequestException, Inject, Optional, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { Role } from '../../common/auth/roles.enum';
 import { AuditService, AuditEvent } from '../../common/audit/audit.service';
 import { Mailer } from '../../common/providers/interfaces';
 import { randomBytes } from 'crypto';
 import * as bcrypt from 'bcrypt';
+
+/**
+ * Legacy role values for backward compatibility with database
+ * These match the values stored in the 'role' column
+ */
+const LegacyRole = {
+  SUPER_ADMIN: 'super_admin',
+  ORG_ADMIN: 'org_admin',
+  EDITOR: 'editor',
+  VIEWER: 'viewer',
+} as const;
 
 /**
  * UsersService - business logic for user management
@@ -23,9 +33,9 @@ export class UsersService {
   ) {}
 
   private normalizeInviteRole(role: string): string {
-    const normalized = role === 'site_admin' ? Role.ORG_ADMIN : role;
-    const allowed = [Role.ORG_ADMIN, Role.EDITOR, Role.VIEWER];
-    if (!allowed.includes(normalized as Role)) {
+    const normalized = role === 'site_admin' ? LegacyRole.ORG_ADMIN : role;
+    const allowed: string[] = [LegacyRole.ORG_ADMIN, LegacyRole.EDITOR, LegacyRole.VIEWER];
+    if (!allowed.includes(normalized)) {
       throw new BadRequestException(`Invalid role. Must be one of: ${allowed.join(', ')}`);
     }
     return normalized;
@@ -103,8 +113,8 @@ export class UsersService {
   async listUsers(orgId: string, requestingUserRole: string) {
     // Only org admins (org_admin role) and super_admin can list users
     if (
-      requestingUserRole !== Role.ORG_ADMIN &&
-      requestingUserRole !== Role.SUPER_ADMIN
+      requestingUserRole !== LegacyRole.ORG_ADMIN &&
+      requestingUserRole !== LegacyRole.SUPER_ADMIN
     ) {
       throw new ForbiddenException('Insufficient permissions to list users');
     }
@@ -154,8 +164,8 @@ export class UsersService {
   async getUserById(userId: string, orgId: string, requestingUserRole: string) {
     // Only org admins (org_admin role) and super_admin can view user details
     if (
-      requestingUserRole !== Role.ORG_ADMIN &&
-      requestingUserRole !== Role.SUPER_ADMIN
+      requestingUserRole !== LegacyRole.ORG_ADMIN &&
+      requestingUserRole !== LegacyRole.SUPER_ADMIN
     ) {
       throw new ForbiddenException('Insufficient permissions to view user');
     }
@@ -219,28 +229,28 @@ export class UsersService {
   ) {
     // Only org admins (org_admin role) and super_admin can create users
     if (
-      requestingUserRole !== Role.ORG_ADMIN &&
-      requestingUserRole !== Role.SUPER_ADMIN
+      requestingUserRole !== LegacyRole.ORG_ADMIN &&
+      requestingUserRole !== LegacyRole.SUPER_ADMIN
     ) {
       throw new ForbiddenException('Insufficient permissions to create users');
     }
 
-    const normalizedRole = dto.role === 'site_admin' ? Role.ORG_ADMIN : dto.role;
+    const normalizedRole = dto.role === 'site_admin' ? LegacyRole.ORG_ADMIN : dto.role;
 
     // Security: Only super_admin can create super_admin users
-    if (normalizedRole === Role.SUPER_ADMIN && requestingUserRole !== Role.SUPER_ADMIN) {
+    if (normalizedRole === LegacyRole.SUPER_ADMIN && requestingUserRole !== LegacyRole.SUPER_ADMIN) {
       throw new ForbiddenException('Only super_admin can create super_admin users');
     }
 
     // Validate role
-    const validRoles = [Role.SUPER_ADMIN, Role.ORG_ADMIN, Role.EDITOR, Role.VIEWER];
-    if (!validRoles.includes(normalizedRole as Role)) {
+    const validRoles: string[] = [LegacyRole.SUPER_ADMIN, LegacyRole.ORG_ADMIN, LegacyRole.EDITOR, LegacyRole.VIEWER];
+    if (!validRoles.includes(normalizedRole)) {
       throw new BadRequestException(`Invalid role. Must be one of: ${validRoles.join(', ')}`);
     }
 
-    const siteRole = normalizedRole === Role.ORG_ADMIN ? 'admin' : normalizedRole === Role.EDITOR ? 'editor' : 'viewer';
-    const platformRole = normalizedRole === Role.SUPER_ADMIN || normalizedRole === Role.ORG_ADMIN ? 'admin' : 'user';
-    const isSuperAdmin = normalizedRole === Role.SUPER_ADMIN;
+    const siteRole = normalizedRole === LegacyRole.ORG_ADMIN ? 'admin' : normalizedRole === LegacyRole.EDITOR ? 'editor' : 'viewer';
+    const platformRole = normalizedRole === LegacyRole.SUPER_ADMIN || normalizedRole === LegacyRole.ORG_ADMIN ? 'admin' : 'user';
+    const isSuperAdmin = normalizedRole === LegacyRole.SUPER_ADMIN;
 
     // Check if user already exists
     const existingUser = await this.prisma.user.findUnique({
@@ -427,22 +437,22 @@ export class UsersService {
   ) {
     // Only org admins (org_admin role) and super_admin can update user roles
     if (
-      requestingUserRole !== Role.ORG_ADMIN &&
-      requestingUserRole !== Role.SUPER_ADMIN
+      requestingUserRole !== LegacyRole.ORG_ADMIN &&
+      requestingUserRole !== LegacyRole.SUPER_ADMIN
     ) {
       throw new ForbiddenException('Insufficient permissions to update user roles');
     }
 
-    const normalizedRole = newRole === 'site_admin' ? Role.ORG_ADMIN : newRole;
+    const normalizedRole = newRole === 'site_admin' ? LegacyRole.ORG_ADMIN : newRole;
 
     // Security: Only super_admin can assign super_admin role
-    if (normalizedRole === Role.SUPER_ADMIN && requestingUserRole !== Role.SUPER_ADMIN) {
+    if (normalizedRole === LegacyRole.SUPER_ADMIN && requestingUserRole !== LegacyRole.SUPER_ADMIN) {
       throw new ForbiddenException('Only super_admin can assign super_admin role');
     }
 
     // Validate role
-    const validRoles = [Role.SUPER_ADMIN, Role.ORG_ADMIN, Role.EDITOR, Role.VIEWER];
-    if (!validRoles.includes(normalizedRole as Role)) {
+    const validRoles: string[] = [LegacyRole.SUPER_ADMIN, LegacyRole.ORG_ADMIN, LegacyRole.EDITOR, LegacyRole.VIEWER];
+    if (!validRoles.includes(normalizedRole)) {
       throw new BadRequestException(`Invalid role. Must be one of: ${validRoles.join(', ')}`);
     }
 
@@ -459,12 +469,12 @@ export class UsersService {
     }
 
     // Prevent self-demotion of last super_admin (optional safety check)
-    if (user.role === Role.SUPER_ADMIN && newRole !== Role.SUPER_ADMIN) {
+    if (user.role === LegacyRole.SUPER_ADMIN && newRole !== LegacyRole.SUPER_ADMIN) {
       // Check if this is the last super_admin in the organization
       const superAdminCount = await this.prisma.user.count({
         where: {
           orgId: orgId,
-          role: Role.SUPER_ADMIN,
+          role: LegacyRole.SUPER_ADMIN,
         },
       });
 
@@ -473,9 +483,9 @@ export class UsersService {
       }
     }
 
-    const siteRole = normalizedRole === Role.ORG_ADMIN ? 'admin' : normalizedRole === Role.EDITOR ? 'editor' : 'viewer';
-    const platformRole = normalizedRole === Role.SUPER_ADMIN || normalizedRole === Role.ORG_ADMIN ? 'admin' : 'user';
-    const isSuperAdmin = normalizedRole === Role.SUPER_ADMIN;
+    const siteRole = normalizedRole === LegacyRole.ORG_ADMIN ? 'admin' : normalizedRole === LegacyRole.EDITOR ? 'editor' : 'viewer';
+    const platformRole = normalizedRole === LegacyRole.SUPER_ADMIN || normalizedRole === LegacyRole.ORG_ADMIN ? 'admin' : 'user';
+    const isSuperAdmin = normalizedRole === LegacyRole.SUPER_ADMIN;
 
     // Update user role
     const updatedUser = await this.prisma.user.update({

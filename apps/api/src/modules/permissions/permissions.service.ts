@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import {
-  combinePlatformPermissions,
+  combineOrgPermissions,
   combineSitePermissions,
-  PlatformPermissionFlag,
-  PlatformPermissions,
-  PlatformRole,
+  OrgPermissionFlag,
+  OrgPermissions,
+  OrgRole,
   SitePermissionFlag,
   SitePermissions,
   SiteRole,
@@ -12,15 +12,15 @@ import {
 
 @Injectable()
 export class PermissionsService {
-  resolvePlatformPermissions(roleOrRoles: PlatformRole | PlatformRole[] | null | undefined): PlatformPermissions {
-    return combinePlatformPermissions(roleOrRoles);
+  resolveOrgPermissions(roleOrRoles: OrgRole | OrgRole[] | null | undefined): OrgPermissions {
+    return combineOrgPermissions(roleOrRoles);
   }
 
   resolveSitePermissions(roleOrRoles: SiteRole | SiteRole[] | null | undefined): SitePermissions {
     return combineSitePermissions(roleOrRoles);
   }
 
-  hasPlatformPermission(perms: PlatformPermissions, flag: PlatformPermissionFlag): boolean {
+  hasOrgPermission(perms: OrgPermissions, flag: OrgPermissionFlag): boolean {
     return Boolean(perms?.[flag]);
   }
 

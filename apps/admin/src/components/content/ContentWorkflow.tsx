@@ -175,7 +175,7 @@ export function ContentWorkflow({ siteId, contentTypeSlug, entry, canEdit, canRe
         <div className="w-full mt-4 border-t pt-4">
           <div className="space-y-3">
             {comments.map((comment) => (
-              <div key={comment.id} className={`p-3 rounded ${comment.resolved ? 'bg-gray-50' : 'bg-blue-50'}`}>
+              <div key={comment.id} className={`p-3 rounded ${comment.resolved ? 'bg-surface-2' : 'bg-blue-50'}`}>
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="text-sm">{comment.content}</div>
@@ -253,4 +253,6 @@ export function ContentWorkflow({ siteId, contentTypeSlug, entry, canEdit, canRe
     </div>
   );
 }
+
+
 

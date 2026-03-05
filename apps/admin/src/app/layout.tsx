@@ -3,6 +3,13 @@ import LayoutWrapper from './LayoutWrapper';
 import { IntlProvider } from '../components/i18n/IntlProvider';
 import { routing } from '../i18n/routing';
 import Script from 'next/script';
+import { Inter } from 'next/font/google';
+
+const inter = Inter({
+  subsets: ['latin', 'latin-ext'],
+  display: 'swap',
+  variable: '--font-inter',
+});
 
 export const metadata = {
   title: 'Netflow CMS - Admin Panel',
@@ -19,12 +26,11 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // Use default locale for SSR
   const locale = routing.defaultLocale;
 
   return (
-    <html lang={locale} suppressHydrationWarning>
-      <body suppressHydrationWarning>
+    <html lang={locale} className={inter.variable} suppressHydrationWarning>
+      <body className={inter.className} suppressHydrationWarning>
         {/* Inline theme init to avoid FOUC between SSR and client */}
         <Script
           id="theme-init"
@@ -50,4 +56,3 @@ export default function RootLayout({
     </html>
   );
 }
-

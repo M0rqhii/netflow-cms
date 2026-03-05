@@ -6,7 +6,7 @@ export default function CollapseToggle() {
   const { sidebarCollapsed, toggleSidebar } = useUi();
   return (
     <button
-      className="btn btn-outline"
+      className="pill"
       onClick={toggleSidebar}
       aria-pressed={sidebarCollapsed}
       aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
@@ -22,3 +22,6 @@ export default function CollapseToggle() {
     </button>
   );
 }
+
+
+

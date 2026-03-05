@@ -12,11 +12,11 @@ import {
   DefaultValuePipe,
 } from '@nestjs/common';
 import { AuthGuard } from '../../common/auth/guards/auth.guard';
-import { PlatformRolesGuard } from '../../common/auth/guards/platform-roles.guard';
+import { OrgRolesGuard } from '../../common/auth/guards/platform-roles.guard';
 import { PermissionsGuard } from '../../common/auth/guards/permissions.guard';
-import { PlatformRoles } from '../../common/auth/decorators/platform-roles.decorator';
+import { OrgRoles } from '../../common/auth/decorators/platform-roles.decorator';
 import { Permissions } from '../../common/auth/decorators/permissions.decorator';
-import { PlatformRole, Permission, Role } from '../../common/auth/roles.enum';
+import { OrgRole, Permission } from '../../common/auth/roles.enum';
 import { CurrentUser } from '../../common/auth/decorators/current-user.decorator';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 import { z } from 'zod';
@@ -50,7 +50,7 @@ const updatePlatformUserSchema = z.object({
  * This is for managing users across the entire platform, not organization-scoped
  */
 @Injectable()
-@UseGuards(AuthGuard, PlatformRolesGuard, PermissionsGuard)
+@UseGuards(AuthGuard, OrgRolesGuard, PermissionsGuard)
 @Controller('platform/users')
 export class PlatformUsersController {
   constructor(private readonly prisma: PrismaService) {}
@@ -60,7 +60,7 @@ export class PlatformUsersController {
    * List all platform users (platform_admin only)
    */
   @Get()
-  @PlatformRoles(PlatformRole.ADMIN, PlatformRole.OWNER)
+  @OrgRoles(OrgRole.ADMIN, OrgRole.OWNER)
   @Permissions(Permission.USERS_READ)
   async listUsers(
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
@@ -136,7 +136,7 @@ export class PlatformUsersController {
    * Get platform user by ID (platform_admin only)
    */
   @Get(':id')
-  @PlatformRoles(PlatformRole.ADMIN, PlatformRole.OWNER)
+  @OrgRoles(OrgRole.ADMIN, OrgRole.OWNER)
   @Permissions(Permission.USERS_READ)
   async getUserById(@Param('id') userId: string) {
     const user = await this.prisma.user.findUnique({
@@ -195,7 +195,7 @@ export class PlatformUsersController {
    * Security: Only platform_admin can create platform_admin users
    */
   @Post()
-  @PlatformRoles(PlatformRole.ADMIN, PlatformRole.OWNER)
+  @OrgRoles(OrgRole.ADMIN, OrgRole.OWNER)
   @Permissions(Permission.USERS_WRITE)
   async createUser(
     @Body(new ZodValidationPipe(createPlatformUserSchema)) dto: z.infer<typeof createPlatformUserSchema>,
@@ -205,7 +205,7 @@ export class PlatformUsersController {
     // This check is now handled by the new security checks above
 
     // Security: Only super_admin can create super_admin users
-    if (dto.role === Role.SUPER_ADMIN && user.role !== Role.SUPER_ADMIN) {
+    if (dto.role === 'super_admin' && !user.isSuperAdmin && user.systemRole !== 'super_admin') {
       throw new ForbiddenException('Only super_admin can create super_admin users');
     }
 
@@ -292,7 +292,7 @@ export class PlatformUsersController {
    * Update platform user (platform_admin only)
    */
   @Patch(':id')
-  @PlatformRoles(PlatformRole.ADMIN, PlatformRole.OWNER)
+  @OrgRoles(OrgRole.ADMIN, OrgRole.OWNER)
   @Permissions(Permission.USERS_WRITE)
   async updateUser(
     @Param('id') userId: string,
@@ -310,35 +310,35 @@ export class PlatformUsersController {
 
     const normalizedRole = dto.role === 'organization_admin' ? 'org_admin' : dto.role;
 
-    // Security: Only platform admin/owner can assign platform admin/owner role
+    // Security: Only org admin/owner can assign org admin/owner role
     if (dto.platformRole && ['admin', 'owner'].includes(dto.platformRole)) {
-      const userPlatformRole = user.platformRole as PlatformRole | undefined;
-      if (userPlatformRole !== PlatformRole.ADMIN && userPlatformRole !== PlatformRole.OWNER && !user.isSuperAdmin) {
-        throw new ForbiddenException('Only platform admin/owner can assign platform admin/owner role');
+      const userOrgRole = user.platformRole as OrgRole | undefined;
+      if (userOrgRole !== OrgRole.ADMIN && userOrgRole !== OrgRole.OWNER && !user.isSuperAdmin) {
+        throw new ForbiddenException('Only org admin/owner can assign org admin/owner role');
       }
     }
 
     // Security: Only super_admin can assign super_admin/system admin role
     if (dto.systemRole && ['super_admin', 'system_admin'].includes(dto.systemRole)) {
-      if (!user.isSuperAdmin && user.systemRole !== 'super_admin' && user.role !== Role.SUPER_ADMIN) {
+      if (!user.isSuperAdmin && user.systemRole !== 'super_admin') {
         throw new ForbiddenException('Only super_admin can assign super_admin/system_admin role');
       }
     }
 
     // Security: Only super_admin can assign super_admin role (backward compatibility)
-    if (normalizedRole === Role.SUPER_ADMIN && user.role !== Role.SUPER_ADMIN && !user.isSuperAdmin) {
+    if (normalizedRole === 'super_admin' && !user.isSuperAdmin && user.systemRole !== 'super_admin') {
       throw new ForbiddenException('Only super_admin can assign super_admin role');
     }
 
     // Prevent self-demotion of last super_admin
-    if ((existingUser.isSuperAdmin || existingUser.systemRole === 'super_admin' || existingUser.role === Role.SUPER_ADMIN) && 
+    if ((existingUser.isSuperAdmin || existingUser.systemRole === 'super_admin' || existingUser.role === 'super_admin') &&
         dto.systemRole && dto.systemRole !== 'super_admin') {
       const superAdminCount = await this.prisma.user.count({
-        where: { 
+        where: {
           OR: [
             { isSuperAdmin: true },
             { systemRole: 'super_admin' },
-            { role: Role.SUPER_ADMIN },
+            { role: 'super_admin' },
           ],
         },
       });
@@ -390,7 +390,7 @@ export class PlatformUsersController {
    * Delete platform user (platform_admin only)
    */
   @Delete(':id')
-  @PlatformRoles(PlatformRole.ADMIN, PlatformRole.OWNER)
+  @OrgRoles(OrgRole.ADMIN, OrgRole.OWNER)
   @Permissions(Permission.USERS_DELETE)
   async deleteUser(
     @Param('id') userId: string,
@@ -411,9 +411,15 @@ export class PlatformUsersController {
     }
 
     // Prevent deletion of last super_admin
-    if (existingUser.role === Role.SUPER_ADMIN) {
+    if (existingUser.isSuperAdmin || existingUser.systemRole === 'super_admin' || existingUser.role === 'super_admin') {
       const superAdminCount = await this.prisma.user.count({
-        where: { role: Role.SUPER_ADMIN },
+        where: {
+          OR: [
+            { isSuperAdmin: true },
+            { systemRole: 'super_admin' },
+            { role: 'super_admin' },
+          ],
+        },
       });
 
       if (superAdminCount === 1) {

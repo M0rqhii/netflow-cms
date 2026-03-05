@@ -6,8 +6,7 @@
  */
 
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import Image from 'next/image';
-import { FiX, FiUpload, FiSearch, FiImage, FiFile, FiCheck } from 'react-icons/fi';
+import { FiX, FiUpload, FiSearch, FiImage, FiCheck, FiFileText, FiPlay } from 'react-icons/fi';
 import { useSiteId } from '../../PageBuilderContext';
 import { fetchSiteMedia, uploadSiteMedia, type MediaItem } from '@/lib/api';
 import { useTranslations } from '@/hooks/useTranslations';
@@ -27,16 +26,24 @@ interface MediaPickerDialogProps {
   currentValue?: string;
 }
 
-type MediaFilter = 'all' | 'images' | 'videos';
+type MediaFilter = 'all' | 'images' | 'videos' | 'documents';
 
 // =============================================================================
 // HELPER FUNCTIONS
 // =============================================================================
 
-function deriveMediaType(mime: string): 'image' | 'video' | 'other' {
+function deriveMediaType(mime: string): 'image' | 'video' | 'document' | 'other' {
   if (mime.startsWith('image/')) return 'image';
   if (mime.startsWith('video/')) return 'video';
+  if (mime === 'application/pdf' || mime.includes('word') || mime.startsWith('text/')) return 'document';
   return 'other';
+}
+
+function fileExtension(name: string, mime: string): string {
+  const ext = name?.split('.').pop()?.toUpperCase();
+  if (ext && ext.length <= 5) return ext;
+  const fromMime = mime?.split('/').pop()?.toUpperCase();
+  return fromMime || 'FILE';
 }
 
 function humanFileSize(bytes: number): string {
@@ -110,6 +117,7 @@ export const MediaPickerDialog: React.FC<MediaPickerDialogProps> = ({
       // Filter by selected filter
       if (filter === 'images' && type !== 'image') return false;
       if (filter === 'videos' && type !== 'video') return false;
+      if (filter === 'documents' && type !== 'document' && type !== 'other') return false;
       
       // Filter by search query
       if (searchQuery) {
@@ -180,6 +188,11 @@ export const MediaPickerDialog: React.FC<MediaPickerDialogProps> = ({
       onClose();
     }
   }, [items, selectedId, onSelect, onClose]);
+
+  const handleClear = useCallback(() => {
+    onSelect('', undefined);
+    onClose();
+  }, [onSelect, onClose]);
 
   // Handle backdrop click
   const handleBackdropClick = useCallback((e: React.MouseEvent) => {
@@ -261,6 +274,12 @@ export const MediaPickerDialog: React.FC<MediaPickerDialogProps> = ({
               >
                 {t('mediaPicker.filterVideos')}
               </button>
+              <button
+                className={`${styles.filterButton} ${filter === 'documents' ? styles.active : ''}`}
+                onClick={() => setFilter('documents')}
+              >
+                {t('mediaPicker.filterDocuments')}
+              </button>
             </div>
           )}
 
@@ -316,7 +335,8 @@ export const MediaPickerDialog: React.FC<MediaPickerDialogProps> = ({
               {filteredItems.map(item => {
                 const type = deriveMediaType(item.mime);
                 const isSelected = item.id === selectedId;
-                
+                const ext = fileExtension(item.fileName, item.mime);
+
                 return (
                   <button
                     key={item.id}
@@ -325,25 +345,35 @@ export const MediaPickerDialog: React.FC<MediaPickerDialogProps> = ({
                     type="button"
                   >
                     {type === 'image' ? (
-                      <Image
+                      <img
                         src={item.thumbnailUrl || item.url}
                         alt={item.alt || item.fileName}
                         className={styles.thumbnail}
                         width={160}
                         height={160}
-                        sizes="160px"
-                        unoptimized
                       />
+                    ) : type === 'video' ? (
+                      <div className={styles.videoThumbWrap}>
+                        {item.thumbnailUrl ? (
+                          <img
+                            src={item.thumbnailUrl}
+                            alt=""
+                            className={styles.thumbnail}
+                            width={160}
+                            height={160}
+                          />
+                        ) : null}
+                        <span className={styles.videoOverlay}>
+                          <FiPlay className={styles.videoPlayIcon} />
+                        </span>
+                      </div>
                     ) : (
                       <div className={styles.filePlaceholder}>
-                        <FiFile className={styles.fileIcon} />
+                        <FiFileText className={styles.fileIcon} />
+                        <span className={styles.fileExt}>{ext}</span>
                       </div>
                     )}
-                    
-                    <div className={styles.itemName}>
-                      {item.fileName}
-                    </div>
-                    
+                    <div className={styles.itemName}>{item.fileName}</div>
                     {isSelected && (
                       <div className={styles.selectedBadge}>
                         <FiCheck />
@@ -369,21 +399,53 @@ export const MediaPickerDialog: React.FC<MediaPickerDialogProps> = ({
 
         {/* Footer */}
         <div className={styles.footer}>
-          {selectedItem && (
-            <div className={styles.selectedInfo}>
-              <span className={styles.selectedName}>{selectedItem.fileName}</span>
-              <span className={styles.selectedSize}>{humanFileSize(selectedItem.size)}</span>
-            </div>
-          )}
-          
+          <div className={styles.selectedPreview}>
+            {selectedItem ? (
+              <>
+                <div className={styles.previewArea}>
+                  {deriveMediaType(selectedItem.mime) === 'image' ? (
+                    <img
+                      src={selectedItem.thumbnailUrl || selectedItem.url}
+                      alt=""
+                      className={styles.previewThumb}
+                      width={56}
+                      height={56}
+                    />
+                  ) : deriveMediaType(selectedItem.mime) === 'video' ? (
+                    <div className={styles.previewVideoWrap}>
+                      {selectedItem.thumbnailUrl ? (
+                        <img src={selectedItem.thumbnailUrl} alt="" width={56} height={56} className={styles.previewThumb} />
+                      ) : (
+                        <FiPlay className={styles.previewVideoIcon} />
+                      )}
+                    </div>
+                  ) : (
+                    <div className={styles.previewDocWrap}>
+                      <FiFileText className={styles.previewDocIcon} />
+                      <span className={styles.previewExt}>{fileExtension(selectedItem.fileName, selectedItem.mime)}</span>
+                    </div>
+                  )}
+                </div>
+                <div className={styles.selectedInfo}>
+                  <span className={styles.selectedName}>{selectedItem.fileName}</span>
+                  <span className={styles.selectedSize}>{humanFileSize(selectedItem.size)}</span>
+                </div>
+              </>
+            ) : (
+              <span className={styles.noSelection}>{t('mediaPicker.noSelection')}</span>
+            )}
+          </div>
           <div className={styles.footerActions}>
-            <button
-              onClick={onClose}
-              className={styles.cancelButton}
-            >
+            {currentValue && (
+              <button type="button" onClick={handleClear} className={styles.clearButton}>
+                {t('mediaPicker.clear')}
+              </button>
+            )}
+            <button type="button" onClick={onClose} className={styles.cancelButton}>
               {t('mediaPicker.cancel')}
             </button>
             <button
+              type="button"
               onClick={handleConfirm}
               disabled={!selectedId}
               className={styles.confirmButton}
@@ -398,3 +460,5 @@ export const MediaPickerDialog: React.FC<MediaPickerDialogProps> = ({
 };
 
 export default MediaPickerDialog;
+
+

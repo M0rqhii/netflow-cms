@@ -1,5 +1,5 @@
 import React from 'react';
-import { clsx } from 'clsx';
+import { cn } from '../utils/cn';
 
 export interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
   label?: string;
@@ -10,7 +10,7 @@ export interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextArea
 export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
   ({ className, label, error, helperText, id, ...props }, ref) => {
     const textareaId = id || `textarea-${Math.random().toString(36).substr(2, 9)}`;
-    
+
     return (
       <div className="w-full">
         {label && (
@@ -22,11 +22,10 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
         <textarea
           ref={ref}
           id={textareaId}
-          className={clsx(
-            'flex min-h-[96px] w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground',
-            'ring-offset-background placeholder:text-muted',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-            'disabled:cursor-not-allowed disabled:opacity-50',
+          className={cn(
+            'min-h-[96px] w-full input text-sm',
+            'placeholder:text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
+            'disabled:cursor-not-allowed disabled:opacity-60',
             error && 'border-red-500 focus-visible:ring-red-500',
             className
           )}
@@ -40,7 +39,6 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
 );
 
 Textarea.displayName = 'Textarea';
-
 
 
 

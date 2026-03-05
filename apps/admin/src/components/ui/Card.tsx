@@ -10,12 +10,15 @@ export function CardBody({ className, ...props }: React.HTMLAttributes<HTMLDivEl
 }
 
 export function CardHeader({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={clsx('px-6 pt-5 pb-3 border-b', className)} {...props} />;
+  return <div className={clsx('px-6 pt-5 pb-3 border-b border-border', className)} {...props} />;
 }
 
 export function CardTitle({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {
-  return <h3 className={clsx('text-sm font-semibold', className)} {...props} />;
+  return <h3 className={clsx('text-sm font-semibold tracking-tight text-foreground', className)} {...props} />;
+}
+
+export function CardContent({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return <div className={clsx('p-6', className)} {...props} />;
 }
 
 export default Card;
-

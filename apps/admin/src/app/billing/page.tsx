@@ -1,18 +1,17 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import { Card, CardHeader, CardTitle, CardContent, EmptyState, Skeleton } from '@repo/ui';
-import { Badge } from '@/components/ui/Badge';
-import { useTranslations } from '@/hooks/useTranslations';
-import { getCurrentUser, getGlobalBillingInfo, type AccountInfo, type GlobalBillingInfo, type GlobalInvoice } from '@/lib/api';
-import { useToast } from '@/components/ui/Toast';
+import { useState, useEffect } from "react";
+import { EmptyState, Skeleton } from "@repo/ui";
+import { useTranslations } from "@/hooks/useTranslations";
+import { getCurrentUser, getGlobalBillingInfo, type AccountInfo, type GlobalBillingInfo, type GlobalInvoice } from "@/lib/api";
+import { useToast } from "@/components/ui/Toast";
 
 export default function BillingPage() {
   const t = useTranslations();
   const { push: pushToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [invoices, setInvoices] = useState<GlobalInvoice[]>([]);
-  const [organizations, setOrganizations] = useState<GlobalBillingInfo['organizations']>([]);
+  const [organizations, setOrganizations] = useState<GlobalBillingInfo["organizations"]>([]);
   const [currentUser, setCurrentUser] = useState<AccountInfo | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,11 +25,11 @@ export default function BillingPage() {
         setInvoices(data.invoices || []);
         setOrganizations(data.organizations || []);
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : t('billing.failedToLoadBillingData');
+        const errorMessage = err instanceof Error ? err.message : t("billing.failedToLoadBillingData");
         setError(errorMessage);
         pushToast({
           message: errorMessage,
-          tone: 'error',
+          tone: "error",
         });
       } finally {
         setLoading(false);
@@ -42,59 +41,54 @@ export default function BillingPage() {
   }, [t]);
 
   const isDemoAccount =
-    currentUser?.email?.toLowerCase() === 'liwiusz01@gmail.com' &&
-    organizations.some((org) => org.orgName?.toLowerCase() === 'platform admin');
+    currentUser?.email?.toLowerCase() === "liwiusz01@gmail.com" &&
+    organizations.some((org) => org.orgName?.toLowerCase() === "platform admin");
 
-  const demoOrg = organizations.find((org) => org.orgName?.toLowerCase() === 'platform admin');
+  const demoOrg = organizations.find((org) => org.orgName?.toLowerCase() === "platform admin");
 
   const demoHighlights = [
-    { label: t('billing.organization'), value: demoOrg?.orgName ?? 'Platform Admin' },
-    { label: t('billing.plan'), value: demoOrg?.plan ?? 'Developer Sandbox' },
-    { label: t('billing.status'), value: demoOrg?.status ?? 'active' },
-    { label: t('billing.nextRenewal'), value: t('billing.lifetime') },
+    { label: t("billing.organization"), value: demoOrg?.orgName ?? "Platform Admin" },
+    { label: t("billing.plan"), value: demoOrg?.plan ?? "Developer Sandbox" },
+    { label: t("billing.status"), value: demoOrg?.status ?? "active" },
+    { label: t("billing.nextRenewal"), value: t("billing.lifetime") },
   ];
 
   const demoUsage = [
-    { label: 'Storage', value: 86, unit: 'GB', max: null },
-    { label: 'Bandwidth', value: 320, unit: 'GB', max: null },
-    { label: 'Build minutes', value: 1200, unit: 'min', max: null },
-    { label: 'API calls', value: 86000, unit: '', max: null },
+    { label: "Storage", value: 86, unit: "GB", max: null },
+    { label: "Bandwidth", value: 320, unit: "GB", max: null },
+    { label: "Build minutes", value: 1200, unit: "min", max: null },
+    { label: "API calls", value: 86000, unit: "", max: null },
   ];
 
   const demoSpendSeries = [
-    { month: 'Aug', value: 12 },
-    { month: 'Sep', value: 24 },
-    { month: 'Oct', value: 36 },
-    { month: 'Nov', value: 28 },
-    { month: 'Dec', value: 44 },
-    { month: 'Jan', value: 32 },
+    { month: "Aug", value: 12 },
+    { month: "Sep", value: 24 },
+    { month: "Oct", value: 36 },
+    { month: "Nov", value: 28 },
+    { month: "Dec", value: 44 },
+    { month: "Jan", value: 32 },
   ];
 
   const demoHistory = [
-    { id: 'demo-1', date: '2026-01-05', amount: 0, currency: 'USD', status: 'paid', note: 'Developer sandbox' },
-    { id: 'demo-2', date: '2025-12-05', amount: 0, currency: 'USD', status: 'paid', note: 'Developer sandbox' },
-    { id: 'demo-3', date: '2025-11-05', amount: 0, currency: 'USD', status: 'paid', note: 'Developer sandbox' },
-    { id: 'demo-4', date: '2025-10-05', amount: 0, currency: 'USD', status: 'paid', note: 'Developer sandbox' },
+    { id: "demo-1", date: "2026-01-05", amount: 0, currency: "USD", status: "paid", note: "Developer sandbox" },
+    { id: "demo-2", date: "2025-12-05", amount: 0, currency: "USD", status: "paid", note: "Developer sandbox" },
+    { id: "demo-3", date: "2025-11-05", amount: 0, currency: "USD", status: "paid", note: "Developer sandbox" },
+    { id: "demo-4", date: "2025-10-05", amount: 0, currency: "USD", status: "paid", note: "Developer sandbox" },
   ];
 
   const demoMethods = [
-    { label: 'Virtual card', value: '**** 4242', status: 'primary' },
-    { label: 'Test transfer', value: 'Sandbox', status: 'backup' },
+    { label: "Virtual card", value: "**** 4242", status: "primary" },
+    { label: "Test transfer", value: "Sandbox", status: "backup" },
   ];
 
   if (error) {
     return (
-      <div className="min-h-screen">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground mb-6">{t('billing.title')}</h1>
-          <Card className="border-0 shadow-sm">
-            <CardContent className="p-4 sm:p-6">
-              <div className="text-center text-red-600 dark:text-red-400">
-                <p className="font-semibold text-sm sm:text-base">{t('billing.errorLoadingBillingData')}</p>
-                <p className="text-xs sm:text-sm mt-2">{error}</p>
-              </div>
-            </CardContent>
-          </Card>
+      <div className="card card-pad">
+        <div className="view-title">{t("billing.title")}</div>
+        <div className="spacer-sm" />
+        <div className="error-alert">
+          <div className="text-error text-sm">{t("billing.errorLoadingBillingData")}</div>
+          <div className="text-error text-xs mt-1.5">{error}</div>
         </div>
       </div>
     );
@@ -102,249 +96,213 @@ export default function BillingPage() {
 
   return (
     <div>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 sm:py-3">
-        {/* Header */}
-        <div className="mb-2 sm:mb-3">
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground mb-0.5 sm:mb-1">
-            {t('billing.title')}
-          </h1>
-          <p className="text-xs sm:text-sm text-muted">
-            {t('billing.manageOrganizationBilling')}
-          </p>
-        </div>
+      <div className="card card-pad">
+        <div className="view-title">{t("billing.title")}</div>
+        <div className="view-sub">{t("billing.manageOrganizationBilling")}</div>
+      </div>
 
-        {isDemoAccount && (
-          <div className="space-y-3">
-            <Card className="border-0 shadow-sm">
-              <CardHeader className="pb-1.5 sm:pb-2 px-3 sm:px-4 pt-2 sm:pt-3">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <CardTitle className="text-sm sm:text-base font-semibold">{t('billing.demoAccountTitle')}</CardTitle>
-                  <Badge tone="success" className="text-xs">{t('billing.unlimited')}</Badge>
-                </div>
-                <p className="text-xs sm:text-sm text-muted mt-1">
-                  To konto deweloperskie ma domy\u015blnie pe\u0142ny dost\u0119p oraz przyk\u0142adow\u0105 wizualizacj\u0119 rozlicze\u0144.
-                </p>
-              </CardHeader>
-              <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                  {demoHighlights.map((item) => (
-                    <div key={item.label} className="rounded-lg border border-border/60 bg-background/60 p-3">
-                      <p className="text-xs text-muted">{item.label}</p>
-                      <p className="text-sm font-semibold">{item.value}</p>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted">
-                  <span>Limity: nielimitowane dzia\u0142ania, czas, projekty i \u015brodki dla cel\u00f3w testowych.</span>
-                </div>
-              </CardContent>
-            </Card>
+      <div className="spacer" />
 
-            <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
-              <Card className="border-0 shadow-sm lg:col-span-2">
-                <CardHeader className="pb-1.5 sm:pb-2 px-3 sm:px-4 pt-2 sm:pt-3">
-                  <CardTitle className="text-sm sm:text-base font-semibold">Zu\u017cycie i limity (demo)</CardTitle>
-                  <p className="text-xs sm:text-sm text-muted mt-1">Przyk\u0142adowe wykorzystanie zasob\u00f3w dla konta developerskiego.</p>
-                </CardHeader>
-                <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    {demoUsage.map((metric) => {
-                      const percent = metric.max ? Math.min(100, Math.round((metric.value / metric.max) * 100)) : 100;
-                      const limitLabel = metric.max ? `${metric.max}${metric.unit ? ` ${metric.unit}` : ''}` : '\u221e';
-                      return (
-                        <div key={metric.label} className="rounded-lg border border-border/60 bg-background/60 p-3">
-                          <div className="flex items-center justify-between text-xs text-muted mb-1">
-                            <span>{metric.label}</span>
-                            <span>{metric.value}{metric.unit ? ` ${metric.unit}` : ''}</span>
-                          </div>
-                          <div className="h-2 w-full rounded-full bg-muted">
-                            <div className="h-2 rounded-full bg-emerald-500" style={{ width: `${percent}%` }} />
-                          </div>
-                          <p className="mt-1 text-[11px] text-muted">Limit: {limitLabel}</p>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-0 shadow-sm">
-                <CardHeader className="pb-1.5 sm:pb-2 px-3 sm:px-4 pt-2 sm:pt-3">
-                  <CardTitle className="text-sm sm:text-base font-semibold">Aktywno\u015b\u0107 rozlicze\u0144 (demo)</CardTitle>
-                  <p className="text-xs sm:text-sm text-muted mt-1">Symulowany trend aktywno\u015bci i koszt\u00f3w.</p>
-                </CardHeader>
-                <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
-                  <div className="flex items-end gap-2 h-24">
-                    {demoSpendSeries.map((item) => {
-                      const maxValue = Math.max(...demoSpendSeries.map((s) => s.value));
-                      const height = maxValue ? Math.max(8, Math.round((item.value / maxValue) * 80)) : 8;
-                      return (
-                        <div key={item.month} className="flex flex-col items-center gap-1">
-                          <div className="w-6 rounded-md bg-emerald-500/80" style={{ height }} />
-                          <span className="text-[10px] text-muted">{item.month}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <div className="mt-2 text-xs text-muted">Koszty sandbox: 0.00 USD (bez faktycznych obci\u0105\u017ce\u0144)</div>
-                </CardContent>
-              </Card>
+      {isDemoAccount && (
+        <div>
+          <div className="card card-pad">
+            <div className="row-between" style={{ flexWrap: "wrap" }}>
+              <div className="section-title">{t("billing.demoAccountTitle")}</div>
+              <span className="badge green">{t("billing.unlimited")}</span>
             </div>
-
-            <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
-              <Card className="border-0 shadow-sm">
-                <CardHeader className="pb-1.5 sm:pb-2 px-3 sm:px-4 pt-2 sm:pt-3">
-                  <CardTitle className="text-sm sm:text-base font-semibold">Metody p\u0142atno\u015bci (demo)</CardTitle>
-                </CardHeader>
-                <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
-                  <div className="space-y-2">
-                    {demoMethods.map((method) => (
-                      <div key={method.label} className="rounded-lg border border-border/60 bg-background/60 p-3 flex items-center justify-between">
-                        <div>
-                          <p className="text-xs text-muted">{method.label}</p>
-                          <p className="text-sm font-semibold">{method.value}</p>
-                        </div>
-                        <Badge tone={method.status === 'primary' ? 'success' : 'default'} className="text-xs">
-                          {method.status}
-                        </Badge>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-0 shadow-sm lg:col-span-2">
-                <CardHeader className="pb-1.5 sm:pb-2 px-3 sm:px-4 pt-2 sm:pt-3">
-                  <CardTitle className="text-sm sm:text-base font-semibold">{t('billing.demoHistory')}</CardTitle>
-                </CardHeader>
-                <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="text-left text-muted border-b border-border">
-                          <th className="py-2 px-3 font-semibold text-xs sm:text-sm">{t('billing.date')}</th>
-                          <th className="py-2 px-3 font-semibold text-xs sm:text-sm">{t('billing.amount')}</th>
-                          <th className="py-2 px-3 font-semibold text-xs sm:text-sm">{t('billing.status')}</th>
-                          <th className="py-2 px-3 font-semibold text-xs sm:text-sm">{t('billing.note')}</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {demoHistory.map((inv) => (
-                          <tr key={inv.id} className="border-b border-border hover:bg-muted/30 transition-colors">
-                            <td className="py-2 px-3 text-xs sm:text-sm text-muted">{new Date(inv.date).toLocaleDateString()}</td>
-                            <td className="py-2 px-3 text-xs sm:text-sm">{inv.amount} {inv.currency}</td>
-                            <td className="py-2 px-3">
-                              <Badge tone={inv.status === 'paid' ? 'success' : 'default'} className="text-xs">{inv.status}</Badge>
-                            </td>
-                            <td className="py-2 px-3 text-xs sm:text-sm text-muted">{inv.note}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </CardContent>
-              </Card>
+            <div className="text-muted text-xs mt-1.5">
+              Demo account with full access and sample billing data.
+            </div>
+            <div className="spacer-sm" />
+            <div className="grid cols-4">
+              {demoHighlights.map((item) => (
+                <div key={item.label} className="card card-pad tight">
+                  <div className="detail-label">{item.label}</div>
+                  <div className="font-extrabold mt-1.5">{item.value}</div>
+                </div>
+              ))}
             </div>
           </div>
-        )}
 
-        <div className="space-y-2 sm:space-y-3">
-          {/* Organization plans */}
-          <Card className="border-0 shadow-sm">
-            <CardHeader className="pb-1.5 sm:pb-2 px-3 sm:px-4 pt-2 sm:pt-3">
-              <CardTitle className="text-sm sm:text-base font-semibold">{t('billing.organizationPlans')}</CardTitle>
-            </CardHeader>
-            <CardContent className="px-3 sm:px-4 pb-2 sm:pb-3">
-              {loading ? (
-                <div className="py-8">
-                  <Skeleton variant="rectangular" width="100%" height={200} />
-                </div>
-              ) : organizations.length === 0 ? (
-                <EmptyState
-                  title={t('billing.noOrganizations')}
-                  description={t('billing.organizationsWillAppear')}
-                />
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="text-left text-muted border-b border-border">
-                        <th className="py-2 px-3 font-semibold text-xs sm:text-sm">{t('billing.organization')}</th>
-                        <th className="py-2 px-3 font-semibold text-xs sm:text-sm">{t('billing.plan')}</th>
-                        <th className="py-2 px-3 font-semibold text-xs sm:text-sm">{t('billing.status')}</th>
-                        <th className="py-2 px-3 font-semibold text-xs sm:text-sm">{t('billing.nextRenewal')}</th>
-                        <th className="py-2 px-3 font-semibold text-xs sm:text-sm">{t('billing.role')}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {organizations.map((org) => (
-                        <tr key={org.orgId} className="border-b border-border hover:bg-muted/30 transition-colors">
-                          <td className="py-2 px-3 text-xs sm:text-sm">{org.orgName || '-'}</td>
-                          <td className="py-2 px-3 text-xs sm:text-sm">{org.plan}</td>
-                          <td className="py-2 px-3">
-                            <Badge tone={org.status === 'active' ? 'success' : org.status === 'past_due' ? 'warning' : 'default'} className="text-xs sm:text-xs">
-                              {org.status}
-                            </Badge>
-                          </td>
-                          <td className="py-2 px-3 text-xs sm:text-sm text-muted">
-                            {org.renewalDate ? new Date(org.renewalDate).toLocaleDateString() : t('billing.noRenewal')}
-                          </td>
-                          <td className="py-2 px-3 text-xs sm:text-sm text-muted">{org.role}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <div className="spacer" />
 
-          {/* Payment History */}
-          <Card className="border-0 shadow-sm">
-            <CardHeader className="pb-1.5 sm:pb-2 px-3 sm:px-4 pt-2 sm:pt-3">
-              <CardTitle className="text-sm sm:text-base font-semibold">{t('billing.paymentHistory')}</CardTitle>
-            </CardHeader>
-            <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
-              {loading ? (
-                <div className="py-8">
-                  <Skeleton variant="rectangular" width="100%" height={200} />
-                </div>
-              ) : invoices.length === 0 ? (
-                <EmptyState
-                  title={t('billing.noPaymentHistory')}
-                  description={t('billing.invoicesWillAppear')}
-                />
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="text-left text-muted border-b border-border">
-                        <th className="py-2 px-3 font-semibold text-xs sm:text-sm">{t('billing.organization')}</th>
-                        <th className="py-2 px-3 font-semibold text-xs sm:text-sm">{t('billing.date')}</th>
-                        <th className="py-2 px-3 font-semibold text-xs sm:text-sm">{t('billing.amount')}</th>
-                        <th className="py-2 px-3 font-semibold text-xs sm:text-sm">{t('billing.status')}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {invoices.map((inv) => (
-                        <tr key={inv.id} className="border-b border-border hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                          <td className="py-2 px-3 text-xs sm:text-sm">{inv.organization?.name || '-'}</td>
-                          <td className="py-2 px-3 text-xs sm:text-sm text-muted">{new Date(inv.createdAt).toLocaleDateString()}</td>
-                          <td className="py-2 px-3 text-xs sm:text-sm">{inv.amount} {inv.currency}</td>
-                          <td className="py-2 px-3">
-                            <Badge tone={inv.status === 'paid' ? 'success' : 'default'} className="text-xs sm:text-xs">
-                              {inv.status}
-                            </Badge>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <div className="grid cols-3">
+            <div className="card card-pad">
+              <div className="section-title">Usage and limits (demo)</div>
+              <div className="text-muted text-xs mt-1.5">
+                Sample resource usage for the demo account.
+              </div>
+              <div className="spacer-sm" />
+              <div className="grid" style={{ gap: 10 }}>
+                {demoUsage.map((metric) => {
+                  const percent = metric.max ? Math.min(100, Math.round((metric.value / metric.max) * 100)) : 100;
+                  const limitLabel = metric.max ? `${metric.max}${metric.unit ? ` ${metric.unit}` : ""}` : "infinite";
+                  return (
+                    <div key={metric.label} className="card" style={{ padding: 12, borderRadius: 16 }}>
+                      <div className="row-between text-xs text-muted">
+                        <span>{metric.label}</span>
+                        <span>{metric.value}{metric.unit ? ` ${metric.unit}` : ""}</span>
+                      </div>
+                      <div className="spacer-sm" />
+                      <div style={{ height: 6, borderRadius: 999, background: "rgba(148,163,184,0.25)" }}>
+                        <div style={{ height: 6, borderRadius: 999, width: `${percent}%`, background: "#10b981" }} />
+                      </div>
+                      <div className="text-muted mt-1.5" style={{ fontSize: 11 }}>Limit: {limitLabel}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="card card-pad">
+              <div className="section-title">Billing activity (demo)</div>
+              <div className="text-muted text-xs mt-1.5">
+                Simulated spend trend.
+              </div>
+              <div className="spacer-sm" />
+              <div className="flex items-end gap-2" style={{ height: 90 }}>
+                {demoSpendSeries.map((item) => {
+                  const maxValue = Math.max(...demoSpendSeries.map((s) => s.value));
+                  const height = maxValue ? Math.max(8, Math.round((item.value / maxValue) * 80)) : 8;
+                  return (
+                    <div key={item.month} className="flex flex-col items-center gap-1.5">
+                      <div style={{ width: 20, borderRadius: 12, background: "rgba(16,185,129,0.8)", height }} />
+                      <span className="text-muted" style={{ fontSize: 10 }}>{item.month}</span>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="text-muted text-xs mt-2">Sandbox spend: 0.00 USD</div>
+            </div>
+
+            <div className="card card-pad">
+              <div className="section-title">Payment methods (demo)</div>
+              <div className="spacer-sm" />
+              <div className="grid" style={{ gap: 10 }}>
+                {demoMethods.map((method) => (
+                  <div key={method.label} className="card row-between" style={{ padding: 12, borderRadius: 16 }}>
+                    <div>
+                      <div className="detail-label">{method.label}</div>
+                      <div className="font-extrabold">{method.value}</div>
+                    </div>
+                    <span className={method.status === "primary" ? "badge green" : "badge gray"}>{method.status}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="spacer" />
+
+          <div className="card card-pad">
+            <div className="section-title">{t("billing.demoHistory")}</div>
+            <div className="spacer-sm" />
+            <div className="overflow-x-auto">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>{t("billing.date")}</th>
+                    <th>{t("billing.amount")}</th>
+                    <th>{t("billing.status")}</th>
+                    <th>{t("billing.note")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {demoHistory.map((inv) => (
+                    <tr key={inv.id}>
+                      <td className="text-muted">{new Date(inv.date).toLocaleDateString()}</td>
+                      <td>{inv.amount} {inv.currency}</td>
+                      <td>
+                        <span className={inv.status === "paid" ? "badge green" : "badge gray"}>{inv.status}</span>
+                      </td>
+                      <td className="text-muted">{inv.note}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="spacer" />
         </div>
+      )}
+
+      <div className="card card-pad">
+        <div className="section-title">{t("billing.organizationPlans")}</div>
+        <div className="spacer-sm" />
+        {loading ? (
+          <Skeleton variant="rectangular" width="100%" height={200} />
+        ) : organizations.length === 0 ? (
+          <EmptyState title={t("billing.noOrganizations")} description={t("billing.organizationsWillAppear")} />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>{t("billing.organization")}</th>
+                  <th>{t("billing.plan")}</th>
+                  <th>{t("billing.status")}</th>
+                  <th>{t("billing.nextRenewal")}</th>
+                  <th>{t("billing.role")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {organizations.map((org) => (
+                  <tr key={org.orgId}>
+                    <td>{org.orgName || "-"}</td>
+                    <td>{org.plan}</td>
+                    <td>
+                      <span className={org.status === "active" ? "badge green" : org.status === "past_due" ? "badge orange" : "badge gray"}>
+                        {org.status}
+                      </span>
+                    </td>
+                    <td className="text-muted">
+                      {org.renewalDate ? new Date(org.renewalDate).toLocaleDateString() : t("billing.noRenewal")}
+                    </td>
+                    <td className="text-muted">{org.role}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      <div className="spacer" />
+
+      <div className="card card-pad">
+        <div className="section-title">{t("billing.paymentHistory")}</div>
+        <div className="spacer-sm" />
+        {loading ? (
+          <Skeleton variant="rectangular" width="100%" height={200} />
+        ) : invoices.length === 0 ? (
+          <EmptyState title={t("billing.noPaymentHistory")} description={t("billing.invoicesWillAppear")} />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>{t("billing.organization")}</th>
+                  <th>{t("billing.date")}</th>
+                  <th>{t("billing.amount")}</th>
+                  <th>{t("billing.status")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {invoices.map((inv) => (
+                  <tr key={inv.id}>
+                    <td>{inv.organization?.name || "-"}</td>
+                    <td className="text-muted">{new Date(inv.createdAt).toLocaleDateString()}</td>
+                    <td>{inv.amount} {inv.currency}</td>
+                    <td>
+                      <span className={inv.status === "paid" ? "badge green" : "badge gray"}>{inv.status}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );

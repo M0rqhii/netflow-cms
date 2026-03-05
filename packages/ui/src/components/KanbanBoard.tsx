@@ -74,7 +74,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
       case 'LOW':
         return 'bg-blue-100 text-blue-800 border-blue-300';
       default:
-        return 'bg-surface text-foreground border-border';
+        return 'bg-surface text-text border-border';
     }
   };
 
@@ -159,4 +159,5 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
     </div>
   );
 };
+
 

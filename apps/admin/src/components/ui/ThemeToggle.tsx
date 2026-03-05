@@ -15,7 +15,6 @@ function getSystemPref(): Theme {
 export default function ThemeToggle() {
   const [theme, setTheme] = useState<Theme>('light');
 
-  // Initialize from localStorage or system
   useEffect(() => {
     const saved = (typeof window !== 'undefined' && (localStorage.getItem(THEME_KEY) as Theme)) || null;
     const initial = saved || getSystemPref();
@@ -26,7 +25,6 @@ export default function ThemeToggle() {
     }
   }, []);
 
-  // Toggle handler
   const toggle = () => {
     const next: Theme = theme === 'dark' ? 'light' : 'dark';
     setTheme(next);
@@ -40,11 +38,17 @@ export default function ThemeToggle() {
   };
 
   return (
-    <button onClick={toggle} className="btn btn-outline" aria-pressed={theme === 'dark'} aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'} title={theme === 'dark' ? 'Light mode' : 'Dark mode'}>
-      <span className={`relative inline-flex h-5 w-5 items-center justify-center transition-transform duration-300 ${theme === 'dark' ? 'rotate-180' : 'rotate-0'}`}>
+    <button
+      onClick={toggle}
+      className="btn btn-ghost w-9 h-9 p-0 flex items-center justify-center rounded-lg"
+      aria-pressed={theme === 'dark'}
+      aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+      title={theme === 'dark' ? 'Light mode' : 'Dark mode'}
+    >
+      <span className="relative inline-flex h-5 w-5 items-center justify-center">
         {/* Sun */}
         <svg
-          className={`absolute h-5 w-5 transition-opacity duration-300 ${theme === 'dark' ? 'opacity-0' : 'opacity-100'}`}
+          className={`absolute h-[18px] w-[18px] transition-all duration-300 ${theme === 'dark' ? 'opacity-0 rotate-90 scale-0' : 'opacity-100 rotate-0 scale-100'}`}
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -58,7 +62,7 @@ export default function ThemeToggle() {
         </svg>
         {/* Moon */}
         <svg
-          className={`absolute h-5 w-5 transition-opacity duration-300 ${theme === 'dark' ? 'opacity-100' : 'opacity-0'}`}
+          className={`absolute h-[18px] w-[18px] transition-all duration-300 ${theme === 'dark' ? 'opacity-100 rotate-0 scale-100' : 'opacity-0 -rotate-90 scale-0'}`}
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"

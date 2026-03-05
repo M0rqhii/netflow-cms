@@ -47,7 +47,7 @@ export function AssetsPanel() {
 
   const handleFilesUpload = useCallback(async (files: FileList | File[]) => {
     const list = Array.from(files || []);
-    if (list.length == 0) return;
+    if (list.length === 0) return;
 
     setUploading(true);
     setError(null);
@@ -69,7 +69,7 @@ export function AssetsPanel() {
 
   const handleUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (!files || files.length == 0) return;
+    if (!files || files.length === 0) return;
     await handleFilesUpload(files);
     e.target.value = '';
   }, [handleFilesUpload]);
@@ -88,7 +88,7 @@ export function AssetsPanel() {
     setIsDragOver(false);
     if (uploading) return;
     const files = event.dataTransfer?.files;
-    if (!files || files.length == 0) return;
+    if (!files || files.length === 0) return;
     await handleFilesUpload(files);
   }, [handleFilesUpload, uploading]);
 
@@ -99,74 +99,70 @@ export function AssetsPanel() {
   }, [items, searchQuery]);
 
   return (
-    <div className="h-full flex flex-col bg-white">
-      <div className="p-4 border-b border-gray-200 space-y-3">
-        <h2 className="text-sm font-semibold text-gray-900">{t('builderAssets.title')}</h2>
-        <p className="text-[11px] text-gray-500">{t('builderAssets.dropHint')}</p>
-
-        <div className="relative">
-          <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Szukaj plików..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-md
-                       focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-        </div>
-
-        <label className="inline-flex items-center gap-2 text-xs font-medium text-blue-600 hover:text-blue-700 cursor-pointer">
-          <FiUpload />
-          <span>{uploading ? t('builderAssets.uploading') : t('builderAssets.upload')}</span>
-          <input
-            type="file"
-            accept="image/*,video/*" multiple
-            onChange={handleUpload}
-            disabled={uploading}
-            className="hidden"
-          />
-        </label>
+    <div className="builder-assets-panel">
+      <div className="relative">
+        <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
+        <input
+          type="text"
+          placeholder={t('builderAssets.searchPlaceholder')}
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="input"
+          style={{ paddingLeft: 32 }}
+        />
       </div>
 
+      <label className="builder-assets-upload">
+        <FiUpload />
+        <span>{uploading ? t('builderAssets.uploading') : t('builderAssets.upload')}</span>
+        <input
+          type="file"
+          accept="image/*,video/*"
+          multiple
+          onChange={handleUpload}
+          disabled={uploading}
+          className="hidden"
+        />
+      </label>
+
       <div
-        className={`flex-1 overflow-y-auto p-3 relative ${isDragOver ? 'ring-2 ring-blue-400 ring-inset bg-blue-50/30' : ''}`}
+        className={`builder-assets-scroll ${isDragOver ? 'is-drag-over' : ''}`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
       >
         {isDragOver && (
-          <div className="absolute inset-3 border-2 border-dashed border-blue-400 rounded-md flex items-center justify-center text-sm text-blue-700 bg-white/70 pointer-events-none">
-            {t('builderAssets.dropLabel')}
-          </div>
+          <div className="builder-assets-drop-overlay">{t('builderAssets.dropLabel')}</div>
         )}
 
-        {error && (
-          <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-md p-2 mb-3">
-            {error}
-          </div>
-        )}
+        {error && <div className="builder-assets-error">{error}</div>}
 
         {loading ? (
           <div className="text-xs text-muted">{t('builderAssets.loading')}</div>
         ) : filteredItems.length === 0 ? (
           <div className="text-xs text-muted text-center py-6">{t('builderAssets.empty')}</div>
         ) : (
-          <div className="grid grid-cols-2 gap-2">
+          <div className="builder-assets-grid">
             {filteredItems.map((item) => {
               const type = deriveMediaType(item.mime);
               return (
-                <div key={item.id} className="border border-gray-200 rounded-md overflow-hidden">
+                <div key={item.id} className="builder-asset-card">
                   {type === 'image' ? (
-                    <Image src={item.url} alt={item.alt || item.fileName || ""} className="h-20 w-full object-cover" width={160} height={80} sizes="160px" unoptimized />
+                    <Image
+                      src={item.url}
+                      alt={item.alt || item.fileName || ''}
+                      className="builder-asset-image"
+                      width={160}
+                      height={80}
+                      sizes="160px"
+                      unoptimized
+                    />
                   ) : (
-                    <div className="h-20 flex items-center justify-center text-gray-400">
+                    <div className="builder-asset-fallback">
                       <FiFile />
                     </div>
                   )}
-                  <div className="px-2 py-1 text-[11px] text-gray-600 truncate">
-                    {item.fileName}
-                  </div>
+                  <div className="builder-asset-name">{item.fileName}</div>
                 </div>
               );
             })}

@@ -1,27 +1,24 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
-import { SitePanelLayout } from '@/components/site-panel/SitePanelLayout';
-import { SectionHeader } from '@/components/site-panel/SectionHeader';
-import { Card, CardContent, Button, Input } from '@repo/ui';
-import { useToast } from '@/components/ui/Toast';
-import { SnapshotTable } from '@/components/site-panel/snapshots/SnapshotTable';
-import { fetchMySites, exchangeSiteToken, getSiteToken } from '@/lib/api';
-import { createApiClient, type SiteInfo, type SiteSnapshot } from '@repo/sdk';
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useParams } from "next/navigation";
+import { SitePanelLayout } from "@/components/site-panel/SitePanelLayout";
+import { useTranslations } from "@/hooks/useTranslations";
+import { useToast } from "@/components/ui/Toast";
+import { fetchMySites, exchangeSiteToken, getSiteToken } from "@/lib/api";
+import { timeAgo, fmtBytes } from "@/lib/formatters";
+import { createApiClient, type SiteInfo, type SiteSnapshot } from "@repo/sdk";
 
 export default function SnapshotsPage() {
   const params = useParams<{ slug: string }>();
   const slug = params?.slug as string;
   const toast = useToast();
-  const apiClient = createApiClient();
+  const t = useTranslations();
+  const apiClient = useMemo(() => createApiClient(), []);
 
-  const [siteId, setSiteId] = useState<string | null>(null);
+  const [siteName, setSiteName] = useState<string | null>(null);
   const [snapshots, setSnapshots] = useState<SiteSnapshot[]>([]);
-  const [label, setLabel] = useState('');
   const [loading, setLoading] = useState(true);
-  const [creating, setCreating] = useState(false);
-  const [restoringId, setRestoringId] = useState<string | null>(null);
 
   const loadSnapshots = useCallback(async () => {
     if (!slug) return;
@@ -30,108 +27,94 @@ export default function SnapshotsPage() {
       const sites = await fetchMySites();
       const site = sites.find((s: SiteInfo) => s.site.slug === slug);
       if (!site) {
-        throw new Error(`Nie znaleziono strony o slug: "${slug}"`);
+        throw new Error(t("sitePanelShell.snapshotsUi.toasts.siteNotFound", { slug }));
       }
-      setSiteId(site.siteId);
+      setSiteName(site.site?.name || slug);
       let token = getSiteToken(site.siteId);
       if (!token) {
         token = await exchangeSiteToken(site.siteId);
       }
       const list = await apiClient.listSnapshots(token, site.siteId);
-      setSnapshots(list);
+      setSnapshots(list || []);
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Nie uda?o si? wczyta? snapshot?w';
-      toast.push({ tone: 'error', message });
+      const message = error instanceof Error ? error.message : t("sitePanelShell.snapshotsUi.toasts.loadError");
+      toast.push({ tone: "error", message });
     } finally {
       setLoading(false);
     }
-  }, [slug, apiClient, toast]);
+  }, [slug, apiClient, t, toast]);
 
   useEffect(() => {
     loadSnapshots();
   }, [loadSnapshots]);
 
-  const handleCreate = async () => {
-    if (!siteId) return;
-    setCreating(true);
-    try {
-      let token = getSiteToken(siteId);
-      if (!token) {
-        token = await exchangeSiteToken(siteId);
-      }
-      await apiClient.createSnapshot(token, siteId, label.trim() || undefined);
-      setLabel('');
-      toast.push({ tone: 'success', message: 'Snapshot utworzony' });
-      await loadSnapshots();
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Nie uda?o si? utworzy? snapshota';
-      toast.push({ tone: 'error', message });
-    } finally {
-      setCreating(false);
-    }
-  };
-
-  const handleRestore = async (snapshotId: string) => {
-    if (!siteId) return;
-    const confirmed = typeof window !== 'undefined'
-      ? window.confirm('To przywr?ci strony i SEO do stanu z wybranego snapshota. Kontynuowa??')
-      : true;
-    if (!confirmed) return;
-
-    setRestoringId(snapshotId);
-    try {
-      let token = getSiteToken(siteId);
-      if (!token) {
-        token = await exchangeSiteToken(siteId);
-      }
-      await apiClient.restoreSnapshot(token, siteId, snapshotId);
-      toast.push({ tone: 'success', message: 'Snapshot przywr?cony' });
-      await loadSnapshots();
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Nie uda?o si? przywr?ci? snapshota';
-      toast.push({ tone: 'error', message });
-    } finally {
-      setRestoringId(null);
-    }
-  };
-
   return (
-    <SitePanelLayout>
-      <div className="space-y-6">
-        <SectionHeader
-          title="Snapshoty"
-          description="Tw?rz kopie konfiguracji strony (strony, SEO, flagi) i przywracaj stan jednym klikni?ciem."
-          action={{ label: 'Utw?rz snapshot', onClick: handleCreate, disabled: creating || !siteId }}
-        />
+    <SitePanelLayout
+      slug={slug}
+      activeTab="snapshots"
+      title={t("sitePanelShell.snapshots.title", { site: siteName || slug })}
+      subtitle={t("sitePanelShell.snapshots.subtitle")}
+      actions={
+        <>
+          <button className="btn" type="button" onClick={() => toast.push({ tone: "success", message: t("sitePanelShell.snapshotsUi.toasts.retentionMock") })}>{t("sitePanelShell.actions.retention")}</button>
+          <button className="btn primary" type="button" onClick={() => toast.push({ tone: "success", message: t("sitePanelShell.snapshotsUi.toasts.backupNowMock") })}>{t("sitePanelShell.actions.runBackupNow")}</button>
+        </>
+      }
+    >
+      <div>
 
-        <Card>
-          <CardContent className="space-y-3">
-            <div className="flex flex-col gap-2 md:flex-row md:items-end md:gap-3">
-              <div className="flex-1">
-                <label className="block text-sm text-muted mb-1">Etykieta (opcjonalnie)</label>
-                <Input
-                  placeholder="np. Przed redesignem strony g??wnej"
-                  value={label}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLabel(e.target.value)}
-                  disabled={creating || loading}
-                />
-              </div>
-              <Button onClick={handleCreate} disabled={creating || !siteId}>
-                {creating ? 'Zapisywanie...' : 'Utw?rz snapshot'}
-              </Button>
+        <div className="grid cols-2 items-start">
+          <div className="card card-pad">
+            <div className="section-title">{t("sitePanelShell.snapshotsUi.sections.policy")}</div>
+            <div className="spacer-sm" />
+            <div className="row-wrap">
+              <span className="badge green">{t("sitePanelShell.snapshotsUi.labels.schedule")}</span>
+              <span className="badge blue">{t("sitePanelShell.snapshotsUi.labels.window")}</span>
+              <span className="badge gray">{t("sitePanelShell.snapshotsUi.labels.retention")}</span>
+              <span className="badge gray">{t("sitePanelShell.snapshotsUi.labels.encryption")}</span>
             </div>
-            <p className="text-xs text-muted">
-              Snapshoty obejmuj? wszystkie strony (draft + produkcja), SEO oraz ustawienia funkcji dla tej strony.
-            </p>
-          </CardContent>
-        </Card>
+            <div className="spacer-sm" />
+            <div className="detail-label">
+              {t("sitePanelShell.snapshotsUi.labels.policyHint")}
+            </div>
+          </div>
 
-        <SnapshotTable
-          snapshots={snapshots}
-          loading={loading}
-          restoringId={restoringId}
-          onRestore={handleRestore}
-        />
+          <div className="card card-pad">
+            <div className="section-title">{t("sitePanelShell.snapshotsUi.sections.snapshots")}</div>
+            <div className="spacer-sm" />
+            {loading ? (
+              <div className="text-muted">{t("common.loading")}</div>
+            ) : snapshots.length === 0 ? (
+              <div className="text-muted">{t("common.noResults")}</div>
+            ) : (
+              snapshots
+                .slice()
+                .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                .map((b) => {
+                  const stCls = "badge green";
+                  return (
+                    <div key={b.id} className="list-row">
+                      <div className="min-w-0">
+                        <div className="truncate project-name">{b.label || b.id}</div>
+                        <div className="detail-label mt-2">
+                          {timeAgo(b.createdAt)} - eu-central-1 - Daily
+                        </div>
+                        <div className="tag-row">
+                          <span className="badge gray">{t("sitePanelShell.snapshotsUi.labels.size", { value: fmtBytes(280 * 1024 * 1024) })}</span>
+                          <span className="badge gray">{t("sitePanelShell.snapshotsUi.labels.retentionShort")}</span>
+                        </div>
+                      </div>
+                      <div className="row-wrap" style={{ alignItems: "center" }}>
+                        <span className={stCls}>{t("sitePanelShell.snapshotsUi.labels.ok")}</span>
+                        <button className="btn" type="button" onClick={() => toast.push({ tone: "success", message: t("sitePanelShell.snapshotsUi.toasts.restoreMock") })}>{t("sitePanelShell.snapshotsUi.actions.restore")}</button>
+                        <button className="btn" type="button" onClick={() => toast.push({ tone: "success", message: t("sitePanelShell.snapshotsUi.toasts.downloadMock") })}>{t("sitePanelShell.snapshotsUi.actions.download")}</button>
+                      </div>
+                    </div>
+                  );
+                })
+            )}
+          </div>
+        </div>
       </div>
     </SitePanelLayout>
   );

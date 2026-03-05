@@ -67,7 +67,23 @@
     "business": "Biznes",
     "development": "Rozwój",
     "dev": "Panel deweloperski",
-    "orgSettings": "Ustawienia organizacji"
+    "orgSettings": "Ustawienia organizacji",
+    "devRuntime": "Runtime",
+    "devApiKeys": "API Keys",
+    "devWebhooks": "Webhooki",
+    "devLogs": "Logi",
+    "devFlags": "Flagi funkcji"
+  },
+  "shell": {
+    "searchPlaceholder": "Szukaj w projektach, stronach i ustawieniach",
+    "notifications": "Powiadomienia",
+    "loadingNotifications": "Ladowanie powiadomien...",
+    "noNotifications": "Brak powiadomien",
+    "markAllRead": "Oznacz wszystkie jako przeczytane",
+    "openUserMenu": "Otworz menu uzytkownika",
+    "account": "Konto",
+    "billing": "Rozliczenia",
+    "role": "Rola"
   },
   "dashboard": {
     "title": "Przegląd",
@@ -585,12 +601,15 @@
     "filterAll": "Wszystko",
     "filterImages": "Obrazy",
     "filterVideos": "Wideo",
+    "filterDocuments": "Dokumenty",
     "upload": "Wgraj",
     "loading": "Ładowanie mediów...",
     "uploading": "Wgrywanie...",
-    "dropLabel": "Upu? pliki, aby wgra?",
+    "dropLabel": "Upuść pliki, aby wgrać",
     "emptyTitle": "Brak plików",
-    "emptyHint": "Wgraj pliki do biblioteki mediów tej strony",
+    "emptyHint": "Wgraj pliki lub przeciągnij tutaj",
+    "noSelection": "Wybierz element z listy",
+    "clear": "Wyczyść",
     "cancel": "Anuluj",
     "select": "Wybierz"
   },
@@ -624,7 +643,7 @@
     "description": "Włączaj i wyłączaj moduły strony. Zależności są egzekwowane automatycznie.",
     "planLabel": "Plan",
     "siteLabel": "Strona",
-    "loading": "?adowanie modu??w...",
+    "loading": "Ladowanie modulow...",
     "siteNotFound": "Nie znaleziono strony",
     "loadSiteFailed": "Nie udało się wczytać strony",
     "moduleEnabled": "Moduł włączony",
@@ -698,10 +717,467 @@
       "blogDescription": "Domyślna paginacja listy wpisów.",
       "blogPostsPerPage": "Wpisy na stron?",
       "blogShowCategories": "Pokazuj kategorie"
+    },
+    "plan": "Plan"
+  },
+  "sitePanelShell": {
+    "overview": {
+      "title": "Panel strony - {site}",
+      "subtitle": "Zarzadzanie projektem: {domain}"
+    },
+    "pages": {
+      "title": "Strony - {site}",
+      "subtitle": "Lista stron. Kazda strone mozna otworzyc w Builderze."
+    },
+    "content": {
+      "title": "Tresci - {site}",
+      "subtitle": "Wpisy i kolekcje z filtrami kategorii/autora/statusu."
+    },
+    "collections": {
+      "title": "Kolekcje - {site}",
+      "subtitle": "Modeluj dane i zarzadzaj tresciami strukturalnymi."
+    },
+    "collectionItems": {
+      "title": "Kolekcja - {collection}",
+      "subtitle": "Zarzadzaj wpisami tej kolekcji."
+    },
+    "media": {
+      "title": "Media - {site}",
+      "subtitle": "Biblioteka plikow z limitami i filtrowaniem globalnym search."
+    },
+    "marketing": {
+      "title": "Marketing / SEO - {site}",
+      "subtitle": "Kampanie, checklista i status SEO stron."
+    },
+    "seo": {
+      "title": "Marketing / SEO - {site}",
+      "subtitle": "Kampanie, checklista i status SEO stron."
+    },
+    "deployments": {
+      "title": "Wdrozenia - {site}",
+      "subtitle": "Historia wdrozen: pipeline, statusy i rollback."
+    },
+    "activity": {
+      "title": "Aktywnosc - {site}",
+      "subtitle": "Ostatnie zdarzenia: publikacje, SEO, media i snapshoty."
+    },
+    "modules": {
+      "title": "Moduly - {site}",
+      "subtitle": "Przełączniki funkcji i konfiguracja modułów. Włączone moduły odblokowują bloki w Kreatorze strony."
+    },
+    "settings": {
+      "title": "Ustawienia - {site}",
+      "subtitle": "Ustawienia projektu pogrupowane sekcjami produktu."
+    },
+    "snapshots": {
+      "title": "Backupy - {site}",
+      "subtitle": "Snapshoty i backupy: harmonogram, retencja i restore."
+    },
+    "actions": {
+      "refresh": "Odswiez",
+      "exportCsv": "Eksport CSV",
+      "import": "Import",
+      "newEntry": "Nowy wpis",
+      "newCollection": "Nowa kolekcja",
+      "redeploy": "Redeploy",
+      "newDeployment": "Nowe wdrozenie",
+      "optimize": "Optymalizuj",
+      "upload": "Upload",
+      "goToPages": "Przejdz do stron",
+      "openBuilder": "Otworz Builder",
+      "addPage": "Dodaj strone",
+      "runAudit": "Uruchom audit",
+      "applyFixes": "Zastosuj poprawki",
+      "testConfig": "Test konfiguracji",
+      "saveChanges": "Zapisz zmiany",
+      "retention": "Retencja",
+      "runBackupNow": "Uruchom backup teraz",
+      "newCampaign": "Nowa kampania",
+      "newDraft": "Nowy szkic"
+    },
+    "marketingUi": {
+      "cards": {
+        "entries": "Wpisy",
+        "collections": "Kolekcje: {count}",
+        "drafts": "Szkice",
+        "scheduled": "Zaplanowane: {count}",
+        "authors": "Autorzy",
+        "workflowOk": "Workflow: OK"
+      },
+      "sections": {
+        "collections": "Kolekcje",
+        "searchEmpty": "Szukaj: -"
+      },
+      "states": {
+        "noCollections": "Brak kolekcji",
+        "noResults": "Brak wynikow."
+      },
+      "modals": {
+        "createCampaignTitle": "Utworz kampanie",
+        "createDraftTitle": "Utworz szkic dystrybucji",
+        "publishTitle": "Publikuj tresc"
+      },
+      "fields": {
+        "name": "Nazwa",
+        "description": "Opis",
+        "title": "Tytul",
+        "channels": "Kanaly",
+        "optionalDraft": "Szkic (opcjonalny)",
+        "createNew": "Utworz nowy",
+        "campaign": "Kampania: {name}",
+        "status": "Status"
+      },
+      "actions": {
+        "publish": "Publikuj"
+      },
+      "toasts": {
+        "loadError": "Nie udalo sie pobrac danych marketingu",
+        "campaignCreated": "Kampania utworzona pomyslnie",
+        "campaignCreateError": "Nie udalo sie utworzyc kampanii",
+        "draftTitleRequired": "Tytul szkicu jest wymagany",
+        "channelRequired": "Wybierz przynajmniej jeden kanal",
+        "draftCreated": "Szkic utworzony pomyslnie",
+        "draftCreateError": "Blad podczas tworzenia szkicu",
+        "publishContentRequired": "Dodaj tresc marketingowa, aby opublikowac.",
+        "publishCreated": "Zadanie publikacji utworzone pomyslnie",
+        "publishError": "Blad podczas publikacji"
+      }
+    },
+    "seoUi": {
+      "sections": {
+        "health": "Zdrowie SEO",
+        "checklistOk": "{ok}/{total} punktow checklisty OK (mock)",
+        "pages": "SEO stron",
+        "updated": "Zaktualizowano {time}",
+        "index": "Index: {value}",
+        "issues": "Problemy: {count}",
+        "score": "Wynik: {score}"
+      },
+      "status": {
+        "ok": "OK",
+        "attn": "UWAGA",
+        "yes": "Tak",
+        "no": "Nie"
+      },
+      "actions": {
+        "editMeta": "Edytuj meta"
+      },
+      "modals": {
+        "settingsTitle": "Ustawienia SEO"
+      },
+      "toasts": {
+        "siteNotFound": "Nie znaleziono strony o slug: \"{slug}\"",
+        "loadError": "Nie udalo sie pobrac SEO",
+        "runAudit": "Mock: uruchom audit"
+      }
+    },
+    "contentUi": {
+      "cards": {
+        "entries": "Wpisy",
+        "collections": "Kolekcje: {count}",
+        "drafts": "Szkice",
+        "scheduled": "Zaplanowane: {count}",
+        "authors": "Autorzy",
+        "workflowOk": "Workflow: OK"
+      },
+      "sections": {
+        "collections": "Kolekcje",
+        "entries": "Wpisy",
+        "recentChanges": "Ostatnie zmiany"
+      },
+      "states": {
+        "noCollections": "Brak kolekcji",
+        "noEntries": "Brak wpisow."
+      },
+      "actions": {
+        "preview": "Podglad"
+      },
+      "fields": {
+        "title": "Tytul",
+        "titlePlaceholder": "Tytul wpisu"
+      },
+      "modals": {
+        "importTitle": "Import tresci",
+        "importMock": "Mock: import tresci (CSV/API)",
+        "newEntryTitle": "Nowy wpis"
+      },
+      "toasts": {
+        "siteNotFound": "Nie znaleziono strony o slug: \"{slug}\"",
+        "loadError": "Nie udalo sie pobrac tresci"
+      }
+    },
+    "mediaUi": {
+      "cards": {
+        "assets": "Zasoby",
+        "searchable": "Przeszukiwalne",
+        "storage": "Storage",
+        "cdn": "CDN",
+        "active": "Aktywne",
+        "cache": "Cache: 92%"
+      },
+      "modals": {
+        "uploadTitle": "Upload"
+      },
+      "toasts": {
+        "siteNotFound": "Nie znaleziono strony o slug: \"{slug}\"",
+        "loadError": "Nie udalo sie pobrac mediow",
+        "optimizeMock": "Mock: optymalizacja obrazow"
+      }
+    },
+    "collectionsUi": {
+      "states": {
+        "noCollections": "Brak kolekcji."
+      },
+      "labels": {
+        "fields": "Pola: {count}"
+      },
+      "actions": {
+        "entries": "Wpisy",
+        "creating": "Tworzenie...",
+        "createCollection": "Utworz kolekcje",
+        "saving": "Zapisywanie...",
+        "saveChanges": "Zapisz zmiany"
+      },
+      "fields": {
+        "name": "Nazwa kolekcji",
+        "namePlaceholder": "np. Blog",
+        "slug": "Slug kolekcji",
+        "slugPlaceholder": "np. blog",
+        "fields": "Pola"
+      },
+      "modals": {
+        "createTitle": "Utworz kolekcje",
+        "editTitle": "Edytuj kolekcje: {name}",
+        "deleteTitle": "Usun kolekcje",
+        "deleteMessage": "Czy na pewno chcesz usunac kolekcje \"{slug}\"? To usunie wszystkie wpisy."
+      },
+      "toasts": {
+        "siteNotFound": "Nie znaleziono strony o slug: \"{slug}\"",
+        "loadError": "Nie udalo sie wczytac kolekcji",
+        "createSuccess": "Kolekcja utworzona pomyslnie",
+        "createError": "Nie udalo sie utworzyc kolekcji",
+        "updateSuccess": "Kolekcja zaktualizowana",
+        "updateError": "Nie udalo sie zaktualizowac kolekcji",
+        "deleteSuccess": "Kolekcja usunieta",
+        "deleteError": "Nie udalo sie usunac kolekcji"
+      }
+    },
+    "activityUi": {
+      "csv": {
+        "date": "Data",
+        "type": "Typ",
+        "message": "Wiadomosc"
+      },
+      "filters": {
+        "title": "Filtry",
+        "type": "Typ",
+        "all": "Wszystkie",
+        "page": "Strony",
+        "publish": "Publikacja",
+        "media": "Media",
+        "seo": "SEO",
+        "snapshot": "Snapshoty"
+      },
+      "notes": {
+        "autoEvents": "Zdarzenia zapisuja sie automatycznie przy publikacji, zmianach SEO, zarzadzaniu mediami oraz snapshotach."
+      },
+      "modal": {
+        "title": "Szczegoly zdarzenia",
+        "type": "Typ",
+        "unknown": "Nieznany",
+        "message": "Wiadomosc",
+        "noMessage": "Brak wiadomosci",
+        "when": "Kiedy",
+        "details": "Szczegoly"
+      },
+      "toasts": {
+        "siteNotFound": "Nie znaleziono strony o slug: \"{slug}\"",
+        "loadError": "Nie udalo sie pobrac aktywnosci"
+      }
+    },
+    "deploymentsUi": {
+      "sections": {
+        "current": "Biezace",
+        "history": "Historia"
+      },
+      "labels": {
+        "env": "Srodowisko: {value}",
+        "version": "Wersja: v1.0.0",
+        "sha": "SHA: {value}",
+        "last": "Ostatnio: {value}",
+        "pipeline": "Mock pipeline: build - tests - optimize - deploy - verify",
+        "deploy": "Wdrozenie"
+      },
+      "states": {
+        "noDeployments": "Brak wdrozen."
+      },
+      "actions": {
+        "rollback": "Rollback",
+        "logs": "Logi"
+      },
+      "toasts": {
+        "siteNotFound": "Nie znaleziono strony o slug: \"{slug}\"",
+        "loadError": "Nie udalo sie pobrac wdrozen",
+        "redeployMock": "Mock: redeploy",
+        "newDeploymentMock": "Mock: utworz wdrozenie"
+      }
+    },
+    "snapshotsUi": {
+      "sections": {
+        "policy": "Polityka",
+        "snapshots": "Snapshoty"
+      },
+      "labels": {
+        "schedule": "Harmonogram: codziennie",
+        "window": "Okno: 02:00-03:00",
+        "retention": "Retencja: 30 dni",
+        "retentionShort": "Retencja: 30d",
+        "encryption": "Szyfrowanie: AES-256 (mock)",
+        "policyHint": "Mock: backup dziala \"od lat\" - dlatego jest lista, retencja, regiony i operacje restore.",
+        "size": "Rozmiar: {value}",
+        "ok": "OK"
+      },
+      "actions": {
+        "restore": "Przywroc",
+        "download": "Pobierz"
+      },
+      "toasts": {
+        "siteNotFound": "Nie znaleziono strony o slug: \"{slug}\"",
+        "loadError": "Nie udalo sie wczytac snapshotow",
+        "retentionMock": "Mock: zmien retencje",
+        "backupNowMock": "Mock: wykonaj backup teraz",
+        "restoreMock": "Mock: restore snapshot",
+        "downloadMock": "Mock: download archive"
+      }
+    },
+    "overviewUi": {
+      "toasts": {
+        "siteNotFound": "Nie znaleziono strony o slug: \"{slug}\"",
+        "loadError": "Nie udalo sie pobrac danych",
+        "addPageBeforePublish": "Dodaj przynajmniej jedna strone, aby opublikowac.",
+        "publishSuccess": "Wszystkie strony opublikowane pomyslnie",
+        "publishError": "Nie udalo sie opublikowac stron",
+        "addPageBeforeBuilder": "Dodaj strone, aby otworzyc kreator."
+      },
+      "sections": {
+        "quickActions": "Szybkie akcje",
+        "usage": "Usage",
+        "ops": "Ops",
+        "recent": "Ostatnio modyfikowane"
+      },
+      "tooltips": {
+        "createPageToOpenBuilder": "Utworz strone, aby otworzyc kreator"
+      },
+      "actions": {
+        "openBuilder": "Otworz kreator",
+        "createPage": "Utworz strone",
+        "publishing": "Publikowanie...",
+        "publishAll": "Opublikuj wszystko",
+        "managePages": "Zarzadzaj stronami",
+        "open": "Otworz"
+      },
+      "modals": {
+        "selectPageTitle": "Wybierz strone do edycji"
+      },
+      "labels": {
+        "untitled": "Bez tytulu",
+        "site": "Strona",
+        "status": "Status",
+        "uptime": "Uptime: 99.98%",
+        "identity": "Tozsamosc",
+        "build": "Build",
+        "lastDeploy": "Ostatni deploy: {value}",
+        "storage": "Storage: {value}",
+        "bandwidth": "Bandwidth: {value}",
+        "pages": "Strony: {count}",
+        "usageHint": "Mock dane: limity i metryki beda rozbudowane w kolejnym kroku.",
+        "dns": "DNS: Verified",
+        "ssl": "SSL: Active",
+        "cdn": "CDN: On",
+        "backups": "Backups: Daily",
+        "opsHint": "Dane przykladowe, ale wygladaja jak zywy produkt.",
+        "draftsPublished": "Szkice: {draft} / Published: {published}",
+        "lastChange": "Ostatnia zmiana: {value}"
+      }
+    },
+    "pagesUi": {
+      "labels": {
+        "site": "Strona"
+      },
+      "states": {
+        "noPages": "Brak stron."
+      },
+      "toasts": {
+        "loadError": "Nie udalo sie pobrac stron",
+        "titleRequired": "Tytul strony jest wymagany",
+        "slugInvalid": "Slug moze zawierac tylko male litery, cyfry i myslniki",
+        "createSuccess": "Strona utworzona pomyslnie",
+        "createError": "Blad podczas tworzenia strony",
+        "updateSuccess": "Strona zaktualizowana pomyslnie",
+        "updateError": "Nie udalo sie zaktualizowac strony",
+        "deleteSuccess": "Strona usunieta pomyslnie",
+        "deleteError": "Nie udalo sie usunac strony",
+        "siteNotFound": "Nie znaleziono strony o slug: \"{slug}\""
+      },
+      "fields": {
+        "title": "Tytul",
+        "titlePlaceholder": "Tytul strony",
+        "slug": "Slug",
+        "slugPlaceholder": "slug-strony",
+        "environment": "Srodowisko",
+        "production": "Produkcja",
+        "draft": "Szkic"
+      },
+      "actions": {
+        "builder": "Builder",
+        "preview": "Podglad"
+      },
+      "tooltips": {
+        "preview": "Podglad (mock)"
+      },
+      "modals": {
+        "createTitle": "Utworz nowa strone",
+        "editTitle": "Edytuj strone",
+        "deleteTitle": "Usun strone",
+        "deleteMessage": "Czy na pewno chcesz usunac te strone?"
+      }
+    },
+    "settingsUi": {
+      "sections": {
+        "general": "Ogolne",
+        "domains": "Domeny / DNS / SSL",
+        "integrations": "Integracje"
+      },
+      "labels": {
+        "projectName": "Nazwa projektu",
+        "primaryDomain": "Domena glowna",
+        "maintenanceMode": "Tryb maintenance",
+        "allowIndexing": "Pozwol na indeksowanie",
+        "cdnEnabled": "CDN wlaczone",
+        "generalHint": "To sa ustawienia mock - zapisujemy lokalnie (LocalStorage) dla efektu \"dziala jak produkt\".",
+        "dnsVerified": "DNS: Zweryfikowane",
+        "sslActive": "SSL: Aktywne",
+        "cnameOk": "CNAME: OK",
+        "hstsOn": "HSTS: On",
+        "domainsHint": "Mock integracje: rekordy DNS, odnowienia certyfikatow, walidacje.",
+        "integrationsHint": "Integracje do automatyzacji raportow i monitoringu."
+      },
+      "actions": {
+        "saving": "Zapisywanie...",
+        "saveSeo": "Zapisz ustawienia SEO"
+      },
+      "toasts": {
+        "siteNotFound": "Nie znaleziono strony o slug: \"{slug}\"",
+        "loadError": "Nie udalo sie pobrac ustawien",
+        "seoSaved": "Ustawienia SEO zapisane",
+        "seoSaveError": "Nie udalo sie zapisac ustawien SEO",
+        "testConfigMock": "Mock: test konfiguracji",
+        "saveMock": "Mock: zapis ustawien"
+      }
     }
   },
   "sitePanelLayout": {
-    "backToSite": "? Wr? do strony",
+    "backToSite": "Wroc do strony",
     "title": "Panel strony",
     "description": "Wszystkie operacje strony w jednym miejscu: podgląd, strony, treści, media, marketing, wdrożenia i ustawienia."
   }

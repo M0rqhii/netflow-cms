@@ -1,74 +1,73 @@
-
 "use client";
 
-import React, { useEffect, useState, useCallback } from 'react';
-import Link from 'next/link';
-import { useParams } from 'next/navigation';
-import { Badge } from '@/components/ui/Badge';
-import { SitePanelNav } from './SitePanelNav';
-import { trackOnboardingSuccess } from '@/lib/onboarding';
-import { useTranslations } from '@/hooks/useTranslations';
-import { fetchMySites } from '@/lib/api';
-import type { SiteInfo } from '@repo/sdk';
-import { useSiteFeatures } from '@/lib/site-features';
+import React from "react";
+import Link from "next/link";
+
+const SITE_PANEL_TABS = [
+  ["overview", "Overview"],
+  ["pages", "Pages"],
+  ["collections", "Content"],
+  ["media", "Media"],
+  ["marketing", "Marketing / SEO"],
+  ["settings", "Settings"],
+  ["deployments", "Deployment"],
+  ["activity", "Activity"],
+  ["modules", "Modules"],
+  ["snapshots", "Backups"],
+] as const;
+
+type SitePanelTab = (typeof SITE_PANEL_TABS)[number][0];
 
 interface SitePanelLayoutProps {
   children: React.ReactNode;
+  title?: React.ReactNode;
+  subtitle?: React.ReactNode;
+  actions?: React.ReactNode;
+  slug?: string;
+  activeTab?: SitePanelTab;
 }
 
-export function SitePanelLayout({ children }: SitePanelLayoutProps) {
-  const params = useParams<{ slug: string }>();
-  const slug = params?.slug as string;
-  const t = useTranslations();
-
-  const [siteId, setSiteId] = useState<string | null>(null);
-
-  const { features } = useSiteFeatures(siteId);
-
-  const loadSite = useCallback(async () => {
-    if (!slug) return;
-    try {
-      const sites = await fetchMySites();
-      const current = sites.find((s: SiteInfo) => s.site.slug === slug) || null;
-      if (current) {
-        setSiteId(current.siteId);
-      }
-    } catch {
-      setSiteId(null);
-    }
-  }, [slug]);
-
-  useEffect(() => {
-    trackOnboardingSuccess('site_panel');
-  }, []);
-
-  useEffect(() => {
-    loadSite();
-  }, [loadSite]);
+export function SitePanelLayout({ children, title, subtitle, actions, slug, activeTab }: SitePanelLayoutProps) {
+  const showHeader = Boolean(title || subtitle || actions);
+  const showTabs = Boolean(slug && activeTab);
 
   return (
-    <div className="container py-8 space-y-6">
-      <div className="space-y-2">
-        <div className="flex items-center gap-3">
-          <Link 
-            href={`/sites/${encodeURIComponent(slug)}`} 
-            className="text-sm text-muted hover:text-foreground transition-colors"
-          >
-            {t('sitePanelLayout.backToSite')}
-          </Link>
-          <Badge className="font-mono text-xs">{slug}</Badge>
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold">{t('sitePanelLayout.title')}</h1>
-          <p className="text-sm text-muted">
-            {t('sitePanelLayout.description')}
-          </p>
-        </div>
-      </div>
+    <div className="site-panel-fluid w-full px-3 sm:px-5 lg:px-6 2xl:px-8 py-4 sm:py-6">
+      <div className="site-panel-shell">
+        {showHeader && (
+          <>
+            <div className="card card-pad site-panel-header">
+              <div className="row-start">
+                <div>
+                  {title ? <div className="view-title">{title}</div> : null}
+                  {subtitle ? <div className="view-sub">{subtitle}</div> : null}
+                </div>
+                {actions ? <div className="row-wrap">{actions}</div> : null}
+              </div>
+            </div>
+            <div className="spacer" />
+          </>
+        )}
 
-      <SitePanelNav slug={slug} enabledFeatures={features?.effective ?? null} />
+        {showTabs && (
+          <>
+            <div className="card tab-bar">
+              <div className="tab-row">
+                {SITE_PANEL_TABS.map(([key, label]) => (
+                  <Link
+                    key={key}
+                    href={`/sites/${encodeURIComponent(slug as string)}/panel/${key}`}
+                    className={activeTab === key ? "btn tab-active" : "btn"}
+                  >
+                    {label}
+                  </Link>
+                ))}
+              </div>
+            </div>
+            <div className="spacer" />
+          </>
+        )}
 
-      <div className="mt-6">
         {children}
       </div>
     </div>

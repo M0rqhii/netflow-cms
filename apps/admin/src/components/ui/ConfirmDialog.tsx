@@ -27,21 +27,17 @@ export default function ConfirmDialog({
   variant = 'default',
   loading = false,
 }: ConfirmDialogProps) {
-  const handleConfirm = () => {
-    onConfirm();
-  };
-
   return (
-    <Modal open={open} onClose={onClose} title={title}>
-      <div className="space-y-4">
-        <p className="text-muted">{message}</p>
-        <div className="flex items-center gap-2 justify-end">
+    <Modal open={open} onClose={onClose} title={title} size="sm">
+      <div className="space-y-5">
+        <p className="text-sm text-muted leading-relaxed">{message}</p>
+        <div className="flex items-center gap-3 justify-end pt-2">
           <Button variant="outline" onClick={onClose} disabled={loading}>
             {cancelLabel}
           </Button>
           <Button
             variant={variant === 'danger' ? 'danger' : 'primary'}
-            onClick={handleConfirm}
+            onClick={onConfirm}
             disabled={loading}
             isLoading={loading}
           >
@@ -52,4 +48,3 @@ export default function ConfirmDialog({
     </Modal>
   );
 }
-

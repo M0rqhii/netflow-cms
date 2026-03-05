@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ConflictException,
   BadRequestException,
+  ForbiddenException,
   Inject,
   forwardRef,
   Logger,
@@ -20,7 +21,7 @@ import { HooksService } from '../../hooks/hooks.service';
 
 /**
  * CollectionItemsService - business logic dla Collection Items
- * AI Note: Zawsze filtruj po siteId - site isolation
+ * AI Note: Zawsze filtruj po siteId i waliduj orgId - site isolation
  */
 @Injectable()
 export class CollectionItemsService {
@@ -38,6 +39,23 @@ export class CollectionItemsService {
     @Inject(forwardRef(() => HooksService))
     private readonly hooksService: HooksService,
   ) {}
+
+  /**
+   * Validates that the site belongs to the organization
+   * @throws ForbiddenException if site doesn't belong to org
+   */
+  private async validateSiteBelongsToOrg(siteId: string, orgId: string): Promise<void> {
+    const site = await this.prisma.site.findUnique({
+      where: { id: siteId },
+      select: { orgId: true },
+    });
+    if (!site) {
+      throw new NotFoundException('Site not found');
+    }
+    if (site.orgId !== orgId) {
+      throw new ForbiddenException('Site does not belong to this organization');
+    }
+  }
 
   private async getCollection(siteId: string, slug: string) {
     const cacheKey = `col:${siteId}:${slug}`;
@@ -74,7 +92,8 @@ export class CollectionItemsService {
     return collection;
   }
 
-  async list(siteId: string, slug: string, query: ItemQueryDto) {
+  async list(siteId: string, orgId: string, slug: string, query: ItemQueryDto) {
+    await this.validateSiteBelongsToOrg(siteId, orgId);
     const collection = await this.getCollection(siteId, slug);
     const skip = (query.page - 1) * query.pageSize;
 
@@ -164,10 +183,12 @@ export class CollectionItemsService {
 
   async create(
     siteId: string,
+    orgId: string,
     slug: string,
     dto: UpsertItemDto,
     userId?: string
   ) {
+    await this.validateSiteBelongsToOrg(siteId, orgId);
     const collection = await this.getCollection(siteId, slug);
     const schemaJson = collection.schemaJson as Record<string, any>;
     await this.validateDataAgainstSchema(schemaJson, dto.data);
@@ -256,7 +277,8 @@ export class CollectionItemsService {
     return item;
   }
 
-  async get(siteId: string, slug: string, id: string) {
+  async get(siteId: string, orgId: string, slug: string, id: string) {
+    await this.validateSiteBelongsToOrg(siteId, orgId);
     const collection = await this.getCollection(siteId, slug);
     const item = await this.prisma.collectionItem.findFirst({
       where: {
@@ -289,11 +311,13 @@ export class CollectionItemsService {
 
   async update(
     siteId: string,
+    orgId: string,
     slug: string,
     id: string,
     dto: UpsertItemDto,
     userId?: string
   ) {
+    await this.validateSiteBelongsToOrg(siteId, orgId);
     const collection = await this.getCollection(siteId, slug);
     const current = await this.prisma.collectionItem.findFirst({
       where: {
@@ -436,7 +460,8 @@ export class CollectionItemsService {
     return updated;
   }
 
-  async remove(siteId: string, slug: string, id: string) {
+  async remove(siteId: string, orgId: string, slug: string, id: string) {
+    await this.validateSiteBelongsToOrg(siteId, orgId);
     const collection = await this.getCollection(siteId, slug);
     const item = await this.prisma.collectionItem.findFirst({
       where: {

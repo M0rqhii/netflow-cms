@@ -1,25 +1,22 @@
 "use client";
 
-import { useEffect, useMemo, useState } from 'react';
-import { Card, CardHeader, CardTitle, CardContent, EmptyState } from '@repo/ui';
-import { Badge } from '@/components/ui/Badge';
-import { decodeAuthToken, getAuthToken, getDevPayments } from '@/lib/api';
-import { LoadingSpinner } from '@repo/ui';
-import { DevPanelLayout } from '@/components/dev-panel/DevPanelLayout';
+import { useEffect, useMemo, useState } from "react";
+import { decodeAuthToken, getAuthToken, getDevPayments } from "@/lib/api";
+import { LoadingSpinner } from "@repo/ui";
+import { DevPanelLayout } from "@/components/dev-panel/DevPanelLayout";
 
-const PRIVILEGED_ROLES = ['super_admin', 'org_admin', 'site_admin'];
-const PRIVILEGED_PLATFORM_ROLES = ['platform_admin'];
+const PRIVILEGED_ROLES = ["super_admin", "org_admin", "site_admin"];
+const PRIVILEGED_PLATFORM_ROLES = ["platform_admin"];
 
 export default function DevPaymentsPage() {
-  const appProfile = process.env.NEXT_PUBLIC_APP_PROFILE || process.env.NODE_ENV || 'development';
-  const isProd = appProfile === 'production';
+  const appProfile = process.env.NEXT_PUBLIC_APP_PROFILE || process.env.NODE_ENV || "development";
+  const isProd = appProfile === "production";
   const token = getAuthToken();
   const payload = useMemo(() => decodeAuthToken(token), [token]);
-  const userRole = (payload?.role as string) || '';
-  const userPlatformRole = (payload?.platformRole as string) || '';
-  const isPrivileged = 
-    PRIVILEGED_ROLES.includes(userRole) || 
-    PRIVILEGED_PLATFORM_ROLES.includes(userPlatformRole);
+  const userRole = (payload?.role as string) || "";
+  const userPlatformRole = (payload?.platformRole as string) || "";
+  const isPrivileged =
+    PRIVILEGED_ROLES.includes(userRole) || PRIVILEGED_PLATFORM_ROLES.includes(userPlatformRole);
   const [payments, setPayments] = useState<
     Array<{ id: string; orgId: string; plan?: string; status: string; currentPeriodStart?: string; currentPeriodEnd?: string; createdAt?: string }>
   >([]);
@@ -33,13 +30,13 @@ export default function DevPaymentsPage() {
     getDevPayments()
       .then((data) => setPayments(data))
       .catch((e) => {
-        // Don't show error for 403 Forbidden - user will see access denied message
-        const isForbidden = e instanceof Error && 
-          (e.message.includes('403') || 
-           e.message.includes('Forbidden') ||
-           e.message.includes('Insufficient permissions'));
+        const isForbidden =
+          e instanceof Error &&
+          (e.message.includes("403") ||
+            e.message.includes("Forbidden") ||
+            e.message.includes("Insufficient permissions"));
         if (!isForbidden) {
-          setError(e instanceof Error ? e.message : 'Failed to load payment events');
+          setError(e instanceof Error ? e.message : "Failed to load payment events");
         }
       })
       .finally(() => setLoading(false));
@@ -47,75 +44,72 @@ export default function DevPaymentsPage() {
 
   if (isProd) {
     return (
-      <div className="container py-10">
-        <EmptyState title="Dev Panel disabled" description="Only available outside production." />
+      <div className="card card-pad">
+        <div className="font-black">Dev Panel disabled</div>
+        <div className="text-muted text-xs mt-1.5">Only available outside production.</div>
       </div>
     );
   }
 
   if (!isPrivileged) {
     return (
-      <div className="container py-10">
-        <EmptyState
-          title="Access denied"
-          description="Only privileged users can access the Dev Panel."
-          action={{ label: 'Back to dashboard', onClick: () => (window.location.href = '/dashboard') }}
-        />
+      <div className="card card-pad">
+        <div className="font-black">Access denied</div>
+        <div className="text-muted text-xs mt-1.5">Only privileged users can access the Dev Panel.</div>
+        <div className="spacer-sm" />
+        <button className="btn" onClick={() => (window.location.href = "/dashboard")}>
+          Back to dashboard
+        </button>
       </div>
     );
   }
 
   return (
-    <DevPanelLayout
-      title="Payments"
-      description="Simulated subscriptions and payment events (DevPaymentProvider)"
-    >
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Payment events</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="py-8 flex items-center justify-center">
-              <LoadingSpinner text="Loading payment events..." />
-            </div>
-          ) : error ? (
-            <div className="text-red-600 text-sm">{error}</div>
-          ) : payments.length === 0 ? (
-            <EmptyState title="No payment events" description="DevPaymentProvider has no events yet." />
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-left text-muted border-b">
-                    <th className="py-2">Plan</th>
-                    <th className="py-2">Site ID</th>
-                    <th className="py-2">Status</th>
-                    <th className="py-2">Period end</th>
-                    <th className="py-2">Created</th>
+    <DevPanelLayout title="Payments" description="Simulated subscriptions and payment events (DevPaymentProvider)">
+      <div className="card card-pad">
+        <div className="section-title">Payment events</div>
+        <div className="spacer-sm" />
+        {loading ? (
+          <div className="py-8 flex items-center justify-center">
+            <LoadingSpinner text="Loading payment events..." />
+          </div>
+        ) : error ? (
+          <div className="text-error text-xs">{error}</div>
+        ) : payments.length === 0 ? (
+          <div className="text-muted">No payment events yet.</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Plan</th>
+                  <th>Site ID</th>
+                  <th>Status</th>
+                  <th>Period end</th>
+                  <th>Created</th>
+                </tr>
+              </thead>
+              <tbody>
+                {payments.map((evt) => (
+                  <tr key={evt.id}>
+                    <td className="mono text-xs">{evt.plan}</td>
+                    <td className="mono text-xs">{evt.orgId}</td>
+                    <td>
+                      <span className={evt.status === "active" ? "badge green" : "badge orange"}>{evt.status}</span>
+                    </td>
+                    <td className="text-muted">
+                      {evt.currentPeriodEnd ? new Date(evt.currentPeriodEnd).toLocaleDateString() : "-"}
+                    </td>
+                    <td className="text-muted">
+                      {evt.createdAt ? new Date(evt.createdAt).toLocaleString() : "-"}
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {payments.map((evt) => (
-                    <tr key={evt.id} className="border-b">
-                      <td className="py-2 font-mono text-xs">{evt.plan}</td>
-                      <td className="py-2 font-mono text-xs">{evt.orgId}</td>
-                      <td className="py-2">
-                        <Badge tone={evt.status === 'active' ? 'success' : 'warning'}>{evt.status}</Badge>
-                      </td>
-                      <td className="py-2">
-                        {evt.currentPeriodEnd ? new Date(evt.currentPeriodEnd).toLocaleDateString() : '—'}
-                      </td>
-                      <td className="py-2">{evt.createdAt ? new Date(evt.createdAt).toLocaleString() : '—'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </DevPanelLayout>
   );
 }

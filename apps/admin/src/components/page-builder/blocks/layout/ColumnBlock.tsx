@@ -1,42 +1,44 @@
 /**
  * ColumnBlock
- * 
- * Kolumna w sekcji - kontener dla bloków treści.
- * - type: 'column'
- * - allowedChildren: ['heading', 'text', 'image', 'button']
- * - allowedParents: ['section']
+ *
+ * Column in section. Width from content, full style customization, responsive.
  */
 
 import React from 'react';
 import type { BlockComponentProps } from '@/lib/page-builder/types';
-import { mergeBlockStyles } from '@/lib/page-builder/style-utils';
+import { mergeBlockStyles, toSpacingCSS } from '@/lib/page-builder/style-utils';
 import { useCurrentBreakpoint } from '@/stores/page-builder-store';
 import styles from './ColumnBlock.module.css';
 
-export const ColumnBlock: React.FC<BlockComponentProps> = ({ node, children }) => {
+export const ColumnBlock: React.FC<BlockComponentProps> = ({ node, children, isPreview }) => {
   const breakpoint = useCurrentBreakpoint();
-  
-  // Get width from content
-  const width = (node.props.content.width as string) || '50%';
-  
-  // Merge styles for current breakpoint
-  const mergedStyles = mergeBlockStyles(node.props.style, breakpoint);
-  
-  // Mobile: full width
+  const content = node.props?.content ?? {};
+  const width = (content.width as string) || '50%';
+  const merged = mergeBlockStyles(node.props?.style, breakpoint);
+  const isEmpty = !node.childIds || node.childIds.length === 0;
+
   const effectiveWidth = breakpoint === 'mobile' ? '100%' : width;
-  
-  const containerStyle: React.CSSProperties = {
+
+  const columnStyle: React.CSSProperties = {
     width: effectiveWidth,
     flexBasis: effectiveWidth,
-    padding: mergedStyles.padding as string,
-    backgroundColor: mergedStyles.backgroundColor as string,
+    minWidth: 0,
+    padding: merged.padding != null ? toSpacingCSS(merged.padding) : undefined,
+    margin: merged.margin != null ? toSpacingCSS(merged.margin) : undefined,
+    backgroundColor: (merged.backgroundColor as string) || undefined,
+    color: (merged.color as string) || undefined,
+    borderRadius: (merged.borderRadius as string) || undefined,
+    border: (merged.border as string) || undefined,
+    minHeight: (merged.minHeight as string) || undefined,
+    alignSelf: (merged.alignSelf as React.CSSProperties['alignSelf']) || undefined,
   };
-  
+
   return (
-    <div 
+    <div
       className={styles.column}
-      style={containerStyle}
+      style={columnStyle}
       data-block-type="column"
+      data-empty={!isPreview && isEmpty ? 'true' : 'false'}
     >
       {children}
     </div>

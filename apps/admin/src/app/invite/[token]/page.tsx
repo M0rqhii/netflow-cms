@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -87,7 +87,7 @@ export default function InviteAcceptPage() {
   }, [token, password, confirmPassword, language, router, t]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-base-100 py-8 sm:py-12 px-4 sm:px-6">
+    <div className="min-h-screen flex items-center justify-center bg-background py-8 sm:py-12 px-4 sm:px-6">
       <div className="max-w-md w-full">
         <div className="text-center mb-8">
           <Image
@@ -100,8 +100,8 @@ export default function InviteAcceptPage() {
           />
         </div>
 
-        <div className="card shadow-lg">
-          <div className="card-body p-4 sm:p-6">
+        <div className="card">
+          <div className="card-body p-6">
             <div className="mb-4 sm:mb-6">
               <h1 className="text-xl sm:text-2xl font-semibold mb-1 sm:mb-2">{t('auth.inviteTitle')}</h1>
               <p className="text-xs sm:text-sm text-muted">{t('auth.inviteSubtitle')}</p>
@@ -111,7 +111,7 @@ export default function InviteAcceptPage() {
             {loading ? (
               <div className="text-sm text-muted">{t('common.loading')}</div>
             ) : error ? (
-              <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 text-xs sm:text-sm px-3 sm:px-4 py-2 sm:py-3 rounded" role="alert">
+              <div className="border border-[rgba(239,68,68,0.25)] bg-[rgba(239,68,68,0.12)] text-[#ef4444] text-xs sm:text-sm px-3 sm:px-4 py-3 sm:py-3 rounded-[14px]" role="alert">
                 {error}
               </div>
             ) : invite ? (
@@ -142,7 +142,7 @@ export default function InviteAcceptPage() {
                     <input
                       id="invite-password"
                       type="password"
-                      className="border rounded w-full px-3 py-2 text-sm h-10 bg-card text-foreground"
+                      className="w-full rounded-[14px] border border-border bg-surface-2 px-3 py-3 text-sm text-foreground"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
@@ -158,7 +158,7 @@ export default function InviteAcceptPage() {
                     <input
                       id="invite-confirm"
                       type="password"
-                      className="border rounded w-full px-3 py-2 text-sm h-10 bg-card text-foreground"
+                      className="w-full rounded-[14px] border border-border bg-surface-2 px-3 py-3 text-sm text-foreground"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       required
@@ -180,3 +180,13 @@ export default function InviteAcceptPage() {
     </div>
   );
 }
+
+
+
+
+
+
+
+
+
+

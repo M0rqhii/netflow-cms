@@ -11,13 +11,11 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { AuthGuard } from '../../common/auth/guards/auth.guard';
-import { RolesGuard } from '../../common/auth/guards/roles.guard';
 import { PermissionsGuard } from '../../common/auth/guards/permissions.guard';
-import { Roles } from '../../common/auth/decorators/roles.decorator';
 import { Permissions } from '../../common/auth/decorators/permissions.decorator';
 import { CurrentSite } from '../../common/decorators/current-site.decorator';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
-import { Role, Permission } from '../../common/auth/roles.enum';
+import { Permission } from '../../common/auth/roles.enum';
 import { CollectionRolesService } from './collection-roles.service';
 import {
   createCollectionRoleSchema,
@@ -28,13 +26,12 @@ import {
  * Collection Roles Controller
  * AI Note: RESTful API for per-collection RBAC
  */
-@UseGuards(AuthGuard, RolesGuard, PermissionsGuard)
+@UseGuards(AuthGuard, PermissionsGuard)
 @Controller('collections/:collectionId/roles')
 export class CollectionRolesController {
   constructor(private readonly collectionRolesService: CollectionRolesService) {}
 
   @Post()
-  @Roles(Role.ORG_ADMIN, Role.SUPER_ADMIN)
   @Permissions(Permission.COLLECTIONS_WRITE)
   assignRole(
     @CurrentSite() siteId: string,
@@ -54,7 +51,6 @@ export class CollectionRolesController {
   }
 
   @Put(':userId')
-  @Roles(Role.ORG_ADMIN, Role.SUPER_ADMIN)
   @Permissions(Permission.COLLECTIONS_WRITE)
   updateRole(
     @CurrentSite() siteId: string,
@@ -66,7 +62,6 @@ export class CollectionRolesController {
   }
 
   @Delete(':userId')
-  @Roles(Role.ORG_ADMIN, Role.SUPER_ADMIN)
   @Permissions(Permission.COLLECTIONS_WRITE)
   @HttpCode(HttpStatus.NO_CONTENT)
   removeRole(

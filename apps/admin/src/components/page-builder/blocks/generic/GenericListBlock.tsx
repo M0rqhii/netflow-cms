@@ -8,17 +8,24 @@ import { useCurrentBreakpoint } from '@/stores/page-builder-store';
 
 export const GenericListBlock: React.FC<BlockComponentProps> = ({ node }) => {
   const breakpoint = useCurrentBreakpoint();
-  const { content, style } = node.props;
-  const merged = mergeBlockStyles(style, breakpoint);
+  const props = node.props ?? { content: {}, style: { base: {} } };
+  const content = props.content ?? {};
+  const merged = mergeBlockStyles(props.style, breakpoint);
 
-  const items = (content.items as string[]) || ['Item 1', 'Item 2', 'Item 3'];
+  const rawItems = content.items;
+  const items = Array.isArray(rawItems)
+    ? rawItems
+    : typeof rawItems === 'string'
+      ? rawItems.split(',').map((s) => s.trim()).filter(Boolean)
+      : ['Item 1', 'Item 2', 'Item 3'];
   const ordered = Boolean(content.ordered);
   const Tag = ordered ? 'ol' : 'ul';
 
   const styleObj: React.CSSProperties = {
-    padding: merged.padding ? toSpacingCSS(merged.padding) : undefined,
-    margin: merged.margin ? toSpacingCSS(merged.margin) : undefined,
-    color: merged.color as string | undefined,
+    padding: merged.padding != null ? toSpacingCSS(merged.padding) : undefined,
+    margin: merged.margin != null ? toSpacingCSS(merged.margin) : undefined,
+    color: (merged.color as string) || undefined,
+    listStylePosition: (merged.listStylePosition as React.CSSProperties['listStylePosition']) || undefined,
   };
 
   return (
@@ -31,3 +38,5 @@ export const GenericListBlock: React.FC<BlockComponentProps> = ({ node }) => {
 };
 
 export default GenericListBlock;
+
+

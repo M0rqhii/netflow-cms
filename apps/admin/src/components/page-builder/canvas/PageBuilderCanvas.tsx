@@ -1,9 +1,9 @@
-"use client";
+﻿"use client";
 
 /**
  * PageBuilderCanvas - Bridge Component
  * 
- * Most między starym API (content jako props) a nowym systemem (Zustand store).
+ * Most miÄ™dzy starym API (content jako props) a nowym systemem (Zustand store).
  * Inicjalizuje store z props i synchronizuje zmiany z powrotem.
  * 
  * UWAGA: DndContext jest w parent komponencie (page.tsx), ten komponent tylko renderuje canvas.
@@ -11,7 +11,7 @@
 
 import React, { useEffect, useRef, useCallback } from 'react';
 import { useDroppable } from '@dnd-kit/core';
-import { usePageBuilderStore, useBlockChildren, useCurrentBreakpoint, useEditorMode } from '@/stores/page-builder-store';
+import { usePageBuilderStore, useBlockChildren, useEditorMode } from '@/stores/page-builder-store';
 import { BlockRenderer } from '../blocks/BlockRenderer';
 import { EmptyCanvasPlaceholder } from './EmptyCanvasPlaceholder';
 import { registerAllBlocks } from '../blocks/registerBlocks';
@@ -26,21 +26,11 @@ import styles from './Canvas.module.css';
 interface PageBuilderCanvasProps {
   /** Content z API - initial state */
   content?: unknown;
-  /** Callback gdy content się zmieni */
+  /** Callback gdy content siÄ™ zmieni */
   onContentChange?: (content: unknown) => void;
-  /** Deprecated - nie używane */
+  /** Deprecated - nie uĹĽywane */
   blocks?: unknown[];
 }
-
-// =============================================================================
-// BREAKPOINT WIDTHS
-// =============================================================================
-
-const BREAKPOINT_WIDTHS = {
-  desktop: '100%',
-  tablet: '768px',
-  mobile: '375px',
-} as const;
 
 // =============================================================================
 // MAIN COMPONENT
@@ -54,8 +44,6 @@ export function PageBuilderCanvas({ content, onContentChange }: PageBuilderCanva
   const storeContent = usePageBuilderStore((s) => s.content);
   const initContent = usePageBuilderStore((s) => s.initContent);
   const selectBlock = usePageBuilderStore((s) => s.selectBlock);
-  
-  const currentBreakpoint = useCurrentBreakpoint();
   const mode = useEditorMode();
   const isPreview = mode === 'preview';
   const isStructure = mode === 'structure';
@@ -134,19 +122,11 @@ export function PageBuilderCanvas({ content, onContentChange }: PageBuilderCanva
     },
   });
   
-  // Canvas width based on breakpoint
-  const canvasWidth = BREAKPOINT_WIDTHS[currentBreakpoint];
-  
   // Check if canvas is empty
   const isEmpty = rootChildren.length === 0;
   
   return (
     <div className={styles.canvasContainer}>
-      {currentBreakpoint !== 'desktop' && !isPreview && (
-        <div className={styles.breakpointNotice}>
-          Zmiany struktury wpływają na wszystkie breakpointy.
-        </div>
-      )}
 
       <div
         ref={setCanvasRef}
@@ -156,7 +136,6 @@ export function PageBuilderCanvas({ content, onContentChange }: PageBuilderCanva
           isStructure && styles.structureMode,
           isOverCanvas && styles.isOver
         )}
-        style={{ maxWidth: canvasWidth }}
         onClick={handleCanvasClick}
       >
         {isEmpty ? (
@@ -174,3 +153,6 @@ export function PageBuilderCanvas({ content, onContentChange }: PageBuilderCanva
 }
 
 export default PageBuilderCanvas;
+
+
+

@@ -15,7 +15,7 @@
 }
 
 .text a {
-  color: var(--primary-color, #3b82f6);
+  color: var(--primary);
   text-decoration: underline;
 }
 
@@ -33,3 +33,6 @@
   content: 'Enter text here...';
   opacity: 0.4;
 }
+
+
+

@@ -7,13 +7,13 @@
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
-  background: white;
-  border: 2px solid var(--primary-color, #3b82f6);
-  border-radius: 6px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  background: var(--surface);
+  border: 2px solid var(--primary);
+  border-radius: 14px;
+  box-shadow: var(--shadow-soft);
   font-size: 13px;
   font-weight: 500;
-  color: var(--text-primary, #1a1a1a);
+  color: var(--text);
   white-space: nowrap;
   cursor: grabbing;
 }
@@ -24,7 +24,7 @@
   justify-content: center;
   width: 20px;
   height: 20px;
-  color: var(--primary-color, #3b82f6);
+  color: var(--primary);
 }
 
 .icon svg {
@@ -37,3 +37,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+
+
+

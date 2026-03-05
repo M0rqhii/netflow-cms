@@ -7,7 +7,7 @@ export default function MobileMenuToggle() {
   
   return (
     <button
-      className="btn btn-outline md:hidden"
+      className="pill mobile-only"
       onClick={toggleMobileMenu}
       aria-pressed={mobileMenuOpen}
       aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
@@ -27,6 +27,10 @@ export default function MobileMenuToggle() {
     </button>
   );
 }
+
+
+
+
 
 
 

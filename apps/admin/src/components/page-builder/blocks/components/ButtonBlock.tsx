@@ -1,53 +1,49 @@
 /**
  * ButtonBlock
- * 
- * Blok przycisku z walidacją linku.
+ *
+ * Link/button with full style customization and safe URL handling.
  */
 
 import React from 'react';
 import type { BlockComponentProps } from '@/lib/page-builder/types';
-import { mergeBlockStyles } from '@/lib/page-builder/style-utils';
+import { mergeBlockStyles, toSpacingCSS } from '@/lib/page-builder/style-utils';
 import { createSafeLink } from '@/lib/page-builder/sanitize';
 import { useCurrentBreakpoint } from '@/stores/page-builder-store';
 import styles from './ButtonBlock.module.css';
 
-export const ButtonBlock: React.FC<BlockComponentProps> = ({ 
-  node,
-  isPreview,
-}) => {
+export const ButtonBlock: React.FC<BlockComponentProps> = ({ node, isPreview }) => {
   const breakpoint = useCurrentBreakpoint();
-  
-  const text = (node.props.content.text as string) || 'Click me';
-  const url = (node.props.content.url as string) || '#';
-  const targetProp = (node.props.content.target as string) || '_self';
-  
-  // Safe link
+  const content = node.props?.content ?? {};
+  const text = (content.text as string) || 'Click me';
+  const url = (content.url as string) || '#';
+  const targetProp = (content.target as string) || '_self';
   const safeLinkData = createSafeLink(url);
   const safeUrl = safeLinkData.href;
-  const target = targetProp === '_self' ? undefined : targetProp;
-  
-  // Merge styles for current breakpoint
-  const mergedStyles = mergeBlockStyles(node.props.style, breakpoint);
-  
+  const target = targetProp === '_blank' ? '_blank' : undefined;
+  const merged = mergeBlockStyles(node.props?.style, breakpoint);
+
   const buttonStyle: React.CSSProperties = {
-    backgroundColor: mergedStyles.backgroundColor as string,
-    color: mergedStyles.color as string,
-    padding: mergedStyles.padding as string,
-    borderRadius: mergedStyles.borderRadius as string,
-    fontSize: mergedStyles.fontSize as string,
-    textAlign: mergedStyles.textAlign as React.CSSProperties['textAlign'],
+    backgroundColor: (merged.backgroundColor as string) || undefined,
+    color: (merged.color as string) || undefined,
+    padding: merged.padding != null ? toSpacingCSS(merged.padding) : undefined,
+    margin: merged.margin != null ? toSpacingCSS(merged.margin) : undefined,
+    borderRadius: (merged.borderRadius as string) || undefined,
+    border: (merged.border as string) || undefined,
+    fontSize: (merged.fontSize as string) || undefined,
+    fontWeight: (merged.fontWeight as string) || undefined,
+    textAlign: (merged.textAlign as React.CSSProperties['textAlign']) || undefined,
+    display: 'inline-block',
+    textDecoration: 'none',
   };
-  
+
   const handleClick = (e: React.MouseEvent) => {
-    if (!isPreview) {
-      e.preventDefault();
-    }
+    if (!isPreview) e.preventDefault();
   };
-  
+
   return (
-    <div 
+    <div
       className={styles.wrapper}
-      style={{ textAlign: mergedStyles.textAlign as React.CSSProperties['textAlign'] }}
+      style={{ textAlign: (merged.textAlign as React.CSSProperties['textAlign']) || undefined }}
       data-block-type="button"
     >
       <a
@@ -65,3 +61,5 @@ export const ButtonBlock: React.FC<BlockComponentProps> = ({
 };
 
 export default ButtonBlock;
+
+

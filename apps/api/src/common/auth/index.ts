@@ -14,7 +14,20 @@ export { Permissions, PERMISSIONS_KEY } from './decorators/permissions.decorator
 export { CurrentUser, CurrentUserPayload } from './decorators/current-user.decorator';
 
 // Enums and types
-export { Role, Permission, ROLE_PERMISSIONS, hasPermission, hasAnyPermission, hasAllPermissions } from './roles.enum';
+export {
+  SiteRole,
+  OrgRole,
+  SystemRole,
+  Permission,
+  SITE_ROLE_PERMISSIONS,
+  ORG_ROLE_PERMISSIONS,
+  SYSTEM_ROLE_PERMISSIONS,
+  hasSitePermission,
+  hasOrgPermission,
+  hasAnyOrgPermission,
+  hasAllOrgPermissions,
+  hasSystemPermission,
+} from './roles.enum';
 
 // Module
 export { AuthModule } from './auth.module';

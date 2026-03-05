@@ -18,11 +18,9 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthGuard } from '../../common/auth/guards/auth.guard';
 import { SiteGuard } from '../../common/org-site/site.guard';
-import { RolesGuard } from '../../common/auth/guards/roles.guard';
 import { PermissionsGuard } from '../../common/auth/guards/permissions.guard';
-import { Roles } from '../../common/auth/decorators/roles.decorator';
 import { Permissions } from '../../common/auth/decorators/permissions.decorator';
-import { Role, Permission } from '../../common/auth/roles.enum';
+import { Permission } from '../../common/auth/roles.enum';
 import { CurrentUser, CurrentUserPayload } from '../../common/auth/decorators/current-user.decorator';
 import { MediaService } from './media.service';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
@@ -40,7 +38,7 @@ type UploadedFile = {
  * Media Controller - RESTful API for media file management
  * AI Note: All endpoints require authentication and site context
  */
-@UseGuards(AuthGuard, SiteGuard, RolesGuard, PermissionsGuard)
+@UseGuards(AuthGuard, SiteGuard, PermissionsGuard)
 @Controller('media')
 export class MediaController {
   constructor(private readonly mediaService: MediaService) {}
@@ -50,7 +48,6 @@ export class MediaController {
    * Upload a media file
    */
   @Post()
-  @Roles(Role.EDITOR, Role.ORG_ADMIN, Role.SUPER_ADMIN)
   @Permissions(Permission.MEDIA_WRITE)
   @UseInterceptors(FileInterceptor('file'))
   async upload(
@@ -113,7 +110,6 @@ export class MediaController {
    * Update a media file
    */
   @Put(':id')
-  @Roles(Role.EDITOR, Role.ORG_ADMIN, Role.SUPER_ADMIN)
   @Permissions(Permission.MEDIA_WRITE)
   async update(
     @Param('id') id: string,
@@ -128,7 +124,6 @@ export class MediaController {
    * Delete a media file
    */
   @Delete(':id')
-  @Roles(Role.ORG_ADMIN, Role.SUPER_ADMIN)
   @Permissions(Permission.MEDIA_DELETE)
   async remove(
     @Param('id') id: string,

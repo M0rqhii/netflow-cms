@@ -16,9 +16,9 @@ const SECTIONS: { id: MediaFilter; label: string; hint?: string }[] = [
 
 export function MediaSidebar({ activeFilter, onFilterSelect }: MediaSidebarProps) {
   return (
-    <div className="p-4 space-y-4">
+    <div className="p-5 space-y-5">
       <div>
-        <h3 className="text-sm font-semibold text-gray-900">Library</h3>
+        <h3 className="text-sm font-semibold text-text">Library</h3>
         <p className="text-xs text-muted">Browse available folders</p>
       </div>
 
@@ -31,8 +31,8 @@ export function MediaSidebar({ activeFilter, onFilterSelect }: MediaSidebarProps
               key={section.id}
               type="button"
               className={clsx(
-                'w-full rounded-md border px-3 py-2 text-left text-sm transition-colors',
-                isActive ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 hover:border-blue-200',
+                'w-full rounded-[14px] border px-3 py-2.5 text-left text-sm transition-colors',
+                isActive ? 'border-[rgba(0,163,255,0.35)] bg-[rgba(0,163,255,0.12)] text-primary' : 'border-border bg-surface-2 hover:bg-[var(--hover)]',
               )}
               onClick={() => onFilterSelect(section.id)}
             >
@@ -45,9 +45,12 @@ export function MediaSidebar({ activeFilter, onFilterSelect }: MediaSidebarProps
         })}
       </div>
 
-      <div className="rounded-md border border-dashed border-gray-200 p-3 text-xs text-muted">
+      <div className="rounded-[14px] border border-dashed border-border bg-surface-2 p-3 text-xs text-muted">
         Folder system placeholder. Drag-and-drop and custom folders will live here in the future.
       </div>
     </div>
   );
 }
+
+
+

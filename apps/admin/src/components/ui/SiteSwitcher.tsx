@@ -66,7 +66,7 @@ export default function SiteSwitcher() {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-56 sm:w-64 bg-card border border-border rounded shadow-lg z-50 max-h-96 overflow-y-auto">
+        <div className="absolute right-0 mt-2 w-56 sm:w-64 bg-surface border border-border rounded-[18px] shadow-soft z-50 max-h-96 overflow-y-auto">
           <div className="p-2">
             {sites.length === 0 ? (
               <div className="p-3 text-xs sm:text-sm text-muted text-center">
@@ -80,8 +80,8 @@ export default function SiteSwitcher() {
                     <button
                       key={site.siteId}
                       onClick={() => handleSiteSelect(site)}
-                      className={`w-full text-left px-2 sm:px-3 py-1.5 sm:py-2 rounded text-xs sm:text-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors ${
-                        currentSite?.siteId === site.siteId ? 'bg-gray-50 dark:bg-gray-800 font-medium' : ''
+                      className={`w-full text-left px-2 sm:px-3 py-1.5 sm:py-2 rounded-[12px] text-xs sm:text-sm hover:bg-[var(--hover)] transition-colors ${
+                        currentSite?.siteId === site.siteId ? 'bg-surface-2 font-medium' : ''
                       }`}
                     >
                       <div className="font-medium truncate">{site.site.name}</div>
@@ -92,7 +92,7 @@ export default function SiteSwitcher() {
                 <div className="border-t border-border mt-2 pt-2">
                   <Link
                     href="/sites"
-                    className="block px-2 sm:px-3 py-1.5 sm:py-2 rounded text-xs sm:text-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                    className="block px-2 sm:px-3 py-1.5 sm:py-2 rounded-[12px] text-xs sm:text-sm hover:bg-[var(--hover)] transition-colors"
                     onClick={() => setIsOpen(false)}
                   >
                     {t('dashboard.viewAll')} {t('navigation.sites')}
@@ -106,6 +106,9 @@ export default function SiteSwitcher() {
     </div>
   );
 }
+
+
+
 
 
 

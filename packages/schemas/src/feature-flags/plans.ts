@@ -7,8 +7,8 @@ import { getAllFeatureKeys } from './features';
 
 /**
  * Plan names enum
- * Must match the values used in Tenant.plan and Subscription.plan
- * Note: Tenant.plan uses: 'free', 'professional', 'enterprise'
+ * Must match the values used in Organization.plan and Subscription.plan
+ * Note: Organization.plan uses: 'free', 'professional', 'enterprise'
  * Subscription.plan uses: 'BASIC', 'PRO' (from Plan enum)
  * We support both conventions for compatibility
  */
@@ -45,10 +45,10 @@ export interface PlanConfig {
 
 /**
  * Plans configuration mapping
- * Supports both 'free'/'professional'/'enterprise' (Tenant) and 'basic'/'pro' (Subscription) conventions
+ * Supports both 'free'/'professional'/'enterprise' (Organization) and 'basic'/'pro' (Subscription) conventions
  */
 export const PLANS: Record<string, PlanConfig> = {
-  // Tenant plan names
+  // Organization plan names
   [Plan.FREE]: {
     name: 'Free',
     features: [
@@ -170,7 +170,7 @@ export const PLANS: Record<string, PlanConfig> = {
       maxApiRequestsPerMonth: -1,
     },
   },
-  // Alias for professional (Tenant uses 'professional', Subscription uses 'PRO')
+  // Alias for professional (Organization uses 'professional', Subscription uses 'PRO')
   [Plan.PROFESSIONAL]: {
     name: 'Professional',
     features: [
@@ -332,7 +332,7 @@ export function isFeatureInPlan(plan: string, featureKey: string): boolean {
 
 /**
  * Validate plan name
- * Supports both Tenant plan names (free, professional, enterprise) and Subscription plan names (BASIC, PRO)
+ * Supports both Organization plan names (free, professional, enterprise) and Subscription plan names (BASIC, PRO)
  */
 export function isValidPlan(plan: string): boolean {
   const validPlans = [

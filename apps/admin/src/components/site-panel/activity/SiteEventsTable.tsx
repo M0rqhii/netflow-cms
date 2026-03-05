@@ -24,13 +24,13 @@ export function SiteEventsTable({ events, loading, onEventClick }: SiteEventsTab
       <EmptyState
         title={loading ? 'Loading events...' : 'No activity yet'}
         description="Site activity will appear here as editors create pages, upload media, and manage SEO."
-        className="border border-dashed"
+        className="border border-dashed border-border rounded-[18px]"
       />
     );
   }
 
   return (
-    <div className="overflow-hidden border rounded-md">
+    <div className="overflow-hidden border border-border rounded-[18px]">
       <Table>
         <TableHeader>
           <TableRow>
@@ -45,7 +45,7 @@ export function SiteEventsTable({ events, loading, onEventClick }: SiteEventsTab
             return (
               <TableRow 
                 key={event.id}
-                className={onEventClick ? 'cursor-pointer hover:bg-gray-50' : ''}
+                className={onEventClick ? 'cursor-pointer hover:bg-[var(--hover)]' : ''}
                 onClick={() => onEventClick?.(event)}
               >
                 <TableCell className="text-sm text-muted">{when}</TableCell>
@@ -61,3 +61,6 @@ export function SiteEventsTable({ events, loading, onEventClick }: SiteEventsTab
     </div>
   );
 }
+
+
+

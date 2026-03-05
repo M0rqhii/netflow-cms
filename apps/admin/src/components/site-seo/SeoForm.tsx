@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Card, CardHeader, CardTitle, CardContent, Button, Input } from '@repo/ui';
+import { Card, CardHeader, CardTitle, CardContent, Button, Input, Checkbox } from '@repo/ui';
 import { SeoPreviewCard } from './SeoPreviewCard';
 import { useToast } from '@/components/ui/Toast';
 import { useTranslations } from '@/hooks/useTranslations';
@@ -53,10 +53,10 @@ export function SeoForm() {
             onChange={handleChange('title')}
           />
           <div>
-            <label htmlFor="meta-description" className="block text-sm font-medium mb-1">{t('seo.metaDescription')}</label>
+            <label htmlFor="meta-description" className="block text-xs font-semibold uppercase tracking-wide text-muted mb-1">{t('seo.metaDescription')}</label>
             <textarea
               id="meta-description"
-              className="w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded-[14px] border border-border bg-surface-2 px-3 py-3 text-sm text-text focus:outline-none focus:ring-2 focus:ring-primary/30"
               rows={3}
               placeholder={t('seo.metaDescriptionPlaceholder')}
               value={form.description}
@@ -83,10 +83,10 @@ export function SeoForm() {
             onChange={handleChange('ogTitle')}
           />
           <div>
-            <label htmlFor="og-description" className="block text-sm font-medium mb-1">{t('seo.openGraphDescription')}</label>
+            <label htmlFor="og-description" className="block text-xs font-semibold uppercase tracking-wide text-muted mb-1">{t('seo.openGraphDescription')}</label>
             <textarea
               id="og-description"
-              className="w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded-[14px] border border-border bg-surface-2 px-3 py-3 text-sm text-text focus:outline-none focus:ring-2 focus:ring-primary/30"
               rows={3}
               placeholder={t('seo.openGraphDescriptionPlaceholder')}
               value={form.ogDescription}
@@ -100,10 +100,10 @@ export function SeoForm() {
             onChange={handleChange('ogImage')}
           />
           <div>
-            <label htmlFor="twitter-card" className="block text-sm font-medium mb-1">{t('seo.twitterCard')}</label>
+            <label htmlFor="twitter-card" className="block text-xs font-semibold uppercase tracking-wide text-muted mb-1">{t('seo.twitterCard')}</label>
             <select
               id="twitter-card"
-              className="w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded-[14px] border border-border bg-surface-2 px-3 py-3 text-sm text-text focus:outline-none focus:ring-2 focus:ring-primary/30"
               value={form.twitterCard}
               onChange={(e) => setForm((prev) => ({ ...prev, twitterCard: e.target.value }))}
             >
@@ -131,7 +131,7 @@ export function SeoForm() {
           <CardTitle>{t('seo.advancedSettings')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <Input
               label={t('seo.robotsTxt')}
               placeholder={t('seo.robotsTxtPlaceholder')}
@@ -170,8 +170,7 @@ export function SeoForm() {
             t('seo.faviconUploaded'),
             t('seo.openGraphTagsConfigured'),
           ].map((item) => (
-            <label key={item} className="flex items-center gap-2 text-sm text-muted">
-              <input type="checkbox" disabled className="rounded" />
+            <label key={item} className="flex items-center gap-2 text-sm text-muted">\n              <Checkbox disabled />
               {item}
             </label>
           ))}
@@ -180,3 +179,6 @@ export function SeoForm() {
     </div>
   );
 }
+
+
+

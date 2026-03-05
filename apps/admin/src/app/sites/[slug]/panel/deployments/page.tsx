@@ -1,28 +1,26 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'next/navigation';
-import { SitePanelLayout } from '@/components/site-panel/SitePanelLayout';
-import { SectionHeader } from '@/components/site-panel/SectionHeader';
-import { Card, CardContent } from '@repo/ui';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@repo/ui';
-import { EmptyState } from '@repo/ui';
-import { Badge } from '@/components/ui/Badge';
-import { useToast } from '@/components/ui/Toast';
-import Breadcrumbs from '@/components/ui/Breadcrumbs';
-import { fetchMySites, exchangeSiteToken, getSiteToken } from '@/lib/api';
-import { createApiClient } from '@repo/sdk';
-import type { SiteInfo, SiteDeployment } from '@repo/sdk';
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { useParams } from "next/navigation";
+import { SitePanelLayout } from "@/components/site-panel/SitePanelLayout";
+import { useTranslations } from "@/hooks/useTranslations";
+import { useToast } from "@/components/ui/Toast";
+import { fetchMySites, exchangeSiteToken, getSiteToken } from "@/lib/api";
+import { timeAgo } from "@/lib/formatters";
+import { createApiClient } from "@repo/sdk";
+import type { SiteInfo, SiteDeployment } from "@repo/sdk";
 
 export default function DeploymentsPage() {
   const params = useParams<{ slug: string }>();
   const slug = params?.slug as string;
   const toast = useToast();
+  const t = useTranslations();
 
   const [loading, setLoading] = useState(true);
   const [deployments, setDeployments] = useState<SiteDeployment[]>([]);
+  const [siteName, setSiteName] = useState<string | null>(null);
 
-  const apiClient = createApiClient();
+  const apiClient = useMemo(() => createApiClient(), []);
 
   const loadData = useCallback(async () => {
     if (!slug) {
@@ -37,154 +35,109 @@ export default function DeploymentsPage() {
       const site = sites.find((s: SiteInfo) => s.site.slug === slug);
 
       if (!site) {
-        throw new Error(`Nie znaleziono strony o slug: "${slug}"`);
+        throw new Error(t("sitePanelShell.deploymentsUi.toasts.siteNotFound", { slug }));
       }
 
-      const id = site.siteId;
+      setSiteName(site.site?.name || slug);
 
+      const id = site.siteId;
       let token = getSiteToken(id);
       if (!token) {
         token = await exchangeSiteToken(id);
       }
 
-      const deploymentsData = await apiClient.listDeployments(token, id, { limit: 100 });
-      setDeployments(deploymentsData);
+      const deploymentsData = await apiClient.listDeployments(token, id);
+      setDeployments(deploymentsData || []);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Nie udało się pobrać wdrożeń';
-      toast.push({
-        tone: 'error',
-        message,
-      });
+      const message = err instanceof Error ? err.message : t("sitePanelShell.deploymentsUi.toasts.loadError");
+      toast.push({ tone: "error", message });
     } finally {
       setLoading(false);
     }
-  }, [slug, apiClient, toast]);
+  }, [slug, apiClient, t, toast]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
 
-  const formatDate = (date: string | Date) => {
-    return new Date(date).toLocaleString('pl-PL', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-
-  const getStatusBadge = (status: string) => {
-    return (
-      <Badge tone={status === 'success' ? 'success' : 'error'}>
-        {status === 'success' ? 'Sukces' : 'Błąd'}
-      </Badge>
-    );
-  };
-
-  if (loading) {
-    return (
-      <SitePanelLayout>
-        <div className="space-y-6">
-          <SectionHeader
-            title="Wdrożenia"
-            description="Historia publikacji i wdrożeń na produkcję."
-          />
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center py-12">Wczytywanie...</div>
-            </CardContent>
-          </Card>
-        </div>
-      </SitePanelLayout>
-    );
-  }
+  const current = deployments.slice().sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
 
   return (
-    <SitePanelLayout>
-      <div className="space-y-6">
-        <Breadcrumbs
-          items={[
-            { label: 'Strony', href: '/sites' },
-            { label: slug, href: `/sites/${encodeURIComponent(slug)}` },
-            { label: 'Panel', href: `/sites/${encodeURIComponent(slug)}/panel` },
-            { label: 'Wdrożenia' },
-          ]}
-        />
-        <SectionHeader
-          title={
-            <div className="flex items-center gap-2">
-              Wdrożenia
-              <span
-                className="text-sm text-muted cursor-help"
-                title="Publikacja tworzy rekord wdrożenia. Status pokazuje czy zmiany zostały poprawnie wdrożone."
-              >
-                (i)
-              </span>
-            </div>
-          }
-          description={
-            <div>
-              <p className="mb-2">Historia publikacji i wdrożeń na produkcję.</p>
-              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-2 text-xs text-blue-900 dark:text-blue-100">
-                <strong>Jak to działa:</strong> Każda publikacja tworzy nowe wdrożenie. Udane wdrożenie oznacza, że zmiany są widoczne publicznie.
-              </div>
-            </div>
-          }
-        />
+    <SitePanelLayout
+      slug={slug}
+      activeTab="deployments"
+      title={t("sitePanelShell.deployments.title", { site: siteName || slug })}
+      subtitle={t("sitePanelShell.deployments.subtitle")}
+      actions={
+        <>
+          <button className="btn" type="button" onClick={() => toast.push({ tone: "success", message: t("sitePanelShell.deploymentsUi.toasts.redeployMock") })}>{t("sitePanelShell.actions.redeploy")}</button>
+          <button className="btn primary" type="button" onClick={() => toast.push({ tone: "success", message: t("sitePanelShell.deploymentsUi.toasts.newDeploymentMock") })}>{t("sitePanelShell.actions.newDeployment")}</button>
+        </>
+      }
+    >
+      <div>
 
-        <Card>
-          <CardContent className="pt-6">
-            {deployments.length === 0 ? (
-              <div className="py-12">
-                <EmptyState
-                  title="Brak wdrożeń"
-                  description="Wdrożenia pojawią się po pierwszej publikacji."
-                  icon={
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-8 w-8">
-                      <path d="M5 4.5h14a1 1 0 011 1v13a1 1 0 01-1 1H5a1 1 0 01-1-1v-13a1 1 0 011-1z" />
-                      <path d="M8.5 8h7M8.5 11h7M8.5 14h4" strokeLinecap="round" />
-                    </svg>
-                  }
-                />
-              </div>
+        <div className="grid cols-2 items-start">
+          <div className="card card-pad">
+            <div className="section-title">{t("sitePanelShell.deploymentsUi.sections.current")}</div>
+            <div className="spacer-sm" />
+            {current ? (
+              <>
+                <div className="row-wrap">
+                  <span className="badge blue">{t("sitePanelShell.deploymentsUi.labels.env", { value: current.env })}</span>
+                  <span className="badge green">{t("sitePanelShell.deploymentsUi.labels.version")}</span>
+                  <span className="badge gray">{t("sitePanelShell.deploymentsUi.labels.sha", { value: current.id.slice(0, 7) })}</span>
+                  <span className="badge gray">{t("sitePanelShell.deploymentsUi.labels.last", { value: timeAgo(current.createdAt) })}</span>
+                </div>
+                <div className="spacer-sm" />
+                <div className="detail-label">
+                  {t("sitePanelShell.deploymentsUi.labels.pipeline")}
+                </div>
+              </>
             ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Data</TableHead>
-                      <TableHead>Typ</TableHead>
-                      <TableHead>Środowisko</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Komunikat</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {deployments.map((deployment) => (
-                      <TableRow key={deployment.id}>
-                        <TableCell className="font-medium">
-                          {formatDate(deployment.createdAt)}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{deployment.type}</Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{deployment.env}</Badge>
-                        </TableCell>
-                        <TableCell>{getStatusBadge(deployment.status)}</TableCell>
-                        <TableCell className="text-muted text-sm">
-                          {deployment.message || '—'}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+              <div className="text-muted">{t("sitePanelShell.deploymentsUi.states.noDeployments")}</div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+
+          <div className="card card-pad">
+            <div className="section-title">{t("sitePanelShell.deploymentsUi.sections.history")}</div>
+            <div className="spacer-sm" />
+            {loading ? (
+              <div className="text-muted">{t("common.loading")}</div>
+            ) : deployments.length === 0 ? (
+              <div className="text-muted">{t("common.noResults")}</div>
+            ) : (
+              deployments
+                .slice()
+                .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                .map((d) => {
+                  const stCls = d.status === "success" ? "badge green" : d.status === "failed" ? "badge orange" : "badge gray";
+                  return (
+                    <div key={d.id} className="list-row">
+                      <div className="min-w-0">
+                        <div className="truncate project-name">
+                          v1.0.0 - {d.env}
+                        </div>
+                        <div className="detail-label mt-2">
+                          {timeAgo(d.createdAt)} - system - {d.id.slice(0, 7)} - 120s
+                        </div>
+                        <div className="tag-row">
+                          <span className="badge gray">{d.message || t("sitePanelShell.deploymentsUi.labels.deploy")}</span>
+                        </div>
+                      </div>
+                      <div className="row-wrap" style={{ alignItems: "center" }}>
+                        <span className={stCls}>{d.status.toUpperCase()}</span>
+                        <button className="btn" type="button">{t("sitePanelShell.deploymentsUi.actions.rollback")}</button>
+                        <button className="btn" type="button">{t("sitePanelShell.deploymentsUi.actions.logs")}</button>
+                      </div>
+                    </div>
+                  );
+                })
+            )}
+          </div>
+        </div>
       </div>
     </SitePanelLayout>
   );
 }
+

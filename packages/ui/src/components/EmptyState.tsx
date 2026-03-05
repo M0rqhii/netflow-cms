@@ -1,6 +1,6 @@
-import React from 'react';
+﻿import React from 'react';
 import { Button } from './Button';
-import { clsx } from 'clsx';
+import { cn } from '../utils/cn';
 
 export interface EmptyStateProps {
   title: string;
@@ -21,10 +21,10 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   className,
 }) => {
   return (
-    <div className={clsx('flex flex-col items-center justify-center py-12 px-4', className)}>
-      {icon && <div className="mb-4 text-muted opacity-50">{icon}</div>}
+    <div className={cn('flex flex-col items-center justify-center py-14 px-6 text-center', className)}>
+      {icon && <div className="mb-5 text-4xl text-muted">{icon}</div>}
       <h3 className="text-lg font-semibold mb-2">{title}</h3>
-      {description && <p className="text-sm text-muted text-center max-w-md mb-4">{description}</p>}
+      {description && <p className="text-sm text-muted max-w-md mb-5">{description}</p>}
       {action && (
         <Button onClick={action.onClick} variant="primary">
           {action.label}
@@ -33,7 +33,3 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
     </div>
   );
 };
-
-
-
-

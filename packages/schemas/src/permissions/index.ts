@@ -1,15 +1,15 @@
 import { z } from 'zod';
 
-// Platform roles
-export const PlatformRoleSchema = z.enum(['PLATFORM_OWNER', 'PLATFORM_ADMIN', 'PLATFORM_SUPPORT', 'PLATFORM_VIEWER']);
-export type PlatformRole = z.infer<typeof PlatformRoleSchema>;
+// Organization roles
+export const OrgRoleSchema = z.enum(['ORG_OWNER', 'ORG_ADMIN', 'ORG_SUPPORT', 'ORG_VIEWER']);
+export type OrgRole = z.infer<typeof OrgRoleSchema>;
 
 // Site roles
 export const SiteRoleSchema = z.enum(['SITE_OWNER', 'SITE_ADMIN', 'SITE_EDITOR', 'SITE_DESIGNER', 'SITE_VIEWER']);
 export type SiteRole = z.infer<typeof SiteRoleSchema>;
 
 // Permission flag shapes
-export type PlatformPermissions = {
+export type OrgPermissions = {
   canManageSites: boolean;
   canManageBilling: boolean;
   canAccessDevPanel: boolean;
@@ -25,23 +25,23 @@ export type SitePermissions = {
   canManageSiteUsers: boolean;
 };
 
-export const PLATFORM_ROLE_PERMISSIONS: Record<PlatformRole, PlatformPermissions> = {
-  PLATFORM_OWNER: {
+export const ORG_ROLE_PERMISSIONS: Record<OrgRole, OrgPermissions> = {
+  ORG_OWNER: {
     canManageSites: true,
     canManageBilling: true,
     canAccessDevPanel: true,
   },
-  PLATFORM_ADMIN: {
+  ORG_ADMIN: {
     canManageSites: true,
     canManageBilling: true,
     canAccessDevPanel: true,
   },
-  PLATFORM_SUPPORT: {
+  ORG_SUPPORT: {
     canManageSites: true,
     canManageBilling: false,
     canAccessDevPanel: true,
   },
-  PLATFORM_VIEWER: {
+  ORG_VIEWER: {
     canManageSites: false,
     canManageBilling: false,
     canAccessDevPanel: false,
@@ -96,13 +96,13 @@ export const SITE_ROLE_PERMISSIONS: Record<SiteRole, SitePermissions> = {
   },
 };
 
-export function combinePlatformPermissions(roles: PlatformRole | PlatformRole[] | null | undefined): PlatformPermissions {
-  const roleList: PlatformRole[] = Array.isArray(roles) ? roles : roles ? [roles] : [];
-  return roleList.reduce<PlatformPermissions>(
+export function combineOrgPermissions(roles: OrgRole | OrgRole[] | null | undefined): OrgPermissions {
+  const roleList: OrgRole[] = Array.isArray(roles) ? roles : roles ? [roles] : [];
+  return roleList.reduce<OrgPermissions>(
     (acc, role) => ({
-      canManageSites: acc.canManageSites || PLATFORM_ROLE_PERMISSIONS[role]?.canManageSites || false,
-      canManageBilling: acc.canManageBilling || PLATFORM_ROLE_PERMISSIONS[role]?.canManageBilling || false,
-      canAccessDevPanel: acc.canAccessDevPanel || PLATFORM_ROLE_PERMISSIONS[role]?.canAccessDevPanel || false,
+      canManageSites: acc.canManageSites || ORG_ROLE_PERMISSIONS[role]?.canManageSites || false,
+      canManageBilling: acc.canManageBilling || ORG_ROLE_PERMISSIONS[role]?.canManageBilling || false,
+      canAccessDevPanel: acc.canAccessDevPanel || ORG_ROLE_PERMISSIONS[role]?.canAccessDevPanel || false,
     }),
     { canManageSites: false, canManageBilling: false, canAccessDevPanel: false },
   );
@@ -132,5 +132,5 @@ export function combineSitePermissions(roles: SiteRole | SiteRole[] | null | und
   );
 }
 
-export type PlatformPermissionFlag = keyof PlatformPermissions;
+export type OrgPermissionFlag = keyof OrgPermissions;
 export type SitePermissionFlag = keyof SitePermissions;

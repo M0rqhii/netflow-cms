@@ -19,3 +19,5 @@ export const RootBlock: React.FC<BlockComponentProps> = ({ children }) => {
 };
 
 export default RootBlock;
+
+

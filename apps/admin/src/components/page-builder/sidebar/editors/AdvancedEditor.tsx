@@ -14,6 +14,7 @@ type AdvancedEditorProps = {
   props: BlockProps;
   schema?: Record<string, PropFieldSchema>;
   onChange: (key: string, value: unknown) => void;
+  onMetaChange?: (key: string, value: unknown) => void;
 };
 
 // Default advanced fields
@@ -28,6 +29,7 @@ export const AdvancedEditor: React.FC<AdvancedEditorProps> = ({
   props,
   schema,
   onChange,
+  onMetaChange,
 }) => {
   // Use schema or defaults
   const effectiveSchema = schema && Object.keys(schema).length > 0 
@@ -84,15 +86,21 @@ export const AdvancedEditor: React.FC<AdvancedEditorProps> = ({
       <div className={styles.section}>
         <h4 className={styles.sectionTitle}>Block Meta</h4>
         <div className={styles.field}>
-          <label className={styles.fieldLabel}>Label (for structure view)</label>
+          <label className={styles.fieldLabel}>Label (structure view)</label>
           <FieldRenderer
             type="text"
             value={node.meta?.label ?? ''}
-            onChange={(_value) => {
-              // This would need special handling through updateBlockMeta
-              // For now, we'll skip meta editing here
-            }}
+            onChange={(value) => onMetaChange?.('label', value)}
             placeholder="Custom label..."
+          />
+        </div>
+        <div className={styles.field}>
+          <label className={styles.fieldLabel}>Komentarz / notatka</label>
+          <FieldRenderer
+            type="text"
+            value={node.meta?.comment ?? ''}
+            onChange={(value) => onMetaChange?.('comment', value)}
+            placeholder="Notatka dla redaktora (niewidoczna na froncie)..."
           />
         </div>
       </div>
@@ -101,3 +109,5 @@ export const AdvancedEditor: React.FC<AdvancedEditorProps> = ({
 };
 
 export default AdvancedEditor;
+
+

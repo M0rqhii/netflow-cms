@@ -35,7 +35,6 @@ export class OrgSiteContextMiddleware implements NestMiddleware {
     // Extract org ID from various sources
     const orgId =
       req.headers['x-org-id'] ||
-      req.headers['x-tenant-id'] ||
       (req.query.orgId as string) ||
       (req.params?.orgId as string);
 

@@ -1,12 +1,11 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'next/navigation';
-import { Card, CardHeader, CardTitle, CardContent } from '@repo/ui';
-import { Button, Input, LoadingSpinner } from '@repo/ui';
-import { Badge } from '@/components/ui/Badge';
-import { useToast } from '@/components/ui/Toast';
-import { getAuthToken } from '@/lib/api';
+import React, { useState, useEffect, useCallback } from "react";
+import { useParams } from "next/navigation";
+import { Input } from "@repo/ui";
+import { Badge } from "@/components/ui/Badge";
+import { useToast } from "@/components/ui/Toast";
+import { getAuthToken } from "@/lib/api";
 
 type OrganizationData = {
   id: string;
@@ -27,9 +26,8 @@ export default function OrgGeneralSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [organization, setOrganization] = useState<OrganizationData | null>(null);
 
-  // Form state
-  const [name, setName] = useState('');
-  const [slug, setSlug] = useState('');
+  const [name, setName] = useState("");
+  const [slug, setSlug] = useState("");
 
   const loadData = useCallback(async () => {
     if (!orgId) {
@@ -39,36 +37,31 @@ export default function OrgGeneralSettingsPage() {
 
     try {
       setLoading(true);
-
       const token = getAuthToken();
       if (!token) {
-        throw new Error('Missing auth token. Please login.');
+        throw new Error("Missing auth token. Please login.");
       }
 
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
-
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
       const res = await fetch(`${baseUrl}/organizations/${orgId}`, {
         headers: {
-          Authorization: `Bearer ${token}` ,
-          'X-Org-ID': orgId,
+          Authorization: `Bearer ${token}`,
+          "X-Org-ID": orgId,
         },
       });
 
       if (!res.ok) {
-        const errorText = await res.text().catch(() => '');
-        throw new Error(errorText || 'Failed to load organization');
+        const errorText = await res.text().catch(() => "");
+        throw new Error(errorText || "Failed to load organization");
       }
 
       const data = await res.json();
       setOrganization(data);
-      setName(data.name || '');
-      setSlug(data.slug || '');
+      setName(data.name || "");
+      setSlug(data.slug || "");
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to load organization';
-      toast.push({
-        tone: 'error',
-        message,
-      });
+      const message = err instanceof Error ? err.message : "Failed to load organization";
+      toast.push({ tone: "error", message });
     } finally {
       setLoading(false);
     }
@@ -84,40 +77,32 @@ export default function OrgGeneralSettingsPage() {
 
     try {
       setSaving(true);
-
       const token = getAuthToken();
       if (!token) {
-        throw new Error('Missing auth token. Please login.');
+        throw new Error("Missing auth token. Please login.");
       }
 
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api/v1";
       const res = await fetch(`${baseUrl}/organizations/${orgId}`, {
-        method: 'PATCH',
+        method: "PATCH",
         headers: {
-          Authorization: `Bearer ${token}` ,
-          'Content-Type': 'application/json',
-          'X-Org-ID': orgId,
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          "X-Org-ID": orgId,
         },
         body: JSON.stringify({ name }),
       });
 
       if (!res.ok) {
-        const errorText = await res.text().catch(() => '');
-        throw new Error(errorText || 'Failed to save organization settings');
+        const errorText = await res.text().catch(() => "");
+        throw new Error(errorText || "Failed to save organization settings");
       }
 
-      toast.push({
-        tone: 'success',
-        message: 'Organization settings saved successfully',
-      });
-
+      toast.push({ tone: "success", message: "Organization settings saved" });
       await loadData();
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to save organization settings';
-      toast.push({
-        tone: 'error',
-        message,
-      });
+      const message = err instanceof Error ? err.message : "Failed to save organization settings";
+      toast.push({ tone: "error", message });
     } finally {
       setSaving(false);
     }
@@ -125,102 +110,92 @@ export default function OrgGeneralSettingsPage() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-[400px]">
-        <LoadingSpinner text="Loading organization settings..." />
+      <div className="card card-pad">
+        <div style={{ color: "var(--muted)" }}>Loading organization settings...</div>
       </div>
     );
   }
 
   if (!organization) {
     return (
-      <Card>
-        <CardContent className="py-12">
-          <div className="text-center">
-            <p className="text-muted">Organization not found</p>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="card card-pad">
+        <div style={{ color: "var(--muted)" }}>Organization not found.</div>
+      </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>General Settings</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSave} className="space-y-4">
-            <div>
-              <Input
-                label="Organization Name"
-                placeholder="e.g., My Company"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-                helperText="The display name of your organization."
-              />
-            </div>
+    <div>
+      <div className="card card-pad">
+        <div className="section-title">General Settings</div>
+        <div className="detail-label" style={{ marginTop: 6 }}>
+          Manage organization name, slug, and plan.
+        </div>
+      </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-1">Slug</label>
-              <Input
-                value={slug}
-                onChange={(e) => {
-                  const newSlug = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-');
-                  setSlug(newSlug);
-                }}
-                pattern="[a-z0-9-]+"
-                helperText="URL-friendly identifier (lowercase, hyphens only). Cannot be changed after creation."
-                disabled
-              />
-              <p className="text-xs text-muted mt-1">Slug cannot be changed after creation.</p>
-            </div>
+      <div className="spacer" />
 
-            <div>
-              <label className="block text-sm font-medium mb-1">Organization ID</label>
-              <code className="block text-xs bg-gray-100 px-3 py-2 rounded">
-                {organization.id}
-              </code>
-            </div>
+      <div className="card card-pad">
+        <form onSubmit={handleSave} className="space-y-3" style={{ maxWidth: 520 }}>
+          <Input
+            label="Organization name"
+            placeholder="e.g., Acme Inc."
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+            helperText="The display name of your organization."
+          />
 
-            <div>
-              <label className="block text-sm font-medium mb-1">Plan</label>
-              <div className="flex items-center gap-2">
-                <Badge tone="default">{organization.plan}</Badge>
-                <span className="text-sm text-muted">
-                  Plan management is available in the Billing section.
-                </span>
-              </div>
-            </div>
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wide text-muted mb-1">Slug</label>
+            <Input
+              value={slug}
+              onChange={(e) => {
+                const newSlug = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-");
+                setSlug(newSlug);
+              }}
+              pattern="[a-z0-9-]+"
+              helperText="URL-friendly identifier (lowercase, hyphens only)."
+              disabled
+            />
+            <p className="text-xs text-muted mt-1">Slug cannot be changed after creation.</p>
+          </div>
 
-            <div className="flex gap-2 justify-end pt-4 border-t">
-              <Button type="submit" variant="primary" disabled={saving}>
-                {saving ? 'Saving...' : 'Save Changes'}
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wide text-muted mb-1">Organization ID</label>
+            <code className="block text-xs bg-surface-2 px-3 py-3 rounded">{organization.id}</code>
+          </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Danger Zone</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="p-4 border border-red-200 rounded-lg bg-red-50">
-              <h3 className="font-semibold text-red-900 mb-2">Delete Organization</h3>
-              <p className="text-sm text-red-700 mb-4">
-                Once you delete an organization, there is no going back. Please be certain.
-              </p>
-              <Button variant="danger" disabled>
-                Delete Organization
-              </Button>
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wide text-muted mb-1">Plan</label>
+            <div className="flex items-center gap-2">
+              <Badge tone="default">{organization.plan}</Badge>
+              <span className="text-xs text-muted">Plan changes are handled in Billing.</span>
             </div>
           </div>
-        </CardContent>
-      </Card>
+
+          <div className="row-wrap">
+            <button className="btn primary" type="submit" disabled={saving}>
+              {saving ? "Saving..." : "Save changes"}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div className="spacer" />
+
+      <div className="card card-pad">
+        <div className="section-title">Danger zone</div>
+        <div className="spacer-sm" />
+        <div className="card error-alert">
+          <div style={{ fontWeight: 800 }} className="text-error">Delete organization</div>
+          <div className="text-error" style={{ fontSize: 12, marginTop: 6 }}>
+            This action is irreversible.
+          </div>
+          <div className="spacer-sm" />
+          <button className="btn" type="button" disabled>Delete organization</button>
+        </div>
+      </div>
     </div>
   );
 }

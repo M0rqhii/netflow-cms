@@ -3,3 +3,13 @@ import { redirect } from 'next/navigation';
 export default function SiteBillingRedirect() {
   redirect('/billing');
 }
+
+
+
+
+
+
+
+
+
+

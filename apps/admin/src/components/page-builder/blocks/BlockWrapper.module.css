@@ -4,30 +4,57 @@
 
 .wrapper {
   position: relative;
-  transition: all 0.15s ease;
+  transition: box-shadow 0.18s ease, transform 0.18s ease, opacity 0.18s ease;
+  border-radius: 14px;
+}
+
+.wrapper::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  border: 1px solid transparent;
+  pointer-events: none;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
 }
 
 /* Selection state */
 .wrapper.selected {
-  outline: 2px solid var(--primary-color, #3b82f6);
-  outline-offset: 2px;
+  z-index: 4;
 }
 
+.wrapper.selected::after {
+  border-color: rgba(0, 163, 255, 0.66);
+  box-shadow: 0 0 0 2px rgba(0, 163, 255, 0.2), 0 8px 18px rgba(6, 20, 40, 0.14);
+  background: rgba(0, 163, 255, 0.035);
+}
+
+.wrapper.pathActive::after {
+  border-color: rgba(0, 163, 255, 0.34);
+  box-shadow: 0 0 0 1px rgba(0, 163, 255, 0.12);
+  background: rgba(0, 163, 255, 0.015);
+}
 /* Hover state (when not selected) */
 .wrapper.hoverable:hover {
-  outline: 2px solid rgba(59, 130, 246, 0.4);
-  outline-offset: 1px;
+  z-index: 3;
+}
+
+.wrapper.hoverable:hover::after {
+  border-color: rgba(90, 119, 168, 0.58);
+  box-shadow: 0 6px 16px rgba(5, 16, 36, 0.1);
+  background: rgba(8, 26, 52, 0.02);
 }
 
 /* Dragging state */
 .wrapper.dragging {
   z-index: 50;
-  opacity: 0.5;
+  opacity: 0.78;
+  transform: scale(0.995);
 }
 
 /* Locked state */
 .wrapper.locked {
-  opacity: 0.75;
+  opacity: 0.78;
 }
 
 /* Hidden state */
@@ -38,21 +65,23 @@
 /* Drag handle */
 .dragHandle {
   position: absolute;
-  left: -4px;
-  top: 50%;
-  transform: translateY(-50%) translateX(-100%);
+  right: 10px;
+  top: 10px;
   opacity: 0;
   transition: opacity 0.15s;
   cursor: grab;
   padding: 4px;
-  border-radius: 4px;
-  background: var(--bg-secondary, #f5f5f5);
-  color: var(--text-tertiary, #999);
+  border-radius: 10px;
+  border: 1px solid rgba(113, 138, 179, 0.34);
+  background: rgba(9, 21, 44, 0.86);
+  color: var(--muted);
+  z-index: 6;
 }
 
 .dragHandle:hover {
-  background: var(--bg-hover, #e8e8e8);
-  color: var(--text-secondary, #666);
+  background: rgba(17, 34, 68, 0.95);
+  color: rgb(var(--foreground));
+  border-color: rgba(0, 163, 255, 0.48);
 }
 
 .dragHandle:active {
@@ -72,13 +101,14 @@
 /* Lock indicator */
 .lockIndicator {
   position: absolute;
-  left: -4px;
-  top: 4px;
-  transform: translateX(-100%);
+  right: 10px;
+  top: 10px;
   padding: 4px;
-  border-radius: 4px;
-  background: rgba(245, 158, 11, 0.1);
-  color: var(--warning-color, #f59e0b);
+  border-radius: 10px;
+  border: 1px solid rgba(251, 146, 60, 0.35);
+  background: rgba(251, 146, 60, 0.12);
+  color: #fb923c;
+  z-index: 6;
 }
 
 .lockIcon {
@@ -89,29 +119,35 @@
 /* Type label */
 .typeLabel {
   position: absolute;
-  top: -24px;
-  left: 0;
+  top: -12px;
+  left: 12px;
   font-size: 11px;
-  padding: 2px 6px;
-  border-radius: 3px;
-  background: var(--text-primary, #1a1a1a);
-  color: white;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(8, 20, 42, 0.92);
+  color: rgba(225, 236, 255, 0.92);
+  border: 1px solid rgba(109, 135, 177, 0.38);
   opacity: 0;
   transition: opacity 0.15s;
   pointer-events: none;
   white-space: nowrap;
+  z-index: 7;
 }
 
-.wrapper:hover .typeLabel,
 .typeLabel.visible {
   opacity: 1;
 }
 
 /* Structure/Wireframe mode */
 .wrapper.structure {
-  outline: 1px dashed rgba(15, 23, 42, 0.3);
-  outline-offset: 2px;
-  background: rgba(248, 250, 252, 0.6);
+  background: rgba(248, 250, 252, 0.5);
+}
+
+.wrapper.structure::after {
+  border-color: rgba(0, 163, 255, 0.26);
+  border-style: dashed;
 }
 
 .wrapper.structure :global(img) {

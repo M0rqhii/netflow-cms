@@ -36,7 +36,7 @@ export function MediaToolbar({
 }: MediaToolbarProps) {
   return (
     <div className="space-y-3">
-      {error && <div className="text-sm text-red-600">{error}</div>}
+      {error && <div className="rounded-[14px] border border-[rgba(239,68,68,0.3)] bg-[rgba(239,68,68,0.12)] px-3 py-2 text-sm text-[#ef4444]">{error}</div>}
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex-1 min-w-[220px]">
           <Input
@@ -71,3 +71,6 @@ export function MediaToolbar({
     </div>
   );
 }
+
+
+

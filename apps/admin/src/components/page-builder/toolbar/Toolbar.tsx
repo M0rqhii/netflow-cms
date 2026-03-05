@@ -1,7 +1,7 @@
-/**
+﻿/**
  * Toolbar Component
- * 
- * Górny pasek narzędzi z:
+ *
+ * Top toolbar with:
  * - Responsive device switcher
  * - Undo/redo
  * - Preview toggle
@@ -41,19 +41,19 @@ import styles from './Toolbar.module.css';
 const DeviceSwitcher: React.FC = memo(() => {
   const currentBreakpoint = useCurrentBreakpoint();
   const setBreakpoint = usePageBuilderStore((state) => state.setBreakpoint);
-  
+
   const devices: { breakpoint: Breakpoint; icon: React.ReactNode; label: string }[] = [
     { breakpoint: 'desktop', icon: <FiMonitor />, label: 'Desktop' },
     { breakpoint: 'tablet', icon: <FiTablet />, label: 'Tablet' },
     { breakpoint: 'mobile', icon: <FiSmartphone />, label: 'Mobile' },
   ];
-  
+
   return (
     <div className={styles.deviceSwitcher}>
       {devices.map(({ breakpoint, icon, label }) => (
         <button
           key={breakpoint}
-          className={`${styles.deviceBtn} ${currentBreakpoint === breakpoint ? styles.active : ''}`}
+          className={`${styles.deviceBtn} ${currentBreakpoint === breakpoint ? styles.deviceBtnActive : ''}`}
           onClick={() => setBreakpoint(breakpoint)}
           title={label}
           type="button"
@@ -75,7 +75,7 @@ const HistoryControls: React.FC = memo(() => {
   const { canUndo, canRedo } = useHistoryInfo();
   const undo = usePageBuilderStore((state) => state.undo);
   const redo = usePageBuilderStore((state) => state.redo);
-  
+
   return (
     <div className={styles.historyControls}>
       <button
@@ -109,11 +109,11 @@ HistoryControls.displayName = 'HistoryControls';
 const ModeToggle: React.FC = memo(() => {
   const mode = useEditorMode();
   const setMode = usePageBuilderStore((state) => state.setMode);
-  
+
   return (
     <div className={styles.modeToggle}>
       <button
-        className={`${styles.modeBtn} ${mode === 'edit' ? styles.active : ''}`}
+        className={`${styles.modeBtn} ${mode === 'edit' ? styles.modeBtnActive : ''}`}
         onClick={() => setMode('edit')}
         title="Edit mode"
         type="button"
@@ -122,7 +122,7 @@ const ModeToggle: React.FC = memo(() => {
         <span>Edit</span>
       </button>
       <button
-        className={`${styles.modeBtn} ${mode === 'preview' ? styles.active : ''}`}
+        className={`${styles.modeBtn} ${mode === 'preview' ? styles.modeBtnActive : ''}`}
         onClick={() => setMode('preview')}
         title="Preview mode"
         type="button"
@@ -131,7 +131,7 @@ const ModeToggle: React.FC = memo(() => {
         <span>Preview</span>
       </button>
       <button
-        className={`${styles.modeBtn} ${mode === 'structure' ? styles.active : ''}`}
+        className={`${styles.modeBtn} ${mode === 'structure' ? styles.modeBtnActive : ''}`}
         onClick={() => setMode('structure')}
         title="Structure mode"
         type="button"
@@ -156,11 +156,11 @@ type SaveButtonProps = {
 const SaveButton: React.FC<SaveButtonProps> = memo(({ onSave }) => {
   const { status, lastSaved } = useSaveStatus();
   const isDirty = useIsDirty();
-  
+
   const handleSave = () => {
     onSave?.();
   };
-  
+
   const getStatusIcon = () => {
     switch (status) {
       case 'saving':
@@ -173,7 +173,7 @@ const SaveButton: React.FC<SaveButtonProps> = memo(({ onSave }) => {
         return <FiSave />;
     }
   };
-  
+
   const getStatusText = () => {
     switch (status) {
       case 'saving':
@@ -190,10 +190,10 @@ const SaveButton: React.FC<SaveButtonProps> = memo(({ onSave }) => {
         return 'Save';
     }
   };
-  
+
   return (
     <button
-      className={`${styles.saveBtn} ${status === 'error' ? styles.error : ''} ${!isDirty && status === 'saved' ? styles.saved : ''}`}
+      className={`${styles.saveBtn} ${status === 'error' ? styles.saveBtnError : ''} ${!isDirty && status === 'saved' ? styles.saveBtnSaved : ''}`}
       onClick={handleSave}
       disabled={status === 'saving'}
       title={isDirty ? 'Save changes (Ctrl+S)' : 'All changes saved'}
@@ -210,7 +210,7 @@ SaveButton.displayName = 'SaveButton';
 function formatTime(date: Date): string {
   const now = new Date();
   const diff = now.getTime() - date.getTime();
-  
+
   if (diff < 60000) return 'just now';
   if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
   return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -232,7 +232,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ onSave, title = 'Page Builder'
       <div className={styles.section}>
         <h1 className={styles.title}>{title}</h1>
       </div>
-      
+
       {/* Center section */}
       <div className={styles.section}>
         <DeviceSwitcher />
@@ -241,7 +241,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({ onSave, title = 'Page Builder'
         <div className={styles.divider} />
         <ModeToggle />
       </div>
-      
+
       {/* Right section */}
       <div className={styles.section}>
         <SaveButton onSave={onSave} />

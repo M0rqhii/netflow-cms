@@ -640,6 +640,22 @@ export const useIsBlockSelected = (id: string) =>
   usePageBuilderStore((state) => state.selectedBlockId === id);
 
 /**
+ * Subskrybuje czy blok jest przodkiem wybranego bloku.
+ */
+export const useIsBlockInSelectionPath = (id: string) =>
+  usePageBuilderStore((state) => {
+    const selectedId = state.selectedBlockId;
+    if (!selectedId || selectedId === id) return false;
+
+    let cursor = state.content.nodes[selectedId]?.parentId ?? null;
+    while (cursor) {
+      if (cursor === id) return true;
+      cursor = state.content.nodes[cursor]?.parentId ?? null;
+    }
+
+    return false;
+  });
+/**
  * Subskrybuje aktualny breakpoint.
  */
 export const useCurrentBreakpoint = () =>

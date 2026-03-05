@@ -1,7 +1,7 @@
 "use client";
 
-import React from 'react';
-import Link from 'next/link';
+import React from "react";
+import Link from "next/link";
 
 type BreadcrumbItem = {
   label: string;
@@ -10,35 +10,36 @@ type BreadcrumbItem = {
 
 type BreadcrumbsProps = {
   items: BreadcrumbItem[];
+  className?: string;
 };
 
-export default function Breadcrumbs({ items }: BreadcrumbsProps) {
+export default function Breadcrumbs({ items, className }: BreadcrumbsProps) {
   if (items.length === 0) return null;
 
   return (
-    <nav className="mb-4" aria-label="Breadcrumb">
-      <ol className="flex items-center gap-2 text-sm text-muted">
-        {items.map((item, index) => {
-          const isLast = index === items.length - 1;
-          
-          return (
-            <li key={index} className="flex items-center gap-2">
-              {index > 0 && <span>/</span>}
-              {isLast || !item.href ? (
-                <span className={isLast ? 'text-foreground font-medium' : ''}>{item.label}</span>
-              ) : (
-                <Link href={item.href} className="hover:text-foreground transition-colors">
-                  {item.label}
-                </Link>
-              )}
-            </li>
-          );
-        })}
-      </ol>
+    <nav
+      className={["crumbs", className].filter(Boolean).join(" ")}
+      aria-label="Breadcrumbs"
+      id="breadcrumbs"
+    >
+      {items.map((item, index) => {
+        const isLast = index === items.length - 1;
+        const id = isLast ? "crumb-current" : undefined;
+        return (
+          <React.Fragment key={`${item.label}-${index}`}>
+            {index > 0 && <span className="sep">&gt;</span>}
+            {item.href ? (
+              <Link href={item.href} id={id}>
+                {item.label}
+              </Link>
+            ) : (
+              <span id={id} style={{ color: "rgb(var(--foreground))", fontWeight: 900 }}>
+                {item.label}
+              </span>
+            )}
+          </React.Fragment>
+        );
+      })}
     </nav>
   );
 }
-
-
-
-

@@ -1,27 +1,28 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
-import { SitePanelLayout } from '@/components/site-panel/SitePanelLayout';
-import { SectionHeader } from '@/components/site-panel/SectionHeader';
-import { Card, CardContent, Button, Modal } from '@repo/ui';
-import { Badge } from '@/components/ui/Badge';
-import { SiteEventsTable } from '@/components/site-panel/activity/SiteEventsTable';
-import { fetchMySites, exchangeSiteToken, getSiteToken } from '@/lib/api';
-import { createApiClient, type SiteInfo } from '@repo/sdk';
-import { useToast } from '@/components/ui/Toast';
+import React, { useCallback, useEffect, useState } from "react";
+import { useParams } from "next/navigation";
+import { SitePanelLayout } from "@/components/site-panel/SitePanelLayout";
+import { useTranslations } from "@/hooks/useTranslations";
+import { Modal } from "@repo/ui";
+import { Badge } from "@/components/ui/Badge";
+import { SiteEventsTable } from "@/components/site-panel/activity/SiteEventsTable";
+import { fetchMySites, exchangeSiteToken, getSiteToken } from "@/lib/api";
+import { createApiClient, type SiteInfo } from "@repo/sdk";
+import { useToast } from "@/components/ui/Toast";
 
 export default function ActivityPage() {
   const params = useParams<{ slug: string }>();
   const slug = params?.slug as string;
   const apiClient = createApiClient();
   const toast = useToast();
+  const t = useTranslations();
 
   const [siteId, setSiteId] = useState<string | null>(null);
-  const [rows, setRows] = useState<import('@/components/site-panel/activity/SiteEventsTable').SiteEventRow[]>([]);
+  const [rows, setRows] = useState<import("@/components/site-panel/activity/SiteEventsTable").SiteEventRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filterType, setFilterType] = useState<string>('all');
-  const [selectedEvent, setSelectedEvent] = useState<import('@/components/site-panel/activity/SiteEventsTable').SiteEventRow | null>(null);
+  const [filterType, setFilterType] = useState<string>("all");
+  const [selectedEvent, setSelectedEvent] = useState<import("@/components/site-panel/activity/SiteEventsTable").SiteEventRow | null>(null);
 
   const loadEvents = useCallback(async () => {
     if (!slug) return;
@@ -30,7 +31,7 @@ export default function ActivityPage() {
       const sites = await fetchMySites();
       const site = sites.find((s: SiteInfo) => s.site.slug === slug);
       if (!site) {
-        throw new Error(`Nie znaleziono strony o slug: "${slug}"`);
+        throw new Error(t("sitePanelShell.activityUi.toasts.siteNotFound", { slug }));
       }
       setSiteId(site.siteId);
       let token = getSiteToken(site.siteId);
@@ -38,126 +39,129 @@ export default function ActivityPage() {
         token = await exchangeSiteToken(site.siteId);
       }
       const data = await apiClient.listSiteEvents(token, site.siteId, 50);
-      const rows = data.map((event) => ({
+      const mapped = data.map((event) => ({
         id: event.id,
-        type: event.type || '',
-        message: event.message || '',
+        type: event.type || "",
+        message: event.message || "",
         metadata: event.metadata,
         createdAt: event.createdAt,
       }));
-      setRows(rows);
+      setRows(mapped);
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Nie udało się pobrać aktywności';
-      toast.push({ tone: 'error', message });
+      const message = error instanceof Error ? error.message : t("sitePanelShell.activityUi.toasts.loadError");
+      toast.push({ tone: "error", message });
     } finally {
       setLoading(false);
     }
-  }, [slug, apiClient, toast]);
+  }, [slug, apiClient, t, toast]);
 
   useEffect(() => {
     loadEvents();
   }, [loadEvents]);
 
-  const filteredEvents = filterType === 'all'
+  const filteredEvents = filterType === "all"
     ? rows
     : rows.filter((e) => e.type?.toLowerCase().includes(filterType.toLowerCase()));
 
   const handleExportCSV = () => {
-    const headers = ['Data', 'Typ', 'Wiadomość'];
-    const rows = filteredEvents.map(e => [
-      new Date(e.createdAt).toLocaleString('pl-PL'),
-      e.type || '',
-      e.message || '',
+    const headers = [t("sitePanelShell.activityUi.csv.date"), t("sitePanelShell.activityUi.csv.type"), t("sitePanelShell.activityUi.csv.message")];
+    const rowsCsv = filteredEvents.map((e) => [
+      new Date(e.createdAt).toLocaleString(),
+      e.type || "",
+      e.message || "",
     ]);
 
     const csv = [
-      headers.join(','),
-      ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
-    ].join('\n');
+      headers.join(","),
+      ...rowsCsv.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+    ].join("\n");
 
-    const blob = new Blob([csv], { type: 'text/csv' });
+    const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
-    a.download = `aktywnosc-${slug}-${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `activity-${slug}-${new Date().toISOString().split("T")[0]}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
 
   return (
-    <SitePanelLayout>
-      <div className="space-y-6">
-        <SectionHeader
-          title="Aktywność"
-          description="Ostatnie zdarzenia: publikacje, zmiany SEO, media i snapshoty."
-          action={{ label: 'Odśwież', onClick: loadEvents, disabled: loading || !siteId }}
-        />
+    <SitePanelLayout
+      slug={slug}
+      activeTab="activity"
+      title={t("sitePanelShell.activity.title", { site: slug })}
+      subtitle={t("sitePanelShell.activity.subtitle")}
+      actions={
+        <>
+          <button className="btn" type="button" onClick={loadEvents} disabled={loading || !siteId}>{t("sitePanelShell.actions.refresh")}</button>
+          <button className="btn primary" type="button" onClick={handleExportCSV} disabled={filteredEvents.length === 0}>{t("sitePanelShell.actions.exportCsv")}</button>
+        </>
+      }
+    >
+      <div>
 
-        <Card>
-          <CardContent>
-            <div className="flex items-center gap-4 flex-wrap">
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-medium">Filtruj wg typu:</label>
-                <select
-                  value={filterType}
-                  onChange={(e) => setFilterType(e.target.value)}
-                  className="border rounded-md px-3 py-2 text-sm"
-                >
-                  <option value="all">Wszystkie</option>
-                  <option value="page">Strony</option>
-                  <option value="publish">Publikacja</option>
-                  <option value="media">Media</option>
-                  <option value="seo">SEO</option>
-                  <option value="snapshot">Snapshoty</option>
-                </select>
-              </div>
-              <Button variant="outline" size="sm" onClick={handleExportCSV} disabled={filteredEvents.length === 0}>
-                Eksportuj CSV
-              </Button>
+        <div className="card card-pad">
+          <div className="row-between row-wrap">
+            <div className="section-title">{t("sitePanelShell.activityUi.filters.title")}</div>
+            <div className="row">
+              <label className="detail-label font-black">{t("sitePanelShell.activityUi.filters.type")}</label>
+              <select
+                value={filterType}
+                onChange={(e) => setFilterType(e.target.value)}
+                className="input"
+                style={{ width: 200 }}
+              >
+                <option value="all">{t("sitePanelShell.activityUi.filters.all")}</option>
+                <option value="page">{t("sitePanelShell.activityUi.filters.page")}</option>
+                <option value="publish">{t("sitePanelShell.activityUi.filters.publish")}</option>
+                <option value="media">{t("sitePanelShell.activityUi.filters.media")}</option>
+                <option value="seo">{t("sitePanelShell.activityUi.filters.seo")}</option>
+                <option value="snapshot">{t("sitePanelShell.activityUi.filters.snapshot")}</option>
+              </select>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        <Card>
-          <CardContent>
-            <SiteEventsTable
-              events={filteredEvents}
-              loading={loading}
-              onEventClick={setSelectedEvent}
-            />
-          </CardContent>
-        </Card>
+        <div className="spacer" />
 
-        <Card>
-          <CardContent className="text-sm text-muted">
-            <p>Zdarzenia zapisują się automatycznie przy publikacji, zmianach SEO, zarządzaniu mediami oraz snapshotach.</p>
-          </CardContent>
-        </Card>
+        <div className="card card-pad">
+          <SiteEventsTable
+            events={filteredEvents}
+            loading={loading}
+            onEventClick={setSelectedEvent}
+          />
+        </div>
+
+        <div className="spacer" />
+
+        <div className="card card-pad text-muted">
+          {t("sitePanelShell.activityUi.notes.autoEvents")}
+        </div>
 
         {selectedEvent && (
           <Modal
             isOpen={!!selectedEvent}
             onClose={() => setSelectedEvent(null)}
-            title="Szczegóły zdarzenia"
+            title={t("sitePanelShell.activityUi.modal.title")}
             size="lg"
           >
-            <div className="space-y-3">
+            <div className="space-y-4">
               <div>
-                <div className="text-sm font-medium mb-1">Typ</div>
-                <Badge className="capitalize">{selectedEvent.type?.replace(/_/g, ' ') || 'Nieznany'}</Badge>
+                <div className="text-sm font-medium mb-1">{t("sitePanelShell.activityUi.modal.type")}</div>
+                <Badge className="capitalize">{selectedEvent.type?.replace(/_/g, " ") || t("sitePanelShell.activityUi.modal.unknown")}</Badge>
               </div>
               <div>
-                <div className="text-sm font-medium mb-1">Wiadomość</div>
-                <div className="text-sm">{selectedEvent.message || 'Brak wiadomości'}</div>
+                <div className="text-sm font-medium mb-1">{t("sitePanelShell.activityUi.modal.message") }</div>
+                <div className="text-sm">{selectedEvent.message || t("sitePanelShell.activityUi.modal.noMessage")}</div>
               </div>
               <div>
-                <div className="text-sm font-medium mb-1">Kiedy</div>
-                <div className="text-sm text-muted">{new Date(selectedEvent.createdAt).toLocaleString('pl-PL')}</div>
+                <div className="text-sm font-medium mb-1">{t("sitePanelShell.activityUi.modal.when")}</div>
+                <div className="text-sm text-muted">{new Date(selectedEvent.createdAt).toLocaleString()}</div>
               </div>
-              {(selectedEvent.metadata !== undefined && selectedEvent.metadata !== null) && (
+              {selectedEvent.metadata !== undefined && selectedEvent.metadata !== null && (
                 <div>
-                  <div className="text-sm font-medium mb-1">Szczegóły</div>
-                  <pre className="text-xs bg-gray-100 p-3 rounded overflow-auto max-h-64">
+                  <div className="text-sm font-medium mb-1">{t("sitePanelShell.activityUi.modal.details")}</div>
+                  <pre className="text-xs bg-surface-2 p-3 rounded-[14px] overflow-auto max-h-64">
                     {JSON.stringify(selectedEvent.metadata, null, 2)}
                   </pre>
                 </div>

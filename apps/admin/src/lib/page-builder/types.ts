@@ -63,6 +63,8 @@ export type BlockMeta = {
   locked?: boolean;   // locked → brak DnD, delete, paste INTO
   hidden?: boolean;
   label?: string;
+  /** Komentarz / notatka (tylko w panelu, niewidoczny na froncie) */
+  comment?: string;
 };
 
 // =============================================================================

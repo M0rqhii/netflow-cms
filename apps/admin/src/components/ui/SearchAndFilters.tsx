@@ -31,14 +31,17 @@ export default function SearchAndFilters({
 
   return (
     <div className="card mb-4">
-      <div className="card-body">
-        <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
+      <div className="p-4">
+        <div className="flex flex-col md:flex-row gap-3 items-start md:items-center">
           {/* Search */}
-          <div className="flex-1 w-full md:w-auto">
+          <div className="relative flex-1 w-full md:w-auto">
+            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+              <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
+            </svg>
             <input
               type="text"
               placeholder={placeholder || t('common.search')}
-              className="border rounded w-full p-2"
+              className="flex h-9 w-full rounded-lg border border-border bg-card pl-9 pr-3 py-2 text-sm text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
             />
@@ -47,9 +50,9 @@ export default function SearchAndFilters({
           {/* Filters */}
           {filters.map((filter) => (
             <div key={filter.key} className="flex items-center gap-2">
-              <label className="text-sm font-medium whitespace-nowrap">{filter.label}:</label>
+              <label className="text-sm font-medium text-muted whitespace-nowrap">{filter.label}:</label>
               <select
-                className="border rounded p-2 text-sm min-w-[120px]"
+                className="flex h-9 rounded-lg border border-border bg-card px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all min-w-[120px]"
                 value={filter.value}
                 onChange={(e) => filter.onChange(e.target.value)}
               >
@@ -66,7 +69,3 @@ export default function SearchAndFilters({
     </div>
   );
 }
-
-
-
-

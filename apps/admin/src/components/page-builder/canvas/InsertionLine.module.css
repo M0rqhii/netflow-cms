@@ -25,12 +25,15 @@
 .line {
   flex: 1;
   height: 2px;
-  background: var(--primary-color, #3b82f6);
+  background: var(--primary);
 }
 
 .dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--primary-color, #3b82f6);
+  background: var(--primary);
 }
+
+
+

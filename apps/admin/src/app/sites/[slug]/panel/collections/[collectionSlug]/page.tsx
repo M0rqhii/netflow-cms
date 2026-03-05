@@ -1,15 +1,14 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'next/navigation';
-import { SitePanelLayout } from '@/components/site-panel/SitePanelLayout';
-import { SectionHeader } from '@/components/site-panel/SectionHeader';
-import { Card, CardContent } from '@repo/ui';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@repo/ui';
-import { EmptyState, Button, Modal, LoadingSpinner, Select } from '@repo/ui';
-import { Badge } from '@/components/ui/Badge';
-import { useToast } from '@/components/ui/Toast';
-import ConfirmDialog from '@/components/ui/ConfirmDialog';
+import React, { useState, useEffect, useCallback } from "react";
+import { useParams } from "next/navigation";
+import { SitePanelLayout } from "@/components/site-panel/SitePanelLayout";
+import { useTranslations } from "@/hooks/useTranslations";
+import { CardContent } from "@repo/ui";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@repo/ui";
+import { EmptyState, Button, Modal, LoadingSpinner } from "@repo/ui";
+import { useToast } from "@/components/ui/Toast";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import {
   fetchMySites,
   exchangeSiteToken,
@@ -22,11 +21,11 @@ import {
   getCollectionItem,
   type CollectionItem,
   type CollectionSummary,
-} from '@/lib/api';
-import type { SiteInfo } from '@repo/sdk';
-import DynamicForm from '@/components/content/DynamicForm';
-import { simpleSchemaToFields } from '@/lib/schema-converter';
-import type { FieldDefinition } from '@/components/content/FieldsEditor';
+} from "@/lib/api";
+import type { SiteInfo } from "@repo/sdk";
+import DynamicForm from "@/components/content/DynamicForm";
+import { simpleSchemaToFields } from "@/lib/schema-converter";
+import type { FieldDefinition } from "@/components/content/FieldsEditor";
 
 type CollectionDetails = CollectionSummary & { schemaJson?: Record<string, unknown> };
 
@@ -35,6 +34,7 @@ export default function CollectionItemsPage() {
   const slug = params?.slug as string;
   const collectionSlug = params?.collectionSlug as string;
   const toast = useToast();
+  const t = useTranslations();
 
   const [loading, setLoading] = useState(true);
   const [collection, setCollection] = useState<CollectionDetails | null>(null);
@@ -42,18 +42,18 @@ export default function CollectionItemsPage() {
   const [total, setTotal] = useState(0);
   const [page] = useState(1);
   const [pageSize] = useState(20);
-  const [statusFilter, setStatusFilter] = useState<'DRAFT' | 'PUBLISHED' | 'all'>('all');
+  const [statusFilter, setStatusFilter] = useState<"DRAFT" | "PUBLISHED" | "all">("all");
   const [siteId, setSiteId] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingItem, setEditingItem] = useState<CollectionItem | null>(null);
   const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
 
   const [createData, setCreateData] = useState<Record<string, unknown>>({});
-  const [createStatus, setCreateStatus] = useState<'DRAFT' | 'PUBLISHED'>('DRAFT');
+  const [createStatus, setCreateStatus] = useState<"DRAFT" | "PUBLISHED">("DRAFT");
   const [createSaving, setCreateSaving] = useState(false);
 
   const [editData, setEditData] = useState<Record<string, unknown>>({});
-  const [editStatus, setEditStatus] = useState<'DRAFT' | 'PUBLISHED'>('DRAFT');
+  const [editStatus, setEditStatus] = useState<"DRAFT" | "PUBLISHED">("DRAFT");
   const [editSaving, setEditSaving] = useState(false);
 
   const loadData = useCallback(async () => {
@@ -69,7 +69,7 @@ export default function CollectionItemsPage() {
       const site = sites.find((s: SiteInfo) => s.site.slug === slug);
 
       if (!site) {
-        throw new Error(`Nie znaleziono strony o slug: "${slug}"`);
+        throw new Error(`Site with slug "${slug}" not found`);
       }
 
       const id = site.siteId;
@@ -85,7 +85,7 @@ export default function CollectionItemsPage() {
         fetchCollectionItems(id, collectionSlug, {
           page,
           pageSize,
-          status: statusFilter !== 'all' ? statusFilter : undefined,
+          status: statusFilter !== "all" ? statusFilter : undefined,
         }),
       ]);
 
@@ -93,8 +93,8 @@ export default function CollectionItemsPage() {
       setItems(itemsData.items);
       setTotal(itemsData.total);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Nie uda?o si? wczyta? danych';
-      toast.push({ tone: 'error', message });
+      const message = err instanceof Error ? err.message : "Failed to load data";
+      toast.push({ tone: "error", message });
     } finally {
       setLoading(false);
     }
@@ -116,15 +116,15 @@ export default function CollectionItemsPage() {
         status: createStatus,
       });
 
-      toast.push({ tone: 'success', message: 'Wpis utworzony' });
+      toast.push({ tone: "success", message: "Entry created" });
 
       setShowCreateModal(false);
       setCreateData({});
-      setCreateStatus('DRAFT');
+      setCreateStatus("DRAFT");
       await loadData();
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Nie uda?o si? utworzy? wpisu';
-      toast.push({ tone: 'error', message });
+      const message = err instanceof Error ? err.message : "Failed to create entry";
+      toast.push({ tone: "error", message });
     } finally {
       setCreateSaving(false);
     }
@@ -142,15 +142,15 @@ export default function CollectionItemsPage() {
         status: editStatus,
       });
 
-      toast.push({ tone: 'success', message: 'Wpis zaktualizowany' });
+      toast.push({ tone: "success", message: "Entry updated" });
 
       setEditingItem(null);
       setEditData({});
-      setEditStatus('DRAFT');
+      setEditStatus("DRAFT");
       await loadData();
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Nie uda?o si? zaktualizowa? wpisu';
-      toast.push({ tone: 'error', message });
+      const message = err instanceof Error ? err.message : "Failed to update entry";
+      toast.push({ tone: "error", message });
     } finally {
       setEditSaving(false);
     }
@@ -162,13 +162,13 @@ export default function CollectionItemsPage() {
     try {
       await deleteCollectionItem(siteId, collectionSlug, deletingItemId);
 
-      toast.push({ tone: 'success', message: 'Wpis usuni?ty' });
+      toast.push({ tone: "success", message: "Entry deleted" });
 
       setDeletingItemId(null);
       await loadData();
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Nie uda?o si? usun?? wpisu';
-      toast.push({ tone: 'error', message });
+      const message = err instanceof Error ? err.message : "Failed to delete entry";
+      toast.push({ tone: "error", message });
     }
   };
 
@@ -182,8 +182,8 @@ export default function CollectionItemsPage() {
       setEditStatus(fullItem.status);
     } catch (err) {
       toast.push({
-        tone: 'error',
-        message: err instanceof Error ? err.message : 'Nie uda?o si? wczyta? wpisu',
+        tone: "error",
+        message: err instanceof Error ? err.message : "Failed to load entry",
       });
     }
   };
@@ -193,55 +193,54 @@ export default function CollectionItemsPage() {
     : [];
 
   return (
-    <SitePanelLayout>
-      <div className="space-y-6">
-        <SectionHeader
-          title={collection?.name || 'Wpisy'}
-          description={`Kolekcja: ${collectionSlug}`}
-          action={{
-            label: 'Nowy wpis',
-            onClick: () => setShowCreateModal(true),
-            disabled: loading || !siteId,
-          }}
-        />
+    <SitePanelLayout
+      slug={slug}
+      activeTab="collections"
+      title={t("sitePanelShell.collectionItems.title", { collection: collection?.name || collectionSlug })}
+      subtitle={t("sitePanelShell.collectionItems.subtitle")}
+      actions={
+        <button className="btn primary" type="button" onClick={() => setShowCreateModal(true)} disabled={loading || !siteId}>{t("sitePanelShell.actions.newEntry")}</button>
+      }
+    >
+      <div>
 
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-              <div className="flex items-center gap-2 text-sm text-muted">
-                <span>??cznie: {total}</span>
-                <span className="text-gray-300">?</span>
-                <span>Strona: {slug}</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <label className="text-sm text-muted">Status</label>
-                <Select
-                  value={statusFilter}
-                  onChange={(event) => setStatusFilter(event.target.value as 'DRAFT' | 'PUBLISHED' | 'all')}
-                  options={[
-                    { value: 'all', label: 'Wszystkie' },
-                    { value: 'DRAFT', label: 'Szkic' },
-                    { value: 'PUBLISHED', label: 'Opublikowane' },
-                  ]}
-                />
-              </div>
+        <div className="card" style={{ padding: 16, borderRadius: 18 }}>
+          <div className="row-between" style={{ flexWrap: "wrap", gap: 12 }}>
+            <div className="row" style={{ gap: 10, flexWrap: "wrap" }}>
+              <span className="badge gray">Total: {total}</span>
+              <span className="badge gray">{t("siteModules.siteLabel")}: {slug}</span>
+              <span className="badge blue">Collection: {collectionSlug}</span>
             </div>
-          </CardContent>
-        </Card>
+            <div className="row" style={{ gap: 10 }}>
+              <label className="detail-label">Status</label>
+              <select
+                className="input"
+                value={statusFilter}
+                onChange={(event) => setStatusFilter(event.target.value as "DRAFT" | "PUBLISHED" | "all")}
+              >
+                <option value="all">All</option>
+                <option value="DRAFT">Draft</option>
+                <option value="PUBLISHED">Published</option>
+              </select>
+            </div>
+          </div>
+        </div>
 
-        <Card>
-          <CardContent className="pt-6">
+        <div className="spacer" />
+
+        <div className="card card-pad">
+          <CardContent style={{ padding: 0 }}>
             {loading ? (
               <div className="py-12 flex justify-center">
-                <LoadingSpinner text="Wczytywanie wpis?w..." />
+                <LoadingSpinner text="Loading entries..." />
               </div>
             ) : items.length === 0 ? (
               <div className="py-12">
                 <EmptyState
-                  title="Brak wpis?w"
-                  description={`Utw?rz pierwszy wpis w kolekcji "${collection?.name || collectionSlug}".`}
+                  title="No entries"
+                  description={`Create the first entry in "${collection?.name || collectionSlug}".`}
                   action={{
-                    label: 'Utw?rz wpis',
+                    label: "Create entry",
                     onClick: () => setShowCreateModal(true),
                   }}
                 />
@@ -251,10 +250,10 @@ export default function CollectionItemsPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Wpis</TableHead>
+                      <TableHead>Entry</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Zaktualizowano</TableHead>
-                      <TableHead className="text-right">Akcje</TableHead>
+                      <TableHead>Updated</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -266,28 +265,28 @@ export default function CollectionItemsPage() {
                             {Object.entries(item.data || {})
                               .slice(0, 2)
                               .map(([key, value]) => {
-                                const val = typeof value === 'string' ? value : JSON.stringify(value);
-                                return `${key}: ${val.substring(0, 30)}${val.length > 30 ? '...' : ''}`;
+                                const val = typeof value === "string" ? value : JSON.stringify(value);
+                                return `${key}: ${val.substring(0, 30)}${val.length > 30 ? "..." : ""}`;
                               })
-                              .join(' ? ')}
+                              .join(" - ")}
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge tone={item.status === 'PUBLISHED' ? 'success' : 'default'}>
-                            {item.status === 'PUBLISHED' ? 'Opublikowane' : 'Szkic'}
-                          </Badge>
+                          <span className={`badge ${item.status === "PUBLISHED" ? "green" : "gray"}`}>
+                            {item.status === "PUBLISHED" ? "Published" : "Draft"}
+                          </span>
                         </TableCell>
                         <TableCell className="text-muted text-sm">
-                          {new Date(item.updatedAt).toLocaleDateString('pl-PL')}
+                          {new Date(item.updatedAt).toLocaleDateString("en-US")}
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-2">
-                            <Button variant="outline" size="sm" onClick={() => openEditModal(item)}>
-                              Edytuj
-                            </Button>
-                            <Button variant="outline" size="sm" onClick={() => setDeletingItemId(item.id)}>
-                              Usu?
-                            </Button>
+                            <button className="btn" type="button" onClick={() => openEditModal(item)}>
+                              Edit
+                            </button>
+                            <button className="btn" type="button" onClick={() => setDeletingItemId(item.id)}>
+                              Delete
+                            </button>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -297,7 +296,7 @@ export default function CollectionItemsPage() {
               </div>
             )}
           </CardContent>
-        </Card>
+        </div>
 
         {showCreateModal && (
           <Modal
@@ -305,40 +304,34 @@ export default function CollectionItemsPage() {
             onClose={() => {
               setShowCreateModal(false);
               setCreateData({});
-              setCreateStatus('DRAFT');
+              setCreateStatus("DRAFT");
             }}
-            title={`Nowy wpis ? ${collection?.name || collectionSlug}`}
+            title={`New entry - ${collection?.name || collectionSlug}`}
             size="lg"
           >
             <form onSubmit={handleCreate} className="space-y-4">
               {schemaFields.length > 0 ? (
-                <DynamicForm
-                  fields={schemaFields}
-                  data={createData}
-                  onChange={setCreateData}
-                />
+                <DynamicForm fields={schemaFields} data={createData} onChange={setCreateData} />
               ) : (
-                <div className="text-sm text-muted">
-                  Brak p?l w schemacie kolekcji.
-                </div>
+                <div className="text-sm text-muted">No fields available for this collection.</div>
               )}
               <div className="flex items-center gap-3">
                 <label className="text-sm text-muted">Status</label>
-                <Select
+                <select
+                  className="input"
                   value={createStatus}
-                  onChange={(event) => setCreateStatus(event.target.value as 'DRAFT' | 'PUBLISHED')}
-                  options={[
-                    { value: 'DRAFT', label: 'Szkic' },
-                    { value: 'PUBLISHED', label: 'Opublikowane' },
-                  ]}
-                />
+                  onChange={(event) => setCreateStatus(event.target.value as "DRAFT" | "PUBLISHED")}
+                >
+                  <option value="DRAFT">Draft</option>
+                  <option value="PUBLISHED">Published</option>
+                </select>
               </div>
               <div className="flex gap-2 justify-end">
                 <Button type="button" variant="outline" onClick={() => setShowCreateModal(false)}>
-                  Anuluj
+                  Cancel
                 </Button>
                 <Button type="submit" variant="primary" disabled={createSaving}>
-                  {createSaving ? 'Tworzenie...' : 'Utw?rz wpis'}
+                  {createSaving ? "Creating..." : "Create entry"}
                 </Button>
               </div>
             </form>
@@ -351,40 +344,34 @@ export default function CollectionItemsPage() {
             onClose={() => {
               setEditingItem(null);
               setEditData({});
-              setEditStatus('DRAFT');
+              setEditStatus("DRAFT");
             }}
-            title={`Edytuj wpis ? ${collection?.name || collectionSlug}`}
+            title={`Edit entry - ${collection?.name || collectionSlug}`}
             size="lg"
           >
             <form onSubmit={handleEdit} className="space-y-4">
               {schemaFields.length > 0 ? (
-                <DynamicForm
-                  fields={schemaFields}
-                  data={editData}
-                  onChange={setEditData}
-                />
+                <DynamicForm fields={schemaFields} data={editData} onChange={setEditData} />
               ) : (
-                <div className="text-sm text-muted">
-                  Brak p?l w schemacie kolekcji.
-                </div>
+                <div className="text-sm text-muted">No fields available for this collection.</div>
               )}
               <div className="flex items-center gap-3">
                 <label className="text-sm text-muted">Status</label>
-                <Select
+                <select
+                  className="input"
                   value={editStatus}
-                  onChange={(event) => setEditStatus(event.target.value as 'DRAFT' | 'PUBLISHED')}
-                  options={[
-                    { value: 'DRAFT', label: 'Szkic' },
-                    { value: 'PUBLISHED', label: 'Opublikowane' },
-                  ]}
-                />
+                  onChange={(event) => setEditStatus(event.target.value as "DRAFT" | "PUBLISHED")}
+                >
+                  <option value="DRAFT">Draft</option>
+                  <option value="PUBLISHED">Published</option>
+                </select>
               </div>
               <div className="flex gap-2 justify-end">
                 <Button type="button" variant="outline" onClick={() => setEditingItem(null)}>
-                  Anuluj
+                  Cancel
                 </Button>
                 <Button type="submit" variant="primary" disabled={editSaving}>
-                  {editSaving ? 'Zapisywanie...' : 'Zapisz zmiany'}
+                  {editSaving ? "Saving..." : "Save changes"}
                 </Button>
               </div>
             </form>
@@ -396,10 +383,10 @@ export default function CollectionItemsPage() {
             open={Boolean(deletingItemId)}
             onClose={() => setDeletingItemId(null)}
             onConfirm={handleDelete}
-            title="Usu? wpis"
-            message="Czy na pewno chcesz usun?? ten wpis? Operacja jest nieodwracalna."
-            confirmLabel="Usu?"
-            cancelLabel="Anuluj"
+            title="Delete entry"
+            message="Are you sure you want to delete this entry? This cannot be undone."
+            confirmLabel="Delete"
+            cancelLabel="Cancel"
             variant="danger"
           />
         )}
