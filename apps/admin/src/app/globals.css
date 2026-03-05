@@ -1330,10 +1330,14 @@ html[data-theme="light"] *::-webkit-scrollbar-thumb:hover {
   font-size: 14px;
 }
 
+.org-settings-frame {
+  min-width: 0;
+}
+
 .org-settings-shell {
   display: grid;
   gap: 22px;
-  max-width: min(1180px, 100%);
+  width: 100%;
 }
 
 .org-settings-hero {
