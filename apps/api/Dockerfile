@@ -38,6 +38,6 @@ RUN pnpm --filter api db:generate
 RUN pnpm --filter api build
 
 # In docker-compose we override CMD with pnpm --filter api dev
-CMD ["node", "dist/main"]
+CMD ["node", "dist/apps/api/src/main"]
 
 
