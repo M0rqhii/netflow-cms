@@ -8,6 +8,7 @@ dist/
 build/
 .next/
 out/
+*.tsbuildinfo
 
 # Compiled files (should not be in src/)
 *.js

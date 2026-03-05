@@ -5,8 +5,7 @@
     "description": "Backend API - NestJS + Prisma",
     "scripts": {
         "dev": "node scripts/dev-with-link.js",
-        "prebuild": "rm -rf dist 2>/dev/null || true",
-        "build": "nest build",
+        "build": "node -e \"const fs=require('fs');for(const p of ['dist','.tsbuildinfo','tsconfig.tsbuildinfo']){try{fs.rmSync(p,{recursive:true,force:true});}catch{}}\" && nest build",
         "postbuild": "cd dist && (ln -sf apps/api/src/main.js main.js 2>/dev/null || ln -sf src/main.js main.js 2>/dev/null || true)",
         "watch:link": "while true; do sleep 2; ([ -f dist/apps/api/src/main.js ] && [ ! -f dist/main.js ] && cd dist && ln -sf apps/api/src/main.js main.js 2>/dev/null) || ([ -f dist/src/main.js ] && [ ! -f dist/main.js ] && cd dist && ln -sf src/main.js main.js 2>/dev/null) || true; done",
         "start": "node dist/apps/api/src/main.js",
