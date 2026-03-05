@@ -1620,6 +1620,23 @@ export type AccountInfo = {
     nip: string | null;
     address: string | null;
   };
+  security?: {
+    twoFactorEnabled: boolean;
+    twoFactorMethod: 'auth_app' | 'email';
+    loginAlerts: boolean;
+    sessionTimeoutMinutes: number;
+    recoveryCodesCount: number;
+    updatedAt: string;
+  };
+};
+
+export type AccountSecuritySettings = {
+  twoFactorEnabled: boolean;
+  twoFactorMethod: 'auth_app' | 'email';
+  loginAlerts: boolean;
+  sessionTimeoutMinutes: number;
+  recoveryCodes: string[];
+  updatedAt: string;
 };
 
 export async function getAccount(): Promise<AccountInfo> {
@@ -1664,6 +1681,60 @@ export async function updateBillingInfo(data: { companyName?: string; nip?: stri
   const token = getAuthToken();
   if (!token) throw new Error('Missing auth token. Please login.');
   return client.updateBillingInfo(token, data);
+}
+
+export async function getAccountSecurity(): Promise<AccountSecuritySettings> {
+  const token = getAuthToken();
+  if (!token) throw new Error('Missing auth token. Please login.');
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+  const res = await fetch(`${baseUrl}/account/security`, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`Failed to fetch account security: ${res.status} ${res.statusText}${text ? ` - ${text}` : ''}`);
+  }
+  return res.json();
+}
+
+export async function updateAccountSecurity(
+  data: Partial<Pick<AccountSecuritySettings, 'twoFactorEnabled' | 'twoFactorMethod' | 'loginAlerts' | 'sessionTimeoutMinutes'>>,
+): Promise<AccountSecuritySettings> {
+  const token = getAuthToken();
+  if (!token) throw new Error('Missing auth token. Please login.');
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+  const res = await fetch(`${baseUrl}/account/security`, {
+    method: 'PATCH',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`Failed to update account security: ${res.status} ${res.statusText}${text ? ` - ${text}` : ''}`);
+  }
+  return res.json();
+}
+
+export async function regenerateAccountRecoveryCodes(): Promise<{ recoveryCodes: string[]; generatedAt: string }> {
+  const token = getAuthToken();
+  if (!token) throw new Error('Missing auth token. Please login.');
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+  const res = await fetch(`${baseUrl}/account/security/recovery-codes/regenerate`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`Failed to regenerate recovery codes: ${res.status} ${res.statusText}${text ? ` - ${text}` : ''}`);
+  }
+  return res.json();
 }
 
 // Dev endpoints (non-production)
@@ -2511,6 +2582,5 @@ export async function createChannelConnection(
   }
   return res.json();
 }
-
 
 
