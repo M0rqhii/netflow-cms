@@ -183,9 +183,11 @@ export function useShellRoleState(): ShellRoleState {
   const isOwnerFromToken =
     platformRole === 'org_owner' ||
     platformRole === 'owner' ||
+    platformRole === 'platform_admin' ||
     platformRole === 'platform_owner' ||
     role === 'org_owner' ||
     role === 'owner' ||
+    role === 'platform_admin' ||
     role === 'platform_owner' ||
     systemRole === 'org_owner' ||
     systemRole === 'owner';
@@ -210,7 +212,7 @@ export function useShellRoleState(): ShellRoleState {
   const isPrivileged =
     isSuperFromToken ||
     ['org_admin', 'site_admin', 'platform_admin'].includes(role) ||
-    ['admin', 'owner'].includes(platformRole) ||
+    ['admin', 'owner', 'platform_admin'].includes(platformRole) ||
     systemRole === 'system_admin';
 
   useEffect(() => {

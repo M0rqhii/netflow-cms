@@ -44,6 +44,31 @@ export class PlanLimitsService {
     },
   } as const;
 
+  private resolveKnownPlan(plan: string | null | undefined): keyof typeof this.PLAN_LIMITS {
+    if (plan === 'free' || plan === 'professional' || plan === 'enterprise') {
+      return plan;
+    }
+    return 'free';
+  }
+
+  private async resolveEffectivePlan(orgId: string, plan: string | null | undefined): Promise<keyof typeof this.PLAN_LIMITS> {
+    const hasPlatformAdmin = await this.prisma.user.count({
+      where: {
+        orgId,
+        OR: [
+          { platformRole: 'platform_admin' },
+          { role: 'platform_admin' },
+        ],
+      },
+    });
+
+    if (hasPlatformAdmin > 0) {
+      return 'enterprise';
+    }
+
+    return this.resolveKnownPlan(plan);
+  }
+
   /**
    * Get limits for a plan
    */
@@ -68,7 +93,7 @@ export class PlanLimitsService {
       return { allowed: false, reason: 'Organization not found' };
     }
 
-    const plan = organization.plan as 'free' | 'professional' | 'enterprise';
+    const plan = await this.resolveEffectivePlan(orgId, organization.plan);
     const limits = this.getLimits(plan);
 
     // Check current usage
@@ -108,7 +133,7 @@ export class PlanLimitsService {
       return { allowed: false, reason: 'Organization not found' };
     }
 
-    const plan = organization.plan as 'free' | 'professional' | 'enterprise';
+    const plan = await this.resolveEffectivePlan(orgId, organization.plan);
     const limits = this.getLimits(plan);
     const limit = limits.storageMB;
 
@@ -252,8 +277,9 @@ export class PlanLimitsService {
       orderBy: { createdAt: 'desc' },
     });
 
+    const plan = await this.resolveEffectivePlan(orgId, organization.plan);
     return {
-      plan: organization.plan,
+      plan,
       status: subscription?.status || 'inactive',
       currentPeriodEnd: subscription?.currentPeriodEnd || null,
       isActive: subscription?.status === 'active' || subscription?.status === 'trialing',
@@ -278,7 +304,7 @@ export class PlanLimitsService {
       throw new Error('Organization not found');
     }
 
-    const plan = organization.plan as 'free' | 'professional' | 'enterprise';
+    const plan = await this.resolveEffectivePlan(orgId, organization.plan);
     const limits = this.getLimits(plan);
     const counts = await this.getResourceCounts(orgId, siteId);
     const storageUsageMB = await this.getStorageUsage(orgId, siteId);

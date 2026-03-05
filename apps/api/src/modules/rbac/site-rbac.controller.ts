@@ -21,6 +21,7 @@ import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { RbacService } from './rbac.service';
 import { RbacEvaluatorService } from './rbac-evaluator.service';
+import { isPlatformAdminValue, isPlatformPowerUser } from '../../common/auth/platform-admin.util';
 import {
   createRoleSchema,
   updateRoleSchema,
@@ -297,6 +298,7 @@ export class SiteRbacController {
         isSuperAdmin: true,
         systemRole: true,
         platformRole: true,
+        role: true,
       },
     });
 
@@ -304,8 +306,8 @@ export class SiteRbacController {
       return false;
     }
 
-    // Super admin is always owner
-    if (user.isSuperAdmin || user.systemRole === 'super_admin') {
+    // Super admin / platform admin is always owner
+    if (isPlatformPowerUser(user) || isPlatformAdminValue(user.platformRole) || isPlatformAdminValue(user.role)) {
       return true;
     }
 

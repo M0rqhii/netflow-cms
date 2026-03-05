@@ -272,6 +272,7 @@ export default function PlatformUsersPage() {
                         <option value="editor-in-chief">Editor-in-Chief</option>
                         <option value="admin">Admin</option>
                         <option value="owner">Owner</option>
+                        <option value="platform_admin">Platform Admin</option>
                       </select>
                     </div>
                   </>
@@ -393,6 +394,7 @@ export default function PlatformUsersPage() {
                               <option value="editor-in-chief">Editor-in-Chief</option>
                               <option value="admin">{t("users.admin")}</option>
                               <option value="owner">Owner</option>
+                              <option value="platform_admin">Platform Admin</option>
                             </select>
                           ) : (
                             <span className="badge gray">{formatRoleName(u.platformRole || "user")}</span>

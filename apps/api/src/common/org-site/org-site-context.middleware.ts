@@ -10,6 +10,7 @@ import { OrganizationService } from '../organization/organization.service';
 import { SiteService } from '../site/site.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CurrentUserPayload } from '../auth/decorators/current-user.decorator';
+import { isPlatformPowerUser } from '../auth/platform-admin.util';
 
 /**
  * OrgSiteContextMiddleware - automatycznie ustawia kontekst organizacji/strony w requestach
@@ -51,7 +52,7 @@ export class OrgSiteContextMiddleware implements NestMiddleware {
 
     // If no orgId provided explicitly, try to derive from authenticated user (JWT)
     let resolvedOrgId = typeof orgId === 'string' ? orgId : orgIdFromPath || undefined;
-    const user = (req as { user?: CurrentUserPayload }).user;
+    const user = (req as unknown as { user?: CurrentUserPayload }).user;
     if (!resolvedOrgId && user?.orgId) {
       resolvedOrgId = user.orgId;
     }
@@ -95,7 +96,7 @@ export class OrgSiteContextMiddleware implements NestMiddleware {
     }
 
     // If user is authenticated, validate they have access to this organization
-    if (user && user.orgId && user.orgId !== resolvedOrgId) {
+    if (user && user.orgId && user.orgId !== resolvedOrgId && !isPlatformPowerUser(user)) {
       this.logger.warn(
         `User ${user.id} attempted to access organization ${resolvedOrgId} but token org is ${user.orgId}`,
       );

@@ -11,6 +11,7 @@ import {
 } from '../roles.enum';
 import { PERMISSIONS_KEY } from '../decorators/permissions.decorator';
 import { CurrentUserPayload } from '../decorators/current-user.decorator';
+import { isPlatformPowerUser } from '../platform-admin.util';
 
 /**
  * PermissionsGuard - central permission checking guard
@@ -45,8 +46,8 @@ export class PermissionsGuard implements CanActivate {
       throw new ForbiddenException('User not authenticated');
     }
 
-    // 1. Check System Role permissions (highest priority)
-    if (user.isSuperAdmin || user.systemRole === SystemRole.SUPER_ADMIN) {
+    // 1. Check System / platform-admin permissions (highest priority)
+    if (isPlatformPowerUser(user) || user.systemRole === SystemRole.SUPER_ADMIN) {
       return true; // Super admin has all permissions
     }
 
@@ -72,8 +73,9 @@ export class PermissionsGuard implements CanActivate {
     }
 
     // 3. Check Org Role permissions
-    if (user.orgRole) {
-      const orgRole = user.orgRole as OrgRole;
+    const resolvedOrgRole = (user.orgRole || user.platformRole) as OrgRole | undefined;
+    if (resolvedOrgRole) {
+      const orgRole = resolvedOrgRole;
       const hasOrgPerm = requiredPermissions.some(perm =>
         hasAnyOrgPermission(orgRole, [perm])
       );
@@ -87,5 +89,4 @@ export class PermissionsGuard implements CanActivate {
     );
   }
 }
-
 

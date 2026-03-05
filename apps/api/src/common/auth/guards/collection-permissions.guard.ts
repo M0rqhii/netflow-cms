@@ -4,6 +4,7 @@ import { Permission, SiteRole, SystemRole, hasSitePermission } from '../roles.en
 import { PERMISSIONS_KEY } from '../decorators/permissions.decorator';
 import { CurrentUserPayload } from '../decorators/current-user.decorator';
 import { CollectionRolesService } from '../../../modules/collection-roles/collection-roles.service';
+import { isPlatformPowerUser } from '../platform-admin.util';
 
 /**
  * CollectionPermissionsGuard - checks permissions per collection
@@ -44,8 +45,8 @@ export class CollectionPermissionsGuard implements CanActivate {
 
     const siteId = request.siteId || user.siteId;
 
-    // Super admin has all permissions
-    if (user.isSuperAdmin || user.systemRole === SystemRole.SUPER_ADMIN) {
+    // Super/platform admin has all permissions
+    if (isPlatformPowerUser(user) || user.systemRole === SystemRole.SUPER_ADMIN) {
       return true;
     }
 
@@ -103,4 +104,3 @@ export class CollectionPermissionsGuard implements CanActivate {
     return null;
   }
 }
-

@@ -2,6 +2,7 @@ import { Injectable, ExecutionContext, Logger } from '@nestjs/common';
 import { ThrottlerGuard } from '@nestjs/throttler';
 import { Request } from 'express';
 import { Reflector } from '@nestjs/core';
+import { isPlatformAdminValue } from '../auth/platform-admin.util';
 
 const THROTTLER_LIMIT = 'THROTTLER:LIMIT';
 const THROTTLER_TTL = 'THROTTLER:TTL';
@@ -94,7 +95,7 @@ export class RoleBasedThrottlerGuard extends ThrottlerGuard {
     }
 
     let limit = 50; // Default limit for unauthenticated users
-    if (user?.role === 'super_admin') {
+    if (user?.role === 'super_admin' || isPlatformAdminValue(user?.platformRole) || isPlatformAdminValue(user?.role)) {
       limit = 1000; // 1000 requests per minute for super admin
     } else if (user?.role === 'org_admin') {
       limit = 500; // 500 requests per minute for org admin (org_admin role)

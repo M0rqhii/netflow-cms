@@ -2,6 +2,7 @@ import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@
 import { Reflector } from '@nestjs/core';
 import { PlanLimitsService } from './plan-limits.service';
 import { CurrentUserPayload } from '../auth/decorators/current-user.decorator';
+import { isPlatformPowerUser } from '../auth/platform-admin.util';
 
 /**
  * Plan Limits Guard
@@ -39,6 +40,10 @@ export class PlanLimitsGuard implements CanActivate {
     const orgId = request.orgId || user?.orgId;
     if (!user || !orgId) {
       throw new ForbiddenException('Organization context required');
+    }
+
+    if (isPlatformPowerUser(user)) {
+      return true;
     }
 
     const { resourceType, storageMB } = planLimitMetadata;

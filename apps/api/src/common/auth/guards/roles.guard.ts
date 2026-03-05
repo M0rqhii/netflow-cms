@@ -3,6 +3,7 @@ import { Reflector } from '@nestjs/core';
 import { SiteRole, SystemRole } from '../roles.enum';
 import { ROLES_KEY } from '../decorators/roles.decorator';
 import { CurrentUserPayload } from '../decorators/current-user.decorator';
+import { isPlatformPowerUser } from '../platform-admin.util';
 
 /**
  * RolesGuard - checks if user has required site role
@@ -30,8 +31,8 @@ export class RolesGuard implements CanActivate {
       throw new ForbiddenException('User not authenticated');
     }
 
-    // Super admin has access to everything
-    if (user.isSuperAdmin || user.systemRole === SystemRole.SUPER_ADMIN) {
+    // Super/platform admin has access to everything
+    if (isPlatformPowerUser(user) || user.systemRole === SystemRole.SUPER_ADMIN) {
       return true;
     }
 
@@ -52,5 +53,4 @@ export class RolesGuard implements CanActivate {
     return true;
   }
 }
-
 

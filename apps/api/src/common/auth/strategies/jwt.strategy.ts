@@ -4,6 +4,7 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CurrentUserPayload } from '../decorators/current-user.decorator';
+import { isPlatformPowerUser } from '../platform-admin.util';
 
 export interface JwtPayload {
   sub: string; // user id
@@ -77,14 +78,24 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
     // Use values from database (most up-to-date) or fall back to token payload
     const resolvedOrgId = orgIdFromToken ?? user.orgId;
+    const resolvedPlatformRole = user.platformRole || payload.platformRole || undefined;
+    const resolvedSystemRole = user.systemRole || payload.systemRole || undefined;
+    const isPowerUser = isPlatformPowerUser({
+      role: payload.role || user.role,
+      platformRole: resolvedPlatformRole,
+      systemRole: resolvedSystemRole,
+      isSuperAdmin: user.isSuperAdmin || payload.isSuperAdmin || false,
+    });
+
     return {
       id: user.id,
       email: user.email,
       role: payload.role || user.role, // Backward compatibility
       siteRole: user.siteRole || payload.siteRole || undefined,
-      platformRole: user.platformRole || payload.platformRole || undefined,
-      systemRole: user.systemRole || payload.systemRole || undefined,
-      isSuperAdmin: user.isSuperAdmin || payload.isSuperAdmin || false,
+      orgRole: resolvedPlatformRole,
+      platformRole: resolvedPlatformRole,
+      systemRole: resolvedSystemRole,
+      isSuperAdmin: isPowerUser || user.isSuperAdmin || payload.isSuperAdmin || false,
       orgId: resolvedOrgId || undefined,
       siteId: siteIdFromToken || undefined, // Site ID from token (for site-scoped tokens)
     };

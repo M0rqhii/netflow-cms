@@ -1,6 +1,7 @@
 import { Injectable, Logger, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { CurrentUserPayload } from '../../common/auth/decorators/current-user.decorator';
+import { isPlatformAdminValue, isPlatformPowerUser } from '../../common/auth/platform-admin.util';
 
 /**
  * ActivityService - provides activity feed for the platform
@@ -34,8 +35,8 @@ export class ActivityService {
     siteId?: string,
   ) {
     try {
-      // Super admin can see all logs
-      if (user.isSuperAdmin || user.systemRole === 'super_admin') {
+      // Super/platform admin can see all logs
+      if (isPlatformPowerUser(user) || user.systemRole === 'super_admin') {
         return this.getActivityForSuperAdmin(limit, orgId, siteId);
       }
 
@@ -141,7 +142,10 @@ export class ActivityService {
     }
 
     const platformRole = user.platformRole?.toLowerCase();
-    if (user.isSuperAdmin || user.systemRole === 'super_admin') {
+    if (isPlatformPowerUser(user) || user.systemRole === 'super_admin') {
+      return { role: 'owner' };
+    }
+    if (isPlatformAdminValue(user.platformRole) || isPlatformAdminValue(user.role)) {
       return { role: 'owner' };
     }
     if (platformRole == 'owner' || platformRole == 'org_owner') {

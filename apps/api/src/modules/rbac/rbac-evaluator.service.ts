@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { CAPABILITY_REGISTRY, getCapabilityByKey, type CapabilityDefinition } from '@repo/schemas';
+import { isPlatformPowerUser } from '../../common/auth/platform-admin.util';
 
 export type RbacCanParams = {
   userId: string;
@@ -49,13 +50,11 @@ export class RbacEvaluatorService {
         isSuperAdmin: true,
         systemRole: true,
         role: true,
+        platformRole: true,
       },
     });
 
-    const isSuperAdmin =
-      Boolean(user?.isSuperAdmin) ||
-      user?.systemRole === 'super_admin' ||
-      user?.role === 'super_admin';
+    const isSuperAdmin = isPlatformPowerUser(user);
 
     const where: any = {
       orgId,
@@ -116,7 +115,9 @@ export class RbacEvaluatorService {
       where: { orgId },
     });
 
-    const policyMap = new Map(policies.map(policy => [policy.capabilityKey, policy.enabled]));
+    const policyMap = new Map<string, boolean>(
+      policies.map((policy): [string, boolean] => [policy.capabilityKey, Boolean(policy.enabled)]),
+    );
 
     return { policyMap, roleSourcesByCapability, isSuperAdmin };
   }

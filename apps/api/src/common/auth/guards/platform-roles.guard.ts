@@ -4,6 +4,7 @@ import { OrgRole, SystemRole } from '../roles.enum';
 import { ORG_ROLES_KEY } from '../decorators/platform-roles.decorator';
 import { CurrentUserPayload } from '../decorators/current-user.decorator';
 import { PrismaService } from '../../prisma/prisma.service';
+import { isPlatformAdminValue, isPlatformPowerUser } from '../platform-admin.util';
 
 /**
  * OrgRolesGuard - checks if user has required organization role
@@ -41,8 +42,8 @@ export class OrgRolesGuard implements CanActivate {
 
     this.logger.debug(`Checking org role for user ${user.id} (orgRole: ${user.orgRole}, systemRole: ${user.systemRole}, isSuperAdmin: ${user.isSuperAdmin})`);
 
-    // Check if user is super admin or has system role - they have access to everything
-    if (user.isSuperAdmin || user.systemRole === SystemRole.SUPER_ADMIN) {
+    // Check if user is super admin / platform admin - they have access to everything
+    if (isPlatformPowerUser(user) || user.systemRole === SystemRole.SUPER_ADMIN) {
       this.logger.debug(`User ${user.id} is super admin - granting access`);
       return true;
     }
@@ -64,11 +65,17 @@ export class OrgRolesGuard implements CanActivate {
             isSuperAdmin: true,
             systemRole: true,
             platformRole: true, // DB column is still platformRole
+            role: true,
           },
         });
 
         // If user is super_admin in database, always grant access
-        if (dbUser?.isSuperAdmin || dbUser?.systemRole === SystemRole.SUPER_ADMIN) {
+        if (
+          dbUser?.isSuperAdmin ||
+          dbUser?.systemRole === SystemRole.SUPER_ADMIN ||
+          isPlatformAdminValue(dbUser?.platformRole) ||
+          isPlatformAdminValue(dbUser?.role)
+        ) {
           this.logger.log(`Granting access to user ${user.id} based on super_admin/systemRole in database`);
           return true;
         }

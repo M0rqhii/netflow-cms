@@ -23,13 +23,14 @@ import { z } from 'zod';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
 import { BadRequestException, ConflictException, ForbiddenException, NotFoundException, Injectable } from '@nestjs/common';
+import { isPlatformAdminValue, isPlatformPowerUser } from '../../common/auth/platform-admin.util';
 
 const createPlatformUserSchema = z.object({
   email: z.string().email('Invalid email format'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
-  role: z.enum(['super_admin', 'organization_admin', 'editor', 'viewer']).optional(), // Backward compatibility
+  role: z.enum(['super_admin', 'organization_admin', 'editor', 'viewer', 'platform_admin']).optional(), // Backward compatibility
   siteRole: z.enum(['viewer', 'editor', 'editor-in-chief', 'marketing', 'admin', 'owner']).optional(),
-  platformRole: z.enum(['user', 'editor-in-chief', 'admin', 'owner']).optional(),
+  platformRole: z.enum(['user', 'editor-in-chief', 'admin', 'owner', 'platform_admin']).optional(),
   systemRole: z.enum(['super_admin', 'system_admin', 'system_dev', 'system_support']).optional(),
   preferredLanguage: z.enum(['pl', 'en']).optional().default('en'),
   // Granular permissions (optional, overrides role permissions)
@@ -37,9 +38,9 @@ const createPlatformUserSchema = z.object({
 });
 
 const updatePlatformUserSchema = z.object({
-  role: z.enum(['super_admin', 'organization_admin', 'editor', 'viewer']).optional(), // Backward compatibility
+  role: z.enum(['super_admin', 'organization_admin', 'editor', 'viewer', 'platform_admin']).optional(), // Backward compatibility
   siteRole: z.enum(['viewer', 'editor', 'editor-in-chief', 'marketing', 'admin', 'owner']).optional(),
-  platformRole: z.enum(['user', 'editor-in-chief', 'admin', 'owner']).optional(),
+  platformRole: z.enum(['user', 'editor-in-chief', 'admin', 'owner', 'platform_admin']).optional(),
   systemRole: z.enum(['super_admin', 'system_admin', 'system_dev', 'system_support']).optional(),
   permissions: z.array(z.string()).optional(), // Use string instead of nativeEnum for flexibility
 });
@@ -114,7 +115,7 @@ export class PlatformUsersController {
       return {
         ...user,
         siteRole: mappedSiteRole || 'viewer',
-        platformRole: user.platformRole || (user.role === 'super_admin' || user.role === 'org_admin' ? 'admin' : 'user'),
+        platformRole: user.platformRole || (user.role === 'super_admin' || user.role === 'org_admin' ? 'admin' : user.role === 'platform_admin' ? 'platform_admin' : 'user'),
         systemRole: user.systemRole || (user.role === 'super_admin' ? 'super_admin' : undefined),
         isSuperAdmin: user.isSuperAdmin || user.role === 'super_admin' || user.systemRole === 'super_admin',
       };
@@ -183,7 +184,7 @@ export class PlatformUsersController {
     return {
       ...user,
       siteRole: mappedSiteRole || 'viewer',
-      platformRole: user.platformRole || (user.role === 'super_admin' || user.role === 'org_admin' ? 'admin' : 'user'),
+      platformRole: user.platformRole || (user.role === 'super_admin' || user.role === 'org_admin' ? 'admin' : user.role === 'platform_admin' ? 'platform_admin' : 'user'),
       systemRole: user.systemRole || (user.role === 'super_admin' ? 'super_admin' : undefined),
       isSuperAdmin: user.isSuperAdmin || user.role === 'super_admin' || user.systemRole === 'super_admin',
     };
@@ -207,6 +208,10 @@ export class PlatformUsersController {
     // Security: Only super_admin can create super_admin users
     if (dto.role === 'super_admin' && !user.isSuperAdmin && user.systemRole !== 'super_admin') {
       throw new ForbiddenException('Only super_admin can create super_admin users');
+    }
+
+    if (dto.platformRole === 'platform_admin' && !isPlatformPowerUser(user)) {
+      throw new ForbiddenException('Only super_admin/platform_admin can create platform_admin users');
     }
 
     // Check if user already exists (check all organizations)
@@ -243,10 +248,27 @@ export class PlatformUsersController {
     // Normalize legacy role names
     const normalizedRole = dto.role === 'organization_admin' ? 'org_admin' : dto.role;
 
-    const siteRole = dto.siteRole || normalizedRole || 'viewer';
-    const platformRole = dto.platformRole || (normalizedRole === 'super_admin' || normalizedRole === 'org_admin' ? 'admin' : 'user');
+    const siteRole = dto.siteRole || (
+      normalizedRole === 'platform_admin'
+        ? 'owner'
+        : normalizedRole || 'viewer'
+    );
+    const platformRole = dto.platformRole || (
+      normalizedRole === 'platform_admin'
+        ? 'platform_admin'
+        : normalizedRole === 'super_admin' || normalizedRole === 'org_admin'
+          ? 'admin'
+          : 'user'
+    );
     const systemRole = dto.systemRole || (normalizedRole === 'super_admin' ? 'super_admin' : undefined);
     const isSuperAdmin = dto.systemRole === 'super_admin' || normalizedRole === 'super_admin';
+
+    if (platformRole === 'platform_admin' && organization.plan !== 'enterprise') {
+      organization = await this.prisma.organization.update({
+        where: { id: organization.id },
+        data: { plan: 'enterprise' },
+      });
+    }
 
     // Create user
     const newUser = await this.prisma.user.create({
@@ -309,13 +331,18 @@ export class PlatformUsersController {
     }
 
     const normalizedRole = dto.role === 'organization_admin' ? 'org_admin' : dto.role;
+    const actorIsPlatformPower = isPlatformPowerUser(user);
 
     // Security: Only org admin/owner can assign org admin/owner role
     if (dto.platformRole && ['admin', 'owner'].includes(dto.platformRole)) {
       const userOrgRole = user.platformRole as OrgRole | undefined;
-      if (userOrgRole !== OrgRole.ADMIN && userOrgRole !== OrgRole.OWNER && !user.isSuperAdmin) {
+      if (userOrgRole !== OrgRole.ADMIN && userOrgRole !== OrgRole.OWNER && !actorIsPlatformPower) {
         throw new ForbiddenException('Only org admin/owner can assign org admin/owner role');
       }
+    }
+
+    if (dto.platformRole === 'platform_admin' && !actorIsPlatformPower) {
+      throw new ForbiddenException('Only super_admin/platform_admin can assign platform_admin role');
     }
 
     // Security: Only super_admin can assign super_admin/system admin role
@@ -353,10 +380,20 @@ export class PlatformUsersController {
     if (normalizedRole) {
       updateData.role = normalizedRole; // Backward compatibility
       if (!dto.siteRole) {
-        updateData.siteRole = normalizedRole === 'org_admin' ? 'admin' : normalizedRole;
+        updateData.siteRole =
+          normalizedRole === 'platform_admin'
+            ? 'owner'
+            : normalizedRole === 'org_admin'
+              ? 'admin'
+              : normalizedRole;
       }
       if (!dto.platformRole) {
-        updateData.platformRole = normalizedRole === 'super_admin' || normalizedRole === 'org_admin' ? 'admin' : 'user';
+        updateData.platformRole =
+          normalizedRole === 'platform_admin'
+            ? 'platform_admin'
+            : normalizedRole === 'super_admin' || normalizedRole === 'org_admin'
+              ? 'admin'
+              : 'user';
       }
     }
     if (dto.siteRole) updateData.siteRole = dto.siteRole;
@@ -434,4 +471,3 @@ export class PlatformUsersController {
     return { message: 'User deleted successfully' };
   }
 }
-

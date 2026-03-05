@@ -3,6 +3,7 @@ import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@
 import { Reflector } from '@nestjs/core';
 import { FEATURE_KEY } from '../../decorators/feature-key.decorator';
 import { FeatureFlagsService } from '../../../modules/feature-flags/feature-flags.service';
+import { isPlatformPowerUser } from '../platform-admin.util';
 
 @Injectable()
 export class FeatureFlagGuard implements CanActivate {
@@ -22,6 +23,10 @@ export class FeatureFlagGuard implements CanActivate {
     }
 
     const request = context.switchToHttp().getRequest();
+    if (isPlatformPowerUser(request?.user)) {
+      return true;
+    }
+
     const siteId = request?.params?.siteId || request?.currentSiteId;
     if (!siteId) {
       return true;

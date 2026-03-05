@@ -4,6 +4,7 @@ import { RbacService } from '../rbac/rbac.service';
 import { BillingService } from '../billing/billing.service';
 import { EnvironmentType, PageStatus } from '@prisma/client';
 import { getPlanConfig } from '@repo/schemas';
+import { isPlatformAdminValue, isPlatformPowerUser } from '../../common/auth/platform-admin.util';
 
 export type DashboardRole = 'owner' | 'admin' | 'member';
 
@@ -118,10 +119,37 @@ export class OrgDashboardService {
     private readonly billingService: BillingService,
   ) {}
 
+  private async hasPlatformAdminInOrg(orgId: string): Promise<boolean> {
+    const count = await this.prisma.user.count({
+      where: {
+        orgId,
+        OR: [
+          { platformRole: 'platform_admin' },
+          { role: 'platform_admin' },
+        ],
+      },
+    });
+    return count > 0;
+  }
+
   /**
    * Get user's role in organization
    */
   async getUserRole(orgId: string, userId: string): Promise<DashboardRole> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        role: true,
+        platformRole: true,
+        systemRole: true,
+        isSuperAdmin: true,
+      },
+    });
+
+    if (isPlatformPowerUser(user) || isPlatformAdminValue(user?.platformRole) || isPlatformAdminValue(user?.role)) {
+      return 'owner';
+    }
+
     // Check if user is Owner
     const assignments = await this.rbacService.getAssignments(orgId, userId);
     const hasOwnerRole = assignments.some(
@@ -169,12 +197,14 @@ export class OrgDashboardService {
       },
     });
 
+    const forcedEnterprisePlan = await this.hasPlatformAdminInOrg(orgId);
+
     // Get alerts
-    const alerts = await this.getAlerts(orgId, role);
+    const alerts = await this.getAlerts(orgId, role, forcedEnterprisePlan);
 
     // Get sites with status and quick actions
     const sitesData = await Promise.all(
-      sites.map(site => this.getSiteCard(orgId, site.id, userId))
+      sites.map(site => this.getSiteCard(orgId, site.id, userId, forcedEnterprisePlan))
     );
 
     const response: DashboardResponse = {
@@ -184,12 +214,12 @@ export class OrgDashboardService {
 
     // Add business info for Owner
     if (role === 'owner') {
-      response.business = await this.getBusinessInfo(orgId);
+      response.business = await this.getBusinessInfo(orgId, forcedEnterprisePlan);
     }
 
     // Add usage info for Owner and Admin
     if (role === 'owner' || role === 'admin') {
-      response.usage = await this.getUsageInfo(orgId);
+      response.usage = await this.getUsageInfo(orgId, forcedEnterprisePlan);
     }
 
     // Add quick access for Admin
@@ -212,7 +242,7 @@ export class OrgDashboardService {
   /**
    * Get alerts for organization
    */
-  private async getAlerts(orgId: string, role: DashboardRole): Promise<Alert[]> {
+  private async getAlerts(orgId: string, role: DashboardRole, forcedEnterprisePlan = false): Promise<Alert[]> {
     const alerts: Alert[] = [];
 
     // Get failed deployments in last 24h
@@ -264,10 +294,11 @@ export class OrgDashboardService {
       });
 
       if (org) {
-        const planConfig = getPlanConfig(org.plan || 'free');
+        const effectivePlan = forcedEnterprisePlan ? 'enterprise' : org.plan || 'free';
+        const planConfig = getPlanConfig(effectivePlan);
         if (planConfig?.limits) {
           // Check usage vs limits
-          const usage = await this.getUsageInfo(orgId);
+          const usage = await this.getUsageInfo(orgId, forcedEnterprisePlan);
           
           if (usage.storage.percent >= 90) {
             alerts.push({
@@ -338,7 +369,7 @@ export class OrgDashboardService {
   /**
    * Get site card with status and quick actions
    */
-  private async getSiteCard(orgId: string, siteId: string, userId: string): Promise<SiteCard> {
+  private async getSiteCard(orgId: string, siteId: string, userId: string, forcedEnterprisePlan = false): Promise<SiteCard> {
     const site = await this.prisma.site.findUnique({
       where: { id: siteId },
       select: {
@@ -408,7 +439,7 @@ export class OrgDashboardService {
       name: site.name,
       status,
       domain,
-      plan: organization?.plan || undefined,
+      plan: forcedEnterprisePlan ? 'enterprise' : organization?.plan || undefined,
       lastDeploy: lastDeploy
         ? {
             time: lastDeploy.createdAt.toISOString(),
@@ -529,7 +560,7 @@ export class OrgDashboardService {
   /**
    * Get business info (Owner only)
    */
-  private async getBusinessInfo(orgId: string): Promise<BusinessInfo> {
+  private async getBusinessInfo(orgId: string, forcedEnterprisePlan = false): Promise<BusinessInfo> {
     const org = await this.prisma.organization.findUnique({
       where: { id: orgId },
       select: { plan: true },
@@ -539,8 +570,9 @@ export class OrgDashboardService {
       throw new NotFoundException('Organization not found');
     }
 
-    const planConfig = getPlanConfig(org.plan || 'free');
-    const usage = await this.getUsageInfo(orgId);
+    const effectivePlan = forcedEnterprisePlan ? 'enterprise' : org.plan || 'free';
+    const planConfig = getPlanConfig(effectivePlan);
+    const usage = await this.getUsageInfo(orgId, forcedEnterprisePlan);
 
     // Get subscription
     let billingStatus = 'active';
@@ -548,7 +580,7 @@ export class OrgDashboardService {
     try {
       const subscription = await this.billingService.getOrgSubscription(orgId);
       if (subscription) {
-        billingStatus = subscription.status;
+        billingStatus = forcedEnterprisePlan ? 'active' : subscription.status;
         if (subscription.currentPeriodEnd) {
           nextPayment = subscription.currentPeriodEnd.toISOString();
         }
@@ -577,14 +609,15 @@ export class OrgDashboardService {
   /**
    * Get usage info
    */
-  private async getUsageInfo(orgId: string): Promise<UsageInfo> {
+  private async getUsageInfo(orgId: string, forcedEnterprisePlan = false): Promise<UsageInfo> {
     // Get plan limits
     const org = await this.prisma.organization.findUnique({
       where: { id: orgId },
       select: { plan: true },
     });
 
-    const planConfig = getPlanConfig(org?.plan || 'free');
+    const effectivePlan = forcedEnterprisePlan ? 'enterprise' : org?.plan || 'free';
+    const planConfig = getPlanConfig(effectivePlan);
     const limits = planConfig?.limits || {};
 
     // Get actual usage from UsageTracking for current period (YYYY-MM)
@@ -599,7 +632,9 @@ export class OrgDashboardService {
       select: { resourceType: true, count: true },
     });
 
-    const usageMap = new Map(usageRows.map((row) => [row.resourceType, row.count]));
+    const usageMap = new Map<string, number>(
+      usageRows.map((row) => [row.resourceType, Number(row.count || 0)]),
+    );
     const storageUsed = usageMap.get('storageMB') || 0;
     const apiRequestsUsed = usageMap.get('apiRequests') || 0;
     const bandwidthUsed = usageMap.get('bandwidthMB') || usageMap.get('bandwidth') || 0;

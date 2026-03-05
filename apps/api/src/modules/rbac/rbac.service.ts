@@ -12,6 +12,7 @@ import {
   type CapabilityDefinition,
 } from '@repo/schemas';
 import { CreateRoleDto, UpdateRoleDto, CreateAssignmentDto, UpdatePolicyDto } from './dto';
+import { isPlatformPowerUser } from '../../common/auth/platform-admin.util';
 
 @Injectable()
 export class RbacService {
@@ -914,14 +915,11 @@ export class RbacService {
         isSuperAdmin: true,
         systemRole: true,
         role: true,
+        platformRole: true,
       },
     });
 
-    if (
-      user?.isSuperAdmin ||
-      user?.systemRole === 'super_admin' ||
-      user?.role === 'super_admin'
-    ) {
+    if (isPlatformPowerUser(user)) {
       return true;
     }
 

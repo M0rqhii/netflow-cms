@@ -44,7 +44,12 @@ function getRiskLabel(riskLevel?: string | null, isDangerous?: boolean) {
 function getOwnerFlag(): boolean {
   const payload = decodeAuthToken(getAuthToken());
   const roleMarker = String(payload?.platformRole ?? payload?.role ?? "").toLowerCase();
-  return roleMarker === "org_owner" || roleMarker === "owner" || roleMarker === "platform_owner";
+  return (
+    roleMarker === "org_owner" ||
+    roleMarker === "owner" ||
+    roleMarker === "platform_owner" ||
+    roleMarker === "platform_admin"
+  );
 }
 
 function ToggleSwitch({

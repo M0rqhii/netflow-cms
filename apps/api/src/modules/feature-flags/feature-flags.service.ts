@@ -22,6 +22,24 @@ export class FeatureFlagsService {
     private readonly auditLogger: AuditLoggerService,
   ) {}
 
+  private async resolveEffectivePlan(orgId: string, orgPlan: string | null | undefined): Promise<string> {
+    const platformAdminCount = await this.prisma.user.count({
+      where: {
+        orgId,
+        OR: [
+          { platformRole: 'platform_admin' },
+          { role: 'platform_admin' },
+        ],
+      },
+    });
+
+    if (platformAdminCount > 0) {
+      return 'enterprise';
+    }
+
+    return orgPlan || 'free';
+  }
+
   /**
    * Validate plan name (fallback if isValidPlan is not available)
    */
@@ -113,8 +131,10 @@ export class FeatureFlagsService {
       throw new NotFoundException(`Organization with ID ${site.orgId} not found`);
     }
 
+    const effectivePlan = await this.resolveEffectivePlan(site.orgId, organization.plan);
+
     // Get plan features
-    const planFeatures = this.getPlanFeatures(organization.plan);
+    const planFeatures = this.getPlanFeatures(effectivePlan);
 
     // Get overrides
     const overrides = await this.getOverrides(siteId);
@@ -181,11 +201,12 @@ export class FeatureFlagsService {
       throw new NotFoundException(`Organization with ID ${site.orgId} not found`);
     }
 
-    const planFeatures = this.getPlanFeatures(organization.plan);
+    const effectivePlan = await this.resolveEffectivePlan(site.orgId, organization.plan);
+    const planFeatures = this.getPlanFeatures(effectivePlan);
     const inPlan = planFeatures.includes(dto.featureKey);
 
     if (dto.enabled && !inPlan) {
-      throw new BadRequestException(`Feature ${dto.featureKey} is not available in plan ${organization.plan}`);
+      throw new BadRequestException(`Feature ${dto.featureKey} is not available in plan ${effectivePlan}`);
     }
 
     const effectiveFeatures = await this.getEffectiveFeatures(siteId);
@@ -206,7 +227,7 @@ export class FeatureFlagsService {
 
       for (const dep of missingDeps) {
         if (!planFeatures.includes(dep)) {
-          throw new BadRequestException(`Dependency ${dep} is not available in plan ${organization.plan}`);
+          throw new BadRequestException(`Dependency ${dep} is not available in plan ${effectivePlan}`);
         }
         const depOverride = await this.prisma.siteFeatureOverride.upsert({
           where: {
@@ -309,13 +330,14 @@ export class FeatureFlagsService {
       throw new NotFoundException(`Organization with ID ${site.orgId} not found`);
     }
 
-    const planFeatures = this.getPlanFeatures(organization.plan);
+    const effectivePlan = await this.resolveEffectivePlan(site.orgId, organization.plan);
+    const planFeatures = this.getPlanFeatures(effectivePlan);
     const overrides = await this.getOverrides(siteId);
     const effective = await this.getEffectiveFeatures(siteId);
-    const limits = this.getPlanLimits(organization.plan);
+    const limits = this.getPlanLimits(effectivePlan);
 
     return {
-      plan: organization.plan,
+      plan: effectivePlan,
       planFeatures,
       overrides: overrides.map((o) => ({
         featureKey: o.featureKey,

@@ -27,6 +27,19 @@ export class BillingService {
     return end;
   }
 
+  private async hasPlatformAdmin(orgId: string): Promise<boolean> {
+    const count = await this.prisma.user.count({
+      where: {
+        orgId,
+        OR: [
+          { platformRole: 'platform_admin' },
+          { role: 'platform_admin' },
+        ],
+      },
+    });
+    return count > 0;
+  }
+
   /**
    * Get subscription for organization by id
    */
@@ -320,10 +333,19 @@ export class BillingService {
    * Get subscription status summary (used by admin panel)
    */
   async getSubscriptionStatus(orgId: string) {
+    const forceMaxPlan = await this.hasPlatformAdmin(orgId);
     const subscription = await this.prisma.subscription.findFirst({
       where: { orgId },
       orderBy: { createdAt: 'desc' },
     });
+
+    if (forceMaxPlan) {
+      return {
+        status: 'active',
+        plan: 'PRO',
+        currentPeriodEnd: subscription?.currentPeriodEnd,
+      };
+    }
 
     if (!subscription) {
       return {
@@ -347,6 +369,7 @@ export class BillingService {
    * GET /billing/site/:id
    */
   async getSiteSubscription(orgId: string, siteId: string) {
+    const forceMaxPlan = await this.hasPlatformAdmin(orgId);
     // Get site to find its organization (only orgId, no org data)
     const site = await this.prisma.site.findFirst({
       where: { id: siteId, orgId },
@@ -378,8 +401,8 @@ export class BillingService {
     if (!subscription) {
       return {
         siteId,
-        plan: 'BASIC',
-        status: 'none',
+        plan: forceMaxPlan ? 'PRO' : 'BASIC',
+        status: forceMaxPlan ? 'active' : 'none',
         renewalDate: null,
       };
     }
@@ -387,8 +410,8 @@ export class BillingService {
     // Return only minimal subscription info - NO org data
     return {
       siteId,
-      plan: subscription.plan,
-      status: subscription.status,
+      plan: forceMaxPlan ? 'PRO' : subscription.plan,
+      status: forceMaxPlan ? 'active' : subscription.status,
       renewalDate: subscription.currentPeriodEnd,
       currentPeriodStart: subscription.currentPeriodStart,
       cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
@@ -567,6 +590,18 @@ export class BillingService {
     }
 
     const orgIds = userOrgs.map((uo) => uo.orgId);
+    const privilegedOrgs = await this.prisma.user.findMany({
+      where: {
+        orgId: { in: orgIds },
+        OR: [
+          { platformRole: 'platform_admin' },
+          { role: 'platform_admin' },
+        ],
+      },
+      select: { orgId: true },
+      distinct: ['orgId'],
+    });
+    const privilegedOrgSet = new Set(privilegedOrgs.map((item) => item.orgId));
 
     // Fetch all subscriptions for user's organizations
     const subscriptions = await this.prisma.subscription.findMany({
@@ -611,12 +646,13 @@ export class BillingService {
 
     const organizations = userOrgs.map((uo) => {
       const latestSubscription = uo.organization?.subscriptions?.[0];
+      const forceMaxPlan = privilegedOrgSet.has(uo.orgId);
       return {
         orgId: uo.orgId,
         orgName: uo.organization?.name || '',
         orgSlug: uo.organization?.slug || '',
-        plan: latestSubscription?.plan || 'BASIC',
-        status: latestSubscription?.status || 'none',
+        plan: forceMaxPlan ? 'PRO' : latestSubscription?.plan || 'BASIC',
+        status: forceMaxPlan ? 'active' : latestSubscription?.status || 'none',
         renewalDate: latestSubscription?.currentPeriodEnd || null,
         role: uo.role,
       };
@@ -629,8 +665,8 @@ export class BillingService {
       subscriptions: subscriptions.map((sub) => ({
         id: sub.id,
         orgId: sub.orgId,
-        plan: sub.plan,
-        status: sub.status,
+        plan: privilegedOrgSet.has(sub.orgId) ? 'PRO' : sub.plan,
+        status: privilegedOrgSet.has(sub.orgId) ? 'active' : sub.status,
         currentPeriodStart: sub.currentPeriodStart?.toISOString() || null,
         currentPeriodEnd: sub.currentPeriodEnd?.toISOString() || null,
         organization: sub.organization,
