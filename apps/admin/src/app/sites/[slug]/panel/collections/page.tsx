@@ -197,7 +197,7 @@ export default function CollectionsPage() {
       title={t("sitePanelShell.collections.title", { site: siteName || slug })}
       subtitle={t("sitePanelShell.collections.subtitle")}
       actions={
-        <button className="btn primary" type="button" onClick={() => setShowCreateModal(true)}>{t("sitePanelShell.actions.newCollection")}</button>
+        <button className="btn btn-primary" type="button" onClick={() => setShowCreateModal(true)}>{t("sitePanelShell.actions.newCollection")}</button>
       }
     >
       <div>
@@ -366,3 +366,4 @@ export default function CollectionsPage() {
     </SitePanelLayout>
   );
 }
+

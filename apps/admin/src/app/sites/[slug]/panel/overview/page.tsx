@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
@@ -169,7 +169,7 @@ export default function OverviewPage() {
         <>
           <Link className="btn" href={`/sites/${slug}/panel/pages`}>{t("sitePanelShell.actions.goToPages")}</Link>
           <button
-            className="btn primary"
+            className="btn btn-primary"
             type="button"
             onClick={() => {
               if (pagesCount === 1 && pages[0]) {
@@ -286,7 +286,7 @@ export default function OverviewPage() {
             </Tooltip>
             <button className="btn btn-full" type="button" onClick={() => router.push(`/sites/${slug}/panel/pages`)}>{t("sitePanelShell.overviewUi.actions.createPage")}</button>
             <button
-              className="btn primary btn-full"
+              className="btn btn-primary btn-full"
               type="button"
               onClick={handlePublishAll}
               disabled={publishing || loading || pagesCount === 0}
@@ -325,3 +325,4 @@ export default function OverviewPage() {
     </SitePanelLayout>
   );
 }
+

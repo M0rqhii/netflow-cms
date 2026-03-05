@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, useMemo } from "react";
 import { Input, EmptyState, Skeleton } from "@repo/ui";
@@ -204,7 +204,7 @@ export default function PlatformUsersPage() {
         <div className="spacer-sm" />
         <div className="row-wrap">
           {!showCreateForm ? (
-            <button className="btn primary" onClick={() => setShowCreateForm(true)}>
+            <button className="btn btn-primary" onClick={() => setShowCreateForm(true)}>
               {t("platformUsers.createNewUser")}
             </button>
           ) : (
@@ -277,7 +277,7 @@ export default function PlatformUsersPage() {
                   </>
                 )}
                 <div className="row" style={{ gap: 10 }}>
-                  <button className="btn primary" type="submit">Create User</button>
+                  <button className="btn btn-primary" type="submit">Create User</button>
                   <button className="btn" type="button" onClick={() => setShowCreateForm(false)}>Cancel</button>
                 </div>
               </form>
@@ -330,7 +330,7 @@ export default function PlatformUsersPage() {
                         <td>
                           {editingUserId === u.id ? (
                             <div className="row">
-                              <button className="btn primary" onClick={() => onUpdateUser(u.id)}>Save</button>
+                              <button className="btn btn-primary" onClick={() => onUpdateUser(u.id)}>Save</button>
                               <button className="btn" onClick={cancelEdit}>Cancel</button>
                             </div>
                           ) : (
@@ -403,7 +403,7 @@ export default function PlatformUsersPage() {
                         <td>
                           {editingUserId === u.id ? (
                             <div className="row">
-                              <button className="btn primary" onClick={() => onUpdateUser(u.id)}>{t("common.save")}</button>
+                              <button className="btn btn-primary" onClick={() => onUpdateUser(u.id)}>{t("common.save")}</button>
                               <button className="btn" onClick={cancelEdit}>{t("common.cancel")}</button>
                             </div>
                           ) : (
@@ -425,3 +425,4 @@ export default function PlatformUsersPage() {
     </div>
   );
 }
+

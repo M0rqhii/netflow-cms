@@ -71,7 +71,7 @@ export default function DeploymentsPage() {
       actions={
         <>
           <button className="btn" type="button" onClick={() => toast.push({ tone: "success", message: t("sitePanelShell.deploymentsUi.toasts.redeployMock") })}>{t("sitePanelShell.actions.redeploy")}</button>
-          <button className="btn primary" type="button" onClick={() => toast.push({ tone: "success", message: t("sitePanelShell.deploymentsUi.toasts.newDeploymentMock") })}>{t("sitePanelShell.actions.newDeployment")}</button>
+          <button className="btn btn-primary" type="button" onClick={() => toast.push({ tone: "success", message: t("sitePanelShell.deploymentsUi.toasts.newDeploymentMock") })}>{t("sitePanelShell.actions.newDeployment")}</button>
         </>
       }
     >
@@ -140,4 +140,5 @@ export default function DeploymentsPage() {
     </SitePanelLayout>
   );
 }
+
 

@@ -4,8 +4,6 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { SitePanelLayout } from "@/components/site-panel/SitePanelLayout";
 import { useTranslations } from "@/hooks/useTranslations";
-import { CardContent } from "@repo/ui";
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@repo/ui";
 import { EmptyState, Button, Modal, LoadingSpinner } from "@repo/ui";
 import { useToast } from "@/components/ui/Toast";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
@@ -199,19 +197,19 @@ export default function CollectionItemsPage() {
       title={t("sitePanelShell.collectionItems.title", { collection: collection?.name || collectionSlug })}
       subtitle={t("sitePanelShell.collectionItems.subtitle")}
       actions={
-        <button className="btn primary" type="button" onClick={() => setShowCreateModal(true)} disabled={loading || !siteId}>{t("sitePanelShell.actions.newEntry")}</button>
+        <button className="btn btn-primary" type="button" onClick={() => setShowCreateModal(true)} disabled={loading || !siteId}>{t("sitePanelShell.actions.newEntry")}</button>
       }
     >
-      <div>
+      <div className="animate-fade-in">
 
-        <div className="card" style={{ padding: 16, borderRadius: 18 }}>
-          <div className="row-between" style={{ flexWrap: "wrap", gap: 12 }}>
-            <div className="row" style={{ gap: 10, flexWrap: "wrap" }}>
+        <div className="card card-pad">
+          <div className="row-between flex-wrap gap-3">
+            <div className="row flex-wrap gap-2.5">
               <span className="badge gray">Total: {total}</span>
               <span className="badge gray">{t("siteModules.siteLabel")}: {slug}</span>
               <span className="badge blue">Collection: {collectionSlug}</span>
             </div>
-            <div className="row" style={{ gap: 10 }}>
+            <div className="row gap-2.5">
               <label className="detail-label">Status</label>
               <select
                 className="input"
@@ -229,73 +227,71 @@ export default function CollectionItemsPage() {
         <div className="spacer" />
 
         <div className="card card-pad">
-          <CardContent style={{ padding: 0 }}>
-            {loading ? (
-              <div className="py-12 flex justify-center">
-                <LoadingSpinner text="Loading entries..." />
-              </div>
-            ) : items.length === 0 ? (
-              <div className="py-12">
-                <EmptyState
-                  title="No entries"
-                  description={`Create the first entry in "${collection?.name || collectionSlug}".`}
-                  action={{
-                    label: "Create entry",
-                    onClick: () => setShowCreateModal(true),
-                  }}
-                />
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Entry</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Updated</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {items.map((item) => (
-                      <TableRow key={item.id}>
-                        <TableCell className="font-medium">
-                          {item.id.slice(0, 8)}
-                          <div className="text-xs text-muted mt-1">
-                            {Object.entries(item.data || {})
-                              .slice(0, 2)
-                              .map(([key, value]) => {
-                                const val = typeof value === "string" ? value : JSON.stringify(value);
-                                return `${key}: ${val.substring(0, 30)}${val.length > 30 ? "..." : ""}`;
-                              })
-                              .join(" - ")}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <span className={`badge ${item.status === "PUBLISHED" ? "green" : "gray"}`}>
-                            {item.status === "PUBLISHED" ? "Published" : "Draft"}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-muted text-sm">
-                          {new Date(item.updatedAt).toLocaleDateString("en-US")}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <button className="btn" type="button" onClick={() => openEditModal(item)}>
-                              Edit
-                            </button>
-                            <button className="btn" type="button" onClick={() => setDeletingItemId(item.id)}>
-                              Delete
-                            </button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </CardContent>
+          {loading ? (
+            <div className="py-12 flex justify-center">
+              <LoadingSpinner text="Loading entries..." />
+            </div>
+          ) : items.length === 0 ? (
+            <div className="py-12">
+              <EmptyState
+                title="No entries"
+                description={`Create the first entry in "${collection?.name || collectionSlug}".`}
+                action={{
+                  label: "Create entry",
+                  onClick: () => setShowCreateModal(true),
+                }}
+              />
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Entry</th>
+                    <th>Status</th>
+                    <th>Updated</th>
+                    <th className="text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map((item) => (
+                    <tr key={item.id}>
+                      <td className="font-medium">
+                        {item.id.slice(0, 8)}
+                        <div className="text-xs text-muted mt-1">
+                          {Object.entries(item.data || {})
+                            .slice(0, 2)
+                            .map(([key, value]) => {
+                              const val = typeof value === "string" ? value : JSON.stringify(value);
+                              return `${key}: ${val.substring(0, 30)}${val.length > 30 ? "..." : ""}`;
+                            })
+                            .join(" - ")}
+                        </div>
+                      </td>
+                      <td>
+                        <span className={`badge ${item.status === "PUBLISHED" ? "green" : "gray"}`}>
+                          {item.status === "PUBLISHED" ? "Published" : "Draft"}
+                        </span>
+                      </td>
+                      <td className="text-muted text-sm">
+                        {new Date(item.updatedAt).toLocaleDateString("en-US")}
+                      </td>
+                      <td className="text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button className="btn" type="button" onClick={() => openEditModal(item)}>
+                            Edit
+                          </button>
+                          <button className="btn" type="button" onClick={() => setDeletingItemId(item.id)}>
+                            Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
 
         {showCreateModal && (

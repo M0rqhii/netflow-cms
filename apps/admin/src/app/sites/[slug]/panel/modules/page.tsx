@@ -262,7 +262,7 @@ export default function SiteModulesPage() {
         </>
       }
     >
-      <div className="modules-page">
+      <div className="modules-page animate-fade-in">
 
         {error ? (
           <div className="error-alert">
@@ -270,7 +270,7 @@ export default function SiteModulesPage() {
           </div>
         ) : null}
 
-        <div style={{ height: error ? 14 : 0 }} />
+        {error ? <div className="spacer-sm" /> : null}
 
         {isLoading ? (
           <div className="card card-pad">
@@ -288,13 +288,13 @@ export default function SiteModulesPage() {
                 <div key={module.key} className="card stat-card modules-card">
                   <div className="row-start modules-card-head">
                     <div className="row items-start">
-                      <div className="pill" style={{ height: 36, width: 36 }}>{module.icon}</div>
+                      <div className="pill h-9 w-9">{module.icon}</div>
                       <div>
                         <div className="project-name">{module.title}</div>
                         <div className="detail-label mt-2">{module.description}</div>
                       </div>
                     </div>
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
+                    <div className="flex flex-col items-end gap-1.5">
                       {locked ? <span className="badge orange">{t("siteModules.plan")}</span> : null}
                       <span className={`badge ${enabled ? "green" : "gray"}`}>{enabled ? t("siteModules.enabled") : t("siteModules.disabled")}</span>
                     </div>
@@ -318,7 +318,7 @@ export default function SiteModulesPage() {
 
                   <div className="row row-wrap">
                     <button
-                      className={enabled ? "btn" : "btn primary"}
+                      className={enabled ? "btn btn-outline" : "btn btn-primary"}
                       type="button"
                       disabled={locked}
                       onClick={() => handleToggle(module.key, !enabled)}

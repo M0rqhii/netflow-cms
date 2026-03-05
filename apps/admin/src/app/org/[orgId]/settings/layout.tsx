@@ -35,7 +35,7 @@ export default function OrgSettingsLayout({ children }: { children: React.ReactN
 
       <div className="spacer" />
 
-      <div className="card" style={{ padding: 14, borderRadius: 18, overflow: "auto" }}>
+      <div className="card card-pad overflow-x-auto">
         <nav className="flex flex-wrap gap-2" aria-label="Tabs">
           {TABS.map((tab) => {
             const href = tab.href(orgId);
@@ -44,11 +44,7 @@ export default function OrgSettingsLayout({ children }: { children: React.ReactN
               <Link
                 key={tab.key}
                 href={href}
-                className={clsx(
-                  "btn",
-                  active ? "" : ""
-                )}
-                style={active ? { background: "rgba(0,163,255,.14)", borderColor: "rgba(0,163,255,.30)" } : undefined}
+                className={clsx("btn", active ? "btn-primary" : "btn-outline")}
                 aria-current={active ? "page" : undefined}
               >
                 {tab.label}

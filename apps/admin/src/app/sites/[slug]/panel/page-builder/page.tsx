@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState, useEffect, useCallback, useMemo, Suspense, useRef } from 'react';
 import dynamic from 'next/dynamic';
@@ -602,7 +602,7 @@ function PageBuilderWithSave({
               <Link className="btn" href={`/sites/${encodeURIComponent(siteSlug)}/panel/pages`}>Back to Pages</Link>
               <button className="btn" onClick={onSave} disabled={saving || !hasUnsavedChanges}>{saving ? 'Saving...' : 'Save'}</button>
               {onPublish && environment === 'draft' && (
-                <button className="btn primary" onClick={handlePublishWithCheck} disabled={saving}>Publish</button>
+                <button className="btn btn-primary" onClick={handlePublishWithCheck} disabled={saving}>Publish</button>
               )}
             </div>
           </div>
@@ -809,6 +809,7 @@ function PageBuilderWithSave({
     </div>
   );
 }
+
 
 
 

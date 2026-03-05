@@ -111,7 +111,7 @@ export default function OrgGeneralSettingsPage() {
   if (loading) {
     return (
       <div className="card card-pad">
-        <div style={{ color: "var(--muted)" }}>Loading organization settings...</div>
+        <div className="text-muted">Loading organization settings...</div>
       </div>
     );
   }
@@ -119,16 +119,16 @@ export default function OrgGeneralSettingsPage() {
   if (!organization) {
     return (
       <div className="card card-pad">
-        <div style={{ color: "var(--muted)" }}>Organization not found.</div>
+        <div className="text-muted">Organization not found.</div>
       </div>
     );
   }
 
   return (
-    <div>
+    <div className="animate-fade-in">
       <div className="card card-pad">
         <div className="section-title">General Settings</div>
-        <div className="detail-label" style={{ marginTop: 6 }}>
+        <div className="detail-label mt-1.5">
           Manage organization name, slug, and plan.
         </div>
       </div>
@@ -136,7 +136,7 @@ export default function OrgGeneralSettingsPage() {
       <div className="spacer" />
 
       <div className="card card-pad">
-        <form onSubmit={handleSave} className="space-y-3" style={{ maxWidth: 520 }}>
+        <form onSubmit={handleSave} className="space-y-3 max-w-[520px]">
           <Input
             label="Organization name"
             placeholder="e.g., Acme Inc."
@@ -175,7 +175,7 @@ export default function OrgGeneralSettingsPage() {
           </div>
 
           <div className="row-wrap">
-            <button className="btn primary" type="submit" disabled={saving}>
+            <button className="btn btn-primary" type="submit" disabled={saving}>
               {saving ? "Saving..." : "Save changes"}
             </button>
           </div>
@@ -188,8 +188,8 @@ export default function OrgGeneralSettingsPage() {
         <div className="section-title">Danger zone</div>
         <div className="spacer-sm" />
         <div className="card error-alert">
-          <div style={{ fontWeight: 800 }} className="text-error">Delete organization</div>
-          <div className="text-error" style={{ fontSize: 12, marginTop: 6 }}>
+          <div className="text-error font-extrabold">Delete organization</div>
+          <div className="text-error text-xs mt-1.5">
             This action is irreversible.
           </div>
           <div className="spacer-sm" />

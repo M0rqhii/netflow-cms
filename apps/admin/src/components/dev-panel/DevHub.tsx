@@ -535,12 +535,12 @@ export function DevHub({ activeTab }: { activeTab: DevHubTab }) {
   const headerActions = (
     <>
       {activeTab === 'api-keys' && (
-        <button className="btn primary" type="button" onClick={handleCreateApiKey}>
+        <button className="btn btn-primary" type="button" onClick={handleCreateApiKey}>
           Utwórz API key
         </button>
       )}
       {activeTab === 'webhooks' && (
-        <button className="btn primary" type="button" onClick={handleCreateWebhook}>
+        <button className="btn btn-primary" type="button" onClick={handleCreateWebhook}>
           Dodaj webhook
         </button>
       )}
@@ -549,7 +549,7 @@ export function DevHub({ activeTab }: { activeTab: DevHubTab }) {
           <button className="btn" type="button" onClick={handleGenerateLogs}>
             Wygeneruj logi
           </button>
-          <button className="btn primary" type="button" onClick={handleDownloadLogs}>
+          <button className="btn btn-primary" type="button" onClick={handleDownloadLogs}>
             Pobierz logi
           </button>
         </>
@@ -620,7 +620,7 @@ export function DevHub({ activeTab }: { activeTab: DevHubTab }) {
                 <button className="btn" type="button" onClick={() => pushToast({ tone: 'success', message: 'Org token rotated (mock)' })}>
                   Rotate org token
                 </button>
-                <button className="btn primary" type="button" onClick={handleCreateApiKey}>
+                <button className="btn btn-primary" type="button" onClick={handleCreateApiKey}>
                   Create API key
                 </button>
               </div>
@@ -773,7 +773,7 @@ export function DevHub({ activeTab }: { activeTab: DevHubTab }) {
                 <span className="badge gray">
                   Search: <span className="mono">{search}</span>
                 </span>
-                <button className="btn primary" type="button" onClick={handleCreateApiKey}>
+                <button className="btn btn-primary" type="button" onClick={handleCreateApiKey}>
                   Utwórz API key
                 </button>
               </div>
@@ -859,7 +859,7 @@ export function DevHub({ activeTab }: { activeTab: DevHubTab }) {
                 <span className="badge gray">
                   Search: <span className="mono">{search}</span>
                 </span>
-                <button className="btn primary" type="button" onClick={handleCreateWebhook}>
+                <button className="btn btn-primary" type="button" onClick={handleCreateWebhook}>
                   Dodaj webhook
                 </button>
               </div>
@@ -946,7 +946,7 @@ export function DevHub({ activeTab }: { activeTab: DevHubTab }) {
                 <button className="btn" type="button" onClick={handleWyczyśćLogs}>
                   Wyczyść
                 </button>
-                <button className="btn primary" type="button" onClick={handleDownloadLogs}>
+                <button className="btn btn-primary" type="button" onClick={handleDownloadLogs}>
                   Download
                 </button>
               </div>
@@ -959,7 +959,7 @@ export function DevHub({ activeTab }: { activeTab: DevHubTab }) {
                 <div className="spacer-sm" />
                 <div className="row-wrap gap-sm">
                   {(['ALL', 'INFO', 'WARN', 'ERROR'] as const).map((lv) => (
-                    <button key={lv} className={`btn ${logLevel === lv ? 'primary' : ''}`} type="button" onClick={() => setLogLevel(lv)}>
+                    <button key={lv} className={`btn ${logLevel === lv ? 'btn-primary' : 'btn-outline'}`} type="button" onClick={() => setLogLevel(lv)}>
                       {lv}
                     </button>
                   ))}
@@ -969,11 +969,11 @@ export function DevHub({ activeTab }: { activeTab: DevHubTab }) {
                 <div className="detail-label font-black">SERVICE</div>
                 <div className="spacer-sm" />
                 <div className="row-wrap gap-sm">
-                  <button className={`btn ${logService === 'all' ? 'primary' : ''}`} type="button" onClick={() => setLogService('all')}>
+                  <button className={`btn ${logService === 'all' ? 'btn-primary' : 'btn-outline'}`} type="button" onClick={() => setLogService('all')}>
                     ALL
                   </button>
                   {logServices.map((sv) => (
-                    <button key={sv} className={`btn ${logService === sv ? 'primary' : ''}`} type="button" onClick={() => setLogService(sv)}>
+                    <button key={sv} className={`btn ${logService === sv ? 'btn-primary' : 'btn-outline'}`} type="button" onClick={() => setLogService(sv)}>
                       {sv.toUpperCase()}
                     </button>
                   ))}
@@ -1054,7 +1054,7 @@ export function DevHub({ activeTab }: { activeTab: DevHubTab }) {
                       <div className="detail-label">updated: {fmtWhen(f.updatedAt)}</div>
                     </div>
                     <div className="row-wrap">
-                      <button className={`btn ${f.enabled ? '' : 'primary'}`} type="button" onClick={() => handleToggleFlag(f.id)}>
+                      <button className={`btn ${f.enabled ? 'btn-outline' : 'btn-primary'}`} type="button" onClick={() => handleToggleFlag(f.id)}>
                         {f.enabled ? 'Disable' : 'Enable'}
                       </button>
                     </div>
@@ -1077,4 +1077,5 @@ export function DevHub({ activeTab }: { activeTab: DevHubTab }) {
     </DevPanelLayout>
   );
 }
+
 

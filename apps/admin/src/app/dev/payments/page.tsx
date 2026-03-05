@@ -67,7 +67,8 @@ export default function DevPaymentsPage() {
 
   return (
     <DevPanelLayout title="Payments" description="Simulated subscriptions and payment events (DevPaymentProvider)">
-      <div className="card card-pad">
+      <div className="animate-fade-in">
+        <div className="card card-pad">
         <div className="section-title">Payment events</div>
         <div className="spacer-sm" />
         {loading ? (
@@ -110,7 +111,9 @@ export default function DevPaymentsPage() {
             </table>
           </div>
         )}
+        </div>
       </div>
     </DevPanelLayout>
   );
 }
+

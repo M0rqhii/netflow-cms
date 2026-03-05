@@ -175,7 +175,7 @@ export default function AccountPage() {
             </p>
           </div>
           <div className="flex justify-end">
-            <button className="btn primary" type="submit" disabled={saving}>
+            <button className="btn btn-primary" type="submit" disabled={saving}>
               {saving ? t("account.saving") : t("account.saveChanges")}
             </button>
           </div>
@@ -218,7 +218,7 @@ export default function AccountPage() {
             disabled={saving}
           />
           <div className="flex justify-end">
-            <button className="btn primary" type="submit" disabled={saving}>
+            <button className="btn btn-primary" type="submit" disabled={saving}>
               {saving ? t("account.changing") : t("account.changePasswordButton")}
             </button>
           </div>
@@ -261,7 +261,7 @@ export default function AccountPage() {
             <p className="text-xs text-muted mt-1">{t("account.enterCompanyBillingAddress")}</p>
           </div>
           <div className="flex justify-end">
-            <button className="btn primary" type="submit" disabled={saving}>
+            <button className="btn btn-primary" type="submit" disabled={saving}>
               {saving ? t("account.savingBilling") : t("account.saveBillingInfo")}
             </button>
           </div>
@@ -270,3 +270,4 @@ export default function AccountPage() {
     </div>
   );
 }
+

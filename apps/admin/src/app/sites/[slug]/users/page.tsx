@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
@@ -260,7 +260,7 @@ export default function SiteUsersPage() {
                                 <option value="editor">{t("users.editor")}</option>
                                 <option value="viewer">{t("users.viewer")}</option>
                               </select>
-                              <button className="btn primary" onClick={() => onUpdateRole(u.id, editingRole)}>{t("common.save")}</button>
+                              <button className="btn btn-primary" onClick={() => onUpdateRole(u.id, editingRole)}>{t("common.save")}</button>
                               <button className="btn" onClick={cancelEditRole}>{t("common.cancel")}</button>
                             </div>
                           ) : (
@@ -327,7 +327,7 @@ export default function SiteUsersPage() {
               setCreateEmail("");
               setCreatePassword("");
             }}>{t("common.cancel")}</button>
-            <button className="btn primary" type="submit" disabled={creating}>{creating ? t("users.creating") : t("users.createUser")}</button>
+            <button className="btn btn-primary" type="submit" disabled={creating}>{creating ? t("users.creating") : t("users.createUser")}</button>
           </div>
         </form>
       </div>
@@ -364,7 +364,7 @@ export default function SiteUsersPage() {
             </select>
           </div>
           <div className="row-wrap">
-            <button className="btn primary" type="submit" disabled={sending}>{sending ? t("users.sending") : t("users.sendInvite")}</button>
+            <button className="btn btn-primary" type="submit" disabled={sending}>{sending ? t("users.sending") : t("users.sendInvite")}</button>
           </div>
         </form>
       </div>
@@ -411,3 +411,4 @@ export default function SiteUsersPage() {
     </div>
   );
 }
+

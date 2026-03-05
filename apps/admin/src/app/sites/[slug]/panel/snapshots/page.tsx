@@ -57,7 +57,7 @@ export default function SnapshotsPage() {
       actions={
         <>
           <button className="btn" type="button" onClick={() => toast.push({ tone: "success", message: t("sitePanelShell.snapshotsUi.toasts.retentionMock") })}>{t("sitePanelShell.actions.retention")}</button>
-          <button className="btn primary" type="button" onClick={() => toast.push({ tone: "success", message: t("sitePanelShell.snapshotsUi.toasts.backupNowMock") })}>{t("sitePanelShell.actions.runBackupNow")}</button>
+          <button className="btn btn-primary" type="button" onClick={() => toast.push({ tone: "success", message: t("sitePanelShell.snapshotsUi.toasts.backupNowMock") })}>{t("sitePanelShell.actions.runBackupNow")}</button>
         </>
       }
     >
@@ -119,3 +119,4 @@ export default function SnapshotsPage() {
     </SitePanelLayout>
   );
 }
+

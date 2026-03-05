@@ -148,7 +148,7 @@ export default function OrgPoliciesPage() {
   if (loading) {
     return (
       <div className="card card-pad">
-        <div style={{ color: "var(--muted)" }}>Loading policies...</div>
+        <div className="text-muted">Loading policies...</div>
       </div>
     );
   }
@@ -164,10 +164,10 @@ export default function OrgPoliciesPage() {
   }
 
   return (
-    <div>
+    <div className="animate-fade-in">
       <div className="card card-pad">
         <div className="section-title">Organization policies</div>
-        <div className="detail-label" style={{ marginTop: 6 }}>
+        <div className="detail-label mt-1.5">
           Toggle features on/off for the whole organization. Disabled items will not appear in custom roles.
         </div>
       </div>
@@ -198,11 +198,11 @@ export default function OrgPoliciesPage() {
       <div className="spacer" />
 
       {groupedCapabilities.length === 0 ? (
-        <div className="card card-pad" style={{ color: "var(--muted)" }}>No options for the selected filters.</div>
+        <div className="card card-pad text-muted">No options for the selected filters.</div>
       ) : (
         groupedCapabilities.map((group) => (
-          <div key={group.module} className="card card-pad" style={{ marginBottom: 14 }}>
-            <div style={{ fontWeight: 900, fontSize: 14, marginBottom: 10 }}>{MODULE_LABELS[group.module]}</div>
+          <div key={group.module} className="card card-pad mb-3.5">
+            <div className="section-title mb-2.5">{MODULE_LABELS[group.module]}</div>
             <div className="overflow-x-auto">
               <table className="table">
                 <thead>
@@ -220,14 +220,14 @@ export default function OrgPoliciesPage() {
                     return (
                       <tr key={capability.key}>
                         <td>
-                          <div style={{ fontWeight: 700 }}>{capability.label}</div>
+                          <div className="font-bold">{capability.label}</div>
                           {capability.description ? (
-                            <div className="detail-label" style={{ marginTop: 4 }}>{capability.description}</div>
+                            <div className="detail-label mt-1">{capability.description}</div>
                           ) : null}
                         </td>
-                        <td style={{ color: "var(--muted)" }}>{capability.key}</td>
+                        <td className="text-muted">{capability.key}</td>
                         <td>
-                          <div className="row">
+                          <div className="flex items-center gap-2">
                             <ToggleSwitch checked={policyEnabled} disabled={toggleDisabled} onChange={() => handleToggle(capability)} />
                             <span className="detail-label">
                               {!capability.canBePolicyControlled ? "Fixed" : policyEnabled ? "Enabled" : "Disabled"}

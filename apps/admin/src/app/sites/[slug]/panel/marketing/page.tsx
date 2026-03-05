@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { SitePanelLayout } from "@/components/site-panel/SitePanelLayout";
 import { useTranslations } from "@/hooks/useTranslations";
-import { Modal, Button } from "@repo/ui";
+import { Modal } from "@repo/ui";
 import { useToast } from "@/components/ui/Toast";
 import {
   fetchMySites,
@@ -236,7 +236,7 @@ export default function MarketingPage() {
   const right = (
     <>
       <button className="btn" type="button" onClick={() => setShowCreateCampaign(true)}>{t("sitePanelShell.actions.newCampaign")}</button>
-      <button className="btn primary" type="button" onClick={() => setShowCreateDraft(true)}>{t("sitePanelShell.actions.newDraft")}</button>
+      <button className="btn btn-primary" type="button" onClick={() => setShowCreateDraft(true)}>{t("sitePanelShell.actions.newDraft")}</button>
     </>
   );
 
@@ -256,25 +256,25 @@ export default function MarketingPage() {
       subtitle={t("sitePanelShell.marketing.subtitle")}
       actions={right}
     >
-      <div>
+      <div className="animate-fade-in">
 
         <div className="grid cols-3">
           <div className="card stat-card">
-            <div className="kpi-label">{t("sitePanelShell.marketingUi.cards.entries")}</div>
+            <div className="detail-label">{t("sitePanelShell.marketingUi.cards.entries")}</div>
             <div className="spacer-sm" />
             <div className="stat-value">{total}</div>
             <div className="spacer-sm" />
             <span className="badge gray">{t("sitePanelShell.marketingUi.cards.collections", { count: collections.length })}</span>
           </div>
           <div className="card stat-card">
-            <div className="kpi-label">{t("sitePanelShell.marketingUi.cards.drafts")}</div>
+            <div className="detail-label">{t("sitePanelShell.marketingUi.cards.drafts")}</div>
             <div className="spacer-sm" />
             <div className="stat-value">{draftsCount}</div>
             <div className="spacer-sm" />
             <span className="badge blue">{t("sitePanelShell.marketingUi.cards.scheduled", { count: scheduled })}</span>
           </div>
           <div className="card stat-card">
-            <div className="kpi-label">{t("sitePanelShell.marketingUi.cards.authors")}</div>
+            <div className="detail-label">{t("sitePanelShell.marketingUi.cards.authors")}</div>
             <div className="spacer-sm" />
             <div className="stat-value">{Math.max(3, Math.min(5, collections.length + 1))}</div>
             <div className="spacer-sm" />
@@ -291,7 +291,7 @@ export default function MarketingPage() {
               <span className="badge gray">Mock</span>
             </div>
             <div className="spacer-sm" />
-            <div className="pill-row">
+            <div className="row-wrap">
               {collections.length === 0 ? (
                 <span className="badge gray">{t("sitePanelShell.marketingUi.states.noCollections")}</span>
               ) : (
@@ -338,9 +338,9 @@ export default function MarketingPage() {
                   rows={3}
                 />
               </div>
-              <div className="flex gap-2 justify-end">
-                <Button type="button" variant="outline" onClick={() => setShowCreateCampaign(false)}>{t("common.cancel")}</Button>
-                <Button type="submit">{t("common.create")}</Button>
+              <div className="row-wrap justify-end">
+                <button type="button" className="btn btn-outline" onClick={() => setShowCreateCampaign(false)}>{t("common.cancel")}</button>
+                <button type="submit" className="btn btn-primary">{t("common.create")}</button>
               </div>
             </form>
           </Modal>
@@ -362,7 +362,7 @@ export default function MarketingPage() {
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wide text-muted mb-1">{t("sitePanelShell.marketingUi.fields.channels")}</label>
                 <div className="space-y-3">
-                  {['site', 'facebook', 'twitter', 'linkedin', 'instagram', 'ads'].map((channel) => (
+                  {["site", "facebook", "twitter", "linkedin", "instagram", "ads"].map((channel) => (
                     <label key={channel} className="flex items-center gap-2">
                       <input
                         type="checkbox"
@@ -380,9 +380,9 @@ export default function MarketingPage() {
                   ))}
                 </div>
               </div>
-              <div className="flex gap-2 justify-end">
-                <Button type="button" variant="outline" onClick={() => setShowCreateDraft(false)}>{t("common.cancel")}</Button>
-                <Button type="submit">{t("common.create")}</Button>
+              <div className="row-wrap justify-end">
+                <button type="button" className="btn btn-outline" onClick={() => setShowCreateDraft(false)}>{t("common.cancel")}</button>
+                <button type="submit" className="btn btn-primary">{t("common.create")}</button>
               </div>
             </form>
           </Modal>
@@ -438,9 +438,9 @@ export default function MarketingPage() {
                   ))}
                 </div>
               </div>
-              <div className="flex gap-2 justify-end">
-                <Button type="button" variant="outline" onClick={() => setShowPublish(false)}>{t("common.cancel")}</Button>
-                <Button type="submit">{t("sitePanelShell.marketingUi.actions.publish")}</Button>
+              <div className="row-wrap justify-end">
+                <button type="button" className="btn btn-outline" onClick={() => setShowPublish(false)}>{t("common.cancel")}</button>
+                <button type="submit" className="btn btn-primary">{t("sitePanelShell.marketingUi.actions.publish")}</button>
               </div>
             </form>
           </Modal>

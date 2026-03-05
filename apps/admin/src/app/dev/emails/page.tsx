@@ -67,7 +67,8 @@ export default function DevEmailsPage() {
 
   return (
     <DevPanelLayout title="Email Logs" description="Recent dev emails (DevMailer)">
-      <div className="card card-pad">
+      <div className="animate-fade-in">
+        <div className="card card-pad">
         <div className="section-title">Email log</div>
         <div className="spacer-sm" />
         {loading ? (
@@ -106,7 +107,9 @@ export default function DevEmailsPage() {
             </table>
           </div>
         )}
+        </div>
       </div>
     </DevPanelLayout>
   );
 }
+

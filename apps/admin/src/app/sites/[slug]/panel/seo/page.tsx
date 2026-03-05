@@ -84,7 +84,7 @@ export default function SEOPage() {
       actions={
         <>
           <button className="btn" type="button" onClick={() => toast.push({ tone: "success", message: t("sitePanelShell.seoUi.toasts.runAudit") })}>{t("sitePanelShell.actions.runAudit")}</button>
-          <button className="btn primary" type="button" onClick={() => setOpenSeo(true)}>{t("sitePanelShell.actions.applyFixes")}</button>
+          <button className="btn btn-primary" type="button" onClick={() => setOpenSeo(true)}>{t("sitePanelShell.actions.applyFixes")}</button>
         </>
       }
     >
@@ -155,3 +155,4 @@ export default function SEOPage() {
     </SitePanelLayout>
   );
 }
+

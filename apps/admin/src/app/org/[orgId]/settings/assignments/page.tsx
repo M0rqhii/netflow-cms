@@ -154,7 +154,7 @@ export default function OrgAssignmentsPage() {
   if (loading) {
     return (
       <div className="card card-pad">
-        <div style={{ color: "var(--muted)" }}>Loading assignments...</div>
+        <div className="text-muted">Loading assignments...</div>
       </div>
     );
   }
@@ -170,15 +170,15 @@ export default function OrgAssignmentsPage() {
   }
 
   return (
-    <div>
+    <div className="animate-fade-in">
       <div className="card card-pad">
         <div className="section-title">Assignments</div>
-        <div className="detail-label" style={{ marginTop: 6 }}>
+        <div className="detail-label mt-1.5">
           Assign roles to users. Real access is shown in the Effective tab.
         </div>
         <div className="spacer-sm" />
-        <div className="card" style={{ padding: 12, borderRadius: 18, background: "rgba(0,163,255,0.08)", border: "1px solid rgba(0,163,255,0.25)" }}>
-          <span style={{ fontSize: 12 }}>
+        <div className="card p-3 border border-sky-400/30 bg-sky-500/10">
+          <span className="text-xs">
             See effective permissions here: <Link className="btn" href={`/org/${orgId}/settings/effective`}>Effective</Link>
           </span>
         </div>
@@ -187,7 +187,7 @@ export default function OrgAssignmentsPage() {
       <div className="spacer" />
 
       <div className="card card-pad">
-        <div className="grid" style={{ gap: 12 }}>
+        <div className="grid gap-3">
           <div>
             <label className="block text-xs font-semibold uppercase tracking-wide text-muted mb-1">User</label>
             <select className="input" value={selectedUserId} onChange={(event) => setSelectedUserId(event.target.value)}>
@@ -197,9 +197,9 @@ export default function OrgAssignmentsPage() {
               ))}
             </select>
           </div>
-          <div className="grid" style={{ gap: 12 }}>
+          <div className="grid gap-3">
             <div>
-              <div style={{ fontWeight: 800, fontSize: 12 }}>Assign org role</div>
+              <div className="detail-label mb-1">Assign org role</div>
               <select className="input" value={orgRoleId} onChange={(event) => setOrgRoleId(event.target.value)}>
                 <option value="">Select org role</option>
                 {orgRoles.map((role) => (
@@ -207,10 +207,10 @@ export default function OrgAssignmentsPage() {
                 ))}
               </select>
               <div className="spacer-sm" />
-              <button className="btn primary" onClick={handleAssignOrgRole} disabled={!selectedUserId}>Assign org role</button>
+              <button className="btn btn-primary" onClick={handleAssignOrgRole} disabled={!selectedUserId}>Assign org role</button>
             </div>
             <div>
-              <div style={{ fontWeight: 800, fontSize: 12 }}>Assign site role</div>
+              <div className="detail-label mb-1">Assign site role</div>
               <select className="input" value={siteId} onChange={(event) => setSiteId(event.target.value)}>
                 <option value="">Select site</option>
                 {sites.map((site) => (
@@ -225,7 +225,7 @@ export default function OrgAssignmentsPage() {
                 ))}
               </select>
               <div className="spacer-sm" />
-              <button className="btn primary" onClick={handleAssignSiteRole} disabled={!selectedUserId}>Assign site role</button>
+              <button className="btn btn-primary" onClick={handleAssignSiteRole} disabled={!selectedUserId}>Assign site role</button>
             </div>
           </div>
         </div>
@@ -237,7 +237,7 @@ export default function OrgAssignmentsPage() {
         <div className="section-title">Current assignments</div>
         <div className="spacer-sm" />
         {!selectedUserId ? (
-          <div style={{ color: "var(--muted)" }}>Select a user to view assignments.</div>
+          <div className="text-muted">Select a user to view assignments.</div>
         ) : (
           <>
             <SearchAndFilters
@@ -262,9 +262,9 @@ export default function OrgAssignmentsPage() {
             <div className="spacer-sm" />
 
             {loadingAssignments ? (
-              <div style={{ color: "var(--muted)" }}>Loading assignments...</div>
+              <div className="text-muted">Loading assignments...</div>
             ) : filteredAssignments.length === 0 ? (
-              <div style={{ color: "var(--muted)" }}>No assignments for this user.</div>
+              <div className="text-muted">No assignments for this user.</div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="table">
@@ -273,21 +273,21 @@ export default function OrgAssignmentsPage() {
                       <th>Role</th>
                       <th>Scope</th>
                       <th>Site</th>
-                      <th style={{ textAlign: "right" }}>Actions</th>
+                      <th className="text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredAssignments.map((assignment) => (
                       <tr key={assignment.id}>
                         <td>
-                          <div style={{ fontWeight: 700 }}>{assignment.role.name}</div>
+                          <div className="font-bold">{assignment.role.name}</div>
                           <div className="detail-label">{normalizeRoleType(assignment.role.type) || "ROLE"}</div>
                         </td>
                         <td><span className="badge gray">{assignment.role.scope}</span></td>
                         <td>
                           {assignment.role.scope === "ORG" ? "Organization" : siteMap.get(assignment.siteId ?? "") || assignment.siteId || "Unknown"}
                         </td>
-                        <td style={{ textAlign: "right" }}>
+                        <td className="text-right">
                           <button className="btn" onClick={() => setRemoveAssignmentId(assignment.id)}>Remove</button>
                         </td>
                       </tr>

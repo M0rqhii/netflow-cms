@@ -105,7 +105,7 @@ export default function SiteOverviewPage() {
           <Link href={`/sites/${encodeURIComponent(slug)}/panel`} className="btn">
             {t("siteOverview.openSitePanel")}
           </Link>
-          <Link href={`/sites/${encodeURIComponent(slug)}/panel/pages`} className="btn primary">
+          <Link href={`/sites/${encodeURIComponent(slug)}/panel/pages`} className="btn btn-primary">
             {t("siteOverview.editInBuilder") || "Edit in builder"}
           </Link>
         </div>
@@ -163,7 +163,7 @@ export default function SiteOverviewPage() {
           <div className="section-title">{t("siteOverview.quickActions")}</div>
           <div className="spacer-sm" />
           <div className="grid" style={{ gap: 10 }}>
-            <Link href={`/sites/${encodeURIComponent(slug)}/panel/pages`} className="btn primary">
+            <Link href={`/sites/${encodeURIComponent(slug)}/panel/pages`} className="btn btn-primary">
               {t("siteOverview.editInBuilder") || "Edit in builder"}
             </Link>
             <Link href={`/sites/${encodeURIComponent(slug)}/panel`} className="btn">
@@ -181,3 +181,4 @@ export default function SiteOverviewPage() {
     </div>
   );
 }
+

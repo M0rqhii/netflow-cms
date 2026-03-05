@@ -94,7 +94,7 @@ export default function ActivityPage() {
       actions={
         <>
           <button className="btn" type="button" onClick={loadEvents} disabled={loading || !siteId}>{t("sitePanelShell.actions.refresh")}</button>
-          <button className="btn primary" type="button" onClick={handleExportCSV} disabled={filteredEvents.length === 0}>{t("sitePanelShell.actions.exportCsv")}</button>
+          <button className="btn btn-primary" type="button" onClick={handleExportCSV} disabled={filteredEvents.length === 0}>{t("sitePanelShell.actions.exportCsv")}</button>
         </>
       }
     >
@@ -173,3 +173,4 @@ export default function ActivityPage() {
     </SitePanelLayout>
   );
 }
+

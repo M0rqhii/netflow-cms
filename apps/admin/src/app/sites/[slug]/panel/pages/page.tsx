@@ -240,7 +240,7 @@ export default function PagesPage() {
       title={t("sitePanelShell.pages.title", { site: siteName })}
       subtitle={t("sitePanelShell.pages.subtitle")}
       actions={
-        <button className="btn primary" type="button" onClick={() => setShowCreateModal(true)}>{t("sitePanelShell.actions.addPage")}</button>
+        <button className="btn btn-primary" type="button" onClick={() => setShowCreateModal(true)}>{t("sitePanelShell.actions.addPage")}</button>
       }
     >
       <div>
@@ -419,3 +419,4 @@ export default function PagesPage() {
     </SitePanelLayout>
   );
 }
+

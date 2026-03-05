@@ -184,7 +184,7 @@ export default function OrgDashboardPage() {
       <div className="card card-pad">
         <div className="row-between" style={{ flexWrap: "wrap" }}>
           <div className="section-title">Sites</div>
-          <button className="btn primary" onClick={() => router.push("/sites/new")}>+ New Site</button>
+          <button className="btn btn-primary" onClick={() => router.push("/sites/new")}>+ New Site</button>
         </div>
         <div className="spacer-sm" />
         {data.sites.length === 0 ? (
@@ -271,3 +271,4 @@ export default function OrgDashboardPage() {
     </div>
   );
 }
+

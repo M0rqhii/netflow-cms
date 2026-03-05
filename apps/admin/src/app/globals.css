@@ -1170,10 +1170,145 @@ html[data-theme="light"] *::-webkit-scrollbar-thumb:hover {
   width: 100%;
 }
 
+.card-pad {
+  padding: 16px;
+}
+
+.tight {
+  border-radius: 16px;
+}
+
+.spacer {
+  height: 16px;
+}
+
+.spacer-sm {
+  height: 8px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.row-start {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.row-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
 .row-wrap {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+}
+
+.tab-bar {
+  padding: 10px;
+  border-radius: 16px;
+}
+
+.pill-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.section-title {
+  font-size: 17px;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  font-weight: 900;
+  color: rgb(var(--foreground));
+}
+
+.detail-label {
+  font-size: 11px;
+  line-height: 1.25;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgb(var(--muted));
+  font-weight: 800;
+}
+
+.form-label {
+  display: inline-block;
+  margin-bottom: 6px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgb(var(--muted));
+  font-weight: 800;
+}
+
+.kpi-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 900;
+  color: rgb(var(--muted));
+}
+
+.list-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(120, 145, 190, 0.2);
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.list-row + .list-row {
+  margin-top: 10px;
+}
+
+.error-alert {
+  border: 1px solid rgba(255, 90, 90, 0.35);
+  background: rgba(255, 90, 90, 0.12);
+  border-radius: 14px;
+  padding: 12px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.table th,
+.table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(111, 136, 176, 0.2);
+  vertical-align: top;
+}
+
+.table th {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgb(var(--muted));
+  font-weight: 800;
+  text-align: left;
+}
+
+.table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.table tbody tr:last-child td {
+  border-bottom: 0;
 }
 
 .divider-subtle {

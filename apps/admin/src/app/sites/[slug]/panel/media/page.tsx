@@ -83,7 +83,7 @@ export default function MediaPage() {
             type="button"
             onClick={() => toast.push({ tone: "success", message: t("sitePanelShell.mediaUi.toasts.optimizeMock") })}
           >{t("sitePanelShell.actions.optimize")}</button>
-          <button className="btn primary" type="button" onClick={() => setShowUpload(true)}>{t("sitePanelShell.actions.upload")}</button>
+          <button className="btn btn-primary" type="button" onClick={() => setShowUpload(true)}>{t("sitePanelShell.actions.upload")}</button>
         </>
       }
     >
@@ -169,3 +169,4 @@ export default function MediaPage() {
     </SitePanelLayout>
   );
 }
+

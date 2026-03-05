@@ -248,7 +248,7 @@ export default function OrgRolesPage() {
   if (loading) {
     return (
       <div className="card card-pad">
-        <div style={{ color: "var(--muted)" }}>Loading roles...</div>
+        <div className="text-muted">Loading roles...</div>
       </div>
     );
   }
@@ -264,13 +264,13 @@ export default function OrgRolesPage() {
   }
 
   return (
-    <div>
+    <div className="animate-fade-in">
       <div className="card card-pad">
-        <div className="row-wrap" style={{ justifyContent: "flex-start" }}>
-          <button className={clsx("btn", activeTab === "system" && "primary")} onClick={() => setActiveTab("system")}>System roles</button>
-          <button className={clsx("btn", activeTab === "custom" && "primary")} onClick={() => setActiveTab("custom")}>Custom roles</button>
+        <div className="row-wrap justify-start">
+          <button className={clsx("btn", activeTab === "system" ? "btn-primary" : "btn-outline")} onClick={() => setActiveTab("system")}>System roles</button>
+          <button className={clsx("btn", activeTab === "custom" ? "btn-primary" : "btn-outline")} onClick={() => setActiveTab("custom")}>Custom roles</button>
           {activeTab === "custom" && (
-            <button className="btn primary" onClick={() => openEditor("create")}>Create role</button>
+            <button className="btn btn-primary" onClick={() => openEditor("create")}>Create role</button>
           )}
         </div>
       </div>
@@ -280,16 +280,16 @@ export default function OrgRolesPage() {
       {activeTab === "system" ? (
         <div className="space-y-3">
           {systemRoles.length === 0 ? (
-            <div className="card card-pad" style={{ color: "var(--muted)" }}>No system roles.</div>
+            <div className="card card-pad text-muted">No system roles.</div>
           ) : (
             systemRoles.map((role) => {
               const expanded = expandedRoles[role.id] ?? false;
               const visibleRoleCaps = (role.capabilities || []).filter((cap) => (isOwner ? true : cap.module !== "billing"));
               return (
                 <div key={role.id} className="card card-pad">
-                  <div className="row-start" style={{ flexWrap: "wrap" }}>
+                  <div className="row-start flex-wrap">
                     <div>
-                      <div style={{ fontWeight: 900, fontSize: 15 }}>{role.name}</div>
+                      <div className="font-black text-[15px]">{role.name}</div>
                       <div className="detail-label">{role.description || "System role preset."}</div>
                     </div>
                     <div className="row-wrap">
@@ -301,9 +301,9 @@ export default function OrgRolesPage() {
                     </div>
                   </div>
                   {expanded && (
-                    <div style={{ marginTop: 10 }}>
+                    <div className="mt-2.5">
                       {visibleRoleCaps.length === 0 ? (
-                        <div style={{ color: "var(--muted)" }}>No capabilities to show.</div>
+                        <div className="text-muted">No capabilities to show.</div>
                       ) : (
                         <div className="overflow-x-auto">
                           <table className="table">
@@ -318,7 +318,7 @@ export default function OrgRolesPage() {
                               {visibleRoleCaps.map((cap) => (
                                 <tr key={`${role.id}-${cap.key}`}>
                                   <td>{cap.label ?? cap.key}</td>
-                                  <td style={{ color: "var(--muted)" }}>{cap.key}</td>
+                                  <td className="text-muted">{cap.key}</td>
                                   <td>{MODULE_LABELS[cap.module]}</td>
                                 </tr>
                               ))}
@@ -355,13 +355,13 @@ export default function OrgRolesPage() {
           />
 
           {filteredCustomRoles.length === 0 ? (
-            <div className="card card-pad" style={{ color: "var(--muted)" }}>No custom roles.</div>
+            <div className="card card-pad text-muted">No custom roles.</div>
           ) : (
             filteredCustomRoles.map((role) => (
               <div key={role.id} className="card card-pad">
-                <div className="row-start" style={{ flexWrap: "wrap" }}>
+                <div className="row-start flex-wrap">
                   <div>
-                    <div style={{ fontWeight: 900, fontSize: 15 }}>{role.name}</div>
+                    <div className="font-black text-[15px]">{role.name}</div>
                     <div className="detail-label">{role.description || "Custom role"}</div>
                   </div>
                   <div className="row-wrap">
@@ -370,7 +370,7 @@ export default function OrgRolesPage() {
                     <span className="badge gray">{role.capabilities.length} caps</span>
                   </div>
                 </div>
-                <div className="row-between" style={{ marginTop: 10, flexWrap: "wrap" }}>
+                <div className="row-between flex-wrap mt-2.5">
                   <div className="detail-label">
                     {role.capabilities.slice(0, 4).map((cap) => cap.label ?? cap.key).join(", ")}
                     {role.capabilities.length > 4 ? "..." : ""}
@@ -420,8 +420,8 @@ export default function OrgRolesPage() {
             </div>
           </div>
 
-          <div className="card" style={{ padding: 16 }}>
-            <div className="grid" style={{ gap: 10 }}>
+          <div className="card card-pad">
+            <div className="grid gap-2.5">
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wide text-muted mb-1">Search capabilities</label>
                 <Input value={capabilitySearch} onChange={(event) => setCapabilitySearch(event.target.value)} placeholder="Search by label or key" />
@@ -437,16 +437,16 @@ export default function OrgRolesPage() {
               </div>
             </div>
 
-            <div style={{ height: 12 }} />
+            <div className="h-3" />
 
             {groupedCapabilities.length === 0 ? (
-              <div style={{ color: "var(--muted)" }}>No results.</div>
+              <div className="text-muted">No results.</div>
             ) : (
               <div className="space-y-6">
                 {groupedCapabilities.map((group) => (
                   <div key={group.module}>
-                    <div className="row" style={{ marginBottom: 8 }}>
-                      <div style={{ fontWeight: 800, fontSize: 12 }}>{MODULE_LABELS[group.module]}</div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="detail-label">{MODULE_LABELS[group.module]}</div>
                       <span className="badge gray">{group.items.length}</span>
                     </div>
                     <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -469,9 +469,9 @@ export default function OrgRolesPage() {
                             className={clsx(
                               "card",
                               "flex items-start gap-3",
+                              "p-3",
                               disabled ? "opacity-60 cursor-not-allowed" : "cursor-pointer"
                             )}
-                            style={{ padding: 12 }}
                             title={tooltip}
                           >
                             <input
@@ -484,14 +484,14 @@ export default function OrgRolesPage() {
                             />
                             <div className="flex-1">
                               <div className="row">
-                                <span style={{ fontWeight: 700 }}>{capability.label}</span>
+                                <span className="font-bold">{capability.label}</span>
                                 {(capability.isDangerous || DANGEROUS_CAPABILITY_KEYS.has(capability.key)) && (
                                   <span className="badge orange">Dangerous</span>
                                 )}
                               </div>
                               <div className="detail-label">{capability.key}</div>
                               {capability.description && (
-                                <div className="detail-label" style={{ marginTop: 4 }}>{capability.description}</div>
+                                <div className="detail-label mt-1">{capability.description}</div>
                               )}
                             </div>
                           </label>
@@ -504,13 +504,13 @@ export default function OrgRolesPage() {
             )}
           </div>
 
-          <div className="row-between" style={{ flexWrap: "wrap" }}>
+          <div className="row-between flex-wrap">
             <div className="detail-label">
               System roles are fixed. Custom roles are built by selecting capabilities.
             </div>
-            <div style={{ display: "flex", gap: 8 }}>
+            <div className="row-wrap gap-2">
               <button className="btn" onClick={() => setEditorOpen(false)} disabled={saving}>Cancel</button>
-              <button className="btn primary" onClick={handleSave} disabled={saving}>
+              <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
                 {editorMode === "edit" ? "Save changes" : "Create role"}
               </button>
             </div>

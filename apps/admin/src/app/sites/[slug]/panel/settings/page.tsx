@@ -110,7 +110,7 @@ export default function SettingsPage() {
       actions={
         <>
           <button className="btn" type="button" onClick={() => toast.push({ tone: "success", message: t("sitePanelShell.settingsUi.toasts.testConfigMock") })}>{t("sitePanelShell.actions.testConfig")}</button>
-          <button className="btn primary" type="button" onClick={() => toast.push({ tone: "success", message: t("sitePanelShell.settingsUi.toasts.saveMock") })}>{t("sitePanelShell.actions.saveChanges")}</button>
+          <button className="btn btn-primary" type="button" onClick={() => toast.push({ tone: "success", message: t("sitePanelShell.settingsUi.toasts.saveMock") })}>{t("sitePanelShell.actions.saveChanges")}</button>
         </>
       }
     >
@@ -243,3 +243,4 @@ export default function SettingsPage() {
     </SitePanelLayout>
   );
 }
+

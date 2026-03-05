@@ -98,7 +98,8 @@ export default function DevSitesPage() {
 
   return (
     <DevPanelLayout title="Sites" description="List of all sites (non-prod)">
-      <div className="card card-pad">
+      <div className="animate-fade-in">
+        <div className="card card-pad">
         <div className="section-title">Sites</div>
         <div className="spacer-sm" />
         {loading ? (
@@ -140,7 +141,9 @@ export default function DevSitesPage() {
             </table>
           </div>
         )}
+        </div>
       </div>
     </DevPanelLayout>
   );
 }
+

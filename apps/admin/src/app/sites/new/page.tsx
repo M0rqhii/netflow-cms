@@ -148,7 +148,7 @@ export default function NewSitePage() {
           )}
 
           <div className="row-wrap" style={{ justifyContent: "flex-start" }}>
-            <button className="btn primary" type="submit" disabled={loading}>
+            <button className="btn btn-primary" type="submit" disabled={loading}>
               {loading ? t("newSite.creating") : t("newSite.create")}
             </button>
             <Link href="/sites" className="btn">{t("common.cancel")}</Link>
@@ -158,3 +158,4 @@ export default function NewSitePage() {
     </div>
   );
 }
+

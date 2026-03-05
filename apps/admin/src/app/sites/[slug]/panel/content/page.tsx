@@ -81,7 +81,7 @@ export default function ContentPage() {
       actions={
         <>
           <button className="btn" type="button" onClick={() => setShowImportModal(true)}>{t("sitePanelShell.actions.import")}</button>
-          <button className="btn primary" type="button" onClick={() => setShowCreateModal(true)}>{t("sitePanelShell.actions.newEntry")}</button>
+          <button className="btn btn-primary" type="button" onClick={() => setShowCreateModal(true)}>{t("sitePanelShell.actions.newEntry")}</button>
         </>
       }
     >
@@ -198,3 +198,4 @@ export default function ContentPage() {
     </SitePanelLayout>
   );
 }
+
