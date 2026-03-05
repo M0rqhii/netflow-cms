@@ -170,7 +170,7 @@ export default function OrgAssignmentsPage() {
   }
 
   return (
-    <div className="animate-fade-in">
+    <div className="animate-fade-in org-settings-page">
       <div className="card card-pad">
         <div className="section-title">Assignments</div>
         <div className="detail-label mt-1.5">

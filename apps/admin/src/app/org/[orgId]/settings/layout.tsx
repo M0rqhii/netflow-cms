@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
 import clsx from "clsx";
-import Breadcrumbs from "@/components/ui/Breadcrumbs";
 
 const TABS = [
   { key: "general", label: "General", href: (orgId: string) => `/org/${orgId}/settings/general` },
@@ -19,24 +18,15 @@ export default function OrgSettingsLayout({ children }: { children: React.ReactN
   const orgId = params?.orgId ?? "";
 
   return (
-    <div>
-      <Breadcrumbs
-        items={[
-          { label: "Dashboard", href: "/dashboard" },
-          { label: `Org ${orgId}` },
-          { label: "Settings" },
-        ]}
-      />
-
-      <div className="card card-pad">
+    <section className="org-settings-shell">
+      <header className="card card-pad org-settings-hero">
+        <div className="org-settings-kicker">Organization</div>
         <div className="view-title">Organization Settings</div>
         <div className="view-sub">Manage your organization settings, roles, policies, and access control.</div>
-      </div>
+      </header>
 
-      <div className="spacer" />
-
-      <div className="card card-pad overflow-x-auto">
-        <nav className="flex flex-wrap gap-2" aria-label="Tabs">
+      <div className="card card-pad org-settings-tabs-card overflow-x-auto">
+        <nav className="org-settings-tabs" aria-label="Organization settings sections">
           {TABS.map((tab) => {
             const href = tab.href(orgId);
             const active = pathname?.startsWith(href);
@@ -44,7 +34,11 @@ export default function OrgSettingsLayout({ children }: { children: React.ReactN
               <Link
                 key={tab.key}
                 href={href}
-                className={clsx("btn", active ? "btn-primary" : "btn-outline")}
+                className={clsx(
+                  "btn",
+                  "org-settings-tab-btn",
+                  active ? "btn-primary org-settings-tab-btn-active" : "btn-outline"
+                )}
                 aria-current={active ? "page" : undefined}
               >
                 {tab.label}
@@ -54,9 +48,7 @@ export default function OrgSettingsLayout({ children }: { children: React.ReactN
         </nav>
       </div>
 
-      <div className="spacer" />
-
-      {children}
-    </div>
+      <div className="org-settings-content">{children}</div>
+    </section>
   );
 }

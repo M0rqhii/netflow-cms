@@ -153,7 +153,7 @@ export default function OrgEffectivePermissionsPage() {
   }
 
   return (
-    <div>
+    <div className="org-settings-page">
       <div className="card card-pad">
         <div className="section-title">Effective permissions</div>
         <div className="detail-label" style={{ marginTop: 6 }}>

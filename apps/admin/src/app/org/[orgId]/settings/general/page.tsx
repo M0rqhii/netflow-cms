@@ -125,7 +125,7 @@ export default function OrgGeneralSettingsPage() {
   }
 
   return (
-    <div className="animate-fade-in">
+    <div className="animate-fade-in org-settings-page">
       <div className="card card-pad">
         <div className="section-title">General Settings</div>
         <div className="detail-label mt-1.5">

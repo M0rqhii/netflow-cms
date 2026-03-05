@@ -264,7 +264,7 @@ export default function OrgRolesPage() {
   }
 
   return (
-    <div className="animate-fade-in">
+    <div className="animate-fade-in org-settings-page">
       <div className="card card-pad">
         <div className="row-wrap justify-start">
           <button className={clsx("btn", activeTab === "system" ? "btn-primary" : "btn-outline")} onClick={() => setActiveTab("system")}>System roles</button>
