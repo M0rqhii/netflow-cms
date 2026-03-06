@@ -5,6 +5,13 @@ import { ToastProvider } from '@/components/ui/Toast';
 import { IntlProvider } from '@/components/i18n/IntlProvider';
 import { routing } from '../../i18n/routing';
 import Script from 'next/script';
+import { Inter } from 'next/font/google';
+
+const inter = Inter({
+  subsets: ['latin', 'latin-ext'],
+  display: 'swap',
+  variable: '--font-inter',
+});
 
 export const metadata: Metadata = {
   title: 'Login - Net-Flow',
@@ -19,8 +26,8 @@ export default function LoginLayout({
   const locale = routing.defaultLocale;
 
   return (
-    <html lang={locale} data-theme="dark" suppressHydrationWarning>
-      <body suppressHydrationWarning>
+    <html lang={locale} className={inter.variable} data-theme="dark" suppressHydrationWarning>
+      <body className={inter.className} suppressHydrationWarning>
         {/* Inline theme init to avoid FOUC between SSR and client */}
         <Script
           id="theme-init"
@@ -29,6 +36,10 @@ export default function LoginLayout({
             __html: `
               (function() {
                 try {
+                  var language = localStorage.getItem('nf-language');
+                  if (language === 'pl' || language === 'en') {
+                    document.documentElement.lang = language;
+                  }
                   var key = 'nf-theme';
                   var saved = localStorage.getItem(key);
                   var theme = saved || 'dark';
@@ -48,8 +59,3 @@ export default function LoginLayout({
     </html>
   );
 }
-
-
-
-
-
