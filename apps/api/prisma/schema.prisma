@@ -95,15 +95,23 @@ model User {
   systemRole        String?  // super_admin, system_admin, system_dev, system_support (nullable)
   isSuperAdmin      Boolean  @default(false) // Flaga dla super admin
   preferredLanguage String   @default("en") // pl, en
-  billingInfo      Json     @default("{}") @map("billing_info")
+  languageChosenAt  DateTime? @map("language_chosen_at")
+  firstName         String?  @map("first_name")
+  lastName          String?  @map("last_name")
+  phone             String?
+  mustCompleteOnboarding Boolean @default(false) @map("must_complete_onboarding")
+  onboardingCompletedAt DateTime? @map("onboarding_completed_at")
+  mustChangePassword Boolean @default(false) @map("must_change_password")
+  billingInfo       Json     @default("{}") @map("billing_info")
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
   organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
   // Multi-org membership
-  memberships UserOrg[]
-  invitesSent UserInvite[]
+  memberships         UserOrg[]
+  invitesSent         UserInvite[]
+  passwordActionTokens PasswordActionToken[]
 
   @@unique([orgId, email])
   @@index([orgId])
@@ -310,6 +318,23 @@ model UserInvite {
   @@index([status])
   @@index([expiresAt])
   @@map("user_invites")
+}
+
+model PasswordActionToken {
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  tokenHash String    @unique @map("token_hash")
+  purpose   String    @default("reset_password") // reset_password, account_setup
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, purpose])
+  @@index([expiresAt])
+  @@index([usedAt])
+  @@map("password_action_tokens")
 }
 
 

@@ -3,6 +3,7 @@
 import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, EmptyState } from '@repo/ui';
 import { Badge } from '@/components/ui/Badge';
+import { useTranslations } from '@/hooks/useTranslations';
 
 export type SiteEventRow = {
   id: string;
@@ -19,11 +20,13 @@ interface SiteEventsTableProps {
 }
 
 export function SiteEventsTable({ events, loading, onEventClick }: SiteEventsTableProps) {
+  const t = useTranslations();
+
   if (!events.length) {
     return (
       <EmptyState
-        title={loading ? 'Loading events...' : 'No activity yet'}
-        description="Site activity will appear here as editors create pages, upload media, and manage SEO."
+        title={loading ? t('sitePanelShell.activityUi.table.loading') : t('sitePanelShell.activityUi.table.empty')}
+        description={t('sitePanelShell.activityUi.table.emptyDescription')}
         className="border border-dashed border-border rounded-[18px]"
       />
     );
@@ -34,9 +37,9 @@ export function SiteEventsTable({ events, loading, onEventClick }: SiteEventsTab
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>When</TableHead>
-            <TableHead>Event</TableHead>
-            <TableHead>Message</TableHead>
+            <TableHead>{t('sitePanelShell.activityUi.table.when')}</TableHead>
+            <TableHead>{t('sitePanelShell.activityUi.table.event')}</TableHead>
+            <TableHead>{t('sitePanelShell.activityUi.table.message')}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -61,6 +64,5 @@ export function SiteEventsTable({ events, loading, onEventClick }: SiteEventsTab
     </div>
   );
 }
-
 
 

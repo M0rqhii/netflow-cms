@@ -8,6 +8,7 @@ import { useTranslations } from "@/hooks/useTranslations";
 import { fetchMySites } from "@/lib/api";
 import { trackOnboardingSuccess } from "@/lib/onboarding";
 import type { SiteInfo } from "@repo/sdk";
+import { formatPlanTierLabel } from "@/lib/plans";
 
 type SiteWithDates = SiteInfo["site"] & { createdAt?: string; updatedAt?: string };
 
@@ -47,7 +48,7 @@ export default function SiteOverviewPage() {
     }
   }, [site]);
 
-  const planLabel = useMemo(() => site?.site.plan || "org", [site?.site.plan]);
+  const planLabel = useMemo(() => formatPlanTierLabel(site?.site.plan), [site?.site.plan]);
   const createdAt = (site?.site as SiteWithDates | undefined)?.createdAt;
   const updatedAt = (site?.site as SiteWithDates | undefined)?.updatedAt;
   const formattedCreatedAt = createdAt ? new Date(createdAt).toLocaleString() : "-";
@@ -58,7 +59,7 @@ export default function SiteOverviewPage() {
       { label: t("siteOverview.name"), value: site?.site.name ?? "-", mono: false },
       { label: t("siteOverview.slug"), value: site?.site.slug ?? "-", mono: true },
       { label: t("siteOverview.siteId"), value: site?.siteId ?? "-", mono: true },
-      { label: t("siteOverview.plan"), value: planLabel || t("sitesList.basic"), mono: false },
+      { label: t("siteOverview.plan"), value: planLabel, mono: false },
       { label: t("siteOverview.created"), value: formattedCreatedAt, mono: false },
       { label: t("siteOverview.updated"), value: formattedUpdatedAt, mono: false },
       { label: t("siteOverview.yourRole"), value: site?.role ?? "-", mono: false },
@@ -111,7 +112,7 @@ export default function SiteOverviewPage() {
           </div>
           <div className="row-wrap">
             <span className="badge gray">{site.role}</span>
-            <span className="badge gray">Plan: {planLabel}</span>
+            <span className="badge gray">{t("siteOverview.plan")}: {planLabel}</span>
           </div>
         </div>
         <div className="spacer-sm" />

@@ -18,6 +18,9 @@ import { z } from 'zod';
 const UpdateAccountDtoSchema = z.object({
   name: z.string().min(1).optional(),
   preferredLanguage: z.enum(['pl', 'en']).optional(),
+  firstName: z.string().max(80).optional(),
+  lastName: z.string().max(120).optional(),
+  phone: z.string().max(30).optional(),
 });
 
 const ChangePasswordDtoSchema = z.object({
@@ -38,10 +41,18 @@ const UpdateSecuritySettingsDtoSchema = z.object({
   sessionTimeoutMinutes: z.number().int().min(5).max(1440).optional(),
 });
 
+const CompleteOnboardingDtoSchema = z.object({
+  preferredLanguage: z.enum(['pl', 'en']),
+  firstName: z.string().max(80).optional(),
+  lastName: z.string().max(120).optional(),
+  phone: z.string().max(30).optional(),
+});
+
 type UpdateAccountDto = z.infer<typeof UpdateAccountDtoSchema>;
 type ChangePasswordDto = z.infer<typeof ChangePasswordDtoSchema>;
 type UpdateBillingInfoDto = z.infer<typeof UpdateBillingInfoDtoSchema>;
 type UpdateSecuritySettingsDto = z.infer<typeof UpdateSecuritySettingsDtoSchema>;
+type CompleteOnboardingDto = z.infer<typeof CompleteOnboardingDtoSchema>;
 
 /**
  * AccountController - RESTful API for user account management
@@ -86,6 +97,27 @@ export class AccountController {
     @Body(new ZodValidationPipe(ChangePasswordDtoSchema)) dto: ChangePasswordDto,
   ) {
     return this.accountService.changePassword(user.id, dto);
+  }
+
+  /**
+   * GET /api/v1/account/onboarding
+   * Get first-login onboarding status
+   */
+  @Get('onboarding')
+  async getOnboardingStatus(@CurrentUser() user: { id: string }) {
+    return this.accountService.getOnboardingStatus(user.id);
+  }
+
+  /**
+   * PATCH /api/v1/account/onboarding
+   * Complete first-login onboarding flow
+   */
+  @Patch('onboarding')
+  async completeOnboarding(
+    @CurrentUser() user: { id: string },
+    @Body(new ZodValidationPipe(CompleteOnboardingDtoSchema)) dto: CompleteOnboardingDto,
+  ) {
+    return this.accountService.completeOnboarding(user.id, dto);
   }
 
   /**

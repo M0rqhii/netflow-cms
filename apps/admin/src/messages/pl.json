@@ -63,7 +63,30 @@
     "twoFactorHintRecovery": "Uzyj kodu z aplikacji lub kodu odzyskiwania.",
     "twoFactorMethodEmail": "Metoda: kod email",
     "twoFactorMethodAuthApp": "Metoda: aplikacja lub kod odzyskiwania",
-    "twoFactorStepNote": "2FA jest wymagane tylko dla kont z włączoną weryfikacją dwuetapową."
+    "twoFactorStepNote": "2FA jest wymagane tylko dla kont z włączoną weryfikacją dwuetapową.",
+    "forgotPassword": "Nie pamietasz hasla?",
+    "resetRequestTitle": "Reset hasla",
+    "resetRequestSubtitle": "Podaj email, a wyslemy link do ustawienia nowego hasla.",
+    "resetRequestSent": "Jesli konto istnieje, email z linkiem zostal wyslany.",
+    "resetRequestError": "Nie udalo sie wyslac prosby o reset hasla.",
+    "sendingResetRequest": "Wysylanie prosby...",
+    "sendResetRequest": "Wyslij link resetu",
+    "optionalOrgId": "ID organizacji (opcjonalnie)",
+    "optionalOrgIdPlaceholder": "Opcjonalny UUID",
+    "optionalOrgIdHint": "Wypelnij tylko, gdy logujesz sie do konkretnej organizacji.",
+    "resetTokenInvalid": "Link resetu jest nieprawidlowy lub wygasl.",
+    "resetConfirmTitle": "Ustaw nowe haslo",
+    "resetConfirmSubtitle": "Ustaw silne haslo dla swojego konta.",
+    "resetConfirmSuccess": "Haslo zostalo zmienione. Mozesz sie zalogowac.",
+    "resetConfirmError": "Nie udalo sie zapisac nowego hasla.",
+    "accountSetupTitle": "Aktywuj konto",
+    "accountSetupSubtitle": "Ustaw haslo, aby dokonczyc aktywacje konta.",
+    "accountSetupComplete": "Konto aktywowane. Mozesz sie zalogowac.",
+    "newPassword": "Nowe haslo",
+    "savingPassword": "Zapisywanie hasla...",
+    "saveNewPassword": "Zapisz nowe haslo",
+    "resetPasswordMinLength": "Haslo musi miec co najmniej 8 znakow.",
+    "resetPasswordMismatch": "Hasla nie sa takie same."
   },
   "navigation": {
     "dashboard": "Przegląd",
@@ -546,7 +569,8 @@
     "userRoleUpdatedSuccessfully": "Rola użytkownika zaktualizowana pomyślnie",
     "failedToUpdateUserRole": "Nie udało się zaktualizować roli użytkownika",
     "inviteRevoked": "Zaproszenie cofnięte",
-    "failedToRevokeInvite": "Nie udało się cofnąć zaproszenia"
+    "failedToRevokeInvite": "Nie udało się cofnąć zaproszenia",
+    "passwordOptionalHelper": "Opcjonalne. Zostaw puste, aby wymusic bezpieczne ustawienie hasla przez link email."
   },
   "settings": {
     "title": "Konfiguracja",
@@ -599,7 +623,36 @@
     "passwordChangedSuccessfully": "Hasło zmienione pomyślnie",
     "failedToChangePassword": "Nie udało się zmienić hasła",
     "billingInformationUpdatedSuccessfully": "Informacje rozliczeniowe zaktualizowane pomyślnie",
-    "failedToUpdateBillingInformation": "Nie udało się zaktualizować informacji rozliczeniowych"
+    "failedToUpdateBillingInformation": "Nie udało się zaktualizować informacji rozliczeniowych",
+    "authenticatorApp": "Aplikacja uwierzytelniająca",
+    "compactAccountCenterDescription": "Zarządzaj językiem, hasłem, rozliczeniami i ustawieniami bezpieczeństwa konta.",
+    "disableTwoFactor": "Wyłącz 2FA",
+    "disabled": "Wyłączone",
+    "emailCode": "Kod e-mail",
+    "enableTwoFactor": "Włącz 2FA",
+    "enabled": "Włączone",
+    "failedToChangeTwoFactorStatus": "Nie udało się zmienić statusu uwierzytelniania dwuskładnikowego",
+    "failedToRegenerateRecoveryCodes": "Nie udało się wygenerować nowych kodów odzyskiwania",
+    "failedToSaveSecuritySettings": "Nie udało się zapisać ustawień bezpieczeństwa",
+    "lastUpdate": "Ostatnia aktualizacja",
+    "recoveryCodesDescription": "Przechowuj kody odzyskiwania w bezpiecznym miejscu. Każdy kod można użyć tylko raz.",
+    "recoveryCodesRegenerated": "Kody odzyskiwania zostały wygenerowane ponownie",
+    "regenerate": "Wygeneruj ponownie",
+    "saveSecurity": "Zapisz bezpieczeństwo",
+    "securityAnd2fa": "Bezpieczeństwo i 2FA",
+    "securityDescription": "Skonfiguruj uwierzytelnianie dwuskładnikowe, limit sesji i alerty logowania.",
+    "securitySettingsSaved": "Ustawienia bezpieczeństwa zostały zapisane",
+    "sendLoginAlerts": "Wysyłaj alerty logowania",
+    "sessionHours4": "4 godziny",
+    "sessionMinutes15": "15 minut",
+    "sessionMinutes30": "30 minut",
+    "sessionMinutes60": "60 minut",
+    "sessionTimeout": "Limit sesji",
+    "twoFactorDisabled": "2FA wyłączone",
+    "twoFactorDisabledToast": "Uwierzytelnianie dwuskładnikowe zostało wyłączone",
+    "twoFactorEnabled": "2FA włączone",
+    "twoFactorEnabledToast": "Uwierzytelnianie dwuskładnikowe zostało włączone",
+    "twoFactorMethod": "Metoda 2FA"
   },
   "seo": {
     "basicSeo": "Podstawowe SEO",
@@ -834,7 +887,55 @@
       "blogPostsPerPage": "Wpisy na stronę",
       "blogShowCategories": "Pokazuj kategorie"
     },
-    "plan": "Plan"
+    "plan": "Plan",
+    "moduleDisabledWithName": "Moduł \"{module}\" został wyłączony",
+    "moduleEnabledWithName": "Moduł \"{module}\" został włączony",
+    "modules": {
+      "accessibilityWidget": {
+        "title": "Widget dostępności",
+        "description": "Poprawia dostępność przez kontrast, fokus i zmianę rozmiaru tekstu."
+      },
+      "analytics": {
+        "title": "Analityka",
+        "description": "Zbiera analitykę ruchu i konwersji."
+      },
+      "blogContent": {
+        "title": "Blog i treści",
+        "description": "Dodaje artykuły, kategorie i widżety list treści."
+      },
+      "consentSecurity": {
+        "title": "Zgody i bezpieczeństwo",
+        "description": "Zarządza zgodami cookies i integracjami bezpieczeństwa."
+      },
+      "embedsMedia": {
+        "title": "Osadzanie i media",
+        "description": "Włącza osadzanie mediów zewnętrznych i obsługiwanych dostawców."
+      },
+      "formsPro": {
+        "title": "Formularze Pro",
+        "description": "Zaawansowane formularze z uploadem, zgodami i automatyzacjami."
+      },
+      "maps": {
+        "title": "Mapy",
+        "description": "Wyświetla interaktywne mapy i sekcje lokalizacji."
+      },
+      "metaPixel": {
+        "title": "Meta Pixel",
+        "description": "Dodaje śledzenie Meta Pixel dla kampanii marketingowych."
+      },
+      "payments": {
+        "title": "Płatności",
+        "description": "Obsługuje płatności online i proces checkout."
+      },
+      "shop": {
+        "title": "Sklep",
+        "description": "Udostępnia katalog produktów i komponenty e-commerce."
+      },
+      "tagManager": {
+        "title": "Tag Manager",
+        "description": "Integruje kontenerowe tagi marketingowe."
+      }
+    }
   },
   "sitePanelShell": {
     "overview": {
@@ -983,6 +1084,58 @@
       },
       "drag": {
         "block": "Blok"
+      },
+      "fieldRenderer": {
+        "bottom": "Dół",
+        "imageUrlPlaceholder": "URL obrazu lub ścieżka do lokalnego zasobu",
+        "invalidOrInaccessible": "Nieprawidłowy lub niedostępny obraz",
+        "left": "Lewo",
+        "linkPlaceholder": "https://przyklad.pl",
+        "openColorPicker": "Otwórz picker koloru",
+        "preview": "Podgląd",
+        "removeImage": "Usuń obraz",
+        "right": "Prawo",
+        "selectFromMediaLibrary": "Wybierz z biblioteki mediów",
+        "selectPlaceholder": "Wybierz...",
+        "top": "Góra",
+        "useColor": "Użyj koloru {color}"
+      },
+      "layersPanel": {
+        "collapse": "Zwiń",
+        "empty": "Brak bloków na tej stronie.",
+        "expand": "Rozwiń",
+        "hide": "Ukryj",
+        "hideLayer": "Ukryj warstwę",
+        "lock": "Zablokuj",
+        "lockLayer": "Zablokuj warstwę",
+        "noChildren": "Brak dzieci",
+        "searchPlaceholder": "Szukaj warstw...",
+        "show": "Pokaż",
+        "showLayer": "Pokaż warstwę",
+        "unlock": "Odblokuj",
+        "unlockLayer": "Odblokuj warstwę"
+      },
+      "propertiesPanel": {
+        "additionalCssClasses": "Dodatkowe klasy CSS",
+        "blockId": "ID bloku",
+        "closeSelection": "Zamknij wybór",
+        "confirmDelete": "Usunąć wybrany blok?",
+        "copy": "Kopiuj",
+        "cssClassPlaceholder": "np. hero section-highlight",
+        "customLabel": "Własna etykieta",
+        "delete": "Usuń",
+        "editingStylesFor": "Edytujesz style dla",
+        "emptyContent": "Ten blok nie ma edytowalnych pól treści.",
+        "emptyStyles": "Ten blok nie ma pól stylu.",
+        "lock": "Zablokuj",
+        "locked": "Zablokowane",
+        "noBlockDescription": "Wybierz blok na canvasie, aby edytować treść, styl i ustawienia zaawansowane.",
+        "noBlockTitle": "Nie wybrano bloku",
+        "tabs": {
+          "advanced": "Zaawansowane",
+          "content": "Treść",
+          "style": "Styl"
+        }
       }
     },
     "media": {
@@ -1247,6 +1400,14 @@
       "toasts": {
         "siteNotFound": "Nie znaleziono strony o slug: \"{slug}\"",
         "loadError": "Nie udało się pobrać aktywności"
+      },
+      "table": {
+        "empty": "Brak zdarzeń",
+        "emptyDescription": "Spróbuj zmienić filtry lub odśwież widok, aby załadować najnowsze zdarzenia.",
+        "event": "Zdarzenie",
+        "loading": "Ładowanie zdarzeń...",
+        "message": "Wiadomość",
+        "when": "Kiedy"
       }
     },
     "deploymentsUi": {
@@ -1437,5 +1598,388 @@
     "backToSite": "Wróć do strony",
     "title": "Panel strony",
     "description": "Wszystkie operacje strony w jednym miejscu: podgląd, strony, treści, media, marketing, wdrożenia i ustawienia."
+  },
+  "onboarding": {
+    "title": "Dokoncz konfiguracje konta",
+    "subtitle": "Uzupelnij kroki onboardingowe przed wejsciem do panelu.",
+    "loadError": "Nie udalo sie pobrac statusu onboardingu.",
+    "passwordMinLength": "Haslo musi miec co najmniej 8 znakow.",
+    "passwordMismatch": "Hasla nie sa takie same.",
+    "passwordChangeError": "Nie udalo sie zmienic hasla.",
+    "finishPasswordFirst": "Najpierw zmien haslo, a potem zakoncz onboarding.",
+    "completeError": "Nie udalo sie zakonczyc onboardingu.",
+    "language": "Preferowany jezyk",
+    "securityStep": "Krok bezpieczenstwa",
+    "securityStepHint": "Ze wzgledow bezpieczenstwa zaktualizuj teraz biezace haslo.",
+    "saving": "Zapisywanie...",
+    "changePassword": "Zmien haslo",
+    "passwordUpdated": "Haslo zostalo zmienione.",
+    "firstName": "Imie",
+    "lastName": "Nazwisko",
+    "phone": "Telefon",
+    "firstNamePlaceholder": "Jan",
+    "lastNamePlaceholder": "Kowalski",
+    "phonePlaceholder": "+48 600 000 000",
+    "phoneOptional": "Opcjonalne. Uzywane do kontaktu i odzyskiwania konta.",
+    "finish": "Zakoncz onboarding"
+  },
+  "orgRbac": {
+    "modules": {
+      "analytics": "Analityka",
+      "billing": "Rozliczenia",
+      "builder": "Builder",
+      "content": "Treści",
+      "domains": "Domeny",
+      "hosting": "Hosting",
+      "marketing": "Marketing",
+      "org": "Organizacja",
+      "sites": "Strony"
+    }
+  },
+  "orgGeneral": {
+    "dangerZone": "Strefa zagrożenia",
+    "deleteOrganization": "Usuń organizację",
+    "failedToLoadOrganization": "Nie udało się załadować organizacji",
+    "failedToSaveOrganizationSettings": "Nie udało się zapisać ustawień organizacji",
+    "generalSettings": "Ustawienia ogólne",
+    "loadingOrganizationSettings": "Ładowanie ustawień organizacji...",
+    "manageOrganizationNameSlugAndPlan": "Zarządzaj nazwą organizacji, slugiem i planem.",
+    "missingAuthToken": "Brak tokenu uwierzytelnienia",
+    "organizationId": "ID organizacji",
+    "organizationName": "Nazwa organizacji",
+    "organizationNameHelperText": "Widoczna dla użytkowników na całej platformie.",
+    "organizationNamePlaceholder": "Wpisz nazwę organizacji",
+    "organizationNotFound": "Nie znaleziono organizacji",
+    "organizationSettingsSaved": "Ustawienia organizacji zostały zapisane",
+    "plan": "Plan",
+    "planChangesAreHandledInBilling": "Zmiany planu obsługiwane są w rozliczeniach.",
+    "saveChanges": "Zapisz zmiany",
+    "saving": "Zapisywanie...",
+    "slug": "Slug",
+    "slugCannotBeChangedAfterCreation": "Slug nie może być zmieniony po utworzeniu.",
+    "slugHelperText": "Używany w adresach URL i zakresach API.",
+    "thisActionIsIrreversible": "Ta akcja jest nieodwracalna."
+  },
+  "orgPolicies": {
+    "columns": {
+      "key": "Klucz",
+      "option": "Opcja",
+      "policy": "Polityka",
+      "risk": "Ryzyko"
+    },
+    "description": "Globalnie włączaj lub wyłączaj uprawnienia za pomocą polityk.",
+    "disabled": "Wyłączone",
+    "enabled": "Włączone",
+    "failedToLoadSettings": "Nie udało się załadować ustawień polityk",
+    "failedToSaveSettings": "Nie udało się zapisać ustawień polityk",
+    "fixed": "Stałe",
+    "loadingPolicies": "Ładowanie polityk...",
+    "module": "Moduł",
+    "noOptionsForFilters": "Brak opcji dla aktualnych filtrów.",
+    "riskDangerous": "Niebezpieczne",
+    "riskLow": "Niskie",
+    "riskMedium": "Średnie",
+    "riskUnknown": "Nieznane",
+    "searchOptions": "Szukaj opcji...",
+    "settingSaved": "Ustawienie polityki zostało zapisane",
+    "title": "Polityki dostępu"
+  },
+  "orgRoles": {
+    "capabilitiesCount": "{count} uprawnień",
+    "columns": {
+      "capability": "Uprawnienie",
+      "key": "Klucz",
+      "module": "Moduł"
+    },
+    "confirmDeleteMessage": "Czy na pewno chcesz usunąć tę rolę?",
+    "confirmDeleteTitle": "Usuń rolę",
+    "copySuffix": "(Kopia)",
+    "createRole": "Utwórz rolę",
+    "customBadge": "Własna",
+    "customRoleFallback": "Brak opisu",
+    "customRoles": "Role niestandardowe",
+    "dangerous": "Niebezpieczne",
+    "duplicate": "Duplikuj",
+    "failedToDeleteRole": "Nie udało się usunąć roli",
+    "failedToLoadRoles": "Nie udało się załadować ról",
+    "failedToSaveRole": "Nie udało się zapisać roli",
+    "hideCapabilities": "Ukryj uprawnienia",
+    "loadingRoles": "Ładowanie ról...",
+    "modal": {
+      "allModules": "Wszystkie moduły",
+      "createTitle": "Tworzenie roli",
+      "description": "Opis",
+      "descriptionPlaceholder": "Opisz co ta rola może robić",
+      "disabledByPolicy": "Wyłączone przez politykę",
+      "duplicateTitle": "Duplikowanie roli",
+      "editTitle": "Edycja roli",
+      "footerHint": "Uprawnienia wyłączone przez politykę lub zarezerwowane dla ról systemowych nie mogą być wybrane.",
+      "reservedForSystemRoles": "Zarezerwowane dla ról systemowych",
+      "roleName": "Nazwa roli",
+      "roleNamePlaceholder": "np. Edytor treści",
+      "saveChanges": "Zapisz zmiany",
+      "scopeEditHint": "Zakresu nie można zmienić dla istniejącej roli.",
+      "scopeOrg": "Organizacja",
+      "scopeSite": "Strona",
+      "searchCapabilities": "Szukaj uprawnień",
+      "searchCapabilitiesPlaceholder": "Szukaj po nazwie, kluczu lub opisie..."
+    },
+    "noCapabilitiesToShow": "Brak uprawnień do wyświetlenia.",
+    "noCustomRoles": "Brak ról niestandardowych.",
+    "noSystemRoles": "Brak ról systemowych.",
+    "roleCreated": "Rola została utworzona",
+    "roleNameRequired": "Nazwa roli jest wymagana",
+    "roleRemoved": "Rola została usunięta",
+    "roleUpdated": "Rola została zaktualizowana",
+    "scope": "Zakres",
+    "searchCustomRoles": "Szukaj ról niestandardowych...",
+    "selectAtLeastOneCapability": "Wybierz co najmniej jedno uprawnienie",
+    "showCapabilities": "Pokaż uprawnienia",
+    "systemBadge": "Systemowa",
+    "systemRolePreset": "Predefiniowana rola systemowa",
+    "systemRoles": "Role systemowe"
+  },
+  "orgAssignments": {
+    "assignOrgRole": "Przypisz rolę organizacyjną",
+    "assignSiteRole": "Przypisz rolę strony",
+    "assignmentRemoved": "Przypisanie usunięte",
+    "columns": {
+      "role": "Rola",
+      "scope": "Zakres",
+      "site": "Strona"
+    },
+    "currentAssignments": "Aktualne przypisania",
+    "description": "Przypisuj użytkownikom role organizacji i stron.",
+    "effective": "uprawnienia wynikowe",
+    "failedToAssignRole": "Nie udało się przypisać roli",
+    "failedToLoadAssignments": "Nie udało się załadować przypisań",
+    "failedToRemoveAssignment": "Nie udało się usunąć przypisania",
+    "loadingAssignments": "Ładowanie przypisań...",
+    "noAssignmentsForUser": "Brak przypisań dla wybranego użytkownika.",
+    "orgRoleAssigned": "Rola organizacyjna przypisana",
+    "organization": "Organizacja",
+    "remove": "Usuń",
+    "removeAssignmentMessage": "Czy na pewno chcesz usunąć to przypisanie?",
+    "removeAssignmentTitle": "Usuń przypisanie",
+    "scope": "Zakres",
+    "searchAssignments": "Szukaj przypisań...",
+    "seeEffectiveHere": "Uprawnienia wynikowe sprawdzisz tutaj:",
+    "selectOrgRole": "Wybierz rolę organizacyjną",
+    "selectSite": "Wybierz stronę",
+    "selectSiteAndRole": "Wybierz stronę i rolę strony",
+    "selectSiteRole": "Wybierz rolę strony",
+    "selectUser": "Wybierz użytkownika",
+    "selectUserAndOrgRole": "Wybierz użytkownika i rolę organizacyjną",
+    "selectUserToViewAssignments": "Wybierz użytkownika, aby zobaczyć przypisania.",
+    "siteRoleAssigned": "Rola strony przypisana",
+    "title": "Przypisania ról",
+    "unknown": "Nieznane",
+    "user": "Użytkownik"
+  },
+  "orgEffective": {
+    "calculatingAccess": "Obliczanie dostępu...",
+    "columns": {
+      "access": "Dostęp",
+      "option": "Opcja",
+      "policy": "Polityka",
+      "reason": "Powód",
+      "roleSources": "Źródła roli"
+    },
+    "description": "Sprawdzaj finalne uprawnienia po uwzględnieniu ról i polityk.",
+    "disabled": "Wyłączone",
+    "enabled": "Włączone",
+    "failedToLoadEffectivePermissions": "Nie udało się załadować uprawnień wynikowych",
+    "failedToLoadPermissions": "Nie udało się załadować uprawnień",
+    "hint": "Użyj filtrów, aby analizować dostęp w zakresie organizacji lub strony.",
+    "loadingEffectivePermissions": "Ładowanie uprawnień wynikowych...",
+    "module": "Moduł",
+    "no": "Nie",
+    "noOptionsForFilters": "Brak opcji dla aktualnych filtrów.",
+    "organizationScope": "Zakres organizacji",
+    "reasonDisabledByPolicy": "Wyłączone przez politykę",
+    "reasonFromRole": "Nadane przez przypisaną rolę",
+    "reasonMissingInRoles": "Brak w przypisanych rolach",
+    "searchOptions": "Szukaj opcji...",
+    "selectUser": "Wybierz użytkownika",
+    "selectUserToView": "Wybierz użytkownika, aby zobaczyć uprawnienia wynikowe.",
+    "siteOptional": "Strona (opcjonalnie)",
+    "title": "Uprawnienia wynikowe",
+    "unknown": "Nieznane",
+    "user": "Użytkownik",
+    "yes": "Tak"
+  },
+  "devPanel": {
+    "tabs": {
+      "runtime": "Runtime",
+      "sites": "Strony",
+      "payments": "Płatności",
+      "emails": "E-maile",
+      "apiKeys": "Klucze API",
+      "webhooks": "Webhooki",
+      "logs": "Logi",
+      "flags": "Flagi funkcji"
+    },
+    "common": {
+      "accessDeniedTitle": "Brak dostępu",
+      "active": "Aktywne",
+      "backToDashboard": "Wróć do panelu",
+      "disabled": "Wyłączone",
+      "disabledTitle": "Panel deweloperski jest wyłączony",
+      "enabled": "Włączone",
+      "id": "ID",
+      "inactive": "Nieaktywne",
+      "nonProductionOnly": "Dostępne tylko poza środowiskiem produkcyjnym.",
+      "privilegedOnly": "Ta sekcja jest dostępna tylko dla uprzywilejowanych ról.",
+      "profile": "Profil",
+      "refresh": "Odśwież",
+      "rows": "Wiersze",
+      "url": "URL"
+    },
+    "layout": {
+      "defaultDescription": "Diagnostyka, integracje i narzędzia runtime dla administratorów.",
+      "defaultTitle": "Panel dewelopera",
+      "nonProductionOnly": "Tylko poza produkcją"
+    },
+    "hub": {
+      "title": "Centrum dewelopera",
+      "description": "Sprawdzaj runtime, webhooki, flagi funkcji i logi do diagnostyki.",
+      "toasts": {
+        "failedToLoadDeveloperData": "Nie udało się załadować danych deweloperskich"
+      },
+      "runtime": {
+        "title": "Przegląd runtime",
+        "subtitle": "Aktualne środowisko i kluczowe liczniki runtime.",
+        "loading": "Ładowanie danych runtime...",
+        "notAvailable": "Dane runtime są niedostępne.",
+        "env": "Środowisko",
+        "node": "Node",
+        "api": "API",
+        "cards": {
+          "devEmails": "E-maile dev",
+          "featureOverrides": "Nadpisania funkcji",
+          "sites": "Strony",
+          "subscriptions": "Subskrypcje",
+          "users": "Użytkownicy",
+          "webhooks": "Webhooki"
+        }
+      },
+      "apiKeys": {
+        "empty": "Zarządzanie kluczami API pojawi się tutaj.",
+        "subtitle": "Zarządzaj kluczami deweloperskimi i integracyjnymi dla tego środowiska.",
+        "title": "Klucze API"
+      },
+      "flags": {
+        "columns": {
+          "created": "Utworzono",
+          "flagKey": "Klucz flagi",
+          "site": "Strona",
+          "status": "Status"
+        },
+        "empty": "Brak flag funkcji.",
+        "loading": "Ładowanie flag funkcji...",
+        "subtitle": "Aktualne nadpisania flag funkcji dla stron.",
+        "title": "Flagi funkcji"
+      },
+      "logs": {
+        "columns": {
+          "level": "Poziom",
+          "message": "Wiadomość",
+          "module": "Moduł",
+          "time": "Czas"
+        },
+        "empty": "Brak wpisów logów.",
+        "loading": "Ładowanie logów...",
+        "subtitle": "Najnowsze logi aplikacji do diagnostyki.",
+        "title": "Logi systemowe"
+      },
+      "webhooks": {
+        "columns": {
+          "events": "Zdarzenia",
+          "lastDelivery": "Ostatnie dostarczenie",
+          "site": "Strona",
+          "status": "Status",
+          "url": "URL"
+        },
+        "empty": "Brak rekordów webhooków.",
+        "loading": "Ładowanie webhooków...",
+        "subtitle": "Endpointy dostarczania zdarzeń w środowisku deweloperskim.",
+        "title": "Webhooki"
+      }
+    },
+    "sites": {
+      "title": "Strony deweloperskie",
+      "description": "Przeglądaj utworzone strony, plany i metadane.",
+      "toasts": {
+        "failedToLoadSites": "Nie udało się załadować stron"
+      },
+      "loading": "Ładowanie stron...",
+      "empty": "Nie znaleziono stron.",
+      "sectionTitle": "Strony",
+      "sectionSubtitle": "Wszystkie strony widoczne w kontekście deweloperskim.",
+      "columns": {
+        "created": "Utworzono",
+        "name": "Nazwa",
+        "plan": "Plan",
+        "slug": "Slug"
+      },
+      "kpis": {
+        "created30d": "Utworzone (30 dni)",
+        "latestCreate": "Najnowsza utworzona",
+        "paidPlans": "Płatne plany",
+        "totalSites": "Liczba stron"
+      }
+    },
+    "payments": {
+      "title": "Płatności deweloperskie",
+      "description": "Analizuj zdarzenia subskrypcji i płatności w środowisku deweloperskim.",
+      "toasts": {
+        "failedToLoadPaymentEvents": "Nie udało się załadować zdarzeń płatności"
+      },
+      "loading": "Ładowanie zdarzeń płatności...",
+      "empty": "Brak zdarzeń płatności.",
+      "sectionTitle": "Zdarzenia płatności",
+      "sectionSubtitle": "Najnowsze rekordy subskrypcji i rozliczeń.",
+      "orgs": "Organizacje",
+      "columns": {
+        "created": "Utworzono",
+        "orgId": "ID organizacji",
+        "organization": "Organizacja",
+        "period": "Okres",
+        "periodEnd": "Koniec okresu",
+        "periodStart": "Początek okresu",
+        "plan": "Plan",
+        "status": "Status"
+      },
+      "kpis": {
+        "activeTrialing": "Aktywne / próbne",
+        "ended": "Zakończone",
+        "events": "Zdarzenia",
+        "nextRenewal": "Następne odnowienie"
+      }
+    },
+    "emails": {
+      "title": "E-maile deweloperskie",
+      "description": "Śledź wychodzące zdarzenia e-mail w środowisku deweloperskim.",
+      "toasts": {
+        "failedToLoadEmailLogs": "Nie udało się załadować logów e-mail"
+      },
+      "loading": "Ładowanie logów e-mail...",
+      "empty": "Brak zdarzeń e-mail.",
+      "sectionTitle": "Logi e-mail",
+      "sectionSubtitle": "Najnowsze wysyłki e-mail.",
+      "recipients": "Odbiorcy",
+      "columns": {
+        "recipient": "Odbiorca",
+        "status": "Status",
+        "subject": "Temat",
+        "timestamp": "Znacznik czasu"
+      },
+      "kpis": {
+        "events": "Zdarzenia",
+        "failed": "Nieudane",
+        "lastEvent": "Ostatnie zdarzenie",
+        "sentDelivered": "Wysłane / dostarczone"
+      }
+    }
   }
 }

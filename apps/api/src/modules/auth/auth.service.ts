@@ -8,10 +8,11 @@ import { JwtPayload } from '../../common/auth/strategies/jwt.strategy';
 import { ConfigService } from '@nestjs/config';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
-import { randomInt, randomUUID } from 'crypto';
+import { randomBytes, randomInt, randomUUID, createHash } from 'crypto';
 import { AuditService, AuditEvent } from '../../common/audit/audit.service';
 import { Mailer } from '../../common/providers/interfaces';
 import { isPlatformAdminValue, isPlatformPowerUser } from '../../common/auth/platform-admin.util';
+import { AccountNotificationsService } from '../../common/notifications/account-notifications.service';
 
 export interface AuthResponse {
   access_token: string;
@@ -20,6 +21,11 @@ export interface AuthResponse {
     email: string;
     role: string;
     orgId: string; // Organization ID
+    preferredLanguage?: 'pl' | 'en';
+    onboardingRequired?: boolean;
+    mustChangePassword?: boolean;
+    onboardingCompletedAt?: string | null;
+    languageChosen?: boolean;
   };
 }
 
@@ -53,6 +59,8 @@ type TwoFactorChallengePayload = {
   oneTimeCode?: string;
 };
 
+type PasswordActionPurpose = 'reset_password' | 'account_setup';
+
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
@@ -63,6 +71,7 @@ export class AuthService {
     private configService: ConfigService,
     @Inject(CACHE_MANAGER) private cache: Cache,
     private auditService: AuditService,
+    private readonly notifications: AccountNotificationsService,
     @Optional() @Inject('Mailer') private readonly mailer?: Mailer,
   ) {}
 
@@ -146,6 +155,162 @@ export class AuthService {
     return true;
   }
 
+  private getPasswordResetTtlMs(): number {
+    const raw = this.configService.get<string | number>('PASSWORD_RESET_TTL_MINUTES');
+    const parsed = Number(raw);
+    if (Number.isFinite(parsed) && parsed >= 5 && parsed <= 240) {
+      return Math.round(parsed) * 60 * 1000;
+    }
+    return 30 * 60 * 1000;
+  }
+
+  private getBaseFrontendUrl(): string {
+    return (
+      this.configService.get<string>('FRONTEND_URL') ||
+      process.env.FRONTEND_URL ||
+      process.env.NEXT_PUBLIC_APP_URL ||
+      'http://localhost:3000'
+    ).replace(/\/$/, '');
+  }
+
+  private buildPasswordResetLink(token: string): string {
+    return `${this.getBaseFrontendUrl()}/reset-password?token=${encodeURIComponent(token)}`;
+  }
+
+  private hashActionToken(token: string): string {
+    return createHash('sha256').update(token).digest('hex');
+  }
+
+  private passwordTokenModel() {
+    return (this.prisma as any).passwordActionToken;
+  }
+
+  private async createPasswordActionToken(
+    userId: string,
+    purpose: PasswordActionPurpose,
+    ttlMs: number,
+  ): Promise<{ token: string; expiresAt: Date }> {
+    const token = randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + ttlMs);
+    const model = this.passwordTokenModel();
+
+    await model.updateMany({
+      where: {
+        userId,
+        purpose,
+        usedAt: null,
+      },
+      data: {
+        usedAt: new Date(),
+      },
+    });
+
+    await model.create({
+      data: {
+        userId,
+        tokenHash: this.hashActionToken(token),
+        purpose,
+        expiresAt,
+      },
+    });
+
+    return { token, expiresAt };
+  }
+
+  private async getPasswordActionTokenRecord(token: string): Promise<{
+    id: string;
+    userId: string;
+    purpose: PasswordActionPurpose;
+    usedAt: Date | null;
+    expiresAt: Date;
+  } | null> {
+    const tokenHash = this.hashActionToken(token);
+    const model = this.passwordTokenModel();
+    const record = await model.findUnique({
+      where: { tokenHash },
+      select: {
+        id: true,
+        userId: true,
+        purpose: true,
+        usedAt: true,
+        expiresAt: true,
+      },
+    });
+
+    if (!record) {
+      return null;
+    }
+
+    return record;
+  }
+
+  private async consumePasswordActionToken(token: string): Promise<{
+    userId: string;
+    purpose: PasswordActionPurpose;
+  }> {
+    const record = await this.getPasswordActionTokenRecord(token);
+    if (!record) {
+      throw new BadRequestException('Token is invalid or expired');
+    }
+
+    if (record.usedAt || record.expiresAt.getTime() <= Date.now()) {
+      throw new BadRequestException('Token is invalid or expired');
+    }
+
+    const model = this.passwordTokenModel();
+    const consumed = await model.updateMany({
+      where: {
+        id: record.id,
+        usedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+      data: {
+        usedAt: new Date(),
+      },
+    });
+
+    if (!consumed?.count) {
+      throw new BadRequestException('Token is invalid or expired');
+    }
+
+    return {
+      userId: record.userId,
+      purpose: record.purpose,
+    };
+  }
+
+  private getOnboardingState(user: {
+    preferredLanguage?: string | null;
+    languageChosenAt?: Date | null;
+    mustCompleteOnboarding?: boolean | null;
+    onboardingCompletedAt?: Date | null;
+    mustChangePassword?: boolean | null;
+  }): {
+    preferredLanguage: 'pl' | 'en';
+    onboardingRequired: boolean;
+    mustChangePassword: boolean;
+    onboardingCompletedAt: string | null;
+    languageChosen: boolean;
+  } {
+    const preferredLanguage =
+      user.preferredLanguage === 'pl' ? 'pl' : 'en';
+    const languageChosen = Boolean(user.languageChosenAt);
+    const mustChangePassword = Boolean(user.mustChangePassword);
+    const mustCompleteOnboarding = Boolean(user.mustCompleteOnboarding);
+    const onboardingRequired =
+      mustChangePassword || mustCompleteOnboarding || !languageChosen;
+
+    return {
+      preferredLanguage,
+      onboardingRequired,
+      mustChangePassword,
+      onboardingCompletedAt: user.onboardingCompletedAt
+        ? user.onboardingCompletedAt.toISOString()
+        : null,
+      languageChosen,
+    };
+  }
+
   private async hasMatchingRecoveryCode(userId: string, providedCode: string): Promise<boolean> {
     const normalized = this.normalizeVerificationCode(providedCode);
     if (!normalized) {
@@ -174,6 +339,11 @@ export class AuthService {
     platformRole: string;
     systemRole?: string;
     isSuperAdmin: boolean;
+    preferredLanguage?: string | null;
+    languageChosenAt?: Date | null;
+    mustCompleteOnboarding?: boolean | null;
+    onboardingCompletedAt?: Date | null;
+    mustChangePassword?: boolean | null;
   }): Promise<LoginSuccessResponse> {
     const payload: JwtPayload = {
       sub: params.userId,
@@ -186,6 +356,14 @@ export class AuthService {
       isSuperAdmin: params.isSuperAdmin,
     };
 
+    const onboarding = this.getOnboardingState({
+      preferredLanguage: params.preferredLanguage,
+      languageChosenAt: params.languageChosenAt,
+      mustCompleteOnboarding: params.mustCompleteOnboarding,
+      onboardingCompletedAt: params.onboardingCompletedAt,
+      mustChangePassword: params.mustChangePassword,
+    });
+
     return {
       access_token: await this.issueAccessToken(payload),
       refresh_token: await this.issueRefreshToken(payload),
@@ -194,6 +372,11 @@ export class AuthService {
         email: params.email,
         role: params.role,
         orgId: params.finalOrgId || params.baseOrgId,
+        preferredLanguage: onboarding.preferredLanguage,
+        onboardingRequired: onboarding.onboardingRequired,
+        mustChangePassword: onboarding.mustChangePassword,
+        onboardingCompletedAt: onboarding.onboardingCompletedAt,
+        languageChosen: onboarding.languageChosen,
       },
     };
   }
@@ -223,6 +406,11 @@ export class AuthService {
           isSuperAdmin: true,
           orgId: true,
           billingInfo: true,
+          preferredLanguage: true,
+          languageChosenAt: true,
+          mustCompleteOnboarding: true,
+          onboardingCompletedAt: true,
+          mustChangePassword: true,
         },
       });
     }
@@ -254,6 +442,11 @@ export class AuthService {
             isSuperAdmin: true,
             orgId: true,
             billingInfo: true,
+            preferredLanguage: true,
+            languageChosenAt: true,
+            mustCompleteOnboarding: true,
+            onboardingCompletedAt: true,
+            mustChangePassword: true,
           },
         },
       },
@@ -278,6 +471,11 @@ export class AuthService {
         isSuperAdmin: true,
         orgId: true,
         billingInfo: true,
+        preferredLanguage: true,
+        languageChosenAt: true,
+        mustCompleteOnboarding: true,
+        onboardingCompletedAt: true,
+        mustChangePassword: true,
       },
     });
     return users[0] || null;
@@ -435,6 +633,11 @@ export class AuthService {
       platformRole,
       systemRole,
       isSuperAdmin,
+      preferredLanguage: user.preferredLanguage,
+      languageChosenAt: user.languageChosenAt,
+      mustCompleteOnboarding: user.mustCompleteOnboarding,
+      onboardingCompletedAt: user.onboardingCompletedAt,
+      mustChangePassword: user.mustChangePassword,
     });
 
     // Audit log: Global login
@@ -479,6 +682,11 @@ export class AuthService {
         systemRole: true,
         isSuperAdmin: true,
         orgId: true,
+        preferredLanguage: true,
+        languageChosenAt: true,
+        mustCompleteOnboarding: true,
+        onboardingCompletedAt: true,
+        mustChangePassword: true,
       },
     });
 
@@ -506,6 +714,11 @@ export class AuthService {
       platformRole,
       systemRole,
       isSuperAdmin,
+      preferredLanguage: currentUser.preferredLanguage,
+      languageChosenAt: currentUser.languageChosenAt,
+      mustCompleteOnboarding: currentUser.mustCompleteOnboarding,
+      onboardingCompletedAt: currentUser.onboardingCompletedAt,
+      mustChangePassword: currentUser.mustChangePassword,
     });
 
     await this.auditService.log({
@@ -558,6 +771,8 @@ export class AuthService {
     const role = registerDto.role || 'viewer';
     const siteRole = this.mapRoleToSiteRole(role);
     const platformRole = this.mapRoleToPlatformRole(role);
+    const preferredLanguage = registerDto.preferredLanguage || 'en';
+    const languageChosenAt = registerDto.preferredLanguage ? new Date() : null;
     
     // Hash password
     const passwordHash = await bcrypt.hash(registerDto.password, 10);
@@ -571,7 +786,10 @@ export class AuthService {
         role,
         siteRole,
         platformRole,
-        preferredLanguage: registerDto.preferredLanguage || 'en',
+        preferredLanguage,
+        languageChosenAt,
+        mustCompleteOnboarding: true,
+        mustChangePassword: false,
       },
     });
 
@@ -590,6 +808,14 @@ export class AuthService {
       platformRole, // Platform role (platform_admin, org_owner, user)
     };
 
+    const onboarding = this.getOnboardingState({
+      preferredLanguage: user.preferredLanguage,
+      languageChosenAt: user.languageChosenAt,
+      mustCompleteOnboarding: user.mustCompleteOnboarding,
+      onboardingCompletedAt: user.onboardingCompletedAt,
+      mustChangePassword: user.mustChangePassword,
+    });
+
     const response = {
       access_token: await this.issueAccessToken(payload),
       refresh_token: await this.issueRefreshToken(payload),
@@ -598,6 +824,11 @@ export class AuthService {
         email: user.email,
         role: user.role,
         orgId: user.orgId,
+        preferredLanguage: onboarding.preferredLanguage,
+        onboardingRequired: onboarding.onboardingRequired,
+        mustChangePassword: onboarding.mustChangePassword,
+        onboardingCompletedAt: onboarding.onboardingCompletedAt,
+        languageChosen: onboarding.languageChosen,
       },
     };
 
@@ -696,6 +927,8 @@ export class AuthService {
     const siteRole = this.mapRoleToSiteRole(role);
     const platformRole = this.mapRoleToPlatformRole(role);
     const passwordHash = await bcrypt.hash(dto.password, 10);
+    const preferredLanguage = dto.preferredLanguage || 'en';
+    const languageChosenAt = dto.preferredLanguage ? new Date() : null;
 
     const user = await this.prisma.user.create({
       data: {
@@ -705,7 +938,10 @@ export class AuthService {
         role,
         siteRole,
         platformRole,
-        preferredLanguage: dto.preferredLanguage || 'en',
+        preferredLanguage,
+        languageChosenAt,
+        mustCompleteOnboarding: true,
+        mustChangePassword: false,
       },
     });
 
@@ -729,6 +965,14 @@ export class AuthService {
       platformRole,
     };
 
+    const onboarding = this.getOnboardingState({
+      preferredLanguage: user.preferredLanguage,
+      languageChosenAt: user.languageChosenAt,
+      mustCompleteOnboarding: user.mustCompleteOnboarding,
+      onboardingCompletedAt: user.onboardingCompletedAt,
+      mustChangePassword: user.mustChangePassword,
+    });
+
     const response = {
       access_token: await this.issueAccessToken(payload),
       refresh_token: await this.issueRefreshToken(payload),
@@ -737,6 +981,11 @@ export class AuthService {
         email: user.email,
         role: user.role,
         orgId: user.orgId,
+        preferredLanguage: onboarding.preferredLanguage,
+        onboardingRequired: onboarding.onboardingRequired,
+        mustChangePassword: onboarding.mustChangePassword,
+        onboardingCompletedAt: onboarding.onboardingCompletedAt,
+        languageChosen: onboarding.languageChosen,
       },
     };
 
@@ -752,6 +1001,144 @@ export class AuthService {
     });
 
     return response;
+  }
+
+  async requestPasswordReset(dto: {
+    email: string;
+    orgId?: string;
+  }): Promise<{ success: true; message: string }> {
+    const email = dto.email.trim().toLowerCase();
+
+    let user:
+      | {
+          id: string;
+          email: string;
+          preferredLanguage: string | null;
+          languageChosenAt: Date | null;
+        }
+      | null = null;
+
+    if (dto.orgId) {
+      user = await this.prisma.user.findUnique({
+        where: {
+          orgId_email: {
+            orgId: dto.orgId,
+            email,
+          },
+        },
+        select: {
+          id: true,
+          email: true,
+          preferredLanguage: true,
+          languageChosenAt: true,
+        },
+      });
+    } else {
+      user = await this.prisma.user.findFirst({
+        where: { email },
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          email: true,
+          preferredLanguage: true,
+          languageChosenAt: true,
+        },
+      });
+    }
+
+    if (user) {
+      try {
+        const actionToken = await this.createPasswordActionToken(
+          user.id,
+          'reset_password',
+          this.getPasswordResetTtlMs(),
+        );
+        await this.notifications.sendPasswordResetEmail({
+          to: user.email,
+          resetUrl: this.buildPasswordResetLink(actionToken.token),
+          expiresAt: actionToken.expiresAt,
+          preferredLanguage: user.preferredLanguage,
+          languageChosenAt: user.languageChosenAt,
+        });
+      } catch (error) {
+        this.logger.error(
+          `Password reset email failed for ${email}: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+      }
+    }
+
+    return {
+      success: true,
+      message:
+        'If an account exists, a password reset link has been sent to the email address.',
+    };
+  }
+
+  async getPasswordActionTokenStatus(
+    token: string,
+  ): Promise<{ valid: true; purpose: PasswordActionPurpose; expiresAt: string }> {
+    const record = await this.getPasswordActionTokenRecord(token);
+    if (!record || record.usedAt || record.expiresAt.getTime() <= Date.now()) {
+      throw new BadRequestException('Token is invalid or expired');
+    }
+
+    return {
+      valid: true,
+      purpose: record.purpose,
+      expiresAt: record.expiresAt.toISOString(),
+    };
+  }
+
+  async confirmPasswordAction(dto: {
+    token: string;
+    password: string;
+  }): Promise<{ success: true; purpose: PasswordActionPurpose }> {
+    const consumed = await this.consumePasswordActionToken(dto.token);
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: consumed.userId },
+      select: {
+        id: true,
+        email: true,
+        preferredLanguage: true,
+        languageChosenAt: true,
+      },
+    });
+
+    if (!user) {
+      throw new BadRequestException('Account no longer exists');
+    }
+
+    const passwordHash = await bcrypt.hash(dto.password, 10);
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        passwordHash,
+        mustChangePassword: false,
+      },
+    });
+
+    try {
+      await this.notifications.sendPasswordChangedEmail({
+        to: user.email,
+        changedAt: new Date(),
+        preferredLanguage: user.preferredLanguage,
+        languageChosenAt: user.languageChosenAt,
+      });
+    } catch (error) {
+      this.logger.warn(
+        `Password changed notification failed for ${user.email}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
+
+    return {
+      success: true,
+      purpose: consumed.purpose,
+    };
   }
 
   async refresh(refreshToken: string): Promise<{ access_token: string; refresh_token: string }> {
@@ -1046,6 +1433,10 @@ export class AuthService {
         role: true,
         orgId: true,
         preferredLanguage: true,
+        languageChosenAt: true,
+        mustCompleteOnboarding: true,
+        onboardingCompletedAt: true,
+        mustChangePassword: true,
       },
     });
 
@@ -1053,12 +1444,24 @@ export class AuthService {
       throw new NotFoundException('User not found');
     }
 
+    const onboarding = this.getOnboardingState({
+      preferredLanguage: user.preferredLanguage,
+      languageChosenAt: user.languageChosenAt,
+      mustCompleteOnboarding: user.mustCompleteOnboarding,
+      onboardingCompletedAt: user.onboardingCompletedAt,
+      mustChangePassword: user.mustChangePassword,
+    });
+
     return {
       id: user.id,
       email: user.email,
       role: user.role,
       orgId: user.orgId,
-      preferredLanguage: user.preferredLanguage || 'en',
+      preferredLanguage: onboarding.preferredLanguage,
+      onboardingRequired: onboarding.onboardingRequired,
+      mustChangePassword: onboarding.mustChangePassword,
+      onboardingCompletedAt: onboarding.onboardingCompletedAt,
+      languageChosen: onboarding.languageChosen,
     };
   }
 }

@@ -6,6 +6,8 @@ import type { SiteInfo } from "@repo/sdk";
 import { LoadingSpinner } from "@repo/ui";
 import { DevPanelLayout } from "@/components/dev-panel/DevPanelLayout";
 import { DevPanelTabs } from "@/components/dev-panel/DevPanelTabs";
+import { useTranslations } from "@/hooks/useTranslations";
+import { formatPlanTierLabel, normalizePlanTier } from "@/lib/plans";
 
 const PRIVILEGED_ROLES = ["super_admin", "org_admin", "site_admin"];
 const PRIVILEGED_PLATFORM_ROLES = ["platform_admin"];
@@ -32,13 +34,11 @@ function formatDateTime(value?: string): string {
 }
 
 function getPlanBadgeClass(plan?: string): string {
-  const normalizedPlan = String(plan || "free").toLowerCase();
-  if (normalizedPlan === "enterprise") return "badge blue";
-  if (normalizedPlan === "free" || normalizedPlan === "basic") return "badge gray";
-  return "badge green";
+  return normalizePlanTier(plan) === "pro" ? "badge green" : "badge gray";
 }
 
 export default function DevSitesPage() {
+  const t = useTranslations();
   const appProfile = process.env.NEXT_PUBLIC_APP_PROFILE || process.env.NODE_ENV || "development";
   const isProd = appProfile === "production";
   const token = getAuthToken();
@@ -83,11 +83,11 @@ export default function DevSitesPage() {
             e.message.includes("Forbidden") ||
             e.message.includes("Insufficient permissions"));
         if (!isForbidden) {
-          setError(e instanceof Error ? e.message : "Failed to load sites");
+          setError(e instanceof Error ? e.message : t("devPanel.sites.toasts.failedToLoadSites"));
         }
       })
       .finally(() => setLoading(false));
-  }, [isProd, isPrivileged]);
+  }, [isProd, isPrivileged, t]);
 
   const paidSites = useMemo(
     () => sites.filter((site) => String(site.site.plan || "free").toLowerCase() !== "free").length,
@@ -114,10 +114,10 @@ export default function DevSitesPage() {
 
   if (isProd && !isSuperAdmin) {
     return (
-      <DevPanelLayout title="Sites" description="List of all sites (non-prod)">
+      <DevPanelLayout title={t("devPanel.sites.title")} description={t("devPanel.sites.description")}>
         <div className="card card-pad">
-          <div className="font-black">Dev Panel disabled</div>
-          <div className="text-muted text-xs mt-1.5">Only available outside production.</div>
+          <div className="font-black">{t("devPanel.common.disabledTitle")}</div>
+          <div className="text-muted text-xs mt-1.5">{t("devPanel.common.nonProductionOnly")}</div>
         </div>
       </DevPanelLayout>
     );
@@ -125,13 +125,13 @@ export default function DevSitesPage() {
 
   if (!isPrivileged) {
     return (
-      <DevPanelLayout title="Sites" description="List of all sites (non-prod)">
+      <DevPanelLayout title={t("devPanel.sites.title")} description={t("devPanel.sites.description")}>
         <div className="card card-pad">
-          <div className="font-black">Access denied</div>
-          <div className="text-muted text-xs mt-1.5">Only privileged users can access the Dev Panel.</div>
+          <div className="font-black">{t("devPanel.common.accessDeniedTitle")}</div>
+          <div className="text-muted text-xs mt-1.5">{t("devPanel.common.privilegedOnly")}</div>
           <div className="spacer-sm" />
           <button className="btn" onClick={() => (window.location.href = "/dashboard")}>
-            Back to dashboard
+            {t("devPanel.common.backToDashboard")}
           </button>
         </div>
       </DevPanelLayout>
@@ -139,27 +139,27 @@ export default function DevSitesPage() {
   }
 
   return (
-    <DevPanelLayout title="Sites" description="Non-production site registry">
+    <DevPanelLayout title={t("devPanel.sites.title")} description={t("devPanel.sites.description")}>
       <DevPanelTabs />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
         <div className="card card-pad tight">
-          <div className="detail-label">Total sites</div>
+          <div className="detail-label">{t("devPanel.sites.kpis.totalSites")}</div>
           <div className="spacer-sm" />
           <div className="text-xl font-extrabold leading-tight">{sites.length}</div>
         </div>
         <div className="card card-pad tight">
-          <div className="detail-label">Paid plans</div>
+          <div className="detail-label">{t("devPanel.sites.kpis.paidPlans")}</div>
           <div className="spacer-sm" />
           <div className="text-xl font-extrabold leading-tight">{paidSites}</div>
         </div>
         <div className="card card-pad tight">
-          <div className="detail-label">Created (30d)</div>
+          <div className="detail-label">{t("devPanel.sites.kpis.created30d")}</div>
           <div className="spacer-sm" />
           <div className="text-xl font-extrabold leading-tight">{recentSites}</div>
         </div>
         <div className="card card-pad tight">
-          <div className="detail-label">Latest create</div>
+          <div className="detail-label">{t("devPanel.sites.kpis.latestCreate")}</div>
           <div className="spacer-sm" />
           <div className="text-sm font-semibold">{formatDateTime(latestCreatedAt)}</div>
         </div>
@@ -168,26 +168,26 @@ export default function DevSitesPage() {
       <div className="card card-pad">
         <div className="row-between row-wrap">
           <div>
-            <div className="section-title">Sites</div>
-            <div className="text-muted text-xs mt-1.5">Cross-organization site list from dev endpoint.</div>
+            <div className="section-title">{t("devPanel.sites.sectionTitle")}</div>
+            <div className="text-muted text-xs mt-1.5">{t("devPanel.sites.sectionSubtitle")}</div>
           </div>
           <div className="row-wrap">
-            <span className="badge gray">rows: {sites.length}</span>
-            <span className="badge blue">profile: {appProfile}</span>
+            <span className="badge gray">{t("devPanel.common.rows")}: {sites.length}</span>
+            <span className="badge blue">{t("devPanel.common.profile")}: {appProfile}</span>
           </div>
         </div>
 
         <div className="spacer-sm" />
         {loading ? (
           <div className="py-10 flex items-center justify-center">
-            <LoadingSpinner text="Loading sites..." />
+            <LoadingSpinner text={t("devPanel.sites.loading")} />
           </div>
         ) : error ? (
           <div className="error-alert">
             <div className="text-error text-sm">{error}</div>
           </div>
         ) : sites.length === 0 ? (
-          <div className="dev-empty-state">No sites found.</div>
+          <div className="dev-empty-state">{t("devPanel.sites.empty")}</div>
         ) : (
           <div>
             <div className="grid gap-2 md:hidden">
@@ -197,16 +197,16 @@ export default function DevSitesPage() {
                   <div key={site.siteId} className="card card-pad tight">
                     <div className="row-between">
                       <div className="font-semibold">{site.site.name}</div>
-                      <span className={getPlanBadgeClass(site.site.plan)}>{site.site.plan || "free"}</span>
+                      <span className={getPlanBadgeClass(site.site.plan)}>{formatPlanTierLabel(site.site.plan)}</span>
                     </div>
                     <div className="spacer-sm" />
-                    <div className="detail-label">Slug</div>
+                    <div className="detail-label">{t("devPanel.sites.columns.slug")}</div>
                     <div className="mono text-xs">{site.site.slug}</div>
                     <div className="spacer-sm" />
-                    <div className="detail-label">ID</div>
+                    <div className="detail-label">{t("devPanel.common.id")}</div>
                     <div className="mono text-xs">{site.siteId}</div>
                     <div className="spacer-sm" />
-                    <div className="detail-label">Created</div>
+                    <div className="detail-label">{t("devPanel.sites.columns.created")}</div>
                     <div className="text-sm">{formatDateTime(createdAt)}</div>
                   </div>
                 );
@@ -217,11 +217,11 @@ export default function DevSitesPage() {
               <table className="table dev-table">
                 <thead>
                   <tr>
-                    <th>ID</th>
-                    <th>Name</th>
-                    <th>Slug</th>
-                    <th>Plan</th>
-                    <th>Created</th>
+                    <th>{t("devPanel.common.id")}</th>
+                    <th>{t("devPanel.sites.columns.name")}</th>
+                    <th>{t("devPanel.sites.columns.slug")}</th>
+                    <th>{t("devPanel.sites.columns.plan")}</th>
+                    <th>{t("devPanel.sites.columns.created")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -231,7 +231,7 @@ export default function DevSitesPage() {
                       <td className="font-semibold">{site.site.name}</td>
                       <td className="mono text-xs">{site.site.slug}</td>
                       <td>
-                        <span className={getPlanBadgeClass(site.site.plan)}>{site.site.plan || "free"}</span>
+                        <span className={getPlanBadgeClass(site.site.plan)}>{formatPlanTierLabel(site.site.plan)}</span>
                       </td>
                       <td className="text-muted">
                         {formatDateTime((site.site as SiteWithCreatedAt).createdAt)}

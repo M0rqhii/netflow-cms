@@ -5,6 +5,18 @@ import type { CapabilityKey, CapabilityModule, RbacCapability } from '@repo/sche
 
 const client: ApiClient = createApiClient();
 
+export type AuthSessionUser = {
+  id: string;
+  email: string;
+  role: string;
+  orgId: string;
+  preferredLanguage?: 'pl' | 'en';
+  onboardingRequired?: boolean;
+  mustChangePassword?: boolean;
+  onboardingCompletedAt?: string | null;
+  languageChosen?: boolean;
+};
+
 type JwtPayload = {
   exp?: number;
   email?: string;
@@ -903,7 +915,7 @@ export async function acceptInvite(
   token: string,
   password: string,
   preferredLanguage?: 'pl' | 'en'
-): Promise<{ access_token: string; refresh_token: string; user: { id: string; email: string; role: string; orgId: string } }> {
+): Promise<{ access_token: string; refresh_token: string; user: AuthSessionUser }> {
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
   const res = await fetch(`${baseUrl}/auth/invite/accept`, {
     method: 'POST',
@@ -941,7 +953,7 @@ export async function inviteUserToSite(email: string, role: string, siteId: stri
  * Create a new user directly (admin only)
  * Security: Only super_admin can create super_admin users
  */
-export async function createUser(siteId: string, payload: { email: string; password: string; role: string; preferredLanguage?: 'pl' | 'en' }): Promise<UserSummary> {
+export async function createUser(siteId: string, payload: { email: string; password?: string; role: string; preferredLanguage?: 'pl' | 'en' }): Promise<UserSummary> {
   const token = await ensureSiteToken(siteId).catch(() => getAuthToken());
   if (!token) throw new Error('Missing auth token. Please login.');
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
@@ -959,7 +971,7 @@ export async function createUser(siteId: string, payload: { email: string; passw
 
 export async function createOrgUser(
   orgId: string,
-  payload: { email: string; password: string; role: string; preferredLanguage?: 'pl' | 'en' }
+  payload: { email: string; password?: string; role: string; preferredLanguage?: 'pl' | 'en' }
 ): Promise<UserSummary> {
   const token = await getOrgAuthToken(orgId);
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
@@ -1632,12 +1644,21 @@ export type AccountInfo = {
   role: string;
   orgId?: string; // organization id
   preferredLanguage: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  phone?: string | null;
   createdAt: string;
   updatedAt: string;
   billingInfo: {
     companyName: string | null;
     nip: string | null;
     address: string | null;
+  };
+  onboarding?: {
+    required: boolean;
+    languageChosen: boolean;
+    mustChangePassword: boolean;
+    completedAt: string | null;
   };
   security?: {
     twoFactorEnabled: boolean;
@@ -1658,13 +1679,27 @@ export type AccountSecuritySettings = {
   updatedAt: string;
 };
 
+export type AccountOnboardingStatus = {
+  required: boolean;
+  preferredLanguage: 'pl' | 'en';
+  languageChosen: boolean;
+  mustChangePassword: boolean;
+  mustCompleteOnboarding: boolean;
+  completedAt: string | null;
+  profile: {
+    firstName: string | null;
+    lastName: string | null;
+    phone: string | null;
+  };
+};
+
 export async function getAccount(): Promise<AccountInfo> {
   const token = getAuthToken();
   if (!token) throw new Error('Missing auth token. Please login.');
   return client.getAccount(token);
 }
 
-export async function getProfile(): Promise<{ id: string; email: string; role: string; orgId: string; preferredLanguage: string }> {
+export async function getProfile(): Promise<AuthSessionUser> {
   const token = getAuthToken();
   if (!token) throw new Error('Missing auth token. Please login.');
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
@@ -1678,7 +1713,7 @@ export async function getProfile(): Promise<{ id: string; email: string; role: s
   return res.json();
 }
 
-export async function updateAccount(data: { name?: string; preferredLanguage?: 'pl' | 'en' }): Promise<AccountInfo> {
+export async function updateAccount(data: { name?: string; preferredLanguage?: 'pl' | 'en'; firstName?: string; lastName?: string; phone?: string }): Promise<AccountInfo> {
   const token = getAuthToken();
   if (!token) throw new Error('Missing auth token. Please login.');
   return client.updateAccount(token, data);
@@ -1688,6 +1723,39 @@ export async function changePassword(data: { oldPassword: string; newPassword: s
   const token = getAuthToken();
   if (!token) throw new Error('Missing auth token. Please login.');
   return client.changePassword(token, data);
+}
+
+export async function requestPasswordReset(email: string, orgId?: string): Promise<{ success: true; message: string }> {
+  return client.requestPasswordReset(email, orgId);
+}
+
+export async function getPasswordActionTokenStatus(token: string): Promise<{
+  valid: true;
+  purpose: 'reset_password' | 'account_setup';
+  expiresAt: string;
+}> {
+  return client.getPasswordActionTokenStatus(token);
+}
+
+export async function confirmPasswordReset(token: string, password: string): Promise<{ success: true; purpose: 'reset_password' | 'account_setup' }> {
+  return client.confirmPasswordReset(token, password);
+}
+
+export async function getOnboardingStatus(): Promise<AccountOnboardingStatus> {
+  const token = getAuthToken();
+  if (!token) throw new Error('Missing auth token. Please login.');
+  return client.getOnboardingStatus(token);
+}
+
+export async function completeOnboarding(data: {
+  preferredLanguage: 'pl' | 'en';
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+}): Promise<{ success: boolean; required: boolean; completedAt: string | null; profile: { firstName: string | null; lastName: string | null; phone: string | null } }> {
+  const token = getAuthToken();
+  if (!token) throw new Error('Missing auth token. Please login.');
+  return client.completeOnboarding(token, data);
 }
 
 export async function getBillingInfo(): Promise<{ companyName: string | null; nip: string | null; address: string | null }> {

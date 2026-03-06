@@ -24,7 +24,11 @@ export default function LayoutWrapper({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const isPublicPage = useMemo(() => pathname === '/login' || pathname.startsWith('/invite'), [pathname]);
+  const isPublicPage = useMemo(
+    () => pathname === '/login' || pathname === '/reset-password' || pathname.startsWith('/invite'),
+    [pathname],
+  );
+  const isAuthOnlyPage = useMemo(() => pathname === '/onboarding', [pathname]);
 
   const topbarRight = useMemo(
     () => (
@@ -46,6 +50,10 @@ export default function LayoutWrapper({
 
   if (isPublicPage) {
     return <>{children}</>;
+  }
+
+  if (isAuthOnlyPage) {
+    return <AuthGuard>{children}</AuthGuard>;
   }
 
   return (

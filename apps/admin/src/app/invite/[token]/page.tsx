@@ -78,7 +78,7 @@ export default function InviteAcceptPage() {
       setSubmitting(true);
       const res = await acceptInvite(token, password, language || 'en');
       setAuthToken(res.access_token);
-      router.replace('/dashboard');
+      router.replace('/onboarding');
     } catch (err) {
       setError(err instanceof Error ? err.message : t('auth.inviteInvalid'));
     } finally {
@@ -180,7 +180,6 @@ export default function InviteAcceptPage() {
     </div>
   );
 }
-
 
 
 

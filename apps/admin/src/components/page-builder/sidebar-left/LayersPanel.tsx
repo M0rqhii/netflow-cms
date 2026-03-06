@@ -9,6 +9,7 @@ import { FiChevronDown, FiChevronRight, FiEye, FiEyeOff, FiLock, FiUnlock, FiSea
 import { usePageBuilderStore } from '@/stores/page-builder-store';
 import type { BlockNode, PageContent } from '@/lib/page-builder/types';
 import { blockRegistry } from '@/lib/page-builder/block-registry';
+import { useTranslations } from '@/hooks/useTranslations';
 
 function buildVisibleTree(content: PageContent, search: string) {
   if (!search.trim()) return new Set(Object.keys(content.nodes));
@@ -50,6 +51,7 @@ function LayerRow({
   toggleExpanded: (id: string) => void;
   isVisible: boolean;
 }) {
+  const t = useTranslations();
   const selectBlock = usePageBuilderStore((s) => s.selectBlock);
   const selectedBlockId = usePageBuilderStore((s) => s.selectedBlockId);
   const updateBlockMeta = usePageBuilderStore((s) => s.updateBlockMeta);
@@ -82,7 +84,13 @@ function LayerRow({
           if (hasChildren) toggleExpanded(node.id);
         }}
         className="builder-layer-icon"
-        aria-label={hasChildren ? (isExpanded ? 'Collapse' : 'Expand') : 'No children'}
+        aria-label={
+          hasChildren
+            ? isExpanded
+              ? t('sitePanelShell.pageBuilderUi.layersPanel.collapse')
+              : t('sitePanelShell.pageBuilderUi.layersPanel.expand')
+            : t('sitePanelShell.pageBuilderUi.layersPanel.noChildren')
+        }
       >
         {hasChildren ? (isExpanded ? <FiChevronDown /> : <FiChevronRight />) : <span className="w-3" />}
       </button>
@@ -96,8 +104,12 @@ function LayerRow({
           updateBlockMeta(node.id, { hidden: !node.meta?.hidden });
         }}
         className="builder-layer-icon"
-        title={node.meta?.hidden ? 'Show' : 'Hide'}
-        aria-label={node.meta?.hidden ? 'Show layer' : 'Hide layer'}
+        title={node.meta?.hidden ? t('sitePanelShell.pageBuilderUi.layersPanel.show') : t('sitePanelShell.pageBuilderUi.layersPanel.hide')}
+        aria-label={
+          node.meta?.hidden
+            ? t('sitePanelShell.pageBuilderUi.layersPanel.showLayer')
+            : t('sitePanelShell.pageBuilderUi.layersPanel.hideLayer')
+        }
       >
         {node.meta?.hidden ? <FiEyeOff /> : <FiEye />}
       </button>
@@ -109,8 +121,12 @@ function LayerRow({
           updateBlockMeta(node.id, { locked: !node.meta?.locked });
         }}
         className="builder-layer-icon"
-        title={node.meta?.locked ? 'Unlock' : 'Lock'}
-        aria-label={node.meta?.locked ? 'Unlock layer' : 'Lock layer'}
+        title={node.meta?.locked ? t('sitePanelShell.pageBuilderUi.layersPanel.unlock') : t('sitePanelShell.pageBuilderUi.layersPanel.lock')}
+        aria-label={
+          node.meta?.locked
+            ? t('sitePanelShell.pageBuilderUi.layersPanel.unlockLayer')
+            : t('sitePanelShell.pageBuilderUi.layersPanel.lockLayer')
+        }
       >
         {node.meta?.locked ? <FiLock /> : <FiUnlock />}
       </button>
@@ -119,6 +135,7 @@ function LayerRow({
 }
 
 export function LayersPanel() {
+  const t = useTranslations();
   const content = usePageBuilderStore((s) => s.content);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [search, setSearch] = useState('');
@@ -163,7 +180,7 @@ export function LayersPanel() {
         <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
         <input
           type="text"
-          placeholder="Szukaj warstw..."
+          placeholder={t('sitePanelShell.pageBuilderUi.layersPanel.searchPlaceholder')}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="input"
@@ -174,7 +191,7 @@ export function LayersPanel() {
       <div className="builder-layers-scroll">
         {rootChildren.length === 0 ? (
           <div className="card" style={{ padding: 12, borderRadius: 16, color: 'var(--muted)' }}>
-            Brak warstw. Dodaj pierwszy blok.
+            {t('sitePanelShell.pageBuilderUi.layersPanel.empty')}
           </div>
         ) : (
           rootChildren.map((childId) => renderTree(childId, 0))

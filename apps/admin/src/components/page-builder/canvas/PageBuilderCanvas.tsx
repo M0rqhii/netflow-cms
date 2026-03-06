@@ -3,10 +3,10 @@
 /**
  * PageBuilderCanvas - Bridge Component
  * 
- * Most miÄ™dzy starym API (content jako props) a nowym systemem (Zustand store).
- * Inicjalizuje store z props i synchronizuje zmiany z powrotem.
+ * Bridge between the legacy API (content as props) and the new Zustand store.
+ * Initializes the store from props and syncs updates back to the parent.
  * 
- * UWAGA: DndContext jest w parent komponencie (page.tsx), ten komponent tylko renderuje canvas.
+ * Note: DndContext lives in the parent component (page.tsx). This component renders the canvas only.
  */
 
 import React, { useEffect, useRef, useCallback } from 'react';
@@ -24,11 +24,11 @@ import styles from './Canvas.module.css';
 // =============================================================================
 
 interface PageBuilderCanvasProps {
-  /** Content z API - initial state */
+  /** Content from API - initial state */
   content?: unknown;
-  /** Callback gdy content siÄ™ zmieni */
+  /** Callback when content changes */
   onContentChange?: (content: unknown) => void;
-  /** Deprecated - nie uĹĽywane */
+  /** Deprecated - unused */
   blocks?: unknown[];
 }
 
@@ -153,6 +153,5 @@ export function PageBuilderCanvas({ content, onContentChange }: PageBuilderCanva
 }
 
 export default PageBuilderCanvas;
-
 
 

@@ -7,6 +7,7 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { CacheModule } from '@nestjs/cache-manager';
 import { redisStore } from 'cache-manager-redis-yet';
 import { ConfigModule } from '@nestjs/config';
+import { NotificationsModule } from '../../common/notifications/notifications.module';
 
 /**
  * AuthModule - moduł autentykacji z endpointami login/register
@@ -19,6 +20,7 @@ import { ConfigModule } from '@nestjs/config';
     CommonAuthModule,
     AuditModule, // Import AuditModule for AuditService (though it's global)
     ConfigModule,
+    NotificationsModule,
     CacheModule.registerAsync({
       isGlobal: false,
       useFactory: async () => {

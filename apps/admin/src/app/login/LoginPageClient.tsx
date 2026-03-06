@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { createApiClient, type LoginResponse, type LoginTwoFactorRequiredResponse } from '@repo/sdk';
-import { setAuthToken, getAuthToken } from '@/lib/api';
+import Link from 'next/link';
+import { setAuthToken, getAuthToken, getOnboardingStatus, type AuthSessionUser } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from '@/hooks/useTranslations';
 import { useLanguage } from '@/hooks/useLanguage';
@@ -39,15 +40,37 @@ export default function LoginPage() {
 
   // Redirect if already logged in
   useEffect(() => {
-    const token = getAuthToken();
-    if (token) {
-      router.push('/dashboard');
-    } else {
+    let cancelled = false;
+
+    const checkExistingSession = async () => {
+      const token = getAuthToken();
+      if (token) {
+        try {
+          const onboarding = await getOnboardingStatus();
+          if (cancelled) return;
+          router.push(onboarding.required ? '/onboarding' : '/dashboard');
+          return;
+        } catch (error) {
+          if (cancelled) return;
+          const message = error instanceof Error ? error.message.toLowerCase() : '';
+          if (message.includes('unauthorized') || message.includes('missing auth token')) {
+            return;
+          }
+          router.push('/dashboard');
+          return;
+        }
+      }
+
       const savedLang = localStorage.getItem('nf-language');
       if (!savedLang) {
         setShowLanguageModal(true);
       }
-    }
+    };
+
+    checkExistingSession();
+    return () => {
+      cancelled = true;
+    };
   }, [router]);
 
   const onSubmit = useCallback(async (e: React.FormEvent) => {
@@ -57,7 +80,7 @@ export default function LoginPage() {
 
     try {
       let accessToken = '';
-      let user: { preferredLanguage?: string } | null = null;
+      let user: AuthSessionUser | null = null;
 
       if (isTwoFactorStep) {
         const token = twoFactorToken;
@@ -71,7 +94,7 @@ export default function LoginPage() {
 
         const verified = await api.loginWithTwoFactor(token, code);
         accessToken = verified.access_token;
-        user = verified.user as { preferredLanguage?: string } | null;
+        user = verified.user as AuthSessionUser;
       } else {
         const emailValue = email.trim();
         const passwordValue = password;
@@ -93,7 +116,7 @@ export default function LoginPage() {
         }
 
         accessToken = loginResponse.access_token;
-        user = loginResponse.user as { preferredLanguage?: string } | null;
+        user = loginResponse.user as AuthSessionUser;
       }
 
       setAuthToken(accessToken);
@@ -106,8 +129,7 @@ export default function LoginPage() {
           // Silent fail
         }
       }
-
-      router.push('/dashboard');
+      router.push(user?.onboardingRequired ? '/onboarding' : '/dashboard');
     } catch (e) {
       const errorMessage = e instanceof Error ? e.message : t('auth.loginFailed');
       setError(errorMessage);
@@ -300,6 +322,12 @@ export default function LoginPage() {
                         )}
                       </button>
                     </div>
+                  </div>
+
+                  <div className="flex justify-end -mt-1">
+                    <Link href="/reset-password" className="text-xs text-primary hover:opacity-80 transition-opacity">
+                      {t('auth.forgotPassword')}
+                    </Link>
                   </div>
                 </>
               )}

@@ -5,6 +5,7 @@ import { decodeAuthToken, getAuthToken, getDevEmails } from "@/lib/api";
 import { LoadingSpinner } from "@repo/ui";
 import { DevPanelLayout } from "@/components/dev-panel/DevPanelLayout";
 import { DevPanelTabs } from "@/components/dev-panel/DevPanelTabs";
+import { useTranslations } from "@/hooks/useTranslations";
 
 const PRIVILEGED_ROLES = ["super_admin", "org_admin", "site_admin"];
 const PRIVILEGED_PLATFORM_ROLES = ["platform_admin"];
@@ -38,6 +39,7 @@ function getEmailStatusBadgeClass(status?: string): string {
 }
 
 export default function DevEmailsPage() {
+  const t = useTranslations();
   const appProfile = process.env.NEXT_PUBLIC_APP_PROFILE || process.env.NODE_ENV || "development";
   const isProd = appProfile === "production";
   const token = getAuthToken();
@@ -64,11 +66,11 @@ export default function DevEmailsPage() {
             e.message.includes("Forbidden") ||
             e.message.includes("Insufficient permissions"));
         if (!isForbidden) {
-          setError(e instanceof Error ? e.message : "Failed to load email logs");
+          setError(e instanceof Error ? e.message : t("devPanel.emails.toasts.failedToLoadEmailLogs"));
         }
       })
       .finally(() => setLoading(false));
-  }, [isProd, isPrivileged]);
+  }, [isProd, isPrivileged, t]);
 
   const sentCount = useMemo(
     () => logs.filter((entry) => ["sent", "delivered"].includes(String(entry.status).toLowerCase())).length,
@@ -89,10 +91,10 @@ export default function DevEmailsPage() {
 
   if (isProd && !isSuperAdmin) {
     return (
-      <DevPanelLayout title="Email Logs" description="Recent dev emails (DevMailer)">
+      <DevPanelLayout title={t("devPanel.emails.title")} description={t("devPanel.emails.description")}>
         <div className="card card-pad">
-          <div className="font-black">Dev Panel disabled</div>
-          <div className="text-muted text-xs mt-1.5">Only available outside production.</div>
+          <div className="font-black">{t("devPanel.common.disabledTitle")}</div>
+          <div className="text-muted text-xs mt-1.5">{t("devPanel.common.nonProductionOnly")}</div>
         </div>
       </DevPanelLayout>
     );
@@ -100,13 +102,13 @@ export default function DevEmailsPage() {
 
   if (!isPrivileged) {
     return (
-      <DevPanelLayout title="Email Logs" description="Recent dev emails (DevMailer)">
+      <DevPanelLayout title={t("devPanel.emails.title")} description={t("devPanel.emails.description")}>
         <div className="card card-pad">
-          <div className="font-black">Access denied</div>
-          <div className="text-muted text-xs mt-1.5">Only privileged users can access the Dev Panel.</div>
+          <div className="font-black">{t("devPanel.common.accessDeniedTitle")}</div>
+          <div className="text-muted text-xs mt-1.5">{t("devPanel.common.privilegedOnly")}</div>
           <div className="spacer-sm" />
           <button className="btn" onClick={() => (window.location.href = "/dashboard")}>
-            Back to dashboard
+            {t("devPanel.common.backToDashboard")}
           </button>
         </div>
       </DevPanelLayout>
@@ -114,27 +116,27 @@ export default function DevEmailsPage() {
   }
 
   return (
-    <DevPanelLayout title="Email Logs" description="Recent dev emails (DevMailer)">
+    <DevPanelLayout title={t("devPanel.emails.title")} description={t("devPanel.emails.description")}>
       <DevPanelTabs />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
         <div className="card card-pad tight">
-          <div className="detail-label">Events</div>
+          <div className="detail-label">{t("devPanel.emails.kpis.events")}</div>
           <div className="spacer-sm" />
           <div className="text-xl font-extrabold leading-tight">{logs.length}</div>
         </div>
         <div className="card card-pad tight">
-          <div className="detail-label">Sent / delivered</div>
+          <div className="detail-label">{t("devPanel.emails.kpis.sentDelivered")}</div>
           <div className="spacer-sm" />
           <div className="text-xl font-extrabold leading-tight">{sentCount}</div>
         </div>
         <div className="card card-pad tight">
-          <div className="detail-label">Failed</div>
+          <div className="detail-label">{t("devPanel.emails.kpis.failed")}</div>
           <div className="spacer-sm" />
           <div className="text-xl font-extrabold leading-tight">{failedCount}</div>
         </div>
         <div className="card card-pad tight">
-          <div className="detail-label">Last event</div>
+          <div className="detail-label">{t("devPanel.emails.kpis.lastEvent")}</div>
           <div className="spacer-sm" />
           <div className="text-sm font-semibold">{formatDateTime(latestEventAt)}</div>
         </div>
@@ -143,26 +145,26 @@ export default function DevEmailsPage() {
       <div className="card card-pad">
         <div className="row-between row-wrap">
           <div>
-            <div className="section-title">Email activity</div>
-            <div className="text-muted text-xs mt-1.5">Recent deliveries from dev mail provider.</div>
+            <div className="section-title">{t("devPanel.emails.sectionTitle")}</div>
+            <div className="text-muted text-xs mt-1.5">{t("devPanel.emails.sectionSubtitle")}</div>
           </div>
           <div className="row-wrap">
-            <span className="badge gray">recipients: {recipientCount}</span>
-            <span className="badge blue">profile: {appProfile}</span>
+            <span className="badge gray">{t("devPanel.emails.recipients")}: {recipientCount}</span>
+            <span className="badge blue">{t("devPanel.common.profile")}: {appProfile}</span>
           </div>
         </div>
 
         <div className="spacer-sm" />
         {loading ? (
           <div className="py-10 flex items-center justify-center">
-            <LoadingSpinner text="Loading email logs..." />
+            <LoadingSpinner text={t("devPanel.emails.loading")} />
           </div>
         ) : error ? (
           <div className="error-alert">
             <div className="text-error text-sm">{error}</div>
           </div>
         ) : logs.length === 0 ? (
-          <div className="dev-empty-state">No email logs yet.</div>
+          <div className="dev-empty-state">{t("devPanel.emails.empty")}</div>
         ) : (
           <div>
             <div className="grid gap-2 md:hidden">
@@ -173,10 +175,10 @@ export default function DevEmailsPage() {
                     <span className={getEmailStatusBadgeClass(log.status)}>{log.status || "-"}</span>
                   </div>
                   <div className="spacer-sm" />
-                  <div className="detail-label">Subject</div>
+                  <div className="detail-label">{t("devPanel.emails.columns.subject")}</div>
                   <div className="text-sm">{log.subject || "-"}</div>
                   <div className="spacer-sm" />
-                  <div className="detail-label">Timestamp</div>
+                  <div className="detail-label">{t("devPanel.emails.columns.timestamp")}</div>
                   <div className="text-sm">{formatDateTime(log.sentAt || log.createdAt)}</div>
                 </div>
               ))}
@@ -186,10 +188,10 @@ export default function DevEmailsPage() {
               <table className="table dev-table">
                 <thead>
                   <tr>
-                    <th>Recipient</th>
-                    <th>Subject</th>
-                    <th>Status</th>
-                    <th>Timestamp</th>
+                    <th>{t("devPanel.emails.columns.recipient")}</th>
+                    <th>{t("devPanel.emails.columns.subject")}</th>
+                    <th>{t("devPanel.emails.columns.status")}</th>
+                    <th>{t("devPanel.emails.columns.timestamp")}</th>
                   </tr>
                 </thead>
                 <tbody>

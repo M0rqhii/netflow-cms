@@ -13,17 +13,18 @@ import { CAPABILITY_MODULES, type CapabilityModule, type RbacCapability } from "
 import SearchAndFilters from "@/components/ui/SearchAndFilters";
 import { useToast } from "@/components/ui/Toast";
 import { toFriendlyMessage } from "@/lib/errors";
+import { useTranslations } from "@/hooks/useTranslations";
 
-const MODULE_LABELS: Record<CapabilityModule, string> = {
-  org: "Organization",
-  billing: "Billing",
-  sites: "Sites",
-  builder: "Builder",
-  content: "Content",
-  hosting: "Hosting",
-  domains: "Domains",
-  marketing: "Marketing",
-  analytics: "Analytics",
+const MODULE_LABEL_KEYS: Record<CapabilityModule, string> = {
+  org: "orgRbac.modules.org",
+  billing: "orgRbac.modules.billing",
+  sites: "orgRbac.modules.sites",
+  builder: "orgRbac.modules.builder",
+  content: "orgRbac.modules.content",
+  hosting: "orgRbac.modules.hosting",
+  domains: "orgRbac.modules.domains",
+  marketing: "orgRbac.modules.marketing",
+  analytics: "orgRbac.modules.analytics",
 };
 
 const DANGEROUS_CAPABILITY_KEYS = new Set([
@@ -86,6 +87,8 @@ export default function OrgPoliciesPage() {
   const params = useParams<{ orgId: string }>();
   const orgId = params?.orgId ?? "";
   const { push } = useToast();
+  const t = useTranslations();
+  const moduleLabel = useCallback((module: CapabilityModule) => t(MODULE_LABEL_KEYS[module]), [t]);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -103,11 +106,11 @@ export default function OrgPoliciesPage() {
       const data = await fetchRbacCapabilities(orgId);
       setCapabilities(data);
     } catch (err) {
-      setError(toFriendlyMessage(err, "Failed to load settings."));
+      setError(toFriendlyMessage(err, t("orgPolicies.failedToLoadSettings")));
     } finally {
       setLoading(false);
     }
-  }, [orgId]);
+  }, [orgId, t]);
 
   useEffect(() => {
     if (!orgId) return;
@@ -142,9 +145,9 @@ export default function OrgPoliciesPage() {
       setCapabilities((prev) =>
         prev.map((item) => (item.key === capability.key ? { ...item, policyEnabled: nextValue } : item))
       );
-      push({ tone: "success", message: "Setting saved." });
+      push({ tone: "success", message: t("orgPolicies.settingSaved") });
     } catch (err) {
-      push({ tone: "error", message: toFriendlyMessage(err, "Failed to save settings.") });
+      push({ tone: "error", message: toFriendlyMessage(err, t("orgPolicies.failedToSaveSettings")) });
     } finally {
       setUpdatingKey(null);
     }
@@ -153,7 +156,7 @@ export default function OrgPoliciesPage() {
   if (loading) {
     return (
       <div className="card card-pad">
-        <div className="text-muted">Loading policies...</div>
+        <div className="text-muted">{t("orgPolicies.loadingPolicies")}</div>
       </div>
     );
   }
@@ -163,7 +166,7 @@ export default function OrgPoliciesPage() {
       <div className="card card-pad">
         <div className="text-error">{error}</div>
         <div className="spacer-sm" />
-        <button className="btn" onClick={loadCapabilities}>Retry</button>
+        <button className="btn" onClick={loadCapabilities}>{t("common.retry")}</button>
       </div>
     );
   }
@@ -171,9 +174,9 @@ export default function OrgPoliciesPage() {
   return (
     <div className="animate-fade-in org-settings-page">
       <div className="card card-pad">
-        <div className="section-title">Organization policies</div>
+        <div className="section-title">{t("orgPolicies.title")}</div>
         <div className="detail-label mt-1.5">
-          Toggle features on/off for the whole organization. Disabled items will not appear in custom roles.
+          {t("orgPolicies.description")}
         </div>
       </div>
 
@@ -182,17 +185,17 @@ export default function OrgPoliciesPage() {
       <SearchAndFilters
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
-        placeholder="Search options"
+        placeholder={t("orgPolicies.searchOptions")}
         filters={[
           {
             key: "module",
-            label: "Module",
+            label: t("orgPolicies.module"),
             value: moduleFilter,
             options: [
-              { value: "all", label: "All" },
+              { value: "all", label: t("common.all") },
               ...CAPABILITY_MODULES.filter((module) => (isOwner ? true : module !== "billing")).map((module) => ({
                 value: module,
-                label: MODULE_LABELS[module],
+                label: moduleLabel(module),
               })),
             ],
             onChange: setModuleFilter,
@@ -203,25 +206,29 @@ export default function OrgPoliciesPage() {
       <div className="spacer" />
 
       {groupedCapabilities.length === 0 ? (
-        <div className="card card-pad text-muted">No options for the selected filters.</div>
+        <div className="card card-pad text-muted">{t("orgPolicies.noOptionsForFilters")}</div>
       ) : (
         groupedCapabilities.map((group) => (
           <div key={group.module} className="card card-pad mb-3.5">
-            <div className="section-title mb-2.5">{MODULE_LABELS[group.module]}</div>
+            <div className="section-title mb-2.5">{moduleLabel(group.module)}</div>
             <div className="overflow-x-auto">
               <table className="table">
                 <thead>
                   <tr>
-                    <th>Option</th>
-                    <th>Key</th>
-                    <th>Policy</th>
-                    <th>Risk</th>
+                    <th>{t("orgPolicies.columns.option")}</th>
+                    <th>{t("orgPolicies.columns.key")}</th>
+                    <th>{t("orgPolicies.columns.policy")}</th>
+                    <th>{t("orgPolicies.columns.risk")}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {group.items.map((capability) => {
                     const policyEnabled = capability.policyEnabled ?? true;
                     const toggleDisabled = !capability.canBePolicyControlled || updatingKey === capability.key;
+                    const risk = getRiskLabel(
+                      capability.riskLevel,
+                      capability.isDangerous || DANGEROUS_CAPABILITY_KEYS.has(capability.key)
+                    );
                     return (
                       <tr key={capability.key}>
                         <td>
@@ -235,13 +242,19 @@ export default function OrgPoliciesPage() {
                           <div className="flex items-center gap-2">
                             <ToggleSwitch checked={policyEnabled} disabled={toggleDisabled} onChange={() => handleToggle(capability)} />
                             <span className="detail-label">
-                              {!capability.canBePolicyControlled ? "Fixed" : policyEnabled ? "Enabled" : "Disabled"}
+                              {!capability.canBePolicyControlled ? t("orgPolicies.fixed") : policyEnabled ? t("orgPolicies.enabled") : t("orgPolicies.disabled")}
                             </span>
                           </div>
                         </td>
                         <td>
-                          <span className={`badge ${getRiskLabel(capability.riskLevel, capability.isDangerous || DANGEROUS_CAPABILITY_KEYS.has(capability.key)) === "Dangerous" ? "orange" : "gray"}`}>
-                            {getRiskLabel(capability.riskLevel, capability.isDangerous || DANGEROUS_CAPABILITY_KEYS.has(capability.key))}
+                          <span className={`badge ${risk === "Dangerous" ? "orange" : "gray"}`}>
+                            {risk === "Dangerous"
+                              ? t("orgPolicies.riskDangerous")
+                              : risk === "Medium"
+                              ? t("orgPolicies.riskMedium")
+                              : risk === "Low"
+                              ? t("orgPolicies.riskLow")
+                              : t("orgPolicies.riskUnknown")}
                           </span>
                         </td>
                       </tr>

@@ -92,7 +92,7 @@ async function bootstrap() {
   // Swagger/OpenAPI Documentation
   if (process.env.NODE_ENV !== 'production') {
     const config = new DocumentBuilder()
-      .setTitle('Netflow CMS API')
+      .setTitle('Net-Flow API')
       .setDescription('Organization & Site Headless CMS API Documentation')
       .setVersion(process.env.APP_VERSION || '1.0.0')
       .addBearerAuth(
@@ -116,12 +116,12 @@ async function bootstrap() {
       .addTag('billing', 'Billing and subscriptions')
       .addTag('rbac', 'Role-based access control')
       .addServer(`http://localhost:${port}${API_PREFIX}`, 'Development')
-      .addServer(`https://api.yourdomain.com${API_PREFIX}`, 'Production')
+      .addServer(`https://api.net-flow.pl${API_PREFIX}`, 'Production')
       .build();
 
     const document = SwaggerModule.createDocument(app, config);
     SwaggerModule.setup('api/docs', app, document, {
-      customSiteTitle: 'Netflow CMS API Docs',
+      customSiteTitle: 'Net-Flow API Docs',
       customfavIcon: '/favicon.ico',
       customCss: '.swagger-ui .topbar { display: none }',
     });

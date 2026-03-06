@@ -19,6 +19,7 @@ import SearchAndFilters from "@/components/ui/SearchAndFilters";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/components/ui/Toast";
 import { toFriendlyMessage } from "@/lib/errors";
+import { useTranslations } from "@/hooks/useTranslations";
 
 function normalizeRoleScope(scope?: string | null): string {
   return String(scope ?? "").toUpperCase();
@@ -32,6 +33,7 @@ export default function OrgAssignmentsPage() {
   const params = useParams<{ orgId: string }>();
   const orgId = params?.orgId ?? "";
   const { push } = useToast();
+  const t = useTranslations();
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -68,11 +70,11 @@ export default function OrgAssignmentsPage() {
       setRoles([...(orgRolesData || []), ...(siteRolesData || [])]);
       setSites(sitesData);
     } catch (err) {
-      setError(toFriendlyMessage(err, "Failed to load assignments."));
+      setError(toFriendlyMessage(err, t("orgAssignments.failedToLoadAssignments")));
     } finally {
       setLoading(false);
     }
-  }, [orgId]);
+  }, [orgId, t]);
 
   const loadAssignments = useCallback(async (userId: string) => {
     if (!userId) {
@@ -84,11 +86,11 @@ export default function OrgAssignmentsPage() {
       const data = await fetchRbacAssignments(orgId, { userId });
       setAssignments(data);
     } catch (err) {
-      push({ tone: "error", message: toFriendlyMessage(err, "Failed to load assignments.") });
+      push({ tone: "error", message: toFriendlyMessage(err, t("orgAssignments.failedToLoadAssignments")) });
     } finally {
       setLoadingAssignments(false);
     }
-  }, [orgId, push]);
+  }, [orgId, push, t]);
 
   useEffect(() => {
     if (!orgId) return;
@@ -110,29 +112,29 @@ export default function OrgAssignmentsPage() {
 
   const handleAssignOrgRole = async () => {
     if (!selectedUserId || !orgRoleId) {
-      push({ tone: "error", message: "Select a user and an org role." });
+      push({ tone: "error", message: t("orgAssignments.selectUserAndOrgRole") });
       return;
     }
     try {
       await createRbacAssignment(orgId, { userId: selectedUserId, roleId: orgRoleId, siteId: null });
-      push({ tone: "success", message: "Org role assigned." });
+      push({ tone: "success", message: t("orgAssignments.orgRoleAssigned") });
       await loadAssignments(selectedUserId);
     } catch (err) {
-      push({ tone: "error", message: toFriendlyMessage(err, "Failed to assign role.") });
+      push({ tone: "error", message: toFriendlyMessage(err, t("orgAssignments.failedToAssignRole")) });
     }
   };
 
   const handleAssignSiteRole = async () => {
     if (!selectedUserId || !siteRoleId || !siteId) {
-      push({ tone: "error", message: "Select a site and a role." });
+      push({ tone: "error", message: t("orgAssignments.selectSiteAndRole") });
       return;
     }
     try {
       await createRbacAssignment(orgId, { userId: selectedUserId, roleId: siteRoleId, siteId });
-      push({ tone: "success", message: "Site role assigned." });
+      push({ tone: "success", message: t("orgAssignments.siteRoleAssigned") });
       await loadAssignments(selectedUserId);
     } catch (err) {
-      push({ tone: "error", message: toFriendlyMessage(err, "Failed to assign role.") });
+      push({ tone: "error", message: toFriendlyMessage(err, t("orgAssignments.failedToAssignRole")) });
     }
   };
 
@@ -141,11 +143,11 @@ export default function OrgAssignmentsPage() {
     setRemoving(true);
     try {
       await deleteRbacAssignment(orgId, removeAssignmentId);
-      push({ tone: "success", message: "Assignment removed." });
+      push({ tone: "success", message: t("orgAssignments.assignmentRemoved") });
       setRemoveAssignmentId(null);
       await loadAssignments(selectedUserId);
     } catch (err) {
-      push({ tone: "error", message: toFriendlyMessage(err, "Failed to remove assignment.") });
+      push({ tone: "error", message: toFriendlyMessage(err, t("orgAssignments.failedToRemoveAssignment")) });
     } finally {
       setRemoving(false);
     }
@@ -154,7 +156,7 @@ export default function OrgAssignmentsPage() {
   if (loading) {
     return (
       <div className="card card-pad">
-        <div className="text-muted">Loading assignments...</div>
+        <div className="text-muted">{t("orgAssignments.loadingAssignments")}</div>
       </div>
     );
   }
@@ -164,7 +166,7 @@ export default function OrgAssignmentsPage() {
       <div className="card card-pad">
         <div className="text-error">{error}</div>
         <div className="spacer-sm" />
-        <button className="btn" onClick={loadBaseData}>Retry</button>
+        <button className="btn" onClick={loadBaseData}>{t("common.retry")}</button>
       </div>
     );
   }
@@ -172,14 +174,14 @@ export default function OrgAssignmentsPage() {
   return (
     <div className="animate-fade-in org-settings-page">
       <div className="card card-pad">
-        <div className="section-title">Assignments</div>
+        <div className="section-title">{t("orgAssignments.title")}</div>
         <div className="detail-label mt-1.5">
-          Assign roles to users. Real access is shown in the Effective tab.
+          {t("orgAssignments.description")}
         </div>
         <div className="spacer-sm" />
         <div className="card p-3 border border-sky-400/30 bg-sky-500/10">
           <span className="text-xs">
-            See effective permissions here: <Link className="btn" href={`/org/${orgId}/settings/effective`}>Effective</Link>
+            {t("orgAssignments.seeEffectiveHere")} <Link className="btn" href={`/org/${orgId}/settings/effective`}>{t("orgAssignments.effective")}</Link>
           </span>
         </div>
       </div>
@@ -189,9 +191,9 @@ export default function OrgAssignmentsPage() {
       <div className="card card-pad">
         <div className="grid gap-3">
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wide text-muted mb-1">User</label>
+            <label className="block text-xs font-semibold uppercase tracking-wide text-muted mb-1">{t("orgAssignments.user")}</label>
             <select className="input" value={selectedUserId} onChange={(event) => setSelectedUserId(event.target.value)}>
-              <option value="">Select a user</option>
+              <option value="">{t("orgAssignments.selectUser")}</option>
               {users.map((user) => (
                 <option key={user.id} value={user.id}>{user.email}</option>
               ))}
@@ -199,33 +201,33 @@ export default function OrgAssignmentsPage() {
           </div>
           <div className="grid gap-3">
             <div>
-              <div className="detail-label mb-1">Assign org role</div>
+              <div className="detail-label mb-1">{t("orgAssignments.assignOrgRole")}</div>
               <select className="input" value={orgRoleId} onChange={(event) => setOrgRoleId(event.target.value)}>
-                <option value="">Select org role</option>
+                <option value="">{t("orgAssignments.selectOrgRole")}</option>
                 {orgRoles.map((role) => (
                   <option key={role.id} value={role.id}>{role.name} ({normalizeRoleType(role.type) || "ROLE"})</option>
                 ))}
               </select>
               <div className="spacer-sm" />
-              <button className="btn btn-primary" onClick={handleAssignOrgRole} disabled={!selectedUserId}>Assign org role</button>
+              <button className="btn btn-primary" onClick={handleAssignOrgRole} disabled={!selectedUserId}>{t("orgAssignments.assignOrgRole")}</button>
             </div>
             <div>
-              <div className="detail-label mb-1">Assign site role</div>
+              <div className="detail-label mb-1">{t("orgAssignments.assignSiteRole")}</div>
               <select className="input" value={siteId} onChange={(event) => setSiteId(event.target.value)}>
-                <option value="">Select site</option>
+                <option value="">{t("orgAssignments.selectSite")}</option>
                 {sites.map((site) => (
                   <option key={site.siteId} value={site.siteId}>{site.site.name}</option>
                 ))}
               </select>
               <div className="spacer-sm" />
               <select className="input" value={siteRoleId} onChange={(event) => setSiteRoleId(event.target.value)}>
-                <option value="">Select site role</option>
+                <option value="">{t("orgAssignments.selectSiteRole")}</option>
                 {siteRoles.map((role) => (
                   <option key={role.id} value={role.id}>{role.name} ({normalizeRoleType(role.type) || "ROLE"})</option>
                 ))}
               </select>
               <div className="spacer-sm" />
-              <button className="btn btn-primary" onClick={handleAssignSiteRole} disabled={!selectedUserId}>Assign site role</button>
+              <button className="btn btn-primary" onClick={handleAssignSiteRole} disabled={!selectedUserId}>{t("orgAssignments.assignSiteRole")}</button>
             </div>
           </div>
         </div>
@@ -234,23 +236,23 @@ export default function OrgAssignmentsPage() {
       <div className="spacer" />
 
       <div className="card card-pad">
-        <div className="section-title">Current assignments</div>
+        <div className="section-title">{t("orgAssignments.currentAssignments")}</div>
         <div className="spacer-sm" />
         {!selectedUserId ? (
-          <div className="text-muted">Select a user to view assignments.</div>
+          <div className="text-muted">{t("orgAssignments.selectUserToViewAssignments")}</div>
         ) : (
           <>
             <SearchAndFilters
               searchQuery={searchQuery}
               onSearchChange={setSearchQuery}
-              placeholder="Search assignments"
+              placeholder={t("orgAssignments.searchAssignments")}
               filters={[
                 {
                   key: "scope",
-                  label: "Scope",
+                  label: t("orgAssignments.scope"),
                   value: scopeFilter,
                   options: [
-                    { value: "all", label: "All" },
+                    { value: "all", label: t("common.all") },
                     { value: "ORG", label: "ORG" },
                     { value: "SITE", label: "SITE" },
                   ],
@@ -262,18 +264,18 @@ export default function OrgAssignmentsPage() {
             <div className="spacer-sm" />
 
             {loadingAssignments ? (
-              <div className="text-muted">Loading assignments...</div>
+              <div className="text-muted">{t("orgAssignments.loadingAssignments")}</div>
             ) : filteredAssignments.length === 0 ? (
-              <div className="text-muted">No assignments for this user.</div>
+              <div className="text-muted">{t("orgAssignments.noAssignmentsForUser")}</div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="table">
                   <thead>
                     <tr>
-                      <th>Role</th>
-                      <th>Scope</th>
-                      <th>Site</th>
-                      <th className="text-right">Actions</th>
+                      <th>{t("orgAssignments.columns.role")}</th>
+                      <th>{t("orgAssignments.columns.scope")}</th>
+                      <th>{t("orgAssignments.columns.site")}</th>
+                      <th className="text-right">{t("common.actions")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -285,10 +287,10 @@ export default function OrgAssignmentsPage() {
                         </td>
                         <td><span className="badge gray">{assignment.role.scope}</span></td>
                         <td>
-                          {assignment.role.scope === "ORG" ? "Organization" : siteMap.get(assignment.siteId ?? "") || assignment.siteId || "Unknown"}
+                          {assignment.role.scope === "ORG" ? t("orgAssignments.organization") : siteMap.get(assignment.siteId ?? "") || assignment.siteId || t("orgAssignments.unknown")}
                         </td>
                         <td className="text-right">
-                          <button className="btn" onClick={() => setRemoveAssignmentId(assignment.id)}>Remove</button>
+                          <button className="btn" onClick={() => setRemoveAssignmentId(assignment.id)}>{t("orgAssignments.remove")}</button>
                         </td>
                       </tr>
                     ))}
@@ -304,10 +306,10 @@ export default function OrgAssignmentsPage() {
         open={Boolean(removeAssignmentId)}
         onClose={() => setRemoveAssignmentId(null)}
         onConfirm={handleRemoveAssignment}
-        title="Remove assignment"
-        message="This will remove the role assignment from the user. Continue?"
-        confirmLabel="Remove"
-        cancelLabel="Cancel"
+        title={t("orgAssignments.removeAssignmentTitle")}
+        message={t("orgAssignments.removeAssignmentMessage")}
+        confirmLabel={t("orgAssignments.remove")}
+        cancelLabel={t("common.cancel")}
         variant="danger"
         loading={removing}
       />

@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useTranslations } from "@/hooks/useTranslations";
 
 interface DevPanelLayoutProps {
   children: React.ReactNode;
@@ -10,6 +11,7 @@ interface DevPanelLayoutProps {
 }
 
 export function DevPanelLayout({ children, title, description, headerActions }: DevPanelLayoutProps) {
+  const t = useTranslations();
   const appProfile = process.env.NEXT_PUBLIC_APP_PROFILE || process.env.NODE_ENV || "development";
 
   return (
@@ -18,12 +20,12 @@ export function DevPanelLayout({ children, title, description, headerActions }: 
         <div className="card card-pad dev-panel-hero">
           <div className="row-start" style={{ flexWrap: "wrap" }}>
             <div>
-              <div className="view-title">{title || "Dev Panel"}</div>
-              <div className="view-sub">{description || "Internal visibility into dev-only providers and environment"}</div>
+              <div className="view-title">{title || t("devPanel.layout.defaultTitle")}</div>
+              <div className="view-sub">{description || t("devPanel.layout.defaultDescription")}</div>
             </div>
             <div className="row-wrap">
               {headerActions}
-              <span className="badge orange">Non-production only</span>
+              <span className="badge orange">{t("devPanel.layout.nonProductionOnly")}</span>
               <span className="badge gray">{appProfile}</span>
             </div>
           </div>

@@ -1,13 +1,20 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { getAuthToken, getAuthTokenExpiry, logout } from '@/lib/api';
+import { usePathname } from 'next/navigation';
+import {
+  getAuthToken,
+  getAuthTokenExpiry,
+  getOnboardingStatus,
+  logout,
+} from '@/lib/api';
 
 interface AuthGuardProps {
   children: React.ReactNode;
 }
 
 export function AuthGuard({ children }: AuthGuardProps) {
+  const pathname = usePathname();
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const fetchPatched = useRef<boolean>(false);
   const originalFetchRef = useRef<typeof fetch | null>(null);
@@ -20,9 +27,6 @@ export function AuthGuard({ children }: AuthGuardProps) {
       return;
     }
 
-    setIsAuthenticated(true);
-
-    // Auto-logout on token expiry
     const expiry = getAuthTokenExpiry(token);
     const timeoutId =
       expiry && expiry > Date.now()
@@ -43,7 +47,59 @@ export function AuthGuard({ children }: AuthGuardProps) {
   }, []);
 
   useEffect(() => {
-    // Global 401 handler for client-side fetches
+    let cancelled = false;
+
+    const checkAccess = async () => {
+      const token = getAuthToken();
+      if (!token) {
+        if (!cancelled) {
+          setIsAuthenticated(false);
+        }
+        logout('/login');
+        return;
+      }
+
+      try {
+        const onboarding = await getOnboardingStatus();
+        if (cancelled) return;
+
+        if (onboarding.required && pathname !== '/onboarding') {
+          window.location.replace('/onboarding');
+          return;
+        }
+
+        if (!onboarding.required && pathname === '/onboarding') {
+          window.location.replace('/dashboard');
+          return;
+        }
+
+        setIsAuthenticated(true);
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message.toLowerCase() : '';
+        if (message.includes('missing auth token') || message.includes('unauthorized')) {
+          if (!cancelled) {
+            setIsAuthenticated(false);
+          }
+          logout('/login');
+          return;
+        }
+
+        if (!cancelled) {
+          setIsAuthenticated(true);
+        }
+      }
+    };
+
+    setIsAuthenticated(null);
+    checkAccess();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [pathname]);
+
+  useEffect(() => {
     if (typeof window === 'undefined' || fetchPatched.current) return;
     const originalFetch = window.fetch;
     originalFetchRef.current = originalFetch;
@@ -65,7 +121,6 @@ export function AuthGuard({ children }: AuthGuardProps) {
     };
   }, []);
 
-  // Show loading state while checking authentication
   if (isAuthenticated === null) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -74,13 +129,9 @@ export function AuthGuard({ children }: AuthGuardProps) {
     );
   }
 
-  // Don't render children if not authenticated (redirect will happen)
   if (!isAuthenticated) {
     return null;
   }
 
   return <>{children}</>;
 }
-
-
-

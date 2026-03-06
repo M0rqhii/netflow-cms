@@ -10,6 +10,7 @@ import {
 import {
   DevPaymentProvider,
   DevMailer,
+  ResendMailer,
   LocalFileStorage,
   DevDomainProvider,
 } from './implementations';
@@ -50,13 +51,34 @@ import {
       useFactory: (configService: ConfigService, prisma: PrismaService): Mailer => {
         const profile = configService.get<string>('APP_PROFILE') || 
                        (configService.get<string>('NODE_ENV') === 'production' ? 'production' : 'dev');
+        const explicitProvider = (configService.get<string>('MAIL_PROVIDER') || '').toLowerCase();
+        const resendApiKey = (configService.get<string>('RESEND_API_KEY') || '').trim();
         
+        if (explicitProvider === 'dev') {
+          return new DevMailer(prisma);
+        }
+
+        if (explicitProvider === 'resend') {
+          if (!resendApiKey) {
+            // eslint-disable-next-line no-console
+            console.warn('[ProvidersModule] MAIL_PROVIDER=resend but RESEND_API_KEY is missing. Falling back to DevMailer.');
+            return new DevMailer(prisma);
+          }
+          return new ResendMailer(configService);
+        }
+
         if (profile === 'dev' || profile === 'development') {
           return new DevMailer(prisma);
+        }
+
+        if (resendApiKey) {
+          return new ResendMailer(configService);
         }
         
         // Production: Will use ResendMailer or SendGridMailer when implemented
         // For now, fallback to dev in production if no real provider is configured
+        // eslint-disable-next-line no-console
+        console.warn('[ProvidersModule] Production profile without configured email provider. Falling back to DevMailer.');
         return new DevMailer(prisma);
       },
       inject: [ConfigService, PrismaService],

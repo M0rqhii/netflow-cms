@@ -109,11 +109,16 @@ export default function SiteUsersPage() {
 
   const onCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!siteId || !createEmail || !createPassword) return;
+    if (!siteId || !createEmail) return;
 
     try {
       setCreating(true);
-      await createUser(siteId, { email: createEmail, password: createPassword, role, preferredLanguage: language });
+      await createUser(siteId, {
+        email: createEmail,
+        password: createPassword.trim() ? createPassword : undefined,
+        role,
+        preferredLanguage: language,
+      });
       setCreateEmail("");
       setCreatePassword("");
       toast.push({ tone: "success", message: `${t("users.userCreatedSuccessfully")} ${createEmail}` });
@@ -297,10 +302,9 @@ export default function SiteUsersPage() {
             type="password"
             value={createPassword}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCreatePassword(e.target.value)}
-            required
             placeholder="********"
-            helperText={t("users.passwordHelperText")}
-            minLength={6}
+            helperText={t("users.passwordOptionalHelper")}
+            minLength={8}
           />
           <div>
             <label htmlFor="create-user-role" className="block text-xs font-semibold uppercase tracking-wide text-muted mb-1">

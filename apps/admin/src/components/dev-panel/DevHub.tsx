@@ -13,6 +13,7 @@ import {
 } from "@/lib/api";
 import { timeAgo } from "@/lib/formatters";
 import { readGlobalSearch, subscribeGlobalSearch } from "@/lib/shell";
+import { useTranslations } from "@/hooks/useTranslations";
 
 type DevRuntimeData = {
   profile: string;
@@ -88,6 +89,7 @@ function levelBadgeClass(level?: string): string {
 export type DevHubTab = "runtime" | "api-keys" | "webhooks" | "logs" | "flags";
 
 export function DevHub({ activeTab }: { activeTab: DevHubTab }) {
+  const t = useTranslations();
   const appProfile = process.env.NEXT_PUBLIC_APP_PROFILE || process.env.NODE_ENV || "development";
   const isProd = appProfile === "production";
   const token = getAuthToken();
@@ -149,7 +151,7 @@ export function DevHub({ activeTab }: { activeTab: DevHubTab }) {
         }
       } catch (e) {
         if (cancelled) return;
-        setError(e instanceof Error ? e.message : "Failed to load developer data");
+        setError(e instanceof Error ? e.message : t("devPanel.hub.toasts.failedToLoadDeveloperData"));
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -159,7 +161,7 @@ export function DevHub({ activeTab }: { activeTab: DevHubTab }) {
     return () => {
       cancelled = true;
     };
-  }, [activeTab, isProd, isPrivileged, reloadKey]);
+  }, [activeTab, isProd, isPrivileged, reloadKey, t]);
 
   const filteredWebhooks = useMemo(() => {
     const needle = search.trim().toLowerCase();
@@ -190,10 +192,10 @@ export function DevHub({ activeTab }: { activeTab: DevHubTab }) {
 
   if (isProd && !isSuperAdmin) {
     return (
-      <DevPanelLayout title="Developer" description="Internal visibility into development providers and environment">
+      <DevPanelLayout title={t("devPanel.hub.title")} description={t("devPanel.hub.description")}>
         <div className="card card-pad">
-          <div className="font-black">Dev Panel disabled</div>
-          <div className="text-muted text-xs mt-1.5">Only available outside production.</div>
+          <div className="font-black">{t("devPanel.common.disabledTitle")}</div>
+          <div className="text-muted text-xs mt-1.5">{t("devPanel.common.nonProductionOnly")}</div>
         </div>
       </DevPanelLayout>
     );
@@ -201,13 +203,13 @@ export function DevHub({ activeTab }: { activeTab: DevHubTab }) {
 
   if (!isPrivileged) {
     return (
-      <DevPanelLayout title="Developer" description="Internal visibility into development providers and environment">
+      <DevPanelLayout title={t("devPanel.hub.title")} description={t("devPanel.hub.description")}>
         <div className="card card-pad">
-          <div className="font-black">Access denied</div>
-          <div className="text-muted text-xs mt-1.5">Only privileged users can access the Dev Panel.</div>
+          <div className="font-black">{t("devPanel.common.accessDeniedTitle")}</div>
+          <div className="text-muted text-xs mt-1.5">{t("devPanel.common.privilegedOnly")}</div>
           <div className="spacer-sm" />
           <button className="btn" onClick={() => (window.location.href = "/dashboard")}>
-            Back to dashboard
+            {t("devPanel.common.backToDashboard")}
           </button>
         </div>
       </DevPanelLayout>
@@ -216,11 +218,11 @@ export function DevHub({ activeTab }: { activeTab: DevHubTab }) {
 
   return (
     <DevPanelLayout
-      title="Developer"
-      description="Developer observability panel powered by backend data sources."
+      title={t("devPanel.hub.title")}
+      description={t("devPanel.hub.description")}
       headerActions={
         <button className="btn" type="button" onClick={() => setReloadKey((prev) => prev + 1)}>
-          Refresh
+          {t("devPanel.common.refresh")}
         </button>
       }
     >
@@ -236,50 +238,50 @@ export function DevHub({ activeTab }: { activeTab: DevHubTab }) {
         <div className="card card-pad">
           <div className="row-between row-wrap">
             <div>
-              <div className="section-title">Runtime</div>
-              <div className="text-muted text-xs mt-1.5">Environment and aggregate counters from backend.</div>
+              <div className="section-title">{t("devPanel.hub.runtime.title")}</div>
+              <div className="text-muted text-xs mt-1.5">{t("devPanel.hub.runtime.subtitle")}</div>
             </div>
             <div className="row-wrap">
-              <span className="badge gray">env: {runtimeData?.profile || appProfile}</span>
-              <span className="badge gray">node: {runtimeData?.node || "-"}</span>
-              <span className="badge gray">api: {runtimeData?.apiVersion || "-"}</span>
+              <span className="badge gray">{t("devPanel.hub.runtime.env")}: {runtimeData?.profile || appProfile}</span>
+              <span className="badge gray">{t("devPanel.hub.runtime.node")}: {runtimeData?.node || "-"}</span>
+              <span className="badge gray">{t("devPanel.hub.runtime.api")}: {runtimeData?.apiVersion || "-"}</span>
             </div>
           </div>
 
           <div className="spacer-sm" />
           {loading ? (
-            <div className="dev-empty-state">Loading runtime data...</div>
+            <div className="dev-empty-state">{t("devPanel.hub.runtime.loading")}</div>
           ) : !runtimeData ? (
-            <div className="dev-empty-state">Runtime data is not available.</div>
+            <div className="dev-empty-state">{t("devPanel.hub.runtime.notAvailable")}</div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
               <div className="card card-pad tight">
-                <div className="detail-label">Sites</div>
+                <div className="detail-label">{t("devPanel.hub.runtime.cards.sites")}</div>
                 <div className="spacer-sm" />
                 <div className="text-xl font-extrabold leading-tight">{runtimeData.totals.sites}</div>
               </div>
               <div className="card card-pad tight">
-                <div className="detail-label">Users</div>
+                <div className="detail-label">{t("devPanel.hub.runtime.cards.users")}</div>
                 <div className="spacer-sm" />
                 <div className="text-xl font-extrabold leading-tight">{runtimeData.totals.users}</div>
               </div>
               <div className="card card-pad tight">
-                <div className="detail-label">Dev emails</div>
+                <div className="detail-label">{t("devPanel.hub.runtime.cards.devEmails")}</div>
                 <div className="spacer-sm" />
                 <div className="text-xl font-extrabold leading-tight">{runtimeData.totals.emails}</div>
               </div>
               <div className="card card-pad tight">
-                <div className="detail-label">Subscriptions</div>
+                <div className="detail-label">{t("devPanel.hub.runtime.cards.subscriptions")}</div>
                 <div className="spacer-sm" />
                 <div className="text-xl font-extrabold leading-tight">{runtimeData.totals.subscriptions}</div>
               </div>
               <div className="card card-pad tight">
-                <div className="detail-label">Webhooks</div>
+                <div className="detail-label">{t("devPanel.hub.runtime.cards.webhooks")}</div>
                 <div className="spacer-sm" />
                 <div className="text-xl font-extrabold leading-tight">{runtimeData.totals.webhooks}</div>
               </div>
               <div className="card card-pad tight">
-                <div className="detail-label">Feature overrides</div>
+                <div className="detail-label">{t("devPanel.hub.runtime.cards.featureOverrides")}</div>
                 <div className="spacer-sm" />
                 <div className="text-xl font-extrabold leading-tight">{runtimeData.totals.featureOverrides}</div>
               </div>
@@ -290,12 +292,12 @@ export function DevHub({ activeTab }: { activeTab: DevHubTab }) {
 
       {activeTab === "api-keys" && (
         <div className="card card-pad">
-          <div className="section-title">API Keys</div>
+          <div className="section-title">{t("devPanel.hub.apiKeys.title")}</div>
           <div className="text-muted text-xs mt-1.5">
-            This environment does not expose API keys via a dedicated backend model yet.
+            {t("devPanel.hub.apiKeys.subtitle")}
           </div>
           <div className="spacer-sm" />
-          <div className="dev-empty-state">No factual API key dataset is currently available.</div>
+          <div className="dev-empty-state">{t("devPanel.hub.apiKeys.empty")}</div>
         </div>
       )}
 
@@ -303,28 +305,28 @@ export function DevHub({ activeTab }: { activeTab: DevHubTab }) {
         <div className="card card-pad">
           <div className="row-between row-wrap">
             <div>
-              <div className="section-title">Webhooks</div>
-              <div className="text-muted text-xs mt-1.5">Read directly from the webhooks and webhook_deliveries tables.</div>
+              <div className="section-title">{t("devPanel.hub.webhooks.title")}</div>
+              <div className="text-muted text-xs mt-1.5">{t("devPanel.hub.webhooks.subtitle")}</div>
             </div>
             <div className="row-wrap">
-              <span className="badge gray">rows: {filteredWebhooks.length}</span>
+              <span className="badge gray">{t("devPanel.common.rows")}: {filteredWebhooks.length}</span>
             </div>
           </div>
           <div className="spacer-sm" />
           {loading ? (
-            <div className="dev-empty-state">Loading webhooks...</div>
+            <div className="dev-empty-state">{t("devPanel.hub.webhooks.loading")}</div>
           ) : filteredWebhooks.length === 0 ? (
-            <div className="dev-empty-state">No webhooks found.</div>
+            <div className="dev-empty-state">{t("devPanel.hub.webhooks.empty")}</div>
           ) : (
             <div className="dev-table-wrap overflow-auto">
               <table className="table dev-table">
                 <thead>
                   <tr>
-                    <th>Site</th>
-                    <th>URL</th>
-                    <th>Events</th>
-                    <th>Status</th>
-                    <th>Last delivery</th>
+                    <th>{t("devPanel.hub.webhooks.columns.site")}</th>
+                    <th>{t("devPanel.hub.webhooks.columns.url")}</th>
+                    <th>{t("devPanel.hub.webhooks.columns.events")}</th>
+                    <th>{t("devPanel.hub.webhooks.columns.status")}</th>
+                    <th>{t("devPanel.hub.webhooks.columns.lastDelivery")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -335,7 +337,7 @@ export function DevHub({ activeTab }: { activeTab: DevHubTab }) {
                       <td className="text-muted">{(item.events || []).join(", ") || "-"}</td>
                       <td>
                         <span className={item.active ? "badge green" : "badge gray"}>
-                          {item.active ? "ACTIVE" : "INACTIVE"}
+                          {item.active ? t("devPanel.common.active") : t("devPanel.common.inactive")}
                         </span>
                       </td>
                       <td className="text-muted">
@@ -355,27 +357,27 @@ export function DevHub({ activeTab }: { activeTab: DevHubTab }) {
         <div className="card card-pad">
           <div className="row-between row-wrap">
             <div>
-              <div className="section-title">Feature overrides</div>
-              <div className="text-muted text-xs mt-1.5">Read from site_feature_overrides.</div>
+              <div className="section-title">{t("devPanel.hub.flags.title")}</div>
+              <div className="text-muted text-xs mt-1.5">{t("devPanel.hub.flags.subtitle")}</div>
             </div>
             <div className="row-wrap">
-              <span className="badge gray">rows: {filteredFlags.length}</span>
+              <span className="badge gray">{t("devPanel.common.rows")}: {filteredFlags.length}</span>
             </div>
           </div>
           <div className="spacer-sm" />
           {loading ? (
-            <div className="dev-empty-state">Loading feature overrides...</div>
+            <div className="dev-empty-state">{t("devPanel.hub.flags.loading")}</div>
           ) : filteredFlags.length === 0 ? (
-            <div className="dev-empty-state">No feature overrides found.</div>
+            <div className="dev-empty-state">{t("devPanel.hub.flags.empty")}</div>
           ) : (
             <div className="dev-table-wrap overflow-auto">
               <table className="table dev-table">
                 <thead>
                   <tr>
-                    <th>Site</th>
-                    <th>Flag key</th>
-                    <th>Status</th>
-                    <th>Created</th>
+                    <th>{t("devPanel.hub.flags.columns.site")}</th>
+                    <th>{t("devPanel.hub.flags.columns.flagKey")}</th>
+                    <th>{t("devPanel.hub.flags.columns.status")}</th>
+                    <th>{t("devPanel.hub.flags.columns.created")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -385,7 +387,7 @@ export function DevHub({ activeTab }: { activeTab: DevHubTab }) {
                       <td className="mono text-xs">{item.key}</td>
                       <td>
                         <span className={item.enabled ? "badge green" : "badge gray"}>
-                          {item.enabled ? "ENABLED" : "DISABLED"}
+                          {item.enabled ? t("devPanel.common.enabled") : t("devPanel.common.disabled")}
                         </span>
                       </td>
                       <td className="text-muted">{formatDate(item.createdAt)}</td>
@@ -402,27 +404,27 @@ export function DevHub({ activeTab }: { activeTab: DevHubTab }) {
         <div className="card card-pad">
           <div className="row-between row-wrap">
             <div>
-              <div className="section-title">Logs</div>
-              <div className="text-muted text-xs mt-1.5">Recent backend logs from DebugService.</div>
+              <div className="section-title">{t("devPanel.hub.logs.title")}</div>
+              <div className="text-muted text-xs mt-1.5">{t("devPanel.hub.logs.subtitle")}</div>
             </div>
             <div className="row-wrap">
-              <span className="badge gray">rows: {filteredLogs.length}</span>
+              <span className="badge gray">{t("devPanel.common.rows")}: {filteredLogs.length}</span>
             </div>
           </div>
           <div className="spacer-sm" />
           {loading ? (
-            <div className="dev-empty-state">Loading logs...</div>
+            <div className="dev-empty-state">{t("devPanel.hub.logs.loading")}</div>
           ) : filteredLogs.length === 0 ? (
-            <div className="dev-empty-state">No logs found.</div>
+            <div className="dev-empty-state">{t("devPanel.hub.logs.empty")}</div>
           ) : (
             <div className="dev-table-wrap overflow-auto">
               <table className="table dev-table">
                 <thead>
                   <tr>
-                    <th>Time</th>
-                    <th>Level</th>
-                    <th>Module</th>
-                    <th>Message</th>
+                    <th>{t("devPanel.hub.logs.columns.time")}</th>
+                    <th>{t("devPanel.hub.logs.columns.level")}</th>
+                    <th>{t("devPanel.hub.logs.columns.module")}</th>
+                    <th>{t("devPanel.hub.logs.columns.message")}</th>
                   </tr>
                 </thead>
                 <tbody>

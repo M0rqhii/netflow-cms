@@ -2,10 +2,14 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { PrismaService } from '../../common/prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
 import { randomBytes } from 'crypto';
+import { AccountNotificationsService } from '../../common/notifications/account-notifications.service';
 
 interface UpdateAccountDto {
   name?: string;
   preferredLanguage?: 'pl' | 'en';
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
 }
 
 interface ChangePasswordDto {
@@ -26,6 +30,13 @@ interface UpdateSecuritySettingsDto {
   sessionTimeoutMinutes?: number;
 }
 
+interface CompleteOnboardingDto {
+  preferredLanguage: 'pl' | 'en';
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+}
+
 type AccountSecuritySettings = {
   twoFactorEnabled: boolean;
   twoFactorMethod: 'auth_app' | 'email';
@@ -35,13 +46,12 @@ type AccountSecuritySettings = {
   updatedAt: string;
 };
 
-/**
- * AccountService - Service for user account management
- * AI Note: Handles account operations without org/site context
- */
 @Injectable()
 export class AccountService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: AccountNotificationsService,
+  ) {}
 
   private asJsonObject(value: unknown): Record<string, unknown> {
     if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -56,6 +66,24 @@ export class AccountService {
       const partB = randomBytes(2).toString('hex').toUpperCase();
       return `${partA}-${partB}`;
     });
+  }
+
+  private normalizeName(value?: string | null): string | null {
+    if (!value) return null;
+    const normalized = value.trim();
+    return normalized.length > 0 ? normalized : null;
+  }
+
+  private normalizePhone(value?: string | null): string | null {
+    if (value === undefined) return null;
+    if (value === null) return null;
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    const compact = trimmed.replace(/\s+/g, '');
+    if (!/^\+?[0-9().-]{7,20}$/.test(compact)) {
+      throw new BadRequestException('Phone number format is invalid');
+    }
+    return compact;
   }
 
   private readSecuritySettings(rawBilling: Record<string, unknown>): AccountSecuritySettings {
@@ -87,9 +115,31 @@ export class AccountService {
     };
   }
 
-  /**
-   * Get account information for user
-   */
+  private deriveOnboardingState(user: {
+    preferredLanguage?: string | null;
+    languageChosenAt?: Date | null;
+    mustCompleteOnboarding?: boolean | null;
+    onboardingCompletedAt?: Date | null;
+    mustChangePassword?: boolean | null;
+  }) {
+    const preferredLanguage = user.preferredLanguage === 'pl' ? 'pl' : 'en';
+    const languageChosen = Boolean(user.languageChosenAt);
+    const mustChangePassword = Boolean(user.mustChangePassword);
+    const mustCompleteOnboarding = Boolean(user.mustCompleteOnboarding);
+    const onboardingRequired = mustChangePassword || mustCompleteOnboarding || !languageChosen;
+
+    return {
+      preferredLanguage,
+      languageChosen,
+      mustChangePassword,
+      mustCompleteOnboarding,
+      onboardingRequired,
+      onboardingCompletedAt: user.onboardingCompletedAt
+        ? user.onboardingCompletedAt.toISOString()
+        : null,
+    };
+  }
+
   async getAccount(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -98,6 +148,13 @@ export class AccountService {
         email: true,
         role: true,
         preferredLanguage: true,
+        firstName: true,
+        lastName: true,
+        phone: true,
+        languageChosenAt: true,
+        mustCompleteOnboarding: true,
+        onboardingCompletedAt: true,
+        mustChangePassword: true,
         billingInfo: true,
         createdAt: true,
         updatedAt: true,
@@ -115,11 +172,21 @@ export class AccountService {
       address: rawBilling.address ?? null,
     };
     const security = this.readSecuritySettings(rawBilling);
+    const onboarding = this.deriveOnboardingState(user);
 
     return {
       ...user,
-      preferredLanguage: user.preferredLanguage || 'en',
+      preferredLanguage: onboarding.preferredLanguage,
+      firstName: user.firstName || null,
+      lastName: user.lastName || null,
+      phone: user.phone || null,
       billingInfo,
+      onboarding: {
+        required: onboarding.onboardingRequired,
+        languageChosen: onboarding.languageChosen,
+        mustChangePassword: onboarding.mustChangePassword,
+        completedAt: onboarding.onboardingCompletedAt,
+      },
       security: {
         twoFactorEnabled: security.twoFactorEnabled,
         twoFactorMethod: security.twoFactorMethod,
@@ -131,19 +198,43 @@ export class AccountService {
     };
   }
 
-  /**
-   * Update account information
-   */
   async updateAccount(userId: string, dto: UpdateAccountDto) {
-    const updateData: { preferredLanguage?: string } = {};
+    const updateData: {
+      preferredLanguage?: string;
+      languageChosenAt?: Date;
+      firstName?: string | null;
+      lastName?: string | null;
+      phone?: string | null;
+    } = {};
 
     if (dto.preferredLanguage !== undefined) {
       updateData.preferredLanguage = dto.preferredLanguage;
+      updateData.languageChosenAt = new Date();
     }
 
-    // Note: User model doesn't have a 'name' field yet
-    // For now, we'll skip it or store it in settings JSON
-    // This can be extended when User model is updated
+    if (dto.firstName !== undefined) {
+      updateData.firstName = this.normalizeName(dto.firstName);
+    }
+
+    if (dto.lastName !== undefined) {
+      updateData.lastName = this.normalizeName(dto.lastName);
+    }
+
+    if (dto.phone !== undefined) {
+      updateData.phone = this.normalizePhone(dto.phone);
+    }
+
+    if (dto.name !== undefined && dto.firstName === undefined && dto.lastName === undefined) {
+      const normalized = this.normalizeName(dto.name);
+      if (normalized) {
+        const parts = normalized.split(/\s+/);
+        updateData.firstName = parts.shift() || null;
+        updateData.lastName = parts.join(' ') || null;
+      } else {
+        updateData.firstName = null;
+        updateData.lastName = null;
+      }
+    }
 
     const user = await this.prisma.user.update({
       where: { id: userId },
@@ -153,25 +244,40 @@ export class AccountService {
         email: true,
         role: true,
         preferredLanguage: true,
+        firstName: true,
+        lastName: true,
+        phone: true,
+        languageChosenAt: true,
+        mustCompleteOnboarding: true,
+        onboardingCompletedAt: true,
+        mustChangePassword: true,
         updatedAt: true,
       },
     });
 
+    const onboarding = this.deriveOnboardingState(user);
+
     return {
       ...user,
-      preferredLanguage: user.preferredLanguage || 'en',
+      preferredLanguage: onboarding.preferredLanguage,
+      onboarding: {
+        required: onboarding.onboardingRequired,
+        languageChosen: onboarding.languageChosen,
+        mustChangePassword: onboarding.mustChangePassword,
+        completedAt: onboarding.onboardingCompletedAt,
+      },
     };
   }
 
-  /**
-   * Change user password
-   */
   async changePassword(userId: string, dto: ChangePasswordDto) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: {
         id: true,
+        email: true,
         passwordHash: true,
+        preferredLanguage: true,
+        languageChosenAt: true,
       },
     });
 
@@ -179,30 +285,126 @@ export class AccountService {
       throw new NotFoundException('User not found');
     }
 
-    // Verify old password
     const isOldPasswordValid = await bcrypt.compare(dto.oldPassword, user.passwordHash);
     if (!isOldPasswordValid) {
       throw new BadRequestException('Invalid old password');
     }
 
-    // Hash new password
     const newPasswordHash = await bcrypt.hash(dto.newPassword, 10);
 
-    // Update password
     await this.prisma.user.update({
       where: { id: userId },
       data: {
         passwordHash: newPasswordHash,
+        mustChangePassword: false,
       },
     });
+
+    try {
+      await this.notifications.sendPasswordChangedEmail({
+        to: user.email,
+        changedAt: new Date(),
+        preferredLanguage: user.preferredLanguage,
+        languageChosenAt: user.languageChosenAt,
+      });
+    } catch {
+      // Keep password change successful even if notification delivery fails.
+    }
 
     return { success: true, message: 'Password changed successfully' };
   }
 
-  /**
-   * Get billing information
-   * Stored on User.billingInfo JSON field
-   */
+  async getOnboardingStatus(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        preferredLanguage: true,
+        firstName: true,
+        lastName: true,
+        phone: true,
+        languageChosenAt: true,
+        mustCompleteOnboarding: true,
+        onboardingCompletedAt: true,
+        mustChangePassword: true,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const onboarding = this.deriveOnboardingState(user);
+    return {
+      required: onboarding.onboardingRequired,
+      preferredLanguage: onboarding.preferredLanguage,
+      languageChosen: onboarding.languageChosen,
+      mustChangePassword: onboarding.mustChangePassword,
+      mustCompleteOnboarding: onboarding.mustCompleteOnboarding,
+      completedAt: onboarding.onboardingCompletedAt,
+      profile: {
+        firstName: user.firstName || null,
+        lastName: user.lastName || null,
+        phone: user.phone || null,
+      },
+    };
+  }
+
+  async completeOnboarding(userId: string, dto: CompleteOnboardingDto) {
+    const phone = dto.phone !== undefined ? this.normalizePhone(dto.phone) : undefined;
+
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        preferredLanguage: dto.preferredLanguage,
+        languageChosenAt: new Date(),
+        firstName:
+          dto.firstName !== undefined ? this.normalizeName(dto.firstName) : undefined,
+        lastName:
+          dto.lastName !== undefined ? this.normalizeName(dto.lastName) : undefined,
+        phone,
+        mustCompleteOnboarding: false,
+        onboardingCompletedAt: new Date(),
+      },
+      select: {
+        id: true,
+        email: true,
+        preferredLanguage: true,
+        firstName: true,
+        lastName: true,
+        phone: true,
+        languageChosenAt: true,
+        mustCompleteOnboarding: true,
+        onboardingCompletedAt: true,
+        mustChangePassword: true,
+      },
+    });
+
+    try {
+      await this.notifications.sendOnboardingCompletedEmail({
+        to: user.email,
+        firstName: user.firstName,
+        preferredLanguage: user.preferredLanguage,
+        languageChosenAt: user.languageChosenAt,
+      });
+    } catch {
+      // Onboarding completion should not fail because of a notification transport issue.
+    }
+
+    const onboarding = this.deriveOnboardingState(user);
+    return {
+      success: true,
+      required: onboarding.onboardingRequired,
+      completedAt: onboarding.onboardingCompletedAt,
+      profile: {
+        firstName: user.firstName || null,
+        lastName: user.lastName || null,
+        phone: user.phone || null,
+      },
+    };
+  }
+
   async getBillingInfo(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -224,10 +426,6 @@ export class AccountService {
     };
   }
 
-  /**
-   * Update billing information
-   * Stored on User.billingInfo JSON field
-   */
   async updateBillingInfo(userId: string, dto: UpdateBillingInfoDto) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -374,4 +572,3 @@ export class AccountService {
     };
   }
 }
-

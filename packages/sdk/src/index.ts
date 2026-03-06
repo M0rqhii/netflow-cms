@@ -136,9 +136,18 @@ export type AccountInfo = {
   role: string;
   orgId?: string;
   preferredLanguage: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  phone?: string | null;
   createdAt: string;
   updatedAt: string;
   billingInfo: BillingInfo;
+  onboarding?: {
+    required: boolean;
+    languageChosen: boolean;
+    mustChangePassword: boolean;
+    completedAt: string | null;
+  };
 };
 
 export type DevLogEntry = {
@@ -150,10 +159,22 @@ export type DevLogEntry = {
   metadata?: Record<string, unknown>;
 };
 
+export type AuthenticatedUser = {
+  id: string;
+  email: string;
+  role: string;
+  orgId: string;
+  preferredLanguage?: 'pl' | 'en';
+  onboardingRequired?: boolean;
+  mustChangePassword?: boolean;
+  onboardingCompletedAt?: string | null;
+  languageChosen?: boolean;
+};
+
 export type LoginSuccessResponse = {
   access_token: string;
   refresh_token?: string;
-  user: unknown;
+  user: AuthenticatedUser;
 };
 
 export type LoginTwoFactorRequiredResponse = {
@@ -165,6 +186,26 @@ export type LoginTwoFactorRequiredResponse = {
 };
 
 export type LoginResponse = LoginSuccessResponse | LoginTwoFactorRequiredResponse;
+
+export type PasswordActionTokenStatus = {
+  valid: true;
+  purpose: 'reset_password' | 'account_setup';
+  expiresAt: string;
+};
+
+export type AccountOnboardingStatus = {
+  required: boolean;
+  preferredLanguage: 'pl' | 'en';
+  languageChosen: boolean;
+  mustChangePassword: boolean;
+  mustCompleteOnboarding: boolean;
+  completedAt: string | null;
+  profile: {
+    firstName: string | null;
+    lastName: string | null;
+    phone: string | null;
+  };
+};
 
 export class ApiClient {
   constructor(private baseUrl: string) {}
@@ -297,6 +338,26 @@ export class ApiClient {
     });
   }
 
+  async requestPasswordReset(email: string, orgId?: string): Promise<{ success: true; message: string }> {
+    return this.request<{ success: true; message: string }>(`/auth/password/reset-request`, {
+      method: 'POST',
+      body: JSON.stringify({ email, ...(orgId ? { orgId } : {}) }),
+    });
+  }
+
+  async getPasswordActionTokenStatus(token: string): Promise<PasswordActionTokenStatus> {
+    return this.request<PasswordActionTokenStatus>(`/auth/password/action/${encodeURIComponent(token)}`, {
+      method: 'GET',
+    });
+  }
+
+  async confirmPasswordReset(token: string, password: string): Promise<{ success: true; purpose: 'reset_password' | 'account_setup' }> {
+    return this.request<{ success: true; purpose: 'reset_password' | 'account_setup' }>(`/auth/password/reset-confirm`, {
+      method: 'POST',
+      body: JSON.stringify({ token, password }),
+    });
+  }
+
   async resolveOrg(token: string, slug: string): Promise<{ id: string; name: string; slug: string; plan: string }> {
     return this.request(`/auth/resolve-org/${encodeURIComponent(slug)}`, {
       method: 'GET',
@@ -353,7 +414,10 @@ export class ApiClient {
     });
   }
 
-  async updateAccount(token: string, data: { name?: string; preferredLanguage?: 'pl' | 'en' }): Promise<AccountInfo> {
+  async updateAccount(
+    token: string,
+    data: { name?: string; preferredLanguage?: 'pl' | 'en'; firstName?: string; lastName?: string; phone?: string },
+  ): Promise<AccountInfo> {
     return this.request<AccountInfo>(`/account`, {
       method: 'PATCH',
       headers: { Authorization: `Bearer ${token}` },
@@ -363,6 +427,24 @@ export class ApiClient {
 
   async changePassword(token: string, data: { oldPassword: string; newPassword: string }): Promise<Record<string, unknown>> {
     return this.request<Record<string, unknown>>(`/account/password`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getOnboardingStatus(token: string): Promise<AccountOnboardingStatus> {
+    return this.request<AccountOnboardingStatus>(`/account/onboarding`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  }
+
+  async completeOnboarding(
+    token: string,
+    data: { preferredLanguage: 'pl' | 'en'; firstName?: string; lastName?: string; phone?: string },
+  ): Promise<{ success: boolean; required: boolean; completedAt: string | null; profile: { firstName: string | null; lastName: string | null; phone: string | null } }> {
+    return this.request(`/account/onboarding`, {
       method: 'PATCH',
       headers: { Authorization: `Bearer ${token}` },
       body: JSON.stringify(data),

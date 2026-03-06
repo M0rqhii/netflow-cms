@@ -12,6 +12,7 @@ import {
   type GlobalSubscription,
 } from "@/lib/api";
 import { useToast } from "@/components/ui/Toast";
+import { formatPlanTierLabel } from "@/lib/plans";
 
 function formatDate(value: string | null | undefined): string {
   if (!value) return "-";
@@ -230,7 +231,7 @@ export default function BillingPage() {
                       <span className={getStatusBadgeClass(org.status)}>{formatStatus(org.status)}</span>
                     </div>
                     <div className="spacer-sm" />
-                    <MobileLine label={t("billing.plan")} value={org.plan || "-"} />
+                    <MobileLine label={t("billing.plan")} value={formatPlanTierLabel(org.plan)} />
                     <MobileLine label={t("billing.nextRenewal")} value={org.renewalDate ? formatDate(org.renewalDate) : t("billing.noRenewal")} />
                     <MobileLine label={t("billing.role")} value={org.role || "-"} />
                   </div>
@@ -252,7 +253,7 @@ export default function BillingPage() {
                   {organizations.map((org) => (
                     <tr key={org.orgId}>
                       <td>{org.orgName || "-"}</td>
-                      <td>{org.plan || "-"}</td>
+                      <td>{formatPlanTierLabel(org.plan)}</td>
                       <td>
                         <span className={getStatusBadgeClass(org.status)}>{formatStatus(org.status)}</span>
                       </td>
@@ -286,7 +287,7 @@ export default function BillingPage() {
                         <span className={getStatusBadgeClass(sub.status)}>{formatStatus(sub.status)}</span>
                       </div>
                       <div className="spacer-sm" />
-                      <MobileLine label={t("billing.plan")} value={sub.plan || "-"} />
+                      <MobileLine label={t("billing.plan")} value={formatPlanTierLabel(sub.plan)} />
                       <MobileLine label={t("billing.date")} value={formatDate(sub.currentPeriodStart)} />
                       <MobileLine label={t("billing.nextRenewal")} value={sub.currentPeriodEnd ? formatDate(sub.currentPeriodEnd) : t("billing.noRenewal")} />
                     </div>
@@ -309,7 +310,7 @@ export default function BillingPage() {
                   {subscriptions.map((sub: GlobalSubscription) => (
                     <tr key={sub.id}>
                       <td>{sub.organization?.name || organizations.find((org) => org.orgId === sub.orgId)?.orgName || "-"}</td>
-                      <td>{sub.plan || "-"}</td>
+                      <td>{formatPlanTierLabel(sub.plan)}</td>
                       <td>
                         <span className={getStatusBadgeClass(sub.status)}>{formatStatus(sub.status)}</span>
                       </td>

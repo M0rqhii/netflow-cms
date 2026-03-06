@@ -12,11 +12,11 @@ import {
   BUILDER_MODULES,
   getBuilderModuleDependencies,
   getBuilderModuleDependents,
-  getModuleDisplayTitle,
   type BuilderModuleKey,
 } from "@/lib/page-builder/modules";
 import { useSiteFeatures } from "@/lib/site-features";
 import { useSiteModuleConfig } from "@/lib/site-module-config";
+import { formatPlanTierLabel } from "@/lib/plans";
 
 export default function SiteModulesPage() {
   const params = useParams<{ slug: string }>();
@@ -32,6 +32,50 @@ export default function SiteModulesPage() {
   const { features, loading: loadingFeatures, error: featuresError, updateOverride, isEnabled, isInPlan } = useSiteFeatures(siteId);
   const { config: moduleConfig, updateModuleConfig } = useSiteModuleConfig(siteId);
   const [draftConfig, setDraftConfig] = useState<Record<string, Record<string, unknown>>>({});
+
+  const moduleTitleMap: Partial<Record<BuilderModuleKey, string>> = useMemo(
+    () => ({
+      "consent-security": t("siteModules.modules.consentSecurity.title"),
+      "accessibility-widget": t("siteModules.modules.accessibilityWidget.title"),
+      payments: t("siteModules.modules.payments.title"),
+      shop: t("siteModules.modules.shop.title"),
+      "forms-pro": t("siteModules.modules.formsPro.title"),
+      analytics: t("siteModules.modules.analytics.title"),
+      "meta-pixel": t("siteModules.modules.metaPixel.title"),
+      "tag-manager": t("siteModules.modules.tagManager.title"),
+      "embeds-media": t("siteModules.modules.embedsMedia.title"),
+      maps: t("siteModules.modules.maps.title"),
+      "blog-content": t("siteModules.modules.blogContent.title"),
+    }),
+    [t]
+  );
+
+  const moduleDescriptionMap: Partial<Record<BuilderModuleKey, string>> = useMemo(
+    () => ({
+      "consent-security": t("siteModules.modules.consentSecurity.description"),
+      "accessibility-widget": t("siteModules.modules.accessibilityWidget.description"),
+      payments: t("siteModules.modules.payments.description"),
+      shop: t("siteModules.modules.shop.description"),
+      "forms-pro": t("siteModules.modules.formsPro.description"),
+      analytics: t("siteModules.modules.analytics.description"),
+      "meta-pixel": t("siteModules.modules.metaPixel.description"),
+      "tag-manager": t("siteModules.modules.tagManager.description"),
+      "embeds-media": t("siteModules.modules.embedsMedia.description"),
+      maps: t("siteModules.modules.maps.description"),
+      "blog-content": t("siteModules.modules.blogContent.description"),
+    }),
+    [t]
+  );
+
+  const getModuleTitle = useCallback(
+    (key: BuilderModuleKey, fallback?: string) => moduleTitleMap[key] || fallback || key,
+    [moduleTitleMap]
+  );
+
+  const getModuleDescription = useCallback(
+    (key: BuilderModuleKey, fallback?: string) => moduleDescriptionMap[key] || fallback || "",
+    [moduleDescriptionMap]
+  );
 
   const loadSite = useCallback(async () => {
     if (!slug) return;
@@ -73,7 +117,7 @@ export default function SiteModulesPage() {
         const dependents = getBuilderModuleDependents(moduleKey);
         const enabledDependents = dependents.filter((dep) => isEnabled(dep));
         if (enabledDependents.length > 0) {
-          const depLabels = enabledDependents.map((dep) => getModuleDisplayTitle(dep)).join(", ");
+          const depLabels = enabledDependents.map((dep) => getModuleTitle(dep)).join(", ");
           const confirmed = window.confirm(
             `${t("siteModules.disableDependentsConfirm")}: ${depLabels}. ${t("siteModules.disableDependentsConfirmHint")}`
           );
@@ -88,7 +132,7 @@ export default function SiteModulesPage() {
       const missingDeps = deps.filter((dep) => !isEnabled(dep));
 
       if (nextEnabled && missingDeps.length > 0) {
-        const depLabels = missingDeps.map((dep) => getModuleDisplayTitle(dep)).join(", ");
+        const depLabels = missingDeps.map((dep) => getModuleTitle(dep)).join(", ");
         const confirmed = window.confirm(
           `${t("siteModules.enableDependenciesConfirm")}: ${depLabels}. ${t("siteModules.enableDependenciesConfirmHint")}`
         );
@@ -102,15 +146,17 @@ export default function SiteModulesPage() {
       await updateOverride(moduleKey, nextEnabled);
       toast.push({
         tone: "success",
-        message: nextEnabled ? t("siteModules.moduleEnabled") : t("siteModules.moduleDisabled"),
+        message: nextEnabled
+          ? t("siteModules.moduleEnabledWithName", { module: getModuleTitle(moduleKey) })
+          : t("siteModules.moduleDisabledWithName", { module: getModuleTitle(moduleKey) }),
       });
     },
-    [features, isEnabled, siteId, t, toast, updateOverride]
+    [features, getModuleTitle, isEnabled, siteId, t, toast, updateOverride]
   );
 
   const planLabel = useMemo(() => {
     if (!features?.plan) return null;
-    return features.plan.toUpperCase();
+    return formatPlanTierLabel(features.plan);
   }, [features]);
 
   const isLoading = loadingSite || loadingFeatures;
@@ -290,8 +336,8 @@ export default function SiteModulesPage() {
                     <div className="row items-start">
                       <div className="pill h-9 w-9">{module.icon}</div>
                       <div>
-                        <div className="project-name">{module.title}</div>
-                        <div className="detail-label mt-2">{module.description}</div>
+                        <div className="project-name">{getModuleTitle(module.key, module.title)}</div>
+                        <div className="detail-label mt-2">{getModuleDescription(module.key, module.description)}</div>
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-1.5">
@@ -304,13 +350,13 @@ export default function SiteModulesPage() {
 
                   {deps.length > 0 && (
                     <div className="detail-label">
-                      {t("siteModules.requires")}: <strong>{deps.map(getModuleDisplayTitle).join(", ")}</strong>
+                      {t("siteModules.requires")}: <strong>{deps.map((dep) => getModuleTitle(dep)).join(", ")}</strong>
                     </div>
                   )}
 
                   {module.plan && (
                     <div className="detail-label mt-2">
-                      {t("siteModules.planTier")}: <strong>{module.plan.toUpperCase()}</strong>
+                      {t("siteModules.planTier")}: <strong>{formatPlanTierLabel(module.plan)}</strong>
                     </div>
                   )}
 

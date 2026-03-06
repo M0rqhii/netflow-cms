@@ -11,6 +11,7 @@ import { blockRegistry } from '@/lib/page-builder/block-registry';
 import { FieldRenderer } from '../sidebar/editors/FieldRenderer';
 import { FiX, FiSettings, FiType, FiLayout, FiTrash2, FiCopy, FiLock, FiUnlock } from 'react-icons/fi';
 import type { BlockDefinition, PropFieldSchema, BlockNode, Breakpoint } from '@/lib/page-builder/types';
+import { useTranslations } from '@/hooks/useTranslations';
 
 type TabId = 'content' | 'style' | 'advanced';
 
@@ -19,6 +20,7 @@ interface PropertiesPanelProps {
 }
 
 export function PropertiesPanel({ selectedBlockId: overrideSelectedId }: PropertiesPanelProps) {
+  const t = useTranslations();
   const storeSelectedId = useSelectedBlockId();
   const selectedId = overrideSelectedId ?? storeSelectedId;
 
@@ -91,11 +93,11 @@ export function PropertiesPanel({ selectedBlockId: overrideSelectedId }: Propert
 
   const handleDelete = useCallback(() => {
     if (!selectedId) return;
-    const confirmed = window.confirm('Are you sure you want to delete this block?');
+    const confirmed = window.confirm(t('sitePanelShell.pageBuilderUi.propertiesPanel.confirmDelete'));
     if (!confirmed) return;
     deleteBlock(selectedId);
     commit('apply');
-  }, [selectedId, deleteBlock, commit]);
+  }, [selectedId, deleteBlock, commit, t]);
 
   const handleCopy = useCallback(() => {
     if (!selectedId) return;
@@ -115,8 +117,8 @@ export function PropertiesPanel({ selectedBlockId: overrideSelectedId }: Propert
     return (
       <div className="card builder-props-empty">
         <FiSettings className="builder-props-empty-icon" />
-        <div className="builder-props-empty-title">No block selected</div>
-        <div className="builder-props-empty-sub">Click any block on canvas to edit content, style and advanced settings.</div>
+        <div className="builder-props-empty-title">{t('sitePanelShell.pageBuilderUi.propertiesPanel.noBlockTitle')}</div>
+        <div className="builder-props-empty-sub">{t('sitePanelShell.pageBuilderUi.propertiesPanel.noBlockDescription')}</div>
       </div>
     );
   }
@@ -131,19 +133,19 @@ export function PropertiesPanel({ selectedBlockId: overrideSelectedId }: Propert
             <div className="builder-props-title">{node.meta?.label || definition?.title || node.type}</div>
             <div className="detail-label" style={{ marginTop: 4 }}>{definition?.title || node.type}</div>
           </div>
-          <button className="btn" type="button" onClick={handleClose} aria-label="Close selection">
+          <button className="btn" type="button" onClick={handleClose} aria-label={t('sitePanelShell.pageBuilderUi.propertiesPanel.closeSelection')}>
             <FiX />
           </button>
         </div>
       </div>
 
       <div className="builder-props-actions">
-        <button className="btn" onClick={handleCopy}><FiCopy className="inline mr-1" />Copy</button>
+        <button className="btn" onClick={handleCopy}><FiCopy className="inline mr-1" />{t('sitePanelShell.pageBuilderUi.propertiesPanel.copy')}</button>
         <button className="btn" onClick={handleToggleLock}>
           {isLocked ? <FiLock className="inline mr-1" /> : <FiUnlock className="inline mr-1" />}
-          {isLocked ? 'Locked' : 'Lock'}
+          {isLocked ? t('sitePanelShell.pageBuilderUi.propertiesPanel.locked') : t('sitePanelShell.pageBuilderUi.propertiesPanel.lock')}
         </button>
-        <button className="btn" onClick={handleDelete} disabled={isLocked}><FiTrash2 className="inline mr-1" />Delete</button>
+        <button className="btn" onClick={handleDelete} disabled={isLocked}><FiTrash2 className="inline mr-1" />{t('sitePanelShell.pageBuilderUi.propertiesPanel.delete')}</button>
       </div>
 
       <div className="builder-props-tabs">
@@ -154,9 +156,9 @@ export function PropertiesPanel({ selectedBlockId: overrideSelectedId }: Propert
             style={activeTab === tab ? { background: 'rgba(0,163,255,.14)', borderColor: 'rgba(0,163,255,.30)' } : undefined}
             onClick={() => setActiveTab(tab)}
           >
-            {tab === 'content' && <><FiType className="inline mr-1" />Content</>}
-            {tab === 'style' && <><FiLayout className="inline mr-1" />Style</>}
-            {tab === 'advanced' && <><FiSettings className="inline mr-1" />Advanced</>}
+            {tab === 'content' && <><FiType className="inline mr-1" />{t('sitePanelShell.pageBuilderUi.propertiesPanel.tabs.content')}</>}
+            {tab === 'style' && <><FiLayout className="inline mr-1" />{t('sitePanelShell.pageBuilderUi.propertiesPanel.tabs.style')}</>}
+            {tab === 'advanced' && <><FiSettings className="inline mr-1" />{t('sitePanelShell.pageBuilderUi.propertiesPanel.tabs.advanced')}</>}
           </button>
         ))}
       </div>
@@ -183,10 +185,11 @@ interface TabProps {
 }
 
 function ContentTab({ node, definition, onChange, onBlur: _onBlur }: TabProps) {
+  const t = useTranslations();
   const schema = definition?.propsSchema?.content;
 
   if (!schema || Object.keys(schema).length === 0) {
-    return <div className="card builder-props-empty-inline">No editable content.</div>;
+    return <div className="card builder-props-empty-inline">{t('sitePanelShell.pageBuilderUi.propertiesPanel.emptyContent')}</div>;
   }
 
   return (
@@ -213,6 +216,7 @@ function ContentTab({ node, definition, onChange, onBlur: _onBlur }: TabProps) {
 }
 
 function StyleTab({ node, definition, breakpoint = 'desktop', onChange, onBlur: _onBlur }: TabProps) {
+  const t = useTranslations();
   const schema = definition?.propsSchema?.style;
 
   const getStyleValue = (key: string) => {
@@ -224,14 +228,14 @@ function StyleTab({ node, definition, breakpoint = 'desktop', onChange, onBlur: 
   };
 
   if (!schema || Object.keys(schema).length === 0) {
-    return <div className="card builder-props-empty-inline">No editable styles.</div>;
+    return <div className="card builder-props-empty-inline">{t('sitePanelShell.pageBuilderUi.propertiesPanel.emptyStyles')}</div>;
   }
 
   return (
     <div className="builder-props-fields">
       {breakpoint !== 'desktop' && (
         <div className="card" style={{ padding: 10, borderRadius: 14, background: 'rgba(0,163,255,0.08)', border: '1px solid rgba(0,163,255,0.25)' }}>
-          Editing styles for: <strong>{breakpoint}</strong>
+          {t('sitePanelShell.pageBuilderUi.propertiesPanel.editingStylesFor')}: <strong>{breakpoint}</strong>
         </div>
       )}
 
@@ -257,12 +261,13 @@ function StyleTab({ node, definition, breakpoint = 'desktop', onChange, onBlur: 
 }
 
 function AdvancedTab({ node, definition, onChange, onBlur }: TabProps) {
+  const t = useTranslations();
   const schema = definition?.propsSchema?.advanced;
 
   return (
     <div className="builder-props-fields">
       <div>
-        <label className="block text-xs font-medium text-text mb-1">Custom label</label>
+        <label className="block text-xs font-medium text-text mb-1">{t('sitePanelShell.pageBuilderUi.propertiesPanel.customLabel')}</label>
         <input
           type="text"
           value={node.meta?.label || ''}
@@ -277,13 +282,13 @@ function AdvancedTab({ node, definition, onChange, onBlur }: TabProps) {
       </div>
 
       <div>
-        <label className="block text-xs font-medium text-text mb-1">Additional CSS classes</label>
+        <label className="block text-xs font-medium text-text mb-1">{t('sitePanelShell.pageBuilderUi.propertiesPanel.additionalCssClasses')}</label>
         <input
           type="text"
           value={typeof node.props.advanced?.className === 'string' ? node.props.advanced?.className : ''}
           onChange={(e) => onChange('className', e.target.value)}
           onBlur={onBlur}
-          placeholder="e.g. my-custom-class"
+          placeholder={t('sitePanelShell.pageBuilderUi.propertiesPanel.cssClassPlaceholder')}
           className="input"
         />
       </div>
@@ -309,7 +314,7 @@ function AdvancedTab({ node, definition, onChange, onBlur }: TabProps) {
 
       <div className="divider" style={{ margin: '10px 0' }} />
       <div>
-        <label className="block text-xs font-medium text-muted mb-1">Block ID</label>
+        <label className="block text-xs font-medium text-muted mb-1">{t('sitePanelShell.pageBuilderUi.propertiesPanel.blockId')}</label>
         <code className="block text-xs bg-surface-2 px-2 py-1 rounded text-muted break-all">{node.id}</code>
       </div>
     </div>

@@ -10,6 +10,7 @@ import { FiLink, FiCheck, FiImage, FiX } from 'react-icons/fi';
 import type { PropFieldSchema } from '@/lib/page-builder/types';
 import { MediaPickerDialog } from './MediaPickerDialog';
 import styles from './FieldRenderer.module.css';
+import { useTranslations } from '@/hooks/useTranslations';
 
 type FieldRendererProps = {
   type: PropFieldSchema['type'];
@@ -30,6 +31,7 @@ export const FieldRenderer: React.FC<FieldRendererProps> = ({
   min,
   max,
 }) => {
+  const t = useTranslations();
   switch (type) {
     case 'text':
       return (
@@ -62,7 +64,7 @@ export const FieldRenderer: React.FC<FieldRendererProps> = ({
           value={(value as string) ?? ''}
           onChange={(e) => onChange(e.target.value)}
         >
-          <option value="">Select...</option>
+          <option value="">{t('sitePanelShell.pageBuilderUi.fieldRenderer.selectPlaceholder')}</option>
           {options?.map((opt) => (
             <option key={opt.value} value={opt.value}>
               {opt.label}
@@ -97,7 +99,7 @@ export const FieldRenderer: React.FC<FieldRendererProps> = ({
             className={styles.textInput}
             value={(value as string) ?? ''}
             onChange={(e) => onChange(e.target.value)}
-            placeholder={placeholder || 'https://...'}
+            placeholder={placeholder || t('sitePanelShell.pageBuilderUi.fieldRenderer.linkPlaceholder')}
           />
         </div>
       );
@@ -219,6 +221,7 @@ const ColorInput: React.FC<{
   value: string | undefined;
   onChange: (value: string) => void;
 }> = ({ value, onChange }) => {
+  const t = useTranslations();
   const [isOpen, setIsOpen] = useState(false);
   const [hexInput, setHexInput] = useState(normalizeHex(value) ?? '#3b82f6');
 
@@ -268,7 +271,7 @@ const ColorInput: React.FC<{
           className={styles.colorSwatchButton}
           style={{ backgroundColor: currentHex }}
           onClick={() => setIsOpen((prev) => !prev)}
-          aria-label="Open color picker"
+          aria-label={t('sitePanelShell.pageBuilderUi.fieldRenderer.openColorPicker')}
         />
         <input
           type="text"
@@ -333,7 +336,7 @@ const ColorInput: React.FC<{
                   setHsv(rgbToHsv(rgb.r, rgb.g, rgb.b));
                   onChange(preset);
                 }}
-                aria-label={`Use ${preset}`}
+                aria-label={t('sitePanelShell.pageBuilderUi.fieldRenderer.useColor', { color: preset })}
               />
             ))}
           </div>
@@ -347,6 +350,7 @@ const SpacingInput: React.FC<{
   value: string | undefined;
   onChange: (value: string) => void;
 }> = ({ value, onChange }) => {
+  const t = useTranslations();
   // Parse value like "10px 20px" or "10px"
   const parseSpacing = (val: string | undefined) => {
     if (!val) return { top: '', right: '', bottom: '', left: '' };
@@ -388,7 +392,7 @@ const SpacingInput: React.FC<{
           value={spacing.top}
           onChange={(e) => handleChange('top', e.target.value)}
           placeholder="0"
-          title="Top"
+          title={t('sitePanelShell.pageBuilderUi.fieldRenderer.top')}
         />
         <input
           type="text"
@@ -396,7 +400,7 @@ const SpacingInput: React.FC<{
           value={spacing.left}
           onChange={(e) => handleChange('left', e.target.value)}
           placeholder="0"
-          title="Left"
+          title={t('sitePanelShell.pageBuilderUi.fieldRenderer.left')}
         />
         <div className={styles.spacingCenter} />
         <input
@@ -405,7 +409,7 @@ const SpacingInput: React.FC<{
           value={spacing.right}
           onChange={(e) => handleChange('right', e.target.value)}
           placeholder="0"
-          title="Right"
+          title={t('sitePanelShell.pageBuilderUi.fieldRenderer.right')}
         />
         <input
           type="text"
@@ -413,7 +417,7 @@ const SpacingInput: React.FC<{
           value={spacing.bottom}
           onChange={(e) => handleChange('bottom', e.target.value)}
           placeholder="0"
-          title="Bottom"
+          title={t('sitePanelShell.pageBuilderUi.fieldRenderer.bottom')}
         />
       </div>
     </div>
@@ -422,14 +426,15 @@ const SpacingInput: React.FC<{
 
 /**
  * Image Input with Media Picker
- * 
- * Pozwala na wybĂłr obrazu z biblioteki mediĂłw site'u
- * lub rÄ™czne wpisanie URL.
+ *
+ * Allows selecting an image from the site media library
+ * or entering a URL manually.
  */
 const ImageInput: React.FC<{
   value: string | undefined;
   onChange: (value: unknown) => void;
 }> = ({ value, onChange }) => {
+  const t = useTranslations();
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [previewError, setPreviewError] = useState(false);
 
@@ -455,7 +460,7 @@ const ImageInput: React.FC<{
           {!previewError ? (
             <Image
               src={value!}
-              alt="Preview"
+              alt={t('sitePanelShell.pageBuilderUi.fieldRenderer.preview')}
               width={64}
               height={64}
               sizes="64px"
@@ -466,14 +471,14 @@ const ImageInput: React.FC<{
           ) : (
             <div className={styles.imagePreviewBroken} title={value}>
               <FiImage aria-hidden />
-              <span>Invalid or inaccessible</span>
+              <span>{t('sitePanelShell.pageBuilderUi.fieldRenderer.invalidOrInaccessible')}</span>
             </div>
           )}
           <button
             type="button"
             onClick={handleClear}
             className={styles.imageClearButton}
-            title="Remove image"
+            title={t('sitePanelShell.pageBuilderUi.fieldRenderer.removeImage')}
           >
             <FiX />
           </button>
@@ -487,13 +492,13 @@ const ImageInput: React.FC<{
           className={styles.textInput}
           value={value ?? ''}
           onChange={(e) => onChange(e.target.value)}
-          placeholder="Image URL..."
+          placeholder={t('sitePanelShell.pageBuilderUi.fieldRenderer.imageUrlPlaceholder')}
         />
         <button
           type="button"
           onClick={() => setIsPickerOpen(true)}
           className={styles.imageSelectButton}
-          title="Select from media library"
+          title={t('sitePanelShell.pageBuilderUi.fieldRenderer.selectFromMediaLibrary')}
         >
           <FiImage />
         </button>
@@ -512,9 +517,6 @@ const ImageInput: React.FC<{
 };
 
 export default FieldRenderer;
-
-
-
 
 
 

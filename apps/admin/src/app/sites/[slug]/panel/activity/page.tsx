@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { SitePanelLayout } from "@/components/site-panel/SitePanelLayout";
 import { useTranslations } from "@/hooks/useTranslations";
@@ -14,7 +14,7 @@ import { useToast } from "@/components/ui/Toast";
 export default function ActivityPage() {
   const params = useParams<{ slug: string }>();
   const slug = params?.slug as string;
-  const apiClient = createApiClient();
+  const apiClient = useMemo(() => createApiClient(), []);
   const toast = useToast();
   const t = useTranslations();
 

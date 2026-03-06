@@ -17,17 +17,18 @@ import { CAPABILITY_MODULES, type CapabilityModule, type RbacCapability } from "
 import SearchAndFilters from "@/components/ui/SearchAndFilters";
 import { useToast } from "@/components/ui/Toast";
 import { toFriendlyMessage } from "@/lib/errors";
+import { useTranslations } from "@/hooks/useTranslations";
 
-const MODULE_LABELS: Record<CapabilityModule, string> = {
-  org: "Organization",
-  billing: "Billing",
-  sites: "Sites",
-  builder: "Builder",
-  content: "Content",
-  hosting: "Hosting",
-  domains: "Domains",
-  marketing: "Marketing",
-  analytics: "Analytics",
+const MODULE_LABEL_KEYS: Record<CapabilityModule, string> = {
+  org: "orgRbac.modules.org",
+  billing: "orgRbac.modules.billing",
+  sites: "orgRbac.modules.sites",
+  builder: "orgRbac.modules.builder",
+  content: "orgRbac.modules.content",
+  hosting: "orgRbac.modules.hosting",
+  domains: "orgRbac.modules.domains",
+  marketing: "orgRbac.modules.marketing",
+  analytics: "orgRbac.modules.analytics",
 };
 
 function getOwnerFlag(): boolean {
@@ -47,6 +48,8 @@ export default function OrgEffectivePermissionsPage() {
   const orgId = params?.orgId ?? "";
   const defaultSiteId = searchParams?.get("siteId") ?? "";
   const { push } = useToast();
+  const t = useTranslations();
+  const moduleLabel = useCallback((module: CapabilityModule) => t(MODULE_LABEL_KEYS[module]), [t]);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -74,11 +77,11 @@ export default function OrgEffectivePermissionsPage() {
       setSites(sitesData);
       setCapabilities(capabilitiesData);
     } catch (err) {
-      setError(toFriendlyMessage(err, "Failed to load permissions."));
+      setError(toFriendlyMessage(err, t("orgEffective.failedToLoadPermissions")));
     } finally {
       setLoading(false);
     }
-  }, [orgId]);
+  }, [orgId, t]);
 
   const loadEffective = useCallback(
     async (userId: string, siteId?: string) => {
@@ -94,12 +97,12 @@ export default function OrgEffectivePermissionsPage() {
         });
         setEffective(data);
       } catch (err) {
-        push({ tone: "error", message: toFriendlyMessage(err, "Failed to load effective permissions.") });
+        push({ tone: "error", message: toFriendlyMessage(err, t("orgEffective.failedToLoadEffectivePermissions")) });
       } finally {
         setLoadingEffective(false);
       }
     },
-    [orgId, push]
+    [orgId, push, t]
   );
 
   useEffect(() => {
@@ -135,14 +138,14 @@ export default function OrgEffectivePermissionsPage() {
   const resolveRoleSources = (entry?: EffectivePermission) => {
     if (!entry?.roleSources || entry.roleSources.length === 0) return "-";
     return entry.roleSources
-      .map((source) => (typeof source === "string" ? source : source.roleName || source.name || source.id || "Unknown"))
+      .map((source) => (typeof source === "string" ? source : source.roleName || source.name || source.id || t("orgEffective.unknown")))
       .join(", ");
   };
 
   if (loading) {
     return (
       <div className="card card-pad">
-        <div style={{ color: "var(--muted)" }}>Loading effective permissions...</div>
+        <div style={{ color: "var(--muted)" }}>{t("orgEffective.loadingEffectivePermissions")}</div>
       </div>
     );
   }
@@ -152,7 +155,7 @@ export default function OrgEffectivePermissionsPage() {
       <div className="card card-pad">
         <div className="text-error">{error}</div>
         <div className="spacer-sm" />
-        <button className="btn" onClick={loadBaseData}>Retry</button>
+        <button className="btn" onClick={loadBaseData}>{t("common.retry")}</button>
       </div>
     );
   }
@@ -160,14 +163,14 @@ export default function OrgEffectivePermissionsPage() {
   return (
     <div className="org-settings-page">
       <div className="card card-pad">
-        <div className="section-title">Effective permissions</div>
+        <div className="section-title">{t("orgEffective.title")}</div>
         <div className="detail-label" style={{ marginTop: 6 }}>
-          Final permissions after role + policy resolution.
+          {t("orgEffective.description")}
         </div>
         <div className="spacer-sm" />
         <div className="card" style={{ padding: 12, borderRadius: 18, background: "rgba(0,163,255,0.08)", border: "1px solid rgba(0,163,255,0.25)" }}>
           <span style={{ fontSize: 12 }}>
-            Select a user and optionally a site to see the resulting access.
+            {t("orgEffective.hint")}
           </span>
         </div>
       </div>
@@ -177,18 +180,18 @@ export default function OrgEffectivePermissionsPage() {
       <div className="card card-pad">
         <div className="grid" style={{ gap: 12 }}>
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wide text-muted mb-1">User</label>
+            <label className="block text-xs font-semibold uppercase tracking-wide text-muted mb-1">{t("orgEffective.user")}</label>
             <select className="input" value={selectedUserId} onChange={(event) => setSelectedUserId(event.target.value)}>
-              <option value="">Select a user</option>
+              <option value="">{t("orgEffective.selectUser")}</option>
               {users.map((user) => (
                 <option key={user.id} value={user.id}>{user.email}</option>
               ))}
             </select>
           </div>
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wide text-muted mb-1">Site (optional)</label>
+            <label className="block text-xs font-semibold uppercase tracking-wide text-muted mb-1">{t("orgEffective.siteOptional")}</label>
             <select className="input" value={selectedSiteId} onChange={(event) => setSelectedSiteId(event.target.value)}>
-              <option value="">Organization scope</option>
+              <option value="">{t("orgEffective.organizationScope")}</option>
               {sites.map((site) => (
                 <option key={site.siteId} value={site.siteId}>{site.site.name}</option>
               ))}
@@ -202,17 +205,17 @@ export default function OrgEffectivePermissionsPage() {
       <SearchAndFilters
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
-        placeholder="Search options"
+        placeholder={t("orgEffective.searchOptions")}
         filters={[
           {
             key: "module",
-            label: "Module",
+            label: t("orgEffective.module"),
             value: moduleFilter,
             options: [
-              { value: "all", label: "All" },
+              { value: "all", label: t("common.all") },
               ...CAPABILITY_MODULES.filter((module) => (isOwner ? true : module !== "billing")).map((module) => ({
                 value: module,
-                label: MODULE_LABELS[module],
+                label: moduleLabel(module),
               })),
             ],
             onChange: setModuleFilter,
@@ -223,24 +226,24 @@ export default function OrgEffectivePermissionsPage() {
       <div className="spacer" />
 
       {!selectedUserId ? (
-        <div className="card card-pad" style={{ color: "var(--muted)" }}>Select a user to view effective permissions.</div>
+        <div className="card card-pad" style={{ color: "var(--muted)" }}>{t("orgEffective.selectUserToView")}</div>
       ) : loadingEffective ? (
-        <div className="card card-pad" style={{ color: "var(--muted)" }}>Calculating access...</div>
+        <div className="card card-pad" style={{ color: "var(--muted)" }}>{t("orgEffective.calculatingAccess")}</div>
       ) : groupedCapabilities.length === 0 ? (
-        <div className="card card-pad" style={{ color: "var(--muted)" }}>No options for the selected filters.</div>
+        <div className="card card-pad" style={{ color: "var(--muted)" }}>{t("orgEffective.noOptionsForFilters")}</div>
       ) : (
         groupedCapabilities.map((group) => (
           <div key={group.module} className="card card-pad" style={{ marginBottom: 14 }}>
-            <div style={{ fontWeight: 900, fontSize: 14, marginBottom: 10 }}>{MODULE_LABELS[group.module]}</div>
+            <div style={{ fontWeight: 900, fontSize: 14, marginBottom: 10 }}>{moduleLabel(group.module)}</div>
             <div className="overflow-x-auto">
               <table className="table">
                 <thead>
                   <tr>
-                    <th>Option</th>
-                    <th>Access</th>
-                    <th>Policy</th>
-                    <th>Reason</th>
-                    <th>Role sources</th>
+                    <th>{t("orgEffective.columns.option")}</th>
+                    <th>{t("orgEffective.columns.access")}</th>
+                    <th>{t("orgEffective.columns.policy")}</th>
+                    <th>{t("orgEffective.columns.reason")}</th>
+                    <th>{t("orgEffective.columns.roleSources")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -248,15 +251,15 @@ export default function OrgEffectivePermissionsPage() {
                     const entry = effectiveMap.get(capability.key);
                     const allowed = Boolean(entry?.allowed);
                     const policyEnabled = entry?.policyEnabled ?? capability.policyEnabled ?? true;
-                    const reason = entry?.reason || (allowed ? "From role" : policyEnabled ? "Missing in roles" : "Disabled by policy");
+                    const reason = entry?.reason || (allowed ? t("orgEffective.reasonFromRole") : policyEnabled ? t("orgEffective.reasonMissingInRoles") : t("orgEffective.reasonDisabledByPolicy"));
                     return (
                       <tr key={capability.key}>
                         <td>
                           <div style={{ fontWeight: 700 }}>{capability.label}</div>
                           <div className="detail-label">{capability.key}</div>
                         </td>
-                        <td><span className={allowed ? "badge green" : "badge gray"}>{allowed ? "Yes" : "No"}</span></td>
-                        <td><span className={policyEnabled ? "badge green" : "badge orange"}>{policyEnabled ? "Enabled" : "Disabled"}</span></td>
+                        <td><span className={allowed ? "badge green" : "badge gray"}>{allowed ? t("orgEffective.yes") : t("orgEffective.no")}</span></td>
+                        <td><span className={policyEnabled ? "badge green" : "badge orange"}>{policyEnabled ? t("orgEffective.enabled") : t("orgEffective.disabled")}</span></td>
                         <td style={{ color: "var(--muted)" }}>{reason}</td>
                         <td>{resolveRoleSources(entry)}</td>
                       </tr>

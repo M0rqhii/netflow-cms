@@ -7,8 +7,8 @@ import { routing } from '../../i18n/routing';
 import Script from 'next/script';
 
 export const metadata: Metadata = {
-  title: 'Login - Netflow CMS',
-  description: 'Login to Netflow CMS Admin Panel',
+  title: 'Login - Net-Flow',
+  description: 'Login to Net-Flow Admin Panel',
 };
 
 export default function LoginLayout({

@@ -11,6 +11,7 @@ import { dismissOnboarding, markOnboardingSeenThisSession, shouldShowOnboarding 
 import { useTranslations } from '@/hooks/useTranslations';
 import { useLanguage } from '@/hooks/useLanguage';
 import { decodeAuthToken, getAuthToken } from '@/lib/api';
+import { formatPlanTierLabel, normalizePlanTier } from '@/lib/plans';
 
 // Icon components
 const StatIcon = ({ icon, className }: { icon: string; className?: string }) => {
@@ -239,7 +240,7 @@ export default function DashboardPage() {
       const matchesSearch = !searchQuery ||
         site.site.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         site.site.slug?.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesPlan = planFilter === 'all' || site.site?.plan === planFilter;
+      const matchesPlan = planFilter === 'all' || normalizePlanTier(site.site?.plan) === planFilter;
       return matchesSearch && matchesPlan;
     });
   }, [sites, searchQuery, planFilter]);
@@ -248,7 +249,7 @@ export default function DashboardPage() {
     if (groupBy !== 'plan') return null;
     return filteredSites.reduce((acc, site) => {
       if (!site?.site) return acc;
-      const plan = site.site.plan || 'free';
+      const plan = normalizePlanTier(site.site.plan);
       if (!acc[plan]) acc[plan] = [];
       acc[plan].push(site);
       return acc;
@@ -341,7 +342,7 @@ export default function DashboardPage() {
               {site.site.slug}
             </div>
           </div>
-          <span className="badge">{site.site.plan || 'free'}</span>
+          <span className="badge">{formatPlanTierLabel(site.site.plan)}</span>
         </div>
         <div className="flex justify-end" style={{ marginTop: '12px' }}>
           <span className="btn btn-outline" style={{ fontSize: '12px', height: '32px', padding: '0 12px' }}>
@@ -623,9 +624,8 @@ export default function DashboardPage() {
                     onChange={(e) => setPlanFilter(e.target.value)}
                   >
                     <option value="all">{t('dashboard.allPlans')}</option>
-                    <option value="free">{t('dashboard.free')}</option>
-                    <option value="professional">{t('dashboard.professional')}</option>
-                    <option value="enterprise">{t('dashboard.enterprise')}</option>
+                    <option value="basic">BASIC</option>
+                    <option value="pro">PRO</option>
                   </select>
                   <select
                     className="input" style={{ width: 'auto', height: '36px', fontSize: '13px', padding: '0 12px' }}
@@ -665,7 +665,7 @@ export default function DashboardPage() {
                     {Object.entries(groupedSites).map(([plan, sites]) => (
                       <div key={plan}>
                         <h3 className="text-sm font-semibold mb-2 capitalize text-foreground flex items-center gap-2">
-                          {plan}
+                          {formatPlanTierLabel(plan)}
                           <span className="text-xs font-normal text-muted bg-surface px-2 py-0.5 rounded-full">{sites.length}</span>
                         </h3>
                         <div className="space-y-2">

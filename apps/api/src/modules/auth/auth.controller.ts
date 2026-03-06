@@ -72,6 +72,49 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle(3, 60) // 3 reset requests per minute
+  @Post('password/reset-request')
+  @HttpCode(HttpStatus.OK)
+  async requestPasswordReset(
+    @Body(
+      new ZodValidationPipe(
+        z.object({
+          email: z.string().email(),
+          orgId: z.string().uuid().optional(),
+        }),
+      ),
+    )
+    body: { email: string; orgId?: string },
+  ) {
+    return this.authService.requestPasswordReset(body);
+  }
+
+  @Public()
+  @Throttle(30, 60)
+  @Get('password/action/:token')
+  async getPasswordActionTokenStatus(@Param('token') token: string) {
+    return this.authService.getPasswordActionTokenStatus(token);
+  }
+
+  @Public()
+  @Throttle(5, 60)
+  @Post('password/reset-confirm')
+  @HttpCode(HttpStatus.OK)
+  async confirmPasswordReset(
+    @Body(
+      new ZodValidationPipe(
+        z.object({
+          token: z.string().min(20),
+          password: z.string().min(8).max(128),
+        }),
+      ),
+    )
+    body: { token: string; password: string },
+  ) {
+    return this.authService.confirmPasswordAction(body);
+  }
+
+  @Public()
   @Throttle(3, 60) // 3 requests per minute
   @Post('register')
   @HttpCode(HttpStatus.CREATED)

@@ -182,12 +182,12 @@ export default function AccountPage() {
       });
       applySecuritySettings(next);
       pushToast({
-        message: "Security settings saved",
+        message: t("account.securitySettingsSaved"),
         tone: "success",
       });
     } catch (error) {
       pushToast({
-        message: error instanceof Error ? error.message : "Failed to save security settings",
+        message: error instanceof Error ? error.message : t("account.failedToSaveSecuritySettings"),
         tone: "error",
       });
     } finally {
@@ -206,12 +206,12 @@ export default function AccountPage() {
       });
       applySecuritySettings(next);
       pushToast({
-        message: next.twoFactorEnabled ? "2FA enabled" : "2FA disabled",
+        message: next.twoFactorEnabled ? t("account.twoFactorEnabledToast") : t("account.twoFactorDisabledToast"),
         tone: "success",
       });
     } catch (error) {
       pushToast({
-        message: error instanceof Error ? error.message : "Failed to change 2FA status",
+        message: error instanceof Error ? error.message : t("account.failedToChangeTwoFactorStatus"),
         tone: "error",
       });
     } finally {
@@ -226,12 +226,12 @@ export default function AccountPage() {
       setRecoveryCodes(result.recoveryCodes || []);
       setSecurityUpdatedAt(result.generatedAt || new Date().toISOString());
       pushToast({
-        message: "Recovery codes regenerated",
+        message: t("account.recoveryCodesRegenerated"),
         tone: "success",
       });
     } catch (error) {
       pushToast({
-        message: error instanceof Error ? error.message : "Failed to regenerate recovery codes",
+        message: error instanceof Error ? error.message : t("account.failedToRegenerateRecoveryCodes"),
         tone: "error",
       });
     } finally {
@@ -268,12 +268,12 @@ export default function AccountPage() {
           <div className="row-start flex-wrap">
             <div>
               <div className="view-title">{t("account.title")}</div>
-              <div className="view-sub">Compact account center: profile, password, billing and account security.</div>
+              <div className="view-sub">{t("account.compactAccountCenterDescription")}</div>
             </div>
             <div className="row-wrap">
               <span className="badge gray">{email}</span>
               <span className={twoFactorEnabled ? "badge green" : "badge gray"}>
-                {twoFactorEnabled ? "2FA enabled" : "2FA disabled"}
+                {twoFactorEnabled ? t("account.twoFactorEnabled") : t("account.twoFactorDisabled")}
               </span>
             </div>
           </div>
@@ -320,13 +320,13 @@ export default function AccountPage() {
 
           <div className="card card-pad">
             <div className="row-between flex-wrap">
-              <div className="section-title">Security and 2FA</div>
+              <div className="section-title">{t("account.securityAnd2fa")}</div>
               <span className={twoFactorEnabled ? "badge green" : "badge gray"}>
-                {twoFactorEnabled ? "Enabled" : "Disabled"}
+                {twoFactorEnabled ? t("account.enabled") : t("account.disabled")}
               </span>
             </div>
             <div className="detail-label mt-1.5">
-              Additional account protection, login alerts and recovery options.
+              {t("account.securityDescription")}
             </div>
             <div className="spacer-sm" />
 
@@ -334,7 +334,7 @@ export default function AccountPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold uppercase tracking-wide text-muted mb-1">
-                    2FA method
+                    {t("account.twoFactorMethod")}
                   </label>
                   <select
                     className="input"
@@ -342,13 +342,13 @@ export default function AccountPage() {
                     onChange={(e) => setTwoFactorMethod(e.target.value as "auth_app" | "email")}
                     disabled={securitySaving}
                   >
-                    <option value="auth_app">Authenticator app</option>
-                    <option value="email">Email code</option>
+                    <option value="auth_app">{t("account.authenticatorApp")}</option>
+                    <option value="email">{t("account.emailCode")}</option>
                   </select>
                 </div>
                 <div>
                   <label className="block text-xs font-semibold uppercase tracking-wide text-muted mb-1">
-                    Session timeout
+                    {t("account.sessionTimeout")}
                   </label>
                   <select
                     className="input"
@@ -356,10 +356,10 @@ export default function AccountPage() {
                     onChange={(e) => setSessionTimeoutMinutes(Number(e.target.value))}
                     disabled={securitySaving}
                   >
-                    <option value={15}>15 minutes</option>
-                    <option value={30}>30 minutes</option>
-                    <option value={60}>60 minutes</option>
-                    <option value={240}>4 hours</option>
+                    <option value={15}>{t("account.sessionMinutes15")}</option>
+                    <option value={30}>{t("account.sessionMinutes30")}</option>
+                    <option value={60}>{t("account.sessionMinutes60")}</option>
+                    <option value={240}>{t("account.sessionHours4")}</option>
                   </select>
                 </div>
               </div>
@@ -371,19 +371,19 @@ export default function AccountPage() {
                   disabled={securitySaving}
                   onChange={(e) => setLoginAlerts(e.target.checked)}
                 />
-                <span className="text-sm">Send login alerts on new device sign-ins</span>
+                <span className="text-sm">{t("account.sendLoginAlerts")}</span>
               </label>
 
               <div className="row-wrap" style={{ justifyContent: "space-between" }}>
                 <div className="detail-label">
-                  Last update: {formatSecurityDate(securityUpdatedAt)}
+                  {t("account.lastUpdate")}: {formatSecurityDate(securityUpdatedAt)}
                 </div>
                 <div className="row-wrap">
                   <button className="btn" type="button" onClick={handleToggleTwoFactor} disabled={securitySaving}>
-                    {twoFactorEnabled ? "Disable 2FA" : "Enable 2FA"}
+                    {twoFactorEnabled ? t("account.disableTwoFactor") : t("account.enableTwoFactor")}
                   </button>
                   <button className="btn btn-primary" type="submit" disabled={securitySaving}>
-                    {securitySaving ? "Saving..." : "Save security"}
+                    {securitySaving ? t("account.saving") : t("account.saveSecurity")}
                   </button>
                 </div>
               </div>
@@ -394,9 +394,9 @@ export default function AccountPage() {
                 <div className="spacer-sm" />
                 <div className="card tab-bar">
                   <div className="row-between flex-wrap">
-                    <div className="detail-label">Recovery codes (store them safely)</div>
+                    <div className="detail-label">{t("account.recoveryCodesDescription")}</div>
                     <button className="btn" type="button" onClick={handleRegenerateCodes} disabled={securitySaving}>
-                      Regenerate
+                      {t("account.regenerate")}
                     </button>
                   </div>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2">

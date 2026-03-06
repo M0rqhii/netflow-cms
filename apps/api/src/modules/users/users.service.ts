@@ -1,10 +1,10 @@
-import { Injectable, NotFoundException, ForbiddenException, ConflictException, BadRequestException, Inject, Optional, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, ConflictException, BadRequestException, Optional, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuditService, AuditEvent } from '../../common/audit/audit.service';
-import { Mailer } from '../../common/providers/interfaces';
-import { randomBytes } from 'crypto';
+import { randomBytes, createHash } from 'crypto';
 import * as bcrypt from 'bcrypt';
+import { AccountNotificationsService } from '../../common/notifications/account-notifications.service';
 
 /**
  * Legacy role values for backward compatibility with database
@@ -27,7 +27,7 @@ export class UsersService {
 
   constructor(
     private readonly prisma: PrismaService,
-    @Optional() @Inject('Mailer') private readonly mailer?: Mailer,
+    private readonly notifications: AccountNotificationsService,
     @Optional() private readonly configService?: ConfigService,
     @Optional() private readonly auditService?: AuditService,
   ) {}
@@ -57,6 +57,58 @@ export class UsersService {
       process.env.NEXT_PUBLIC_APP_URL ||
       'http://localhost:3000';
     return `${baseUrl.replace(/\/$/, '')}/invite/${token}`;
+  }
+
+  private getPasswordSetupTtlMs(): number {
+    const ttlRaw =
+      this.configService?.get<string>('ACCOUNT_SETUP_TTL_HOURS') ||
+      process.env.ACCOUNT_SETUP_TTL_HOURS;
+    const ttlHours = ttlRaw ? Number(ttlRaw) : 48;
+    const safeHours = Number.isFinite(ttlHours) && ttlHours > 0 ? ttlHours : 48;
+    return safeHours * 60 * 60 * 1000;
+  }
+
+  private buildPasswordSetupLink(token: string): string {
+    const baseUrl =
+      this.configService?.get<string>('FRONTEND_URL') ||
+      process.env.FRONTEND_URL ||
+      process.env.NEXT_PUBLIC_APP_URL ||
+      'http://localhost:3000';
+    return `${baseUrl.replace(/\/$/, '')}/reset-password?token=${encodeURIComponent(token)}`;
+  }
+
+  private hashToken(token: string): string {
+    return createHash('sha256').update(token).digest('hex');
+  }
+
+  private async createPasswordSetupToken(
+    userId: string,
+  ): Promise<{ token: string; expiresAt: Date }> {
+    const passwordTokenModel = (this.prisma as any).passwordActionToken;
+    const token = randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + this.getPasswordSetupTtlMs());
+
+    await passwordTokenModel.updateMany({
+      where: {
+        userId,
+        purpose: 'account_setup',
+        usedAt: null,
+      },
+      data: {
+        usedAt: new Date(),
+      },
+    });
+
+    await passwordTokenModel.create({
+      data: {
+        userId,
+        tokenHash: this.hashToken(token),
+        purpose: 'account_setup',
+        expiresAt,
+      },
+    });
+
+    return { token, expiresAt };
   }
 
   private async ensureSiteInOrg(orgId: string, siteId: string) {
@@ -195,10 +247,11 @@ export class UsersService {
    * Update user preferences (language, etc.)
    */
   async updatePreferences(userId: string, preferences: { preferredLanguage?: 'pl' | 'en' }) {
-    const updateData: { preferredLanguage?: string } = {};
+    const updateData: { preferredLanguage?: string; languageChosenAt?: Date } = {};
     
     if (preferences.preferredLanguage !== undefined) {
       updateData.preferredLanguage = preferences.preferredLanguage;
+      updateData.languageChosenAt = new Date();
     }
 
     const user = await this.prisma.user.update({
@@ -224,7 +277,7 @@ export class UsersService {
    */
   async createUser(
     orgId: string,
-    dto: { email: string; password: string; role: string; preferredLanguage?: 'pl' | 'en' },
+    dto: { email: string; password?: string; role: string; preferredLanguage?: 'pl' | 'en' },
     requestingUserRole: string,
   ) {
     // Only org admins (org_admin role) and super_admin can create users
@@ -236,6 +289,7 @@ export class UsersService {
     }
 
     const normalizedRole = dto.role === 'site_admin' ? LegacyRole.ORG_ADMIN : dto.role;
+    const email = dto.email.trim().toLowerCase();
 
     // Security: Only super_admin can create super_admin users
     if (normalizedRole === LegacyRole.SUPER_ADMIN && requestingUserRole !== LegacyRole.SUPER_ADMIN) {
@@ -257,7 +311,7 @@ export class UsersService {
       where: {
         orgId_email: {
           orgId: orgId,
-          email: dto.email,
+          email,
         },
       },
     });
@@ -269,19 +323,26 @@ export class UsersService {
     // Check if organization exists
     const organization = await this.prisma.organization.findUnique({
       where: { id: orgId },
+      select: {
+        id: true,
+        name: true,
+      },
     });
 
     if (!organization) {
       throw new NotFoundException('Organization not found');
     }
 
-    // Hash password
-    const passwordHash = await bcrypt.hash(dto.password, 10);
+    const rawPassword =
+      typeof dto.password === 'string' && dto.password.trim().length >= 8
+        ? dto.password
+        : randomBytes(24).toString('base64url');
+    const passwordHash = await bcrypt.hash(rawPassword, 10);
 
     // Create user
     const user = await this.prisma.user.create({
       data: {
-        email: dto.email,
+        email,
         passwordHash,
         orgId: orgId,
         role: normalizedRole,
@@ -289,6 +350,9 @@ export class UsersService {
         platformRole,
         isSuperAdmin,
         preferredLanguage: dto.preferredLanguage || 'en',
+        languageChosenAt: null,
+        mustCompleteOnboarding: true,
+        mustChangePassword: true,
       },
       select: {
         id: true,
@@ -305,7 +369,29 @@ export class UsersService {
       create: { userId: user.id, orgId, role: normalizedRole },
     });
 
-    return user;
+    let setupEmailSent = false;
+    try {
+      const setupToken = await this.createPasswordSetupToken(user.id);
+      await this.notifications.sendAccountCreatedEmail({
+        to: user.email,
+        organizationName: organization.name,
+        role: normalizedRole,
+        setupUrl: this.buildPasswordSetupLink(setupToken.token),
+        expiresAt: setupToken.expiresAt,
+      });
+      setupEmailSent = true;
+    } catch (error) {
+      this.logger.error(
+        `Failed to send account setup email for ${user.email}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
+
+    return {
+      ...user,
+      setupEmailSent,
+    };
   }
 
   /**
@@ -378,33 +464,23 @@ export class UsersService {
     });
 
     const inviteLink = this.buildInviteLink(token);
-    const subject = `You're invited to ${organization?.name || 'an organization'} on Netflow CMS`;
-    const body = [
-      `You've been invited to join ${organization?.name || 'an organization'} on Netflow CMS.`,
-      site?.name ? `Site: ${site.name}` : undefined,
-      '',
-      `Accept your invite: ${inviteLink}`,
-      '',
-      `This invite expires on ${expiresAt.toISOString()}.`,
-    ]
-      .filter(Boolean)
-      .join('\n');
-
-    if (this.mailer) {
-      await this.mailer.sendEmail({
+    let emailSent = false;
+    try {
+      await this.notifications.sendInviteEmail({
         to: email,
-        subject,
-        body,
-        metadata: {
-          orgId,
-          siteId,
-          inviteId: invite.id,
-          orgSlug: organization?.slug,
-          siteSlug: site?.slug,
-        },
+        organizationName: organization?.name || 'Net-Flow',
+        siteName: site?.name || null,
+        role,
+        inviteUrl: inviteLink,
+        expiresAt,
       });
-    } else {
-      this.logger.warn(`Mailer not configured; invite email for ${email} not sent`);
+      emailSent = true;
+    } catch (error) {
+      this.logger.error(
+        `Failed to send invite email for ${email}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
     }
 
     if (this.auditService) {
@@ -422,7 +498,10 @@ export class UsersService {
       });
     }
 
-    return invite;
+    return {
+      ...invite,
+      emailSent,
+    };
   }
 
   /**
@@ -549,5 +628,3 @@ export class UsersService {
   }
 
 }
-
-

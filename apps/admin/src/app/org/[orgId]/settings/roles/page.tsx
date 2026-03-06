@@ -20,6 +20,7 @@ import Modal from "@/components/ui/Modal";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/components/ui/Toast";
 import { toFriendlyMessage } from "@/lib/errors";
+import { useTranslations } from "@/hooks/useTranslations";
 
 type RoleEditorState = {
   name: string;
@@ -28,16 +29,16 @@ type RoleEditorState = {
   capabilityKeys: CapabilityKey[];
 };
 
-const MODULE_LABELS: Record<CapabilityModule, string> = {
-  org: "Organization",
-  billing: "Billing",
-  sites: "Sites",
-  builder: "Builder",
-  content: "Content",
-  hosting: "Hosting",
-  domains: "Domains",
-  marketing: "Marketing",
-  analytics: "Analytics",
+const MODULE_LABEL_KEYS: Record<CapabilityModule, string> = {
+  org: "orgRbac.modules.org",
+  billing: "orgRbac.modules.billing",
+  sites: "orgRbac.modules.sites",
+  builder: "orgRbac.modules.builder",
+  content: "orgRbac.modules.content",
+  hosting: "orgRbac.modules.hosting",
+  domains: "orgRbac.modules.domains",
+  marketing: "orgRbac.modules.marketing",
+  analytics: "orgRbac.modules.analytics",
 };
 
 const BLOCKED_CUSTOM_ROLE_KEYS = new Set<CapabilityKey>([
@@ -89,6 +90,8 @@ export default function OrgRolesPage() {
   const params = useParams<{ orgId: string }>();
   const orgId = params?.orgId ?? "";
   const { push } = useToast();
+  const t = useTranslations();
+  const moduleLabel = useCallback((module: CapabilityModule) => t(MODULE_LABEL_KEYS[module]), [t]);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -126,11 +129,11 @@ export default function OrgRolesPage() {
       setRoles(rolesData);
       setCapabilities(capabilitiesData);
     } catch (err) {
-      setError(toFriendlyMessage(err, "Failed to load roles."));
+      setError(toFriendlyMessage(err, t("orgRoles.failedToLoadRoles")));
     } finally {
       setLoading(false);
     }
-  }, [orgId]);
+  }, [orgId, t]);
 
   useEffect(() => {
     if (!orgId) return;
@@ -178,7 +181,7 @@ export default function OrgRolesPage() {
     } else if (role) {
       setEditorRoleId(role.id);
       setEditorState({
-        name: mode === "duplicate" ? `${role.name} Copy` : role.name,
+        name: mode === "duplicate" ? `${role.name} ${t("orgRoles.copySuffix")}` : role.name,
         description: role.description ?? "",
         scope: role.scope,
         capabilityKeys: role.capabilities.map((cap) => cap.key),
@@ -199,11 +202,11 @@ export default function OrgRolesPage() {
 
   const handleSave = async () => {
     if (!editorState.name.trim()) {
-      push({ tone: "error", message: "Role name is required." });
+      push({ tone: "error", message: t("orgRoles.roleNameRequired") });
       return;
     }
     if (editorState.capabilityKeys.length === 0) {
-      push({ tone: "error", message: "Select at least one capability." });
+      push({ tone: "error", message: t("orgRoles.selectAtLeastOneCapability") });
       return;
     }
 
@@ -215,7 +218,7 @@ export default function OrgRolesPage() {
           description: editorState.description,
           capabilityKeys: editorState.capabilityKeys,
         });
-        push({ tone: "success", message: "Role updated." });
+        push({ tone: "success", message: t("orgRoles.roleUpdated") });
       } else {
         await createRbacRole(orgId, {
           name: editorState.name,
@@ -223,13 +226,13 @@ export default function OrgRolesPage() {
           scope: editorState.scope,
           capabilityKeys: editorState.capabilityKeys,
         });
-        push({ tone: "success", message: "Role created." });
+        push({ tone: "success", message: t("orgRoles.roleCreated") });
       }
       setEditorOpen(false);
       setEditorState({ name: "", description: "", scope: "SITE", capabilityKeys: [] });
       await loadData();
     } catch (err) {
-      push({ tone: "error", message: toFriendlyMessage(err, "Failed to save role.") });
+      push({ tone: "error", message: toFriendlyMessage(err, t("orgRoles.failedToSaveRole")) });
     } finally {
       setSaving(false);
     }
@@ -240,11 +243,11 @@ export default function OrgRolesPage() {
     setDeleting(true);
     try {
       await deleteRbacRole(orgId, deleteRoleId, true);
-      push({ tone: "success", message: "Role removed." });
+      push({ tone: "success", message: t("orgRoles.roleRemoved") });
       setDeleteRoleId(null);
       await loadData();
     } catch (err) {
-      push({ tone: "error", message: toFriendlyMessage(err, "Failed to delete role.") });
+      push({ tone: "error", message: toFriendlyMessage(err, t("orgRoles.failedToDeleteRole")) });
     } finally {
       setDeleting(false);
     }
@@ -253,7 +256,7 @@ export default function OrgRolesPage() {
   if (loading) {
     return (
       <div className="card card-pad">
-        <div className="text-muted">Loading roles...</div>
+        <div className="text-muted">{t("orgRoles.loadingRoles")}</div>
       </div>
     );
   }
@@ -263,7 +266,7 @@ export default function OrgRolesPage() {
       <div className="card card-pad">
         <div className="text-error">{error}</div>
         <div className="spacer-sm" />
-        <button className="btn" onClick={loadData}>Retry</button>
+        <button className="btn" onClick={loadData}>{t("common.retry")}</button>
       </div>
     );
   }
@@ -272,10 +275,10 @@ export default function OrgRolesPage() {
     <div className="animate-fade-in org-settings-page">
       <div className="card card-pad">
         <div className="row-wrap justify-start">
-          <button className={clsx("btn", activeTab === "system" ? "btn-primary" : "btn-outline")} onClick={() => setActiveTab("system")}>System roles</button>
-          <button className={clsx("btn", activeTab === "custom" ? "btn-primary" : "btn-outline")} onClick={() => setActiveTab("custom")}>Custom roles</button>
+          <button className={clsx("btn", activeTab === "system" ? "btn-primary" : "btn-outline")} onClick={() => setActiveTab("system")}>{t("orgRoles.systemRoles")}</button>
+          <button className={clsx("btn", activeTab === "custom" ? "btn-primary" : "btn-outline")} onClick={() => setActiveTab("custom")}>{t("orgRoles.customRoles")}</button>
           {activeTab === "custom" && (
-            <button className="btn btn-primary" onClick={() => openEditor("create")}>Create role</button>
+            <button className="btn btn-primary" onClick={() => openEditor("create")}>{t("orgRoles.createRole")}</button>
           )}
         </div>
       </div>
@@ -285,7 +288,7 @@ export default function OrgRolesPage() {
       {activeTab === "system" ? (
         <div className="space-y-3">
           {systemRoles.length === 0 ? (
-            <div className="card card-pad text-muted">No system roles.</div>
+            <div className="card card-pad text-muted">{t("orgRoles.noSystemRoles")}</div>
           ) : (
             systemRoles.map((role) => {
               const expanded = expandedRoles[role.id] ?? false;
@@ -295,28 +298,28 @@ export default function OrgRolesPage() {
                   <div className="row-start flex-wrap">
                     <div>
                       <div className="font-black text-[15px]">{role.name}</div>
-                      <div className="detail-label">{role.description || "System role preset."}</div>
+                      <div className="detail-label">{role.description || t("orgRoles.systemRolePreset")}</div>
                     </div>
                     <div className="row-wrap">
                       <span className="badge gray">{role.scope}</span>
-                      <span className="badge green">System</span>
+                      <span className="badge green">{t("orgRoles.systemBadge")}</span>
                       <button className="btn" onClick={() => setExpandedRoles((prev) => ({ ...prev, [role.id]: !expanded }))}>
-                        {expanded ? "Hide" : "Show"} capabilities
+                        {expanded ? t("orgRoles.hideCapabilities") : t("orgRoles.showCapabilities")}
                       </button>
                     </div>
                   </div>
                   {expanded && (
                     <div className="mt-2.5">
                       {visibleRoleCaps.length === 0 ? (
-                        <div className="text-muted">No capabilities to show.</div>
+                        <div className="text-muted">{t("orgRoles.noCapabilitiesToShow")}</div>
                       ) : (
                         <div className="overflow-x-auto">
                           <table className="table">
                             <thead>
                               <tr>
-                                <th>Capability</th>
-                                <th>Key</th>
-                                <th>Module</th>
+                                <th>{t("orgRoles.columns.capability")}</th>
+                                <th>{t("orgRoles.columns.key")}</th>
+                                <th>{t("orgRoles.columns.module")}</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -324,7 +327,7 @@ export default function OrgRolesPage() {
                                 <tr key={`${role.id}-${cap.key}`}>
                                   <td>{cap.label ?? cap.key}</td>
                                   <td className="text-muted">{cap.key}</td>
-                                  <td>{MODULE_LABELS[cap.module]}</td>
+                                  <td>{moduleLabel(cap.module)}</td>
                                 </tr>
                               ))}
                             </tbody>
@@ -343,14 +346,14 @@ export default function OrgRolesPage() {
           <SearchAndFilters
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
-            placeholder="Search custom roles"
+            placeholder={t("orgRoles.searchCustomRoles")}
             filters={[
               {
                 key: "scope",
-                label: "Scope",
+                label: t("orgRoles.scope"),
                 value: scopeFilter,
                 options: [
-                  { value: "all", label: "All" },
+                  { value: "all", label: t("common.all") },
                   { value: "ORG", label: "ORG" },
                   { value: "SITE", label: "SITE" },
                 ],
@@ -360,19 +363,19 @@ export default function OrgRolesPage() {
           />
 
           {filteredCustomRoles.length === 0 ? (
-            <div className="card card-pad text-muted">No custom roles.</div>
+            <div className="card card-pad text-muted">{t("orgRoles.noCustomRoles")}</div>
           ) : (
             filteredCustomRoles.map((role) => (
               <div key={role.id} className="card card-pad">
                 <div className="row-start flex-wrap">
                   <div>
                     <div className="font-black text-[15px]">{role.name}</div>
-                    <div className="detail-label">{role.description || "Custom role"}</div>
+                    <div className="detail-label">{role.description || t("orgRoles.customRoleFallback")}</div>
                   </div>
                   <div className="row-wrap">
                     <span className="badge gray">{role.scope}</span>
-                    <span className="badge orange">Custom</span>
-                    <span className="badge gray">{role.capabilities.length} caps</span>
+                    <span className="badge orange">{t("orgRoles.customBadge")}</span>
+                    <span className="badge gray">{t("orgRoles.capabilitiesCount", { count: role.capabilities.length })}</span>
                   </div>
                 </div>
                 <div className="row-between flex-wrap mt-2.5">
@@ -381,9 +384,9 @@ export default function OrgRolesPage() {
                     {role.capabilities.length > 4 ? "..." : ""}
                   </div>
                   <div className="row-wrap">
-                    <button className="btn" onClick={() => openEditor("edit", role)}>Edit</button>
-                    <button className="btn" onClick={() => openEditor("duplicate", role)}>Duplicate</button>
-                    <button className="btn" onClick={() => setDeleteRoleId(role.id)}>Delete</button>
+                    <button className="btn" onClick={() => openEditor("edit", role)}>{t("common.edit")}</button>
+                    <button className="btn" onClick={() => openEditor("duplicate", role)}>{t("orgRoles.duplicate")}</button>
+                    <button className="btn" onClick={() => setDeleteRoleId(role.id)}>{t("common.delete")}</button>
                   </div>
                 </div>
               </div>
@@ -395,48 +398,48 @@ export default function OrgRolesPage() {
       <Modal
         open={editorOpen}
         onClose={() => !saving && setEditorOpen(false)}
-        title={editorMode === "edit" ? "Edit custom role" : editorMode === "duplicate" ? "Duplicate role" : "Create custom role"}
+        title={editorMode === "edit" ? t("orgRoles.modal.editTitle") : editorMode === "duplicate" ? t("orgRoles.modal.duplicateTitle") : t("orgRoles.modal.createTitle")}
         className="max-w-5xl"
       >
         <div className="space-y-6">
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wide text-muted mb-1">Role name</label>
-              <Input value={editorState.name} onChange={(event) => setEditorState((prev) => ({ ...prev, name: event.target.value }))} placeholder="Role name" />
+              <label className="block text-xs font-semibold uppercase tracking-wide text-muted mb-1">{t("orgRoles.modal.roleName")}</label>
+              <Input value={editorState.name} onChange={(event) => setEditorState((prev) => ({ ...prev, name: event.target.value }))} placeholder={t("orgRoles.modal.roleNamePlaceholder")} />
             </div>
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wide text-muted mb-1">Scope</label>
+              <label className="block text-xs font-semibold uppercase tracking-wide text-muted mb-1">{t("orgRoles.scope")}</label>
               <select
                 className="input"
                 value={editorState.scope}
                 onChange={(event) => setEditorState((prev) => ({ ...prev, scope: event.target.value as "ORG" | "SITE" }))}
                 disabled={editorMode === "edit"}
               >
-                <option value="ORG">ORG - Organization-wide</option>
-                <option value="SITE">SITE - Site-specific</option>
+                <option value="ORG">{t("orgRoles.modal.scopeOrg")}</option>
+                <option value="SITE">{t("orgRoles.modal.scopeSite")}</option>
               </select>
               {editorMode === "edit" && (
-                <p className="text-xs text-muted mt-1">Scope cannot be changed for existing roles.</p>
+                <p className="text-xs text-muted mt-1">{t("orgRoles.modal.scopeEditHint")}</p>
               )}
             </div>
             <div className="md:col-span-2">
-              <label className="block text-xs font-semibold uppercase tracking-wide text-muted mb-1">Description</label>
-              <Input value={editorState.description} onChange={(event) => setEditorState((prev) => ({ ...prev, description: event.target.value }))} placeholder="Optional description" />
+              <label className="block text-xs font-semibold uppercase tracking-wide text-muted mb-1">{t("orgRoles.modal.description")}</label>
+              <Input value={editorState.description} onChange={(event) => setEditorState((prev) => ({ ...prev, description: event.target.value }))} placeholder={t("orgRoles.modal.descriptionPlaceholder")} />
             </div>
           </div>
 
           <div className="card card-pad">
             <div className="grid gap-2.5">
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wide text-muted mb-1">Search capabilities</label>
-                <Input value={capabilitySearch} onChange={(event) => setCapabilitySearch(event.target.value)} placeholder="Search by label or key" />
+                <label className="block text-xs font-semibold uppercase tracking-wide text-muted mb-1">{t("orgRoles.modal.searchCapabilities")}</label>
+                <Input value={capabilitySearch} onChange={(event) => setCapabilitySearch(event.target.value)} placeholder={t("orgRoles.modal.searchCapabilitiesPlaceholder")} />
               </div>
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wide text-muted mb-1">Module</label>
+                <label className="block text-xs font-semibold uppercase tracking-wide text-muted mb-1">{t("orgRoles.columns.module")}</label>
                 <select className="input" value={capabilityModuleFilter} onChange={(event) => setCapabilityModuleFilter(event.target.value)}>
-                  <option value="all">All modules</option>
+                  <option value="all">{t("orgRoles.modal.allModules")}</option>
                   {CAPABILITY_MODULES.filter((module) => (isOwner ? true : module !== "billing")).map((module) => (
-                    <option key={module} value={module}>{MODULE_LABELS[module]}</option>
+                    <option key={module} value={module}>{moduleLabel(module)}</option>
                   ))}
                 </select>
               </div>
@@ -445,13 +448,13 @@ export default function OrgRolesPage() {
             <div className="h-3" />
 
             {groupedCapabilities.length === 0 ? (
-              <div className="text-muted">No results.</div>
+              <div className="text-muted">{t("common.noResults")}</div>
             ) : (
               <div className="space-y-6">
                 {groupedCapabilities.map((group) => (
                   <div key={group.module}>
                     <div className="flex items-center gap-2 mb-2">
-                      <div className="detail-label">{MODULE_LABELS[group.module]}</div>
+                      <div className="detail-label">{moduleLabel(group.module)}</div>
                       <span className="badge gray">{group.items.length}</span>
                     </div>
                     <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -462,9 +465,9 @@ export default function OrgRolesPage() {
                         const checked = editorState.capabilityKeys.includes(capability.key);
                         const checkboxId = `cap-${capability.key}`;
                         const tooltip = policyDisabled
-                          ? "Disabled by organization policy."
+                          ? t("orgRoles.modal.disabledByPolicy")
                           : blocked
-                          ? "Reserved for system roles."
+                          ? t("orgRoles.modal.reservedForSystemRoles")
                           : undefined;
 
                         return (
@@ -491,7 +494,7 @@ export default function OrgRolesPage() {
                               <div className="row">
                                 <span className="font-bold">{capability.label}</span>
                                 {(capability.isDangerous || DANGEROUS_CAPABILITY_KEYS.has(capability.key)) && (
-                                  <span className="badge orange">Dangerous</span>
+                                  <span className="badge orange">{t("orgRoles.dangerous")}</span>
                                 )}
                               </div>
                               <div className="detail-label">{capability.key}</div>
@@ -511,12 +514,12 @@ export default function OrgRolesPage() {
 
           <div className="row-between flex-wrap">
             <div className="detail-label">
-              System roles are fixed. Custom roles are built by selecting capabilities.
+              {t("orgRoles.modal.footerHint")}
             </div>
             <div className="row-wrap gap-2">
-              <button className="btn" onClick={() => setEditorOpen(false)} disabled={saving}>Cancel</button>
+              <button className="btn" onClick={() => setEditorOpen(false)} disabled={saving}>{t("common.cancel")}</button>
               <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
-                {editorMode === "edit" ? "Save changes" : "Create role"}
+                {editorMode === "edit" ? t("orgRoles.modal.saveChanges") : t("orgRoles.createRole")}
               </button>
             </div>
           </div>
@@ -527,10 +530,10 @@ export default function OrgRolesPage() {
         open={Boolean(deleteRoleId)}
         onClose={() => setDeleteRoleId(null)}
         onConfirm={handleDelete}
-        title="Delete role"
-        message="This will remove the role and all assignments. Continue?"
-        confirmLabel="Delete"
-        cancelLabel="Cancel"
+        title={t("orgRoles.confirmDeleteTitle")}
+        message={t("orgRoles.confirmDeleteMessage")}
+        confirmLabel={t("common.delete")}
+        cancelLabel={t("common.cancel")}
         variant="danger"
         loading={deleting}
       />

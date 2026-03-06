@@ -3,6 +3,8 @@
  * Single source of truth — do NOT duplicate these in page components.
  */
 
+import { normalizePlanTier } from "@/lib/plans";
+
 export function timeAgo(ts: string | number): string {
   const d = typeof ts === "number" ? ts : new Date(ts).getTime();
   const s = Math.max(0, Math.floor((Date.now() - d) / 1000));
@@ -44,9 +46,8 @@ export function statusToBadge(status?: string | null): BadgeStyle {
   if (s === "published" || s === "live") return ["Published", "badge green"] as const;
   if (s === "draft") return ["Draft", "badge orange"] as const;
   if (s === "pending") return ["Pending", "badge blue"] as const;
-  if (s === "enterprise") return ["Enterprise", "badge green"] as const;
-  if (s === "professional" || s === "pro") return ["Professional", "badge blue"] as const;
-  if (s === "free" || s === "basic") return ["Free", "badge gray"] as const;
+  if (normalizePlanTier(s) === "pro") return ["PRO", "badge green"] as const;
+  if (normalizePlanTier(s) === "basic") return ["BASIC", "badge gray"] as const;
   return [status || "Unknown", "badge gray"] as const;
 }
 

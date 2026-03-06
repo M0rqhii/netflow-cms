@@ -136,13 +136,13 @@ export default function OrgUsersPage() {
 
   const handleCreateUser = async (event: FormEvent) => {
     event.preventDefault();
-    if (!orgId || !createEmail.trim() || !createPassword) return;
+    if (!orgId || !createEmail.trim()) return;
 
     try {
       setCreating(true);
       await createOrgUser(orgId, {
         email: createEmail.trim().toLowerCase(),
-        password: createPassword,
+        password: createPassword.trim() ? createPassword : undefined,
         role: createRole,
         preferredLanguage: language,
       });
@@ -290,9 +290,9 @@ export default function OrgUsersPage() {
             type="password"
             value={createPassword}
             onChange={(event) => setCreatePassword(event.target.value)}
-            required
             placeholder="********"
-            minLength={6}
+            minLength={8}
+            helperText={t("users.passwordOptionalHelper")}
           />
           <div>
             <label htmlFor="create-org-user-role" className="block text-xs font-semibold uppercase tracking-wide text-muted mb-1">

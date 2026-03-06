@@ -12,7 +12,7 @@ const inter = Inter({
 });
 
 export const metadata = {
-  title: 'Netflow CMS - Admin Panel',
+  title: 'Net-Flow - Admin Panel',
   description: 'Multi-Site Headless CMS Admin Panel',
   icons: {
     icon: '/assets/Net-Flow-Logo-Symbol.png',

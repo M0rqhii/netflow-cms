@@ -3,19 +3,21 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
+import { useTranslations } from "@/hooks/useTranslations";
 
 export const DEV_PANEL_TABS = [
-  { id: "runtime", label: "Runtime", href: "/dev/runtime" },
-  { id: "sites", label: "Sites", href: "/dev/sites" },
-  { id: "payments", label: "Payments", href: "/dev/payments" },
-  { id: "emails", label: "Email Logs", href: "/dev/emails" },
-  { id: "api-keys", label: "API Keys", href: "/dev/api-keys" },
-  { id: "webhooks", label: "Webhooks", href: "/dev/webhooks" },
-  { id: "logs", label: "Logs", href: "/dev/logs" },
-  { id: "flags", label: "Feature Flags", href: "/dev/flags" },
+  { id: "runtime", labelKey: "devPanel.tabs.runtime", href: "/dev/runtime" },
+  { id: "sites", labelKey: "devPanel.tabs.sites", href: "/dev/sites" },
+  { id: "payments", labelKey: "devPanel.tabs.payments", href: "/dev/payments" },
+  { id: "emails", labelKey: "devPanel.tabs.emails", href: "/dev/emails" },
+  { id: "api-keys", labelKey: "devPanel.tabs.apiKeys", href: "/dev/api-keys" },
+  { id: "webhooks", labelKey: "devPanel.tabs.webhooks", href: "/dev/webhooks" },
+  { id: "logs", labelKey: "devPanel.tabs.logs", href: "/dev/logs" },
+  { id: "flags", labelKey: "devPanel.tabs.flags", href: "/dev/flags" },
 ] as const;
 
 export function DevPanelTabs({ className }: { className?: string }) {
+  const t = useTranslations();
   const pathname = usePathname();
 
   return (
@@ -25,7 +27,7 @@ export function DevPanelTabs({ className }: { className?: string }) {
           const isActive = pathname === tab.href || (pathname === "/dev" && tab.id === "runtime");
           return (
             <Link key={tab.id} href={tab.href} className="pill-btn" aria-current={isActive ? "page" : undefined}>
-              {tab.label}
+              {t(tab.labelKey)}
             </Link>
           );
         })}

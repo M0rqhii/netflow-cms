@@ -8,6 +8,7 @@ import { fetchOrgDashboard, type DashboardResponse } from "@/lib/api";
 import { useToast } from "@/components/ui/Toast";
 import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import { timeAgo } from "@/lib/formatters";
+import { formatPlanTierLabel } from "@/lib/plans";
 
 export default function OrgDashboardPage() {
   const params = useParams<{ orgId: string }>();
@@ -107,7 +108,7 @@ export default function OrgDashboardPage() {
           <div className="card card-pad" style={{ borderRadius: 18 }}>
             <div style={{ fontWeight: 900, fontSize: 14 }}>Plan</div>
             <div className="spacer-sm" />
-            <div style={{ fontWeight: 900, fontSize: 18 }}>{data.business.plan.name}</div>
+            <div style={{ fontWeight: 900, fontSize: 18 }}>{formatPlanTierLabel(data.business.plan.name)}</div>
             <div className="detail-label" style={{ marginTop: 6 }}>
               Pages: {data.business.plan.limits.maxPages === -1 ? "Unlimited" : data.business.plan.limits.maxPages}
               <br />
@@ -200,7 +201,7 @@ export default function OrgDashboardPage() {
                         {site.name}
                       </Link>
                       <span className={getStatusBadgeClass(site.status)}>{site.status}</span>
-                      {site.plan && <span className="badge gray">{site.plan}</span>}
+                      {site.plan && <span className="badge gray">{formatPlanTierLabel(site.plan)}</span>}
                     </div>
                     <div className="detail-label" style={{ marginTop: 6 }}>
                       {site.domain ? `Domain: ${site.domain}` : "No domain"}

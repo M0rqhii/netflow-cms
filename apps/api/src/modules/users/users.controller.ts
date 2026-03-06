@@ -147,10 +147,10 @@ export class UsersController {
     @CurrentUser() user: { role: string },
     @Body(new ZodValidationPipe(z.object({
       email: z.string().email('Invalid email format'),
-      password: z.string().min(6, 'Password must be at least 6 characters'),
+      password: z.string().min(8, 'Password must be at least 8 characters').optional(),
       role: z.enum(['super_admin', 'org_admin', 'editor', 'viewer', 'site_admin']),
       preferredLanguage: z.enum(['pl', 'en']).optional().default('en'),
-    }))) body: { email: string; password: string; role: string; preferredLanguage?: 'pl' | 'en' }
+    }))) body: { email: string; password?: string; role: string; preferredLanguage?: 'pl' | 'en' }
   ) {
     return this.usersService.createUser(orgId, body, user.role);
   }
@@ -173,5 +173,4 @@ export class UsersController {
     return this.usersService.updateUserRole(userId, orgId, body.role, user.role);
   }
 }
-
 

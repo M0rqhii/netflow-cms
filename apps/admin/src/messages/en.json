@@ -63,7 +63,30 @@
     "twoFactorHintRecovery": "Use your authenticator app code or a recovery code.",
     "twoFactorMethodEmail": "Method: email code",
     "twoFactorMethodAuthApp": "Method: authenticator app or recovery code",
-    "twoFactorStepNote": "2FA is required only for accounts with enabled two-factor authentication."
+    "twoFactorStepNote": "2FA is required only for accounts with enabled two-factor authentication.",
+    "forgotPassword": "Forgot password?",
+    "resetRequestTitle": "Reset your password",
+    "resetRequestSubtitle": "Enter your email and we will send a reset link.",
+    "resetRequestSent": "If the account exists, a reset email has been sent.",
+    "resetRequestError": "Failed to send reset request.",
+    "sendingResetRequest": "Sending request...",
+    "sendResetRequest": "Send reset link",
+    "optionalOrgId": "Organization ID (optional)",
+    "optionalOrgIdPlaceholder": "Optional UUID",
+    "optionalOrgIdHint": "Fill this only when your login is scoped to a specific organization.",
+    "resetTokenInvalid": "Reset link is invalid or expired.",
+    "resetConfirmTitle": "Set a new password",
+    "resetConfirmSubtitle": "Choose a strong password for your account.",
+    "resetConfirmSuccess": "Password updated successfully. You can sign in now.",
+    "resetConfirmError": "Failed to save your new password.",
+    "accountSetupTitle": "Activate your account",
+    "accountSetupSubtitle": "Set your password to finish account activation.",
+    "accountSetupComplete": "Account activated. You can now sign in.",
+    "newPassword": "New password",
+    "savingPassword": "Saving password...",
+    "saveNewPassword": "Save new password",
+    "resetPasswordMinLength": "Password must have at least 8 characters.",
+    "resetPasswordMismatch": "Passwords do not match."
   },
   "navigation": {
     "dashboard": "Overview",
@@ -546,7 +569,8 @@
     "userRoleUpdatedSuccessfully": "User role updated successfully",
     "failedToUpdateUserRole": "Failed to update user role",
     "inviteRevoked": "Invite revoked",
-    "failedToRevokeInvite": "Failed to revoke invite"
+    "failedToRevokeInvite": "Failed to revoke invite",
+    "passwordOptionalHelper": "Optional. Leave empty to force secure password setup by email link."
   },
   "settings": {
     "title": "Configuration",
@@ -599,7 +623,36 @@
     "passwordChangedSuccessfully": "Password changed successfully",
     "failedToChangePassword": "Failed to change password",
     "billingInformationUpdatedSuccessfully": "Billing information updated successfully",
-    "failedToUpdateBillingInformation": "Failed to update billing information"
+    "failedToUpdateBillingInformation": "Failed to update billing information",
+    "authenticatorApp": "Authenticator app",
+    "compactAccountCenterDescription": "Manage language, password, billing and account security settings.",
+    "disableTwoFactor": "Disable 2FA",
+    "disabled": "Disabled",
+    "emailCode": "Email code",
+    "enableTwoFactor": "Enable 2FA",
+    "enabled": "Enabled",
+    "failedToChangeTwoFactorStatus": "Failed to change two-factor authentication status",
+    "failedToRegenerateRecoveryCodes": "Failed to regenerate recovery codes",
+    "failedToSaveSecuritySettings": "Failed to save security settings",
+    "lastUpdate": "Last update",
+    "recoveryCodesDescription": "Store recovery codes in a safe place. Each code can be used once.",
+    "recoveryCodesRegenerated": "Recovery codes regenerated successfully",
+    "regenerate": "Regenerate",
+    "saveSecurity": "Save security",
+    "securityAnd2fa": "Security and 2FA",
+    "securityDescription": "Configure two-factor authentication, session timeout and login alerts.",
+    "securitySettingsSaved": "Security settings saved",
+    "sendLoginAlerts": "Send login alerts",
+    "sessionHours4": "4 hours",
+    "sessionMinutes15": "15 minutes",
+    "sessionMinutes30": "30 minutes",
+    "sessionMinutes60": "60 minutes",
+    "sessionTimeout": "Session timeout",
+    "twoFactorDisabled": "2FA disabled",
+    "twoFactorDisabledToast": "Two-factor authentication disabled",
+    "twoFactorEnabled": "2FA enabled",
+    "twoFactorEnabledToast": "Two-factor authentication enabled",
+    "twoFactorMethod": "Two-factor method"
   },
   "seo": {
     "basicSeo": "Basic SEO",
@@ -834,7 +887,55 @@
       "blogPostsPerPage": "Posts per page",
       "blogShowCategories": "Show categories"
     },
-    "plan": "Plan"
+    "plan": "Plan",
+    "moduleDisabledWithName": "Module \"{module}\" disabled",
+    "moduleEnabledWithName": "Module \"{module}\" enabled",
+    "modules": {
+      "accessibilityWidget": {
+        "title": "Accessibility widget",
+        "description": "Improves accessibility with contrast, focus and text-size tools."
+      },
+      "analytics": {
+        "title": "Analytics",
+        "description": "Collects traffic and conversion analytics."
+      },
+      "blogContent": {
+        "title": "Blog and content",
+        "description": "Adds articles, categories and content listing widgets."
+      },
+      "consentSecurity": {
+        "title": "Consent and security",
+        "description": "Manages cookie consent and security-related integrations."
+      },
+      "embedsMedia": {
+        "title": "Embeds and media",
+        "description": "Enables external media embeds and supported providers."
+      },
+      "formsPro": {
+        "title": "Forms Pro",
+        "description": "Advanced forms with uploads, consent and automation hooks."
+      },
+      "maps": {
+        "title": "Maps",
+        "description": "Displays interactive maps and location sections."
+      },
+      "metaPixel": {
+        "title": "Meta Pixel",
+        "description": "Adds Meta Pixel tracking for marketing campaigns."
+      },
+      "payments": {
+        "title": "Payments",
+        "description": "Processes online payments and checkout flows."
+      },
+      "shop": {
+        "title": "Shop",
+        "description": "Provides product catalog and ecommerce components."
+      },
+      "tagManager": {
+        "title": "Tag Manager",
+        "description": "Integrates container-based marketing tags."
+      }
+    }
   },
   "sitePanelShell": {
     "overview": {
@@ -983,6 +1084,58 @@
       },
       "drag": {
         "block": "Block"
+      },
+      "fieldRenderer": {
+        "bottom": "Bottom",
+        "imageUrlPlaceholder": "Image URL or local asset path",
+        "invalidOrInaccessible": "Invalid or inaccessible image",
+        "left": "Left",
+        "linkPlaceholder": "https://example.com",
+        "openColorPicker": "Open color picker",
+        "preview": "Preview",
+        "removeImage": "Remove image",
+        "right": "Right",
+        "selectFromMediaLibrary": "Select from media library",
+        "selectPlaceholder": "Select...",
+        "top": "Top",
+        "useColor": "Use color {color}"
+      },
+      "layersPanel": {
+        "collapse": "Collapse",
+        "empty": "No blocks on this page yet.",
+        "expand": "Expand",
+        "hide": "Hide",
+        "hideLayer": "Hide layer",
+        "lock": "Lock",
+        "lockLayer": "Lock layer",
+        "noChildren": "No children",
+        "searchPlaceholder": "Search layers...",
+        "show": "Show",
+        "showLayer": "Show layer",
+        "unlock": "Unlock",
+        "unlockLayer": "Unlock layer"
+      },
+      "propertiesPanel": {
+        "additionalCssClasses": "Additional CSS classes",
+        "blockId": "Block ID",
+        "closeSelection": "Close selection",
+        "confirmDelete": "Delete selected block?",
+        "copy": "Copy",
+        "cssClassPlaceholder": "e.g. hero section-highlight",
+        "customLabel": "Custom label",
+        "delete": "Delete",
+        "editingStylesFor": "Editing styles for",
+        "emptyContent": "This block has no editable content fields.",
+        "emptyStyles": "This block has no style fields.",
+        "lock": "Lock",
+        "locked": "Locked",
+        "noBlockDescription": "Select a block on canvas to edit content, style and advanced settings.",
+        "noBlockTitle": "No block selected",
+        "tabs": {
+          "advanced": "Advanced",
+          "content": "Content",
+          "style": "Style"
+        }
       }
     },
     "media": {
@@ -1247,6 +1400,14 @@
       "toasts": {
         "siteNotFound": "Site with slug \"{slug}\" not found",
         "loadError": "Failed to load activity"
+      },
+      "table": {
+        "empty": "No events found",
+        "emptyDescription": "Try changing filters or refresh to load latest events.",
+        "event": "Event",
+        "loading": "Loading events...",
+        "message": "Message",
+        "when": "When"
       }
     },
     "deploymentsUi": {
@@ -1437,5 +1598,388 @@
     "backToSite": "Back to Site",
     "title": "Site Workspace",
     "description": "All site-level operations in one place: overview, pages, content, media, marketing, deployments, and settings."
+  },
+  "onboarding": {
+    "title": "Finish account setup",
+    "subtitle": "Complete these steps before entering the dashboard.",
+    "loadError": "Failed to load onboarding status.",
+    "passwordMinLength": "Password must have at least 8 characters.",
+    "passwordMismatch": "Passwords do not match.",
+    "passwordChangeError": "Failed to change password.",
+    "finishPasswordFirst": "Change your password before finishing onboarding.",
+    "completeError": "Failed to complete onboarding.",
+    "language": "Preferred language",
+    "securityStep": "Security step",
+    "securityStepHint": "For security reasons, please update your current password now.",
+    "saving": "Saving...",
+    "changePassword": "Change password",
+    "passwordUpdated": "Password updated successfully.",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "phone": "Phone number",
+    "firstNamePlaceholder": "John",
+    "lastNamePlaceholder": "Doe",
+    "phonePlaceholder": "+48 600 000 000",
+    "phoneOptional": "Optional. Used for account recovery/contact only.",
+    "finish": "Finish onboarding"
+  },
+  "orgRbac": {
+    "modules": {
+      "analytics": "Analytics",
+      "billing": "Billing",
+      "builder": "Builder",
+      "content": "Content",
+      "domains": "Domains",
+      "hosting": "Hosting",
+      "marketing": "Marketing",
+      "org": "Organization",
+      "sites": "Sites"
+    }
+  },
+  "orgGeneral": {
+    "dangerZone": "Danger zone",
+    "deleteOrganization": "Delete organization",
+    "failedToLoadOrganization": "Failed to load organization",
+    "failedToSaveOrganizationSettings": "Failed to save organization settings",
+    "generalSettings": "General settings",
+    "loadingOrganizationSettings": "Loading organization settings...",
+    "manageOrganizationNameSlugAndPlan": "Manage organization name, slug and plan.",
+    "missingAuthToken": "Missing authentication token",
+    "organizationId": "Organization ID",
+    "organizationName": "Organization name",
+    "organizationNameHelperText": "Visible to users across the platform.",
+    "organizationNamePlaceholder": "Enter organization name",
+    "organizationNotFound": "Organization not found",
+    "organizationSettingsSaved": "Organization settings saved",
+    "plan": "Plan",
+    "planChangesAreHandledInBilling": "Plan changes are handled in billing.",
+    "saveChanges": "Save changes",
+    "saving": "Saving...",
+    "slug": "Slug",
+    "slugCannotBeChangedAfterCreation": "Slug cannot be changed after creation.",
+    "slugHelperText": "Used in URLs and API scopes.",
+    "thisActionIsIrreversible": "This action is irreversible."
+  },
+  "orgPolicies": {
+    "columns": {
+      "key": "Key",
+      "option": "Option",
+      "policy": "Policy",
+      "risk": "Risk"
+    },
+    "description": "Enable or disable capabilities globally with policy controls.",
+    "disabled": "Disabled",
+    "enabled": "Enabled",
+    "failedToLoadSettings": "Failed to load policy settings",
+    "failedToSaveSettings": "Failed to save policy settings",
+    "fixed": "Fixed",
+    "loadingPolicies": "Loading policies...",
+    "module": "Module",
+    "noOptionsForFilters": "No options match current filters.",
+    "riskDangerous": "Dangerous",
+    "riskLow": "Low",
+    "riskMedium": "Medium",
+    "riskUnknown": "Unknown",
+    "searchOptions": "Search options...",
+    "settingSaved": "Policy setting saved",
+    "title": "Access policies"
+  },
+  "orgRoles": {
+    "capabilitiesCount": "{count} capabilities",
+    "columns": {
+      "capability": "Capability",
+      "key": "Key",
+      "module": "Module"
+    },
+    "confirmDeleteMessage": "Do you really want to remove this role?",
+    "confirmDeleteTitle": "Remove role",
+    "copySuffix": "(Copy)",
+    "createRole": "Create role",
+    "customBadge": "Custom",
+    "customRoleFallback": "No description",
+    "customRoles": "Custom roles",
+    "dangerous": "Dangerous",
+    "duplicate": "Duplicate",
+    "failedToDeleteRole": "Failed to delete role",
+    "failedToLoadRoles": "Failed to load roles",
+    "failedToSaveRole": "Failed to save role",
+    "hideCapabilities": "Hide capabilities",
+    "loadingRoles": "Loading roles...",
+    "modal": {
+      "allModules": "All modules",
+      "createTitle": "Create role",
+      "description": "Description",
+      "descriptionPlaceholder": "Describe what this role can do",
+      "disabledByPolicy": "Disabled by policy",
+      "duplicateTitle": "Duplicate role",
+      "editTitle": "Edit role",
+      "footerHint": "Capabilities disabled by policy or reserved for system roles cannot be selected.",
+      "reservedForSystemRoles": "Reserved for system roles",
+      "roleName": "Role name",
+      "roleNamePlaceholder": "e.g. Content editor",
+      "saveChanges": "Save changes",
+      "scopeEditHint": "Scope cannot be changed for an existing role.",
+      "scopeOrg": "Organization",
+      "scopeSite": "Site",
+      "searchCapabilities": "Search capabilities",
+      "searchCapabilitiesPlaceholder": "Search by name, key or description..."
+    },
+    "noCapabilitiesToShow": "No capabilities to show.",
+    "noCustomRoles": "No custom roles.",
+    "noSystemRoles": "No system roles.",
+    "roleCreated": "Role created",
+    "roleNameRequired": "Role name is required",
+    "roleRemoved": "Role removed",
+    "roleUpdated": "Role updated",
+    "scope": "Scope",
+    "searchCustomRoles": "Search custom roles...",
+    "selectAtLeastOneCapability": "Select at least one capability",
+    "showCapabilities": "Show capabilities",
+    "systemBadge": "System",
+    "systemRolePreset": "System role preset",
+    "systemRoles": "System roles"
+  },
+  "orgAssignments": {
+    "assignOrgRole": "Assign organization role",
+    "assignSiteRole": "Assign site role",
+    "assignmentRemoved": "Assignment removed",
+    "columns": {
+      "role": "Role",
+      "scope": "Scope",
+      "site": "Site"
+    },
+    "currentAssignments": "Current assignments",
+    "description": "Assign organization and site roles to users.",
+    "effective": "effective permissions",
+    "failedToAssignRole": "Failed to assign role",
+    "failedToLoadAssignments": "Failed to load assignments",
+    "failedToRemoveAssignment": "Failed to remove assignment",
+    "loadingAssignments": "Loading assignments...",
+    "noAssignmentsForUser": "No assignments for selected user.",
+    "orgRoleAssigned": "Organization role assigned",
+    "organization": "Organization",
+    "remove": "Remove",
+    "removeAssignmentMessage": "Do you really want to remove this assignment?",
+    "removeAssignmentTitle": "Remove assignment",
+    "scope": "Scope",
+    "searchAssignments": "Search assignments...",
+    "seeEffectiveHere": "You can review effective permissions here:",
+    "selectOrgRole": "Select organization role",
+    "selectSite": "Select site",
+    "selectSiteAndRole": "Select site and site role",
+    "selectSiteRole": "Select site role",
+    "selectUser": "Select user",
+    "selectUserAndOrgRole": "Select user and organization role",
+    "selectUserToViewAssignments": "Select a user to view assignments.",
+    "siteRoleAssigned": "Site role assigned",
+    "title": "Role assignments",
+    "unknown": "Unknown",
+    "user": "User"
+  },
+  "orgEffective": {
+    "calculatingAccess": "Calculating access...",
+    "columns": {
+      "access": "Access",
+      "option": "Option",
+      "policy": "Policy",
+      "reason": "Reason",
+      "roleSources": "Role sources"
+    },
+    "description": "Inspect final permissions after roles and policy constraints are applied.",
+    "disabled": "Disabled",
+    "enabled": "Enabled",
+    "failedToLoadEffectivePermissions": "Failed to load effective permissions",
+    "failedToLoadPermissions": "Failed to load permissions",
+    "hint": "Use filters to inspect access at organization or site scope.",
+    "loadingEffectivePermissions": "Loading effective permissions...",
+    "module": "Module",
+    "no": "No",
+    "noOptionsForFilters": "No options match current filters.",
+    "organizationScope": "Organization scope",
+    "reasonDisabledByPolicy": "Disabled by policy",
+    "reasonFromRole": "Granted by role assignment",
+    "reasonMissingInRoles": "Not granted by assigned roles",
+    "searchOptions": "Search options...",
+    "selectUser": "Select user",
+    "selectUserToView": "Select a user to view effective permissions.",
+    "siteOptional": "Site (optional)",
+    "title": "Effective permissions",
+    "unknown": "Unknown",
+    "user": "User",
+    "yes": "Yes"
+  },
+  "devPanel": {
+    "tabs": {
+      "runtime": "Runtime",
+      "sites": "Sites",
+      "payments": "Payments",
+      "emails": "Emails",
+      "apiKeys": "API Keys",
+      "webhooks": "Webhooks",
+      "logs": "Logs",
+      "flags": "Feature Flags"
+    },
+    "common": {
+      "accessDeniedTitle": "Access denied",
+      "active": "Active",
+      "backToDashboard": "Back to dashboard",
+      "disabled": "Disabled",
+      "disabledTitle": "Developer panel disabled",
+      "enabled": "Enabled",
+      "id": "ID",
+      "inactive": "Inactive",
+      "nonProductionOnly": "Available only outside production environment.",
+      "privilegedOnly": "This section is available only for privileged roles.",
+      "profile": "Profile",
+      "refresh": "Refresh",
+      "rows": "Rows",
+      "url": "URL"
+    },
+    "layout": {
+      "defaultDescription": "Diagnostics, integrations and runtime tools for administrators.",
+      "defaultTitle": "Developer Panel",
+      "nonProductionOnly": "Non-production only"
+    },
+    "hub": {
+      "title": "Developer hub",
+      "description": "Inspect runtime, webhooks, feature flags and logs for troubleshooting.",
+      "toasts": {
+        "failedToLoadDeveloperData": "Failed to load developer data"
+      },
+      "runtime": {
+        "title": "Runtime overview",
+        "subtitle": "Current environment and key runtime counters.",
+        "loading": "Loading runtime data...",
+        "notAvailable": "Runtime data is not available.",
+        "env": "Environment",
+        "node": "Node",
+        "api": "API",
+        "cards": {
+          "devEmails": "Dev emails",
+          "featureOverrides": "Feature overrides",
+          "sites": "Sites",
+          "subscriptions": "Subscriptions",
+          "users": "Users",
+          "webhooks": "Webhooks"
+        }
+      },
+      "apiKeys": {
+        "empty": "API keys management will appear here.",
+        "subtitle": "Manage development and integration keys for this environment.",
+        "title": "API keys"
+      },
+      "flags": {
+        "columns": {
+          "created": "Created",
+          "flagKey": "Flag key",
+          "site": "Site",
+          "status": "Status"
+        },
+        "empty": "No feature flags found.",
+        "loading": "Loading feature flags...",
+        "subtitle": "Current feature flag overrides across sites.",
+        "title": "Feature flags"
+      },
+      "logs": {
+        "columns": {
+          "level": "Level",
+          "message": "Message",
+          "module": "Module",
+          "time": "Time"
+        },
+        "empty": "No log entries found.",
+        "loading": "Loading logs...",
+        "subtitle": "Recent application logs for debugging.",
+        "title": "System logs"
+      },
+      "webhooks": {
+        "columns": {
+          "events": "Events",
+          "lastDelivery": "Last delivery",
+          "site": "Site",
+          "status": "Status",
+          "url": "URL"
+        },
+        "empty": "No webhook records found.",
+        "loading": "Loading webhooks...",
+        "subtitle": "Delivery endpoints configured for development events.",
+        "title": "Webhooks"
+      }
+    },
+    "sites": {
+      "title": "Developer sites",
+      "description": "Review created sites, plans and metadata.",
+      "toasts": {
+        "failedToLoadSites": "Failed to load sites"
+      },
+      "loading": "Loading sites...",
+      "empty": "No sites found.",
+      "sectionTitle": "Sites",
+      "sectionSubtitle": "All sites visible in development context.",
+      "columns": {
+        "created": "Created",
+        "name": "Name",
+        "plan": "Plan",
+        "slug": "Slug"
+      },
+      "kpis": {
+        "created30d": "Created (30d)",
+        "latestCreate": "Latest created",
+        "paidPlans": "Paid plans",
+        "totalSites": "Total sites"
+      }
+    },
+    "payments": {
+      "title": "Developer payments",
+      "description": "Inspect subscription and payment events in development.",
+      "toasts": {
+        "failedToLoadPaymentEvents": "Failed to load payment events"
+      },
+      "loading": "Loading payment events...",
+      "empty": "No payment events found.",
+      "sectionTitle": "Payment events",
+      "sectionSubtitle": "Latest subscription and billing records.",
+      "orgs": "Organizations",
+      "columns": {
+        "created": "Created",
+        "orgId": "Org ID",
+        "organization": "Organization",
+        "period": "Period",
+        "periodEnd": "Period end",
+        "periodStart": "Period start",
+        "plan": "Plan",
+        "status": "Status"
+      },
+      "kpis": {
+        "activeTrialing": "Active / trialing",
+        "ended": "Ended",
+        "events": "Events",
+        "nextRenewal": "Next renewal"
+      }
+    },
+    "emails": {
+      "title": "Developer emails",
+      "description": "Track outgoing email events in development.",
+      "toasts": {
+        "failedToLoadEmailLogs": "Failed to load email logs"
+      },
+      "loading": "Loading email logs...",
+      "empty": "No email events found.",
+      "sectionTitle": "Email logs",
+      "sectionSubtitle": "Recent outbound email deliveries.",
+      "recipients": "Recipients",
+      "columns": {
+        "recipient": "Recipient",
+        "status": "Status",
+        "subject": "Subject",
+        "timestamp": "Timestamp"
+      },
+      "kpis": {
+        "events": "Events",
+        "failed": "Failed",
+        "lastEvent": "Last event",
+        "sentDelivered": "Sent / delivered"
+      }
+    }
   }
 }

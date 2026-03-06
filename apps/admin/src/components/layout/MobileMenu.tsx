@@ -53,7 +53,7 @@ export function MobileMenu() {
         <nav className="p-[14px] space-y-3 h-full overflow-y-auto" role="navigation" aria-label="Main navigation">
           <Link href="/dashboard" className="flex items-center gap-2 px-2 py-2" onClick={() => setMobileMenu(false)}>
             <span className="avatar" aria-hidden="true">NF</span>
-            <span className="text-sm font-black tracking-wide">NetFlow CMS</span>
+            <span className="text-sm font-black tracking-wide">Net-Flow</span>
           </Link>
 
           {sections.map((section, sectionIdx) => (
