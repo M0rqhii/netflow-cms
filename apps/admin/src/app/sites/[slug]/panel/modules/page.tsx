@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { SitePanelLayout } from "@/components/site-panel/SitePanelLayout";
-import { Button, ToggleSwitch } from "@repo/ui";
+import clsx from "clsx";
 import { useToast } from "@/components/ui/Toast";
 import { useTranslations } from "@/hooks/useTranslations";
 import { fetchMySites } from "@/lib/api";
@@ -336,13 +336,13 @@ export default function SiteModulesPage() {
                             <div className="font-black detail-label">{MODULE_SETTINGS[module.key].title}</div>
                             <div className="detail-label mt-2">{MODULE_SETTINGS[module.key].description}</div>
                           </div>
-                          <Button
-                            size="sm"
-                            variant="outline"
+                          <button
+                            className="btn btn-outline"
+                            type="button"
                             onClick={() => updateModuleConfig(module.key, draftConfig[module.key] || {})}
                           >
                             {t("siteModules.settings.save")}
-                          </Button>
+                          </button>
                         </div>
                         <div className="spacer-sm" />
                         <div className="form-grid">
@@ -352,20 +352,32 @@ export default function SiteModulesPage() {
                             const numberValue = typeof rawValue === "number" ? rawValue : rawValue ? Number(rawValue) : "";
 
                             if (field.type === "toggle") {
+                              const isChecked = Boolean(value);
                               return (
                                 <label
                                   key={field.key}
                                   className="modules-toggle-row"
                                 >
                                   <span className="detail-label">{field.label}</span>
-                                  <ToggleSwitch
-                                    checked={Boolean(value)}
-                                    onChange={(e) => {
+                                  <button
+                                    type="button"
+                                    onClick={() => {
                                       const next = { ...(draftConfig[module.key] || {}) };
-                                      next[field.key] = e.target.checked;
+                                      next[field.key] = !isChecked;
                                       setDraftConfig({ ...draftConfig, [module.key]: next });
                                     }}
-                                  />
+                                    className={clsx(
+                                      "relative inline-flex h-6 w-11 items-center rounded-full transition",
+                                      isChecked ? "bg-emerald-500" : "bg-border"
+                                    )}
+                                  >
+                                    <span
+                                      className={clsx(
+                                        "inline-block h-5 w-5 transform rounded-full bg-surface shadow transition",
+                                        isChecked ? "translate-x-5" : "translate-x-1"
+                                      )}
+                                    />
+                                  </button>
                                 </label>
                               );
                             }

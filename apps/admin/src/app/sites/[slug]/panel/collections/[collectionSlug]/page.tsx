@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { SitePanelLayout } from "@/components/site-panel/SitePanelLayout";
 import { useTranslations } from "@/hooks/useTranslations";
-import { EmptyState, Button, Modal, LoadingSpinner } from "@repo/ui";
+import { EmptyState, Modal, LoadingSpinner } from "@repo/ui";
 import { useToast } from "@/components/ui/Toast";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import {
@@ -323,12 +323,12 @@ export default function CollectionItemsPage() {
                 </select>
               </div>
               <div className="flex gap-2 justify-end">
-                <Button type="button" variant="outline" onClick={() => setShowCreateModal(false)}>
+                <button className="btn btn-outline" type="button" onClick={() => setShowCreateModal(false)}>
                   Cancel
-                </Button>
-                <Button type="submit" variant="primary" disabled={createSaving}>
+                </button>
+                <button className="btn btn-primary" type="submit" disabled={createSaving}>
                   {createSaving ? "Creating..." : "Create entry"}
-                </Button>
+                </button>
               </div>
             </form>
           </Modal>
@@ -363,12 +363,12 @@ export default function CollectionItemsPage() {
                 </select>
               </div>
               <div className="flex gap-2 justify-end">
-                <Button type="button" variant="outline" onClick={() => setEditingItem(null)}>
+                <button className="btn btn-outline" type="button" onClick={() => setEditingItem(null)}>
                   Cancel
-                </Button>
-                <Button type="submit" variant="primary" disabled={editSaving}>
+                </button>
+                <button className="btn btn-primary" type="submit" disabled={editSaving}>
                   {editSaving ? "Saving..." : "Save changes"}
-                </Button>
+                </button>
               </div>
             </form>
           </Modal>
