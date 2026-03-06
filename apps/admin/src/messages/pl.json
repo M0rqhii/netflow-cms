@@ -87,6 +87,13 @@
     "devLogs": "Logi",
     "devFlags": "Flagi funkcji"
   },
+  "orgSettings": {
+    "general": "Ogólne",
+    "roles": "Role",
+    "policies": "Polityki",
+    "assignments": "Przypisania",
+    "effectivePermissions": "Efektywne uprawnienia"
+  },
   "shell": {
     "searchPlaceholder": "Szukaj w projektach, stronach i ustawieniach",
     "notifications": "Powiadomienia",
@@ -161,7 +168,9 @@
     "users": "Użytkownicy",
     "billing": "Rozliczenia",
     "sitesTable": "Tabela projektów",
-    "failedToLoadSites": "Nie udało się załadować projektów"
+    "failedToLoadSites": "Nie udało się załadować projektów",
+    "loadTimeout": "Przekroczono czas ładowania projektów. Odśwież stronę.",
+    "snapshotUnavailable": "Podgląd niedostępny"
   },
   "pages": {
     "title": "Strony",
@@ -228,6 +237,7 @@
   },
   "newSite": {
     "title": "Utwórz nowy projekt",
+    "subtitle": "Utwórz nowy projekt w systemie.",
     "siteInformation": "Informacje o projekcie",
     "siteName": "Nazwa projektu",
     "siteNamePlaceholder": "Moja świetna strona",
@@ -282,7 +292,7 @@
     "paidTotal": "Suma opłaconych",
     "invoiceNumber": "Numer faktury",
     "paidAt": "Data opłacenia",
-    "demoUsage": "Podglad zuzycia",
+    "demoUsage": "Podgląd zużycia",
     "demoUsageHint": "Metryki zuzycia na podstawie biezacej aktywnosci konta.",
     "demoHistory": "Historia rozliczen",
     "note": "Notatka",
@@ -522,7 +532,7 @@
     "selectCardType": "Wybierz typ karty",
     "summary": "podsumowanie",
     "summaryLargeImage": "podsumowanie_duży_obraz",
-    "preview": "Podglad",
+    "preview": "Podgląd",
     "socialPreviewWillAppearHere": "Podgląd społecznościowy pojawi się tutaj.",
     "configureOpenGraphSettings": "Skonfiguruj ustawienia Open Graph, aby zobaczyć, jak Twoja strona będzie wyglądać podczas udostępniania.",
     "advancedSettings": "Zaawansowane ustawienia",
@@ -907,7 +917,7 @@
         "noEntries": "Brak wpisow."
       },
       "actions": {
-        "preview": "Podglad"
+        "preview": "Podgląd"
       },
       "fields": {
         "title": "Tytul",
@@ -1071,6 +1081,7 @@
       "toasts": {
         "siteNotFound": "Nie znaleziono strony o slug: \"{slug}\"",
         "loadError": "Nie udalo sie pobrac danych",
+        "loadTimeout": "Przekroczono czas ładowania danych strony. Odśwież stronę.",
         "addPageBeforePublish": "Dodaj przynajmniej jedna strone, aby opublikowac.",
         "publishSuccess": "Wszystkie strony opublikowane pomyslnie",
         "publishError": "Nie udalo sie opublikowac stron",
@@ -1100,6 +1111,7 @@
         "untitled": "Bez tytulu",
         "site": "Strona",
         "status": "Status",
+        "notDeployed": "Nie wdrożono",
         "uptime": "Uptime: 99.98%",
         "identity": "Tozsamosc",
         "build": "Build",
@@ -1126,6 +1138,7 @@
       },
       "toasts": {
         "loadError": "Nie udalo sie pobrac stron",
+        "loadTimeout": "Przekroczono czas ładowania stron. Odśwież stronę.",
         "titleRequired": "Tytul strony jest wymagany",
         "slugInvalid": "Slug moze zawierac tylko male litery, cyfry i myslniki",
         "createSuccess": "Strona utworzona pomyslnie",
@@ -1147,10 +1160,10 @@
       },
       "actions": {
         "builder": "Builder",
-        "preview": "Podglad"
+        "preview": "Podgląd"
       },
       "tooltips": {
-        "preview": "Podglad"
+        "preview": "Podgląd"
       },
       "modals": {
         "createTitle": "Utworz nowa strone",

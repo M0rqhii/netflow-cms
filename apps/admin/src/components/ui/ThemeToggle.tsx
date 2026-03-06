@@ -5,6 +5,12 @@ import { useEffect, useState } from 'react';
 type Theme = 'light' | 'dark';
 const THEME_KEY = 'nf-theme';
 
+function applyTheme(theme: Theme) {
+  if (typeof document === 'undefined') return;
+  document.documentElement.setAttribute('data-theme', theme);
+  document.documentElement.classList.toggle('dark', theme === 'dark');
+}
+
 function getSystemPref(): Theme {
   if (typeof window === 'undefined') return 'light';
   return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
@@ -17,21 +23,40 @@ export default function ThemeToggle() {
 
   useEffect(() => {
     const saved = (typeof window !== 'undefined' && (localStorage.getItem(THEME_KEY) as Theme)) || null;
-    const initial = saved || getSystemPref();
+    const initial: Theme = saved === 'dark' || saved === 'light' ? saved : getSystemPref();
     setTheme(initial);
-    if (typeof document !== 'undefined') {
-      document.documentElement.setAttribute('data-theme', initial);
-      document.documentElement.classList.toggle('dark', initial === 'dark');
-    }
+    applyTheme(initial);
+
+    const media = window.matchMedia('(prefers-color-scheme: dark)');
+    const onMediaChange = (event: MediaQueryListEvent) => {
+      const stored = localStorage.getItem(THEME_KEY);
+      if (stored === 'dark' || stored === 'light') return;
+      const systemTheme: Theme = event.matches ? 'dark' : 'light';
+      setTheme(systemTheme);
+      applyTheme(systemTheme);
+    };
+
+    const onStorage = (event: StorageEvent) => {
+      if (event.key !== THEME_KEY) return;
+      const next = event.newValue;
+      if (next !== 'dark' && next !== 'light') return;
+      setTheme(next);
+      applyTheme(next);
+    };
+
+    media.addEventListener('change', onMediaChange);
+    window.addEventListener('storage', onStorage);
+
+    return () => {
+      media.removeEventListener('change', onMediaChange);
+      window.removeEventListener('storage', onStorage);
+    };
   }, []);
 
   const toggle = () => {
     const next: Theme = theme === 'dark' ? 'light' : 'dark';
     setTheme(next);
-    if (typeof document !== 'undefined') {
-      document.documentElement.setAttribute('data-theme', next);
-      document.documentElement.classList.toggle('dark', next === 'dark');
-    }
+    applyTheme(next);
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem(THEME_KEY, next);
     }

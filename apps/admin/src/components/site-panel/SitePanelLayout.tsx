@@ -2,21 +2,22 @@
 
 import React from "react";
 import Link from "next/link";
+import { useTranslations } from "@/hooks/useTranslations";
 
 const SITE_PANEL_TABS = [
-  ["overview", "Overview"],
-  ["pages", "Pages"],
-  ["collections", "Content"],
-  ["media", "Media"],
-  ["marketing", "Marketing / SEO"],
-  ["settings", "Settings"],
-  ["deployments", "Deployment"],
-  ["activity", "Activity"],
-  ["modules", "Modules"],
-  ["snapshots", "Backups"],
+  { key: "overview", labelKey: "sitePanelNav.overview" },
+  { key: "pages", labelKey: "sitePanelNav.pages" },
+  { key: "collections", labelKey: "sitePanelNav.content" },
+  { key: "media", labelKey: "sitePanelNav.media" },
+  { key: "marketing", labelKey: "sitePanelNav.marketing" },
+  { key: "settings", labelKey: "sitePanelNav.settings" },
+  { key: "deployments", labelKey: "sitePanelNav.deployments" },
+  { key: "activity", labelKey: "sitePanelNav.activity" },
+  { key: "modules", labelKey: "sitePanelNav.modules" },
+  { key: "snapshots", labelKey: "sitePanelNav.snapshots" },
 ] as const;
 
-type SitePanelTab = (typeof SITE_PANEL_TABS)[number][0];
+type SitePanelTab = (typeof SITE_PANEL_TABS)[number]["key"];
 
 interface SitePanelLayoutProps {
   children: React.ReactNode;
@@ -28,6 +29,7 @@ interface SitePanelLayoutProps {
 }
 
 export function SitePanelLayout({ children, title, subtitle, actions, slug, activeTab }: SitePanelLayoutProps) {
+  const t = useTranslations();
   const showHeader = Boolean(title || subtitle || actions);
   const showTabs = Boolean(slug && activeTab);
 
@@ -53,13 +55,13 @@ export function SitePanelLayout({ children, title, subtitle, actions, slug, acti
           <>
             <div className="card tab-bar">
               <div className="tab-row">
-                {SITE_PANEL_TABS.map(([key, label]) => (
+                {SITE_PANEL_TABS.map((tab) => (
                   <Link
-                    key={key}
-                    href={`/sites/${encodeURIComponent(slug as string)}/panel/${key}`}
-                    className={activeTab === key ? "btn tab-active" : "btn"}
+                    key={tab.key}
+                    href={`/sites/${encodeURIComponent(slug as string)}/panel/${tab.key}`}
+                    className={activeTab === tab.key ? "btn tab-active" : "btn"}
                   >
-                    {label}
+                    {t(tab.labelKey)}
                   </Link>
                 ))}
               </div>

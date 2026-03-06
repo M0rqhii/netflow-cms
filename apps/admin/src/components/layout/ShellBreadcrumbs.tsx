@@ -17,11 +17,15 @@ const PANEL_LABEL_KEYS: Record<string, string> = {
   media: 'sitePanelNav.media',
   marketing: 'sitePanelNav.marketing',
   deployments: 'sitePanelNav.deployments',
+  deployment: 'sitePanelNav.deployments',
   seo: 'sitePanelNav.seo',
   activity: 'sitePanelNav.activity',
   modules: 'sitePanelNav.modules',
   settings: 'sitePanelNav.settings',
   collections: 'sitePanelNav.collections',
+  snapshots: 'sitePanelNav.snapshots',
+  backups: 'sitePanelNav.snapshots',
+  design: 'sitePanelNav.design',
 };
 
 const DEV_LABEL_KEYS: Record<string, string> = {

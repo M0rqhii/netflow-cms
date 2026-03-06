@@ -48,6 +48,23 @@ export default function SiteOverviewPage() {
   }, [site]);
 
   const planLabel = useMemo(() => site?.site.plan || "org", [site?.site.plan]);
+  const createdAt = (site?.site as SiteWithDates | undefined)?.createdAt;
+  const updatedAt = (site?.site as SiteWithDates | undefined)?.updatedAt;
+  const formattedCreatedAt = createdAt ? new Date(createdAt).toLocaleString() : "-";
+  const formattedUpdatedAt = updatedAt ? new Date(updatedAt).toLocaleString() : "-";
+
+  const details = useMemo(
+    () => [
+      { label: t("siteOverview.name"), value: site?.site.name ?? "-", mono: false },
+      { label: t("siteOverview.slug"), value: site?.site.slug ?? "-", mono: true },
+      { label: t("siteOverview.siteId"), value: site?.siteId ?? "-", mono: true },
+      { label: t("siteOverview.plan"), value: planLabel || t("sitesList.basic"), mono: false },
+      { label: t("siteOverview.created"), value: formattedCreatedAt, mono: false },
+      { label: t("siteOverview.updated"), value: formattedUpdatedAt, mono: false },
+      { label: t("siteOverview.yourRole"), value: site?.role ?? "-", mono: false },
+    ],
+    [t, site, planLabel, formattedCreatedAt, formattedUpdatedAt]
+  );
 
   if (loading) {
     return (
@@ -117,46 +134,18 @@ export default function SiteOverviewPage() {
         <div className="card card-pad tight">
           <div className="section-title">{t("siteOverview.details")}</div>
           <div className="spacer-sm" />
-          <dl className="detail-list">
-            <div>
-              <dt className="detail-label">{t("siteOverview.name")}</dt>
-              <dd className="font-bold">{site.site.name}</dd>
-            </div>
-            <div>
-              <dt className="detail-label">{t("siteOverview.slug")}</dt>
-              <dd className="mono">{site.site.slug}</dd>
-            </div>
-            <div>
-              <dt className="detail-label">{t("siteOverview.siteId")}</dt>
-              <dd className="mono break-all">{site.siteId}</dd>
-            </div>
-            <div>
-              <dt className="detail-label">{t("siteOverview.plan")}</dt>
-              <dd>{planLabel || t("sitesList.basic")}</dd>
-            </div>
-            <div>
-              <dt className="detail-label">{t("siteOverview.created")}</dt>
-              <dd>
-                {(() => {
-                  const createdAt = (site.site as SiteWithDates).createdAt;
-                  return createdAt ? new Date(createdAt).toLocaleString() : "N/A";
-                })()}
-              </dd>
-            </div>
-            <div>
-              <dt className="detail-label">{t("siteOverview.updated")}</dt>
-              <dd>
-                {(() => {
-                  const updatedAt = (site.site as SiteWithDates).updatedAt;
-                  return updatedAt ? new Date(updatedAt).toLocaleString() : "N/A";
-                })()}
-              </dd>
-            </div>
-            <div>
-              <dt className="detail-label">{t("siteOverview.yourRole")}</dt>
-              <dd className="capitalize">{site.role}</dd>
-            </div>
-          </dl>
+          <div className="space-y-2">
+            {details.map((item) => (
+              <div key={item.label} className="card tight card-pad">
+                <div className="row-between">
+                  <div className="detail-label">{item.label}</div>
+                  <div className={item.mono ? "mono break-all font-semibold" : "font-semibold capitalize"}>
+                    {item.value}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
         <div className="card card-pad tight">

@@ -5,100 +5,103 @@ import { getAuthToken } from '@/lib/api';
 import { createApiClient } from '@repo/sdk';
 
 const LANGUAGE_KEY = 'nf-language';
+const LANGUAGE_EVENT = 'nf-language-change';
 
 type Language = 'pl' | 'en';
+
+function isLanguage(value: string | null | undefined): value is Language {
+  return value === 'pl' || value === 'en';
+}
+
+function applyDocumentLanguage(language: Language) {
+  if (typeof document === 'undefined') return;
+  document.documentElement.lang = language;
+}
 
 export function useLanguage() {
   const [language, setLanguage] = useState<Language>('en');
   const [loading, setLoading] = useState(true);
   const apiRef = useRef(createApiClient());
   const syncInProgressRef = useRef(false);
-  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSyncedLangRef = useRef<Language | null>(null);
 
-  // Sync language to API function with debouncing and request deduplication
   const syncLanguageToAPI = useCallback(async (lang: Language) => {
-    // Skip if already syncing this language
     if (syncInProgressRef.current || lastSyncedLangRef.current === lang) {
       return;
     }
 
-    // Clear any pending debounce
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
       debounceTimerRef.current = null;
     }
 
-    // Debounce the API call
     debounceTimerRef.current = setTimeout(async () => {
       try {
         const token = getAuthToken();
-        if (!token) return;
+        if (!token || syncInProgressRef.current) return;
 
-        // Prevent concurrent requests
-        if (syncInProgressRef.current) return;
         syncInProgressRef.current = true;
-
-        await apiRef.current.patch('/users/me/preferences', {
-          preferredLanguage: lang,
-        }, token);
-
+        await apiRef.current.patch(
+          '/users/me/preferences',
+          { preferredLanguage: lang },
+          token
+        );
         lastSyncedLangRef.current = lang;
-      } catch (error) {
-        // Silent fail - localStorage is the source of truth
-        // Error is non-critical, no need to log or show to user
+      } catch {
+        // Local preference remains source of truth.
       } finally {
         syncInProgressRef.current = false;
       }
-    }, 500); // 500ms debounce
+    }, 500);
   }, []);
 
-  // Initialize language from localStorage or API (runs once on mount)
   useEffect(() => {
     let isMounted = true;
-    
+
     const initializeLanguage = async () => {
       try {
-        // First try localStorage
-        const savedLang = localStorage.getItem(LANGUAGE_KEY) as Language | null;
-        if (savedLang && (savedLang === 'pl' || savedLang === 'en')) {
+        const savedLang = localStorage.getItem(LANGUAGE_KEY);
+        if (isLanguage(savedLang)) {
           if (!isMounted) return;
           setLanguage(savedLang);
-          setLoading(false);
-          lastSyncedLangRef.current = savedLang; // Mark as synced to prevent duplicate requests
+          applyDocumentLanguage(savedLang);
+          lastSyncedLangRef.current = savedLang;
           return;
         }
 
-        // If no localStorage, try to get from API
         const token = getAuthToken();
         if (token) {
           try {
-            const profile = await apiRef.current.get<{ preferredLanguage?: Language }>('/auth/me', token);
+            const profile = await apiRef.current.get<{ preferredLanguage?: Language }>(
+              '/auth/me',
+              token
+            );
             const userLang = profile.preferredLanguage;
-            if (userLang && (userLang === 'pl' || userLang === 'en')) {
+            if (isLanguage(userLang)) {
               if (!isMounted) return;
               setLanguage(userLang);
+              applyDocumentLanguage(userLang);
               localStorage.setItem(LANGUAGE_KEY, userLang);
-              lastSyncedLangRef.current = userLang; // Mark as synced
-              setLoading(false);
+              lastSyncedLangRef.current = userLang;
               return;
             }
-          } catch (error) {
-            // If API fails, use default
+          } catch {
+            // Fallback to browser language if profile request fails.
           }
         }
 
-        // Default to browser language or 'en'
         if (!isMounted) return;
         const browserLang = navigator.language.split('-')[0];
         const defaultLang: Language = browserLang === 'pl' ? 'pl' : 'en';
         setLanguage(defaultLang);
+        applyDocumentLanguage(defaultLang);
         localStorage.setItem(LANGUAGE_KEY, defaultLang);
-        lastSyncedLangRef.current = defaultLang; // Mark as synced
-      } catch (error) {
-        // Fallback to default
+        lastSyncedLangRef.current = defaultLang;
+      } catch {
         if (!isMounted) return;
         setLanguage('en');
+        applyDocumentLanguage('en');
         localStorage.setItem(LANGUAGE_KEY, 'en');
         lastSyncedLangRef.current = 'en';
       } finally {
@@ -113,35 +116,55 @@ export function useLanguage() {
     return () => {
       isMounted = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only run once on mount
+  }, []);
 
-  const changeLanguage = useCallback(async (newLang: Language) => {
-    // Clear any pending sync before changing
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
-      debounceTimerRef.current = null;
-    }
+  useEffect(() => {
+    const handleExternalLanguageChange = (nextLang: Language) => {
+      setLanguage((prev) => (prev === nextLang ? prev : nextLang));
+      applyDocumentLanguage(nextLang);
+      localStorage.setItem(LANGUAGE_KEY, nextLang);
+    };
 
-    setLanguage(newLang);
-    localStorage.setItem(LANGUAGE_KEY, newLang);
-    
-    // Sync to API in background (will be debounced)
-    const token = getAuthToken();
-    if (token) {
-      syncLanguageToAPI(newLang).catch(() => {
-        // Silent fail
-      });
-    }
+    const onStorage = (event: StorageEvent) => {
+      if (event.key !== LANGUAGE_KEY) return;
+      if (!isLanguage(event.newValue)) return;
+      handleExternalLanguageChange(event.newValue);
+    };
 
-    // Reload page to apply language changes (next-intl needs full reload)
-    // Small delay to allow API sync to start
-    setTimeout(() => {
-      window.location.reload();
-    }, 100);
-  }, [syncLanguageToAPI]);
+    const onLanguageEvent = (event: Event) => {
+      const detail = (event as CustomEvent<Language>).detail;
+      if (!isLanguage(detail)) return;
+      handleExternalLanguageChange(detail);
+    };
 
-  // Cleanup on unmount
+    window.addEventListener('storage', onStorage);
+    window.addEventListener(LANGUAGE_EVENT, onLanguageEvent as EventListener);
+
+    return () => {
+      window.removeEventListener('storage', onStorage);
+      window.removeEventListener(LANGUAGE_EVENT, onLanguageEvent as EventListener);
+    };
+  }, []);
+
+  const changeLanguage = useCallback(
+    async (newLang: Language) => {
+      if (!isLanguage(newLang)) return;
+
+      setLanguage((prev) => (prev === newLang ? prev : newLang));
+      applyDocumentLanguage(newLang);
+      localStorage.setItem(LANGUAGE_KEY, newLang);
+      window.dispatchEvent(new CustomEvent<Language>(LANGUAGE_EVENT, { detail: newLang }));
+
+      const token = getAuthToken();
+      if (token) {
+        syncLanguageToAPI(newLang).catch(() => {
+          // Silent fail to avoid blocking UI.
+        });
+      }
+    },
+    [syncLanguageToAPI]
+  );
+
   useEffect(() => {
     return () => {
       if (debounceTimerRef.current) {
@@ -156,4 +179,3 @@ export function useLanguage() {
     loading,
   };
 }
-

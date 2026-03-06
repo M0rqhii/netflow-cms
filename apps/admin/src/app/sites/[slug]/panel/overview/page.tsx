@@ -9,6 +9,7 @@ import { Modal, Button } from "@repo/ui";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { fetchMySites, exchangeSiteToken, getSiteToken } from "@/lib/api";
 import { createApiClient } from "@repo/sdk";
+import { withTimeout } from "@/lib/withTimeout";
 import type { SiteInfo, SiteDeployment, SitePage } from "@repo/sdk";
 import { useToast } from "@/components/ui/Toast";
 import { timeAgo, fmtBytes, statusToBadge } from "@/lib/formatters";
@@ -50,7 +51,8 @@ export default function OverviewPage() {
   const [mediaBytes, setMediaBytes] = useState(0);
   const [showPageSelector, setShowPageSelector] = useState(false);
 
-  const apiClient = createApiClient();
+  const apiClient = useMemo(() => createApiClient(), []);
+  const requestTimeoutMs = 15000;
 
   const loadData = useCallback(async () => {
     if (!slug) {
@@ -61,7 +63,11 @@ export default function OverviewPage() {
     try {
       setLoading(true);
 
-      const sites = await fetchMySites();
+      const sites = await withTimeout(
+        fetchMySites(),
+        requestTimeoutMs,
+        t("sitePanelShell.overviewUi.toasts.loadTimeout")
+      );
       const site = sites.find((s: SiteInfo) => s.site.slug === slug);
 
       if (!site) {
@@ -74,14 +80,22 @@ export default function OverviewPage() {
 
       let token = getSiteToken(id);
       if (!token) {
-        token = await exchangeSiteToken(id);
+        token = await withTimeout(
+          exchangeSiteToken(id),
+          requestTimeoutMs,
+          t("sitePanelShell.overviewUi.toasts.loadTimeout")
+        );
       }
 
-      const [deployment, pagesResponse, media] = await Promise.all([
-        apiClient.getLatestDeployment(token, id, "production"),
-        apiClient.listPages(token, id, { environmentType: "draft" }),
-        apiClient.listSiteMedia(token, id),
-      ]);
+      const [deployment, pagesResponse, media] = await withTimeout(
+        Promise.all([
+          apiClient.getLatestDeployment(token, id, "production"),
+          apiClient.listPages(token, id, { environmentType: "draft" }),
+          apiClient.listSiteMedia(token, id),
+        ]),
+        requestTimeoutMs,
+        t("sitePanelShell.overviewUi.toasts.loadTimeout")
+      );
 
       setLastDeployment(deployment);
       setPages(pagesResponse);
@@ -95,7 +109,7 @@ export default function OverviewPage() {
     } finally {
       setLoading(false);
     }
-  }, [slug, apiClient, t, toast]);
+  }, [slug, apiClient, t, toast, requestTimeoutMs]);
 
   useEffect(() => {
     loadData();
@@ -155,7 +169,10 @@ export default function OverviewPage() {
 
   const [planText, planBadge] = statusToBadge(sitePlan);
   const deploymentStatus = String(lastDeployment?.status || "").toLowerCase();
-  const statusText = deploymentStatus ? deploymentStatus.toUpperCase() : "UNKNOWN";
+  const statusText =
+    !deploymentStatus || deploymentStatus === "unknown"
+      ? t("sitePanelShell.overviewUi.labels.notDeployed")
+      : deploymentStatus.toUpperCase();
   const statusBadge = deploymentStatus === "success" ? "badge green" : deploymentStatus === "failed" ? "badge orange" : "badge gray";
 
   const storage = fmtBytes(mediaBytes);

@@ -39,6 +39,10 @@ export default function RootLayout({
             __html: `
               (function() {
                 try {
+                  var language = localStorage.getItem('nf-language');
+                  if (language === 'pl' || language === 'en') {
+                    document.documentElement.lang = language;
+                  }
                   var key = 'nf-theme';
                   var saved = localStorage.getItem(key);
                   var theme = saved || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');

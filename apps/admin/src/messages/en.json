@@ -87,6 +87,13 @@
     "devLogs": "Logs",
     "devFlags": "Feature Flags"
   },
+  "orgSettings": {
+    "general": "General",
+    "roles": "Roles",
+    "policies": "Policies",
+    "assignments": "Assignments",
+    "effectivePermissions": "Effective permissions"
+  },
   "shell": {
     "searchPlaceholder": "Search across projects, pages, and settings",
     "notifications": "Notifications",
@@ -161,7 +168,9 @@
     "users": "Users",
     "billing": "Billing",
     "sitesTable": "Projects table",
-    "failedToLoadSites": "Failed to load projects"
+    "failedToLoadSites": "Failed to load projects",
+    "loadTimeout": "Projects loading timed out. Please refresh the page.",
+    "snapshotUnavailable": "Snapshot unavailable"
   },
   "pages": {
     "title": "Pages",
@@ -228,6 +237,7 @@
   },
   "newSite": {
     "title": "Create New Project",
+    "subtitle": "Create a new project in the system.",
     "siteInformation": "Project Information",
     "siteName": "Project Name",
     "siteNamePlaceholder": "My Awesome Project",
@@ -522,7 +532,7 @@
     "selectCardType": "Select card type",
     "summary": "summary",
     "summaryLargeImage": "summary_large_image",
-    "preview": "Podglad",
+    "preview": "Preview",
     "socialPreviewWillAppearHere": "Social preview will appear here.",
     "configureOpenGraphSettings": "Configure Open Graph settings to see how your site will look when shared.",
     "advancedSettings": "Advanced Settings",
@@ -907,7 +917,7 @@
         "noEntries": "No entries."
       },
       "actions": {
-        "preview": "Podglad"
+        "preview": "Preview"
       },
       "fields": {
         "title": "Title",
@@ -1071,6 +1081,7 @@
       "toasts": {
         "siteNotFound": "Site with slug \"{slug}\" not found",
         "loadError": "Failed to load site data",
+        "loadTimeout": "Site data loading timed out. Please refresh the page.",
         "addPageBeforePublish": "Add at least one page before publishing.",
         "publishSuccess": "All pages published successfully",
         "publishError": "Failed to publish pages",
@@ -1100,6 +1111,7 @@
         "untitled": "Untitled",
         "site": "Site",
         "status": "Status",
+        "notDeployed": "Not deployed",
         "uptime": "Uptime: 99.98%",
         "identity": "Identity",
         "build": "Build",
@@ -1126,6 +1138,7 @@
       },
       "toasts": {
         "loadError": "Failed to load pages",
+        "loadTimeout": "Pages loading timed out. Please refresh the page.",
         "titleRequired": "Page title is required",
         "slugInvalid": "Slug can contain only lowercase letters, numbers and hyphens",
         "createSuccess": "Page created successfully",
@@ -1147,10 +1160,10 @@
       },
       "actions": {
         "builder": "Builder",
-        "preview": "Podglad"
+        "preview": "Preview"
       },
       "tooltips": {
-        "preview": "Podglad"
+        "preview": "Preview"
       },
       "modals": {
         "createTitle": "Create new page",

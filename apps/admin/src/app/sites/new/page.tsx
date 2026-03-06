@@ -92,7 +92,7 @@ export default function NewSitePage() {
         <div className="row-start">
           <div>
             <div className="view-title">{t("newSite.title")}</div>
-            <div className="view-sub">Create a new site in the system.</div>
+            <div className="view-sub">{t("newSite.subtitle")}</div>
           </div>
           <div className="row-wrap">
             <Link href="/sites" className="btn">{t("common.cancel")}</Link>
@@ -102,7 +102,7 @@ export default function NewSitePage() {
 
       <div className="spacer" />
 
-      <div className="card card-pad" style={{ maxWidth: 720 }}>
+      <div className="card card-pad site-new-form-card w-full" style={{ maxWidth: 720 }}>
         <div className="section-title">{t("newSite.siteInformation")}</div>
         <div className="spacer-sm" />
         <form onSubmit={onSubmit} className="space-y-3" style={{ maxWidth: 520 }}>

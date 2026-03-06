@@ -140,6 +140,7 @@ html[data-theme="dark"] {
 
   body {
     @apply bg-background text-foreground antialiased;
+    font-family: var(--font-inter), "Inter", "Noto Sans", "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
     font-size: 14px;
     line-height: 1.35;
     letter-spacing: -0.003em;
@@ -992,6 +993,14 @@ html[data-theme="light"] *::-webkit-scrollbar-thumb:hover {
 
 .sites-header-card {
   border-radius: 24px;
+}
+
+.site-new-form-card {
+  border-radius: 24px;
+  border: 1px solid rgb(var(--card-border-hover));
+  background:
+    radial-gradient(120% 100% at 100% 0%, rgba(0, 163, 255, 0.08), rgba(0, 0, 0, 0) 45%),
+    rgb(var(--card));
 }
 
 .site-card-modern {

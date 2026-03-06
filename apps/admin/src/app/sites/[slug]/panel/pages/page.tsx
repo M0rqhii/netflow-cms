@@ -10,12 +10,15 @@ import { useToast } from "@/components/ui/Toast";
 import { fetchMySites, exchangeSiteToken, getSiteToken } from "@/lib/api";
 import { timeAgo } from "@/lib/formatters";
 import { trackOnboardingSuccess } from "@/lib/onboarding";
+import { withTimeout } from "@/lib/withTimeout";
 import { createApiClient } from "@repo/sdk";
 import type { SiteInfo, SitePage, SiteEnvironment } from "@repo/sdk";
 
 type PageWithEnvironment = SitePage & {
   environment?: SiteEnvironment;
 };
+
+const REQUEST_TIMEOUT_MS = 15000;
 
 export default function PagesPage() {
   const params = useParams<{ slug: string }>();
@@ -55,7 +58,11 @@ export default function PagesPage() {
     try {
       setLoading(true);
 
-      const sites = await fetchMySites();
+      const sites = await withTimeout(
+        fetchMySites(),
+        REQUEST_TIMEOUT_MS,
+        t("sitePanelShell.pagesUi.toasts.loadTimeout")
+      );
       const site = sites.find((s: SiteInfo) => s.site.slug === slug);
 
       if (!site) {
@@ -68,13 +75,21 @@ export default function PagesPage() {
 
       let token = getSiteToken(id);
       if (!token) {
-        token = await exchangeSiteToken(id);
+        token = await withTimeout(
+          exchangeSiteToken(id),
+          REQUEST_TIMEOUT_MS,
+          t("sitePanelShell.pagesUi.toasts.loadTimeout")
+        );
       }
 
-      const [pagesData, environmentsData] = await Promise.all([
-        apiClient.listPages(token, id, { environmentType: "draft" }),
-        apiClient.listSiteEnvironments(token, id),
-      ]);
+      const [pagesData, environmentsData] = await withTimeout(
+        Promise.all([
+          apiClient.listPages(token, id, { environmentType: "draft" }),
+          apiClient.listSiteEnvironments(token, id),
+        ]),
+        REQUEST_TIMEOUT_MS,
+        t("sitePanelShell.pagesUi.toasts.loadTimeout")
+      );
 
       const pagesWithEnv: PageWithEnvironment[] = pagesData.map((page) => ({
         ...page,

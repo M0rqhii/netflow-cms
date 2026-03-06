@@ -9,17 +9,19 @@ import { useTranslations } from "@/hooks/useTranslations";
 import { fetchMySites } from "@/lib/api";
 import { statusToBadge } from "@/lib/formatters";
 import { publishGlobalSearch, readGlobalSearch, subscribeGlobalSearch } from "@/lib/shell";
+import { withTimeout } from "@/lib/withTimeout";
 import type { SiteInfo } from "@repo/sdk";
 
 let sitesCache: SiteInfo[] | null = null;
 let sitesPromise: Promise<SiteInfo[]> | null = null;
+const REQUEST_TIMEOUT_MS = 15000;
 
 function clearSitesCache() {
   sitesCache = null;
   sitesPromise = null;
 }
 
-async function loadSites(): Promise<SiteInfo[]> {
+async function loadSites(timeoutMessage: string): Promise<SiteInfo[]> {
   if (sitesCache) {
     const validCached = sitesCache.filter((s) => s?.site != null);
     if (validCached.length !== sitesCache.length) {
@@ -29,7 +31,11 @@ async function loadSites(): Promise<SiteInfo[]> {
   }
 
   if (!sitesPromise) {
-    sitesPromise = fetchMySites()
+    sitesPromise = withTimeout(
+      fetchMySites(),
+      REQUEST_TIMEOUT_MS,
+      timeoutMessage
+    )
       .then((data) => {
         const validSites = data.filter((s) => s?.site != null);
         sitesCache = validSites;
@@ -89,7 +95,7 @@ export default function SitesPage() {
     let isMounted = true;
     clearSitesCache();
 
-    loadSites()
+    loadSites(t("sitesList.loadTimeout"))
       .then((data) => {
         if (!isMounted) return;
         const validSites = data.filter((s) => s?.site != null);
@@ -164,20 +170,22 @@ export default function SitesPage() {
       <div className="card sites-header-card p-4 sm:p-6 mb-4">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
-            <div className="view-title">Sites</div>
-            <div className="view-sub">Lista projektow w organizacji. Wyszukiwarka filtruje po nazwie/domenie/statusie.</div>
+            <div className="view-title">{t("sitesList.title")}</div>
+            <div className="view-sub">{t("sitesList.manageAllSites")}</div>
           </div>
           <div className="flex items-center">
-            <Link className="btn btn-primary sites-create-btn" href="/sites/new">Utworz projekt</Link>
+            <Link className="btn btn-primary sites-create-btn" href="/sites/new">
+              {t("sitesList.newSite")}
+            </Link>
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
         {loading ? (
-          <div className="card p-4 text-muted">Ladowanie...</div>
+          <div className="card p-4 text-muted">{t("common.loading")}</div>
         ) : filteredSites.length === 0 ? (
-          <div className="card p-4 text-muted">Brak wynikow.</div>
+          <div className="card p-4 text-muted">{t("common.noResults")}</div>
         ) : (
           filteredSites.map((s) => {
             const [txt, cls] = statusToBadge(s.site?.plan);
@@ -213,7 +221,7 @@ export default function SitesPage() {
                   ) : (
                     <div className="site-snapshot-fallback">
                       <div className="site-snapshot-fallback-mark">{safeName.slice(0, 1).toUpperCase() || "N"}</div>
-                      <div className="site-snapshot-fallback-copy">Snapshot unavailable</div>
+                      <div className="site-snapshot-fallback-copy">{t("sitesList.snapshotUnavailable")}</div>
                     </div>
                   )}
                   <div className="site-snapshot-overlay" />
@@ -230,20 +238,24 @@ export default function SitesPage() {
 
                 <div className="site-card-modern-body">
                   <div className="flex items-center justify-between gap-3 text-muted text-xs">
-                    <div>Created: <span className="snapshot-age">{formatSiteCreatedAt(s)}</span></div>
-                    <div>Role: <span className="snapshot-age">{s.role || "-"}</span></div>
+                    <div>
+                      {t("siteOverview.created")}: <span className="snapshot-age">{formatSiteCreatedAt(s)}</span>
+                    </div>
+                    <div>
+                      {t("users.role")}: <span className="snapshot-age">{s.role || "-"}</span>
+                    </div>
                   </div>
 
                   <div className="divider-subtle" />
 
                   <div className="row-wrap site-metric-row">
-                    <span className="badge gray">Site ID: {s.siteId}</span>
-                    <span className="badge gray">Slug: {s.site?.slug || "-"}</span>
-                    <span className="badge gray">Plan: {txt}</span>
+                    <span className="badge gray">{t("siteOverview.siteId")}: {s.siteId}</span>
+                    <span className="badge gray">{t("sites.slug")}: {s.site?.slug || "-"}</span>
+                    <span className="badge gray">{t("sites.plan")}: {txt}</span>
                   </div>
 
                   <Link className="btn btn-full site-open-btn" href={`/sites/${encodeURIComponent(s.site?.slug || s.siteId)}/panel`}>
-                    Otworz panel
+                    {t("sites.openSitePanel")}
                   </Link>
                 </div>
               </div>
