@@ -61,6 +61,7 @@ prisma/migrations/*.sql
 *.tmp
 *.temp
 tmp-*
+tools_tmp/
 
 # Documentation reports (optional - uncomment if you don't want to commit reports)
 # docs/reports/
@@ -73,3 +74,4 @@ tmp-*
 # - Coverage reports są ignorowane (generowane w CI)
 
 
+.vercel

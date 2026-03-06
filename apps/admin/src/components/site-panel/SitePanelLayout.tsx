@@ -13,6 +13,7 @@ const SITE_PANEL_TABS = [
   { key: "settings", labelKey: "sitePanelNav.settings" },
   { key: "deployments", labelKey: "sitePanelNav.deployments" },
   { key: "activity", labelKey: "sitePanelNav.activity" },
+  { key: "users", labelKey: "sitePanelNav.users" },
   { key: "modules", labelKey: "sitePanelNav.modules" },
   { key: "snapshots", labelKey: "sitePanelNav.snapshots" },
 ] as const;

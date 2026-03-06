@@ -20,6 +20,7 @@ const PANEL_LABEL_KEYS: Record<string, string> = {
   deployment: 'sitePanelNav.deployments',
   seo: 'sitePanelNav.seo',
   activity: 'sitePanelNav.activity',
+  users: 'sitePanelNav.users',
   modules: 'sitePanelNav.modules',
   settings: 'sitePanelNav.settings',
   collections: 'sitePanelNav.collections',
@@ -42,6 +43,7 @@ const ORG_SETTINGS_LABEL_KEYS: Record<string, string> = {
   policies: 'orgSettings.policies',
   assignments: 'orgSettings.assignments',
   effective: 'orgSettings.effectivePermissions',
+  users: 'orgSettings.users',
 };
 
 function decodePart(value: string): string {
@@ -89,10 +91,11 @@ function buildSiteCrumbs(parts: string[], t: LabelResolver): Crumb[] {
   }
 
   if (parts[2]) {
+    const sectionLabel = parts[2] === 'users' ? t('navigation.users') : decodePart(parts[2]);
     return [
       { label: t('navigation.sites'), href: '/sites' },
       { label: slug, href: base },
-      { label: decodePart(parts[2]) },
+      { label: sectionLabel },
     ];
   }
 

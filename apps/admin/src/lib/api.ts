@@ -957,6 +957,25 @@ export async function createUser(siteId: string, payload: { email: string; passw
   return res.json();
 }
 
+export async function createOrgUser(
+  orgId: string,
+  payload: { email: string; password: string; role: string; preferredLanguage?: 'pl' | 'en' }
+): Promise<UserSummary> {
+  const token = await getOrgAuthToken(orgId);
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+  const res = await fetch(`${baseUrl}/users`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...buildOrgHeaders(token, orgId) },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    if (res.status === 401) handleApiError(res, text);
+    throw new Error(text || res.statusText);
+  }
+  return res.json();
+}
+
 /**
  * Update user role (admin only)
  * Security: Only super_admin can assign super_admin role
@@ -2636,4 +2655,3 @@ export async function createChannelConnection(
   }
   return res.json();
 }
-

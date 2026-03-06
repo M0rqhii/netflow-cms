@@ -2,18 +2,20 @@
 
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
-import Link from "next/link";
 import { Input, EmptyState, Skeleton } from "@repo/ui";
 import { fetchSiteUsers, fetchMySites, createUser, updateUserRole, fetchSiteInvites, inviteUserToSite, revokeInvite } from "@/lib/api";
 import type { UserSummary, InviteSummary } from "@/lib/api";
 import type { SiteInfo } from "@repo/sdk";
 import { useToast } from "@/components/ui/Toast";
 import { useTranslations } from "@/hooks/useTranslations";
+import { SitePanelLayout } from "@/components/site-panel/SitePanelLayout";
+import { useLanguage } from "@/hooks/useLanguage";
 
 export default function SiteUsersPage() {
   const params = useParams<{ slug: string }>();
   const slug = params?.slug as string;
   const t = useTranslations();
+  const { language } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState<UserSummary[]>([]);
   const [invites, setInvites] = useState<InviteSummary[]>([]);
@@ -111,7 +113,7 @@ export default function SiteUsersPage() {
 
     try {
       setCreating(true);
-      await createUser(siteId, { email: createEmail, password: createPassword, role, preferredLanguage: "en" });
+      await createUser(siteId, { email: createEmail, password: createPassword, role, preferredLanguage: language });
       setCreateEmail("");
       setCreatePassword("");
       toast.push({ tone: "success", message: `${t("users.userCreatedSuccessfully")} ${createEmail}` });
@@ -185,18 +187,12 @@ export default function SiteUsersPage() {
   );
 
   return (
-    <div>
-      <div className="card card-pad">
-        <div className="row-start" style={{ flexWrap: "wrap" }}>
-          <div>
-            <div className="view-title">{t("users.title")}</div>
-            <div className="view-sub">{t("users.manageUsersAndInvites")} {slug}</div>
-          </div>
-          <Link href={`/sites/${encodeURIComponent(slug)}`} className="btn">{t("common.back")}</Link>
-        </div>
-      </div>
-
-      <div className="spacer" />
+    <SitePanelLayout
+      slug={slug}
+      activeTab="users"
+      title={t("users.title")}
+      subtitle={`${t("users.manageUsersAndInvites")} ${slug}`}
+    >
 
       <div className="card card-pad">
         <div className="section-title">{t("users.members")}</div>
@@ -408,7 +404,7 @@ export default function SiteUsersPage() {
           </div>
         )}
       </div>
-    </div>
+    </SitePanelLayout>
   );
 }
 
