@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useLanguage } from '@/hooks/useLanguage';
 import { useTranslations } from '@/hooks/useTranslations';
@@ -18,7 +18,9 @@ export default function LanguageToggle() {
   const isPolish = language === 'pl';
   const nextLanguage = isPolish ? 'en' : 'pl';
   const nextLabel = isPolish ? t('language.selectEnglish') : t('language.selectPolish');
-  const currentLabel = isPolish ? '🇵🇱 PL' : '🇬🇧 EN';
+  const currentLabel = isPolish
+    ? `\u{1F1F5}\u{1F1F1} PL`
+    : `\u{1F1EC}\u{1F1E7} EN`;
 
   return (
     <button
