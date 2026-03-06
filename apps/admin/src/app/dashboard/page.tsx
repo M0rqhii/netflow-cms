@@ -9,6 +9,7 @@ import { fetchMySites, fetchActivity, fetchQuickStats, type ActivityItem, type Q
 import { publishGlobalSearch, readGlobalSearch, subscribeGlobalSearch } from '@/lib/shell';
 import { dismissOnboarding, markOnboardingSeenThisSession, shouldShowOnboarding } from '@/lib/onboarding';
 import { useTranslations } from '@/hooks/useTranslations';
+import { useLanguage } from '@/hooks/useLanguage';
 import { decodeAuthToken, getAuthToken } from '@/lib/api';
 
 // Icon components
@@ -107,6 +108,7 @@ const ActivityIcon = ({ type }: { type: string }) => {
 
 export default function DashboardPage() {
   const t = useTranslations();
+  const { language } = useLanguage();
   const [sites, setSites] = useState<SiteInfo[]>([]);
   const [stats, setStats] = useState<QuickStats>({ sites: 0, collections: 0, media: 0, users: 0, active: 0, total: 0 });
   const [activity, setActivity] = useState<ActivityItem[]>([]);
@@ -263,15 +265,47 @@ export default function DashboardPage() {
   const trendBase = (stats.sites + stats.users + stats.media + stats.collections) % 7;
 
   const dashboardKpis = [
-    { key: 'active-projects', label: 'Aktywne Projekty', value: stats.active ?? stats.sites, icon: 'sites', tone: 'blue', trend: 8 + trendBase, sub: 'live teraz' },
-    { key: 'views-30d', label: 'Oslony (30d)', value: views30d, icon: 'total', tone: 'teal', trend: 10 + trendBase, sub: 'ruch miesieczny' },
-    { key: 'media-files', label: 'Pliki w Media', value: stats.media, icon: 'media', tone: 'violet', trend: 6 + trendBase, sub: 'assets gotowe' },
-    { key: 'deploys', label: 'Ostatnie Deploye', value: deploys30d || Math.max(4, Math.floor(stats.sites * 1.6)), icon: 'deploy', tone: 'orange', trend: 5 + trendBase, sub: 'z 30 dni' },
+    {
+      key: 'active-projects',
+      label: t('dashboard.kpis.activeProjects.label'),
+      value: stats.active ?? stats.sites,
+      icon: 'sites',
+      tone: 'blue',
+      trend: 8 + trendBase,
+      sub: t('dashboard.kpis.activeProjects.sub'),
+    },
+    {
+      key: 'views-30d',
+      label: t('dashboard.kpis.views30d.label'),
+      value: views30d,
+      icon: 'total',
+      tone: 'teal',
+      trend: 10 + trendBase,
+      sub: t('dashboard.kpis.views30d.sub'),
+    },
+    {
+      key: 'media-files',
+      label: t('dashboard.kpis.mediaFiles.label'),
+      value: stats.media,
+      icon: 'media',
+      tone: 'violet',
+      trend: 6 + trendBase,
+      sub: t('dashboard.kpis.mediaFiles.sub'),
+    },
+    {
+      key: 'deploys',
+      label: t('dashboard.kpis.deploys.label'),
+      value: deploys30d || Math.max(4, Math.floor(stats.sites * 1.6)),
+      icon: 'deploy',
+      tone: 'orange',
+      trend: 5 + trendBase,
+      sub: t('dashboard.kpis.deploys.sub'),
+    },
   ];
   const infraServices: Array<{ key: string; name: string; status: 'operational' | 'high-load' }> = [
-    { key: 'api-gateway', name: 'API Gateway', status: 'operational' },
-    { key: 'media-cdn', name: 'Media CDN', status: 'operational' },
-    { key: 'build-workers', name: 'Build Workers', status: deploys30d > 12 ? 'high-load' : 'operational' },
+    { key: 'api-gateway', name: t('dashboard.infrastructure.services.apiGateway'), status: 'operational' },
+    { key: 'media-cdn', name: t('dashboard.infrastructure.services.mediaCdn'), status: 'operational' },
+    { key: 'build-workers', name: t('dashboard.infrastructure.services.buildWorkers'), status: deploys30d > 12 ? 'high-load' : 'operational' },
   ];
 
   const transferLimitGb = 2048;
@@ -321,7 +355,7 @@ export default function DashboardPage() {
   return (
     <div>
       <div className="dashboard-fluid w-full px-3 sm:px-5 lg:px-6 2xl:px-8 py-4 sm:py-6">
-        {/* Header � testowe5 style */}
+        {/* Header */}
         <div className="card mb-5" style={{ padding: '18px' }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '14px' }}>
             <div>
@@ -343,7 +377,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Onboarding Banner � testowe5 style */}
+        {/* Onboarding Banner */}
         {showOnboarding && (
           <div className="card mb-5 animate-fade-in-up" style={{ padding: '18px', borderColor: 'rgba(0,163,255,0.25)' }}>
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -357,19 +391,19 @@ export default function DashboardPage() {
                   </svg>
                 </div>
                 <div>
-                  <div style={{ fontWeight: 950, fontSize: '15px', color: 'rgb(var(--foreground))' }}>Szybki start</div>
+                  <div style={{ fontWeight: 950, fontSize: '15px', color: 'rgb(var(--foreground))' }}>{t('dashboard.onboarding.title')}</div>
                   <div style={{ color: 'rgb(var(--muted))', fontSize: '13px', marginTop: '4px' }}>
-                    To centrum dowodzenia stronami. Utw�rz stron� lub wejd� do panelu, aby zacz��.
+                    {t('dashboard.onboarding.description')}
                   </div>
                 </div>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
                 <Link href="/sites/new">
-                  <button className="btn btn-primary">Utw�rz stron�</button>
+                  <button className="btn btn-primary">{t('dashboard.onboarding.createSite')}</button>
                 </Link>
                 {sites.length > 0 && sites[0]?.site?.slug && (
                   <Link href={`/sites/${encodeURIComponent(sites[0].site.slug)}/panel`} className="hidden sm:block">
-                    <button className="btn btn-outline">Wejd� do panelu</button>
+                    <button className="btn btn-outline">{t('dashboard.onboarding.enterPanel')}</button>
                   </Link>
                 )}
                 <button
@@ -380,7 +414,7 @@ export default function DashboardPage() {
                     dismissOnboarding();
                     setShowOnboarding(false);
                   }}
-                  aria-label="Zamknij"
+                  aria-label={t('dashboard.onboarding.close')}
                 >
                   <svg className="w-4 h-4" style={{ color: 'rgb(var(--muted))' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -434,14 +468,14 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5 mb-5">
           <div className="lg:col-span-2">
             <div className="card infra-panel h-full">
-              <div className="infra-panel-title">Stan Infrastruktury</div>
+              <div className="infra-panel-title">{t('dashboard.infrastructure.title')}</div>
 
               <div className="infra-service-list">
                 {infraServices.map((service, idx) => (
                   <div key={service.key} className="infra-service-row">
                     <span className="infra-service-name">{service.name}</span>
                     <span className={`infra-status ${service.status === 'operational' ? 'infra-status-ok' : 'infra-status-warn'}`}>
-                      {service.status === 'operational' ? 'Operacyjny' : 'Wysokie obciazenie'}
+                      {service.status === 'operational' ? t('dashboard.infrastructure.operational') : t('dashboard.infrastructure.highLoad')}
                     </span>
                     {idx < infraServices.length - 1 ? <div className="infra-row-divider" /> : null}
                   </div>
@@ -450,10 +484,12 @@ export default function DashboardPage() {
 
               <div className="infra-usage-block">
                 <div className="infra-usage-head">
-                  <span className="infra-usage-label">Wykorzystanie Planu</span>
+                  <span className="infra-usage-label">{t('dashboard.infrastructure.planUsage')}</span>
                   <span className="infra-usage-percent">{transferUsagePercent}%</span>
                 </div>
-                <div className="infra-usage-value">{transferUsedGb} GB / {Math.floor(transferLimitGb / 1024)}.0 TB Transferu</div>
+                <div className="infra-usage-value">
+                  {transferUsedGb} GB / {Math.floor(transferLimitGb / 1024)}.0 TB {t('dashboard.infrastructure.transfer')}
+                </div>
 
                 <div className="infra-progress-track">
                   <div className="infra-progress-fill" style={{ width: `${transferUsagePercent}%` }} />
@@ -461,7 +497,7 @@ export default function DashboardPage() {
               </div>
 
               <div className="infra-trend-box">
-                <div className="infra-trend-label">Trend obciazenia (7d)</div>
+                <div className="infra-trend-label">{t('dashboard.infrastructure.trend7d')}</div>
                 <svg viewBox="0 0 220 44" className="infra-trend-svg" preserveAspectRatio="none" aria-hidden="true">
                   <polyline
                     fill="none"
@@ -486,14 +522,14 @@ export default function DashboardPage() {
           <div className="flex">
             <div className="card w-full quick-actions-side" style={{ padding: '18px' }}>
               <div className="quick-actions-side-title">{t('dashboard.quickActions')}</div>
-              <div className="quick-actions-side-sub">Szybki dostep do najczestszych akcji</div>
+              <div className="quick-actions-side-sub">{t('dashboard.quickAccess.subtitle')}</div>
 
               <div className="quick-actions-side-list">
                 <Link href="/sites/new" className="quick-action-item quick-action-item-primary">
                   <span className="quick-action-icon quick-action-icon-primary" aria-hidden="true"><svg viewBox="0 0 24 24" className="quick-action-svg" fill="none" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg></span>
                   <span className="quick-action-copy">
-                    <span className="quick-action-copy-title">Utworz projekt</span>
-                    <span className="quick-action-copy-sub">Nowa strona od zera</span>
+                    <span className="quick-action-copy-title">{t('dashboard.quickAccess.createProject.title')}</span>
+                    <span className="quick-action-copy-sub">{t('dashboard.quickAccess.createProject.subtitle')}</span>
                   </span>
                 </Link>
 
@@ -504,8 +540,8 @@ export default function DashboardPage() {
                     </svg>
                   </span>
                   <span className="quick-action-copy">
-                    <span className="quick-action-copy-title">Zobacz wszystkie projekty</span>
-                    <span className="quick-action-copy-sub">Lista i zarzadzanie</span>
+                    <span className="quick-action-copy-title">{t('dashboard.quickAccess.viewProjects.title')}</span>
+                    <span className="quick-action-copy-sub">{t('dashboard.quickAccess.viewProjects.subtitle')}</span>
                   </span>
                 </Link>
 
@@ -518,8 +554,8 @@ export default function DashboardPage() {
                       </svg>
                     </span>
                     <span className="quick-action-copy">
-                      <span className="quick-action-copy-title">Ustawienia organizacji</span>
-                      <span className="quick-action-copy-sub">Ustawienia organizacji</span>
+                      <span className="quick-action-copy-title">{t('dashboard.quickAccess.organizationSettings.title')}</span>
+                      <span className="quick-action-copy-sub">{t('dashboard.quickAccess.organizationSettings.subtitle')}</span>
                     </span>
                   </Link>
                 ) : null}
@@ -531,8 +567,8 @@ export default function DashboardPage() {
                     </svg>
                   </span>
                   <span className="quick-action-copy">
-                    <span className="quick-action-copy-title">Rozliczenia</span>
-                    <span className="quick-action-copy-sub">Platnosci i plany</span>
+                    <span className="quick-action-copy-title">{t('dashboard.quickAccess.billing.title')}</span>
+                    <span className="quick-action-copy-sub">{t('dashboard.quickAccess.billing.subtitle')}</span>
                   </span>
                 </Link>
 
@@ -543,8 +579,8 @@ export default function DashboardPage() {
                     </svg>
                   </span>
                   <span className="quick-action-copy">
-                    <span className="quick-action-copy-title">Konto</span>
-                    <span className="quick-action-copy-sub">Profil i preferencje</span>
+                    <span className="quick-action-copy-title">{t('dashboard.quickAccess.account.title')}</span>
+                    <span className="quick-action-copy-sub">{t('dashboard.quickAccess.account.subtitle')}</span>
                   </span>
                 </Link>
               </div>
@@ -560,7 +596,7 @@ export default function DashboardPage() {
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3" style={{ padding: '18px', paddingBottom: 0 }}>
                 <div className="min-w-0">
                   <div style={{ fontWeight: 950, fontSize: '16px', color: 'rgb(var(--foreground))' }}>{t('dashboard.sitesOverview')}</div>
-                  <div style={{ color: 'rgb(var(--muted))', fontSize: '12px', marginTop: '4px' }}>Zarz�dzaj wszystkimi swoimi stronami</div>
+                  <div style={{ color: 'rgb(var(--muted))', fontSize: '12px', marginTop: '4px' }}>{t('dashboard.sitesOverviewSubtitle')}</div>
                 </div>
                 <div className="flex gap-2 flex-shrink-0">
                   <Link href="/sites/new">
@@ -612,10 +648,10 @@ export default function DashboardPage() {
                 ) : filteredSites.length === 0 && sites.length === 0 ? (
                   <div className="py-12">
                     <EmptyState
-                      title="Nie masz jeszcze �adnych stron"
-                      description="Utw�rz pierwsz� stron�, aby rozpocz��"
+                      title={t('dashboard.noSitesYetTitle')}
+                      description={t('dashboard.noSitesYetDescription')}
                       action={{
-                        label: "Utw�rz pierwsz� stron�",
+                        label: t('dashboard.createFirstSiteAction'),
                         onClick: () => window.location.href = '/sites/new',
                       }}
                     />
@@ -654,7 +690,7 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between gap-3" style={{ padding: '18px', paddingBottom: 0 }}>
             <div className="min-w-0">
               <div style={{ fontWeight: 950, fontSize: '16px', color: 'rgb(var(--foreground))' }}>{t('dashboard.recentActivity')}</div>
-              <div style={{ color: 'rgb(var(--muted))', fontSize: '12px', marginTop: '4px' }}>Ostatnie dzia�ania w systemie</div>
+              <div style={{ color: 'rgb(var(--muted))', fontSize: '12px', marginTop: '4px' }}>{t('dashboard.recentActivitySubtitle')}</div>
             </div>
             {sites.length > 1 && (
               <select
@@ -662,7 +698,7 @@ export default function DashboardPage() {
                 value={selectedSiteId || 'all'}
                 onChange={(e) => setSelectedSiteId(e.target.value === 'all' ? null : e.target.value)}
               >
-                <option value="all">Wszystkie sites</option>
+                <option value="all">{t('dashboard.allSitesOption')}</option>
                 {sites.map((site) => {
                   if (!site?.site) return null;
                   return (
@@ -699,9 +735,21 @@ export default function DashboardPage() {
             ) : (
               <div className="space-y-1">
                 {activity.map((item) => {
-                  const activityType = item.message.toLowerCase().includes('created') ? 'create' :
-                                     item.message.toLowerCase().includes('updated') ? 'update' :
-                                     item.message.toLowerCase().includes('deleted') ? 'delete' : 'default';
+                  const normalizedMessage = item.message.toLowerCase();
+                  const activityType =
+                    normalizedMessage.includes('created') ||
+                    normalizedMessage.includes('utworz') ||
+                    normalizedMessage.includes('dodan')
+                      ? 'create'
+                      : normalizedMessage.includes('updated') ||
+                          normalizedMessage.includes('zaktualiz') ||
+                          normalizedMessage.includes('edytow')
+                        ? 'update'
+                        : normalizedMessage.includes('deleted') ||
+                            normalizedMessage.includes('usun') ||
+                            normalizedMessage.includes('skasow')
+                          ? 'delete'
+                          : 'default';
                   return (
                     <div
                       key={item.id}
@@ -710,7 +758,7 @@ export default function DashboardPage() {
                       <ActivityIcon type={activityType} />
                       <span className="text-sm text-foreground flex-1 min-w-0 truncate">{item.message}</span>
                       <span className="text-xs text-muted whitespace-nowrap flex-shrink-0">
-                        {new Date(item.createdAt).toLocaleString('pl-PL', {
+                        {new Date(item.createdAt).toLocaleString(language === 'pl' ? 'pl-PL' : 'en-US', {
                           day: 'numeric',
                           month: 'short',
                           hour: '2-digit',
@@ -730,7 +778,6 @@ export default function DashboardPage() {
     </div>
   );
 }
-
 
 
 

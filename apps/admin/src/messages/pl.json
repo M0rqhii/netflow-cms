@@ -58,11 +58,11 @@
     "verifyAndLogin": "Zweryfikuj i zaloguj",
     "verifyingTwoFactor": "Weryfikacja...",
     "backToLogin": "Powrot do logowania",
-    "twoFactorHintEmail": "Kod jednorazowy zostal wyslany na email. Kody odzyskiwania tez dzialaja.",
+    "twoFactorHintEmail": "Kod jednorazowy został wysłany na email. Kody odzyskiwania też działają.",
     "twoFactorHintRecovery": "Uzyj kodu z aplikacji lub kodu odzyskiwania.",
     "twoFactorMethodEmail": "Metoda: kod email",
     "twoFactorMethodAuthApp": "Metoda: aplikacja lub kod odzyskiwania",
-    "twoFactorStepNote": "2FA jest wymagane tylko dla kont z wlaczona weryfikacja dwuetapowa."
+    "twoFactorStepNote": "2FA jest wymagane tylko dla kont z włączoną weryfikacją dwuetapową."
   },
   "navigation": {
     "dashboard": "Przegląd",
@@ -97,10 +97,10 @@
   "shell": {
     "searchPlaceholder": "Szukaj w projektach, stronach i ustawieniach",
     "notifications": "Powiadomienia",
-    "loadingNotifications": "Ladowanie powiadomien...",
-    "noNotifications": "Brak powiadomien",
+    "loadingNotifications": "Ładowanie powiadomień...",
+    "noNotifications": "Brak powiadomień",
     "markAllRead": "Oznacz wszystkie jako przeczytane",
-    "openUserMenu": "Otworz menu uzytkownika",
+    "openUserMenu": "Otwórz menu użytkownika",
     "account": "Konto",
     "billing": "Rozliczenia",
     "role": "Rola"
@@ -140,7 +140,74 @@
     "groupByPlan": "Grupuj według planu",
     "viewAllSites": "Zobacz wszystkie projekty",
     "noRecentActivity": "Brak ostatniej aktywności",
-    "activityWillAppear": "Aktywność pojawi się tutaj podczas korzystania z systemu"
+    "activityWillAppear": "Aktywność pojawi się tutaj podczas korzystania z systemu",
+    "onboarding": {
+      "title": "Szybki start",
+      "description": "To centrum dowodzenia projektami. Utwórz projekt albo otwórz panel, aby rozpocząć.",
+      "createSite": "Utwórz projekt",
+      "enterPanel": "Otwórz panel",
+      "close": "Zamknij"
+    },
+    "kpis": {
+      "activeProjects": {
+        "label": "Aktywne projekty",
+        "sub": "na żywo teraz"
+      },
+      "views30d": {
+        "label": "Wyświetlenia (30d)",
+        "sub": "ruch miesięczny"
+      },
+      "mediaFiles": {
+        "label": "Pliki w mediach",
+        "sub": "zasoby gotowe"
+      },
+      "deploys": {
+        "label": "Ostatnie wdrożenia",
+        "sub": "z 30 dni"
+      }
+    },
+    "infrastructure": {
+      "title": "Stan infrastruktury",
+      "operational": "Operacyjny",
+      "highLoad": "Wysokie obciążenie",
+      "planUsage": "Wykorzystanie planu",
+      "transfer": "transferu",
+      "trend7d": "Trend obciążenia (7d)",
+      "services": {
+        "apiGateway": "Brama API",
+        "mediaCdn": "CDN mediów",
+        "buildWorkers": "Workery buildów"
+      }
+    },
+    "quickAccess": {
+      "subtitle": "Szybki dostęp do najczęstszych akcji",
+      "createProject": {
+        "title": "Utwórz projekt",
+        "subtitle": "Nowy projekt od zera"
+      },
+      "viewProjects": {
+        "title": "Zobacz wszystkie projekty",
+        "subtitle": "Lista i zarządzanie"
+      },
+      "organizationSettings": {
+        "title": "Ustawienia organizacji",
+        "subtitle": "Konfiguracja organizacji"
+      },
+      "billing": {
+        "title": "Rozliczenia",
+        "subtitle": "Płatności i plany"
+      },
+      "account": {
+        "title": "Konto",
+        "subtitle": "Profil i preferencje"
+      }
+    },
+    "sitesOverviewSubtitle": "Zarządzaj wszystkimi projektami w jednym miejscu",
+    "noSitesYetTitle": "Nie masz jeszcze żadnych projektów",
+    "noSitesYetDescription": "Utwórz pierwszy projekt, aby rozpocząć",
+    "createFirstSiteAction": "Utwórz pierwszy projekt",
+    "recentActivitySubtitle": "Ostatnie działania w systemie",
+    "allSitesOption": "Wszystkie projekty"
   },
   "sitesList": {
     "title": "Projekty",
@@ -293,7 +360,7 @@
     "invoiceNumber": "Numer faktury",
     "paidAt": "Data opłacenia",
     "demoUsage": "Podgląd zużycia",
-    "demoUsageHint": "Metryki zuzycia na podstawie biezacej aktywnosci konta.",
+    "demoUsageHint": "Metryki zużycia na podstawie bieżącej aktywności konta.",
     "demoHistory": "Historia rozliczen",
     "note": "Notatka",
     "demoAccountTitle": "Rozliczenie konta systemowego",
@@ -594,21 +661,21 @@
     "failedToDelete": "Nie udało się usunąć elementu. Spróbuj ponownie."
   },
   "hints": {
-    "rbacScopeOrg": "ORG scope: This role applies to all sites in the organization. Users with this role have the same permissions across all sites.",
-    "rbacScopeSite": "SITE scope: This role applies only to a specific site. Users need to be assigned this role per site.",
-    "rbacScopeCannotChange": "Scope cannot be changed after role creation. Choose carefully based on whether you need organization-wide or site-specific permissions.",
-    "draftEnvironment": "Draft environment: Your changes are saved but not visible to visitors. Use this to work on pages before publishing.",
-    "productionEnvironment": "Production environment: This is the live version visible to visitors. Changes here are immediately public.",
-    "publishAction": "Publishing moves your draft changes to production, making them visible to visitors. This action cannot be easily undone.",
-    "featureOverride": "Feature overrides allow you to enable or disable features beyond your plan limits. Overrides are site-specific and may affect billing.",
-    "featureOverrideWarning": "Enabling a feature not in your plan creates an override. This may result in additional charges or require plan upgrade.",
-    "deploymentExplanation": "Deployments are automatic processes that publish your changes to hosting. Each publish action creates a deployment record showing success or failure.",
-    "deploymentHistory": "This shows the history of all publish and deployment operations. Successful deployments make your changes live, failed ones need attention.",
-    "policyControlled": "This capability is controlled by organization policies. Even if granted in a role, it can be disabled by policies. Check Policies tab to manage.",
-    "effectivePermissions": "Effective permissions show what a user can actually do after combining all their roles (org + site) and applying policies. This is the final result.",
-    "effectivePermissionsExplanation": "Select a user and optionally a site to see their final permissions. This combines org roles, site roles, and policy restrictions.",
-    "designVsPageBuilder": "Design workspace is a general page builder interface. Pages tab shows specific pages you can edit. Both use the same builder engine.",
-    "pageBuilderHint": "Use the page builder to create and edit pages. Changes are saved to draft first, then you can publish to production."
+    "rbacScopeOrg": "Zakres ORG: ta rola działa na wszystkich projektach w organizacji. Użytkownik z tą rolą ma te same uprawnienia we wszystkich projektach.",
+    "rbacScopeSite": "Zakres SITE: ta rola działa tylko dla konkretnego projektu. Użytkownika trzeba przypisać osobno dla każdego projektu.",
+    "rbacScopeCannotChange": "Zakresu nie można zmienić po utworzeniu roli. Wybierz go świadomie: organizacyjny albo per-projekt.",
+    "draftEnvironment": "Środowisko draft: zmiany są zapisane, ale niewidoczne dla odwiedzających. Używaj go do pracy przed publikacją.",
+    "productionEnvironment": "Środowisko produkcyjne: to wersja widoczna dla odwiedzających. Zmiany są od razu publiczne.",
+    "publishAction": "Publikacja przenosi zmiany z draftu na produkcję i udostępnia je odwiedzającym. Tej operacji nie da się łatwo cofnąć.",
+    "featureOverride": "Nadpisania funkcji pozwalają włączać lub wyłączać funkcje ponad limity planu. Są per-projekt i mogą wpływać na rozliczenia.",
+    "featureOverrideWarning": "Włączenie funkcji spoza planu tworzy nadpisanie. Może to wymagać dopłaty albo wyższego planu.",
+    "deploymentExplanation": "Wdrożenia to automatyczne procesy publikujące zmiany na hostingu. Każda publikacja tworzy wpis ze statusem powodzenia lub błędu.",
+    "deploymentHistory": "To historia wszystkich publikacji i wdrożeń. Udane wdrożenia wprowadzają zmiany na żywo, nieudane wymagają reakcji.",
+    "policyControlled": "Ta możliwość jest kontrolowana przez polityki organizacji. Nawet jeśli rola ją ma, polityka może ją zablokować. Sprawdź zakładkę Polityki.",
+    "effectivePermissions": "Uprawnienia efektywne pokazują, co użytkownik faktycznie może zrobić po połączeniu ról (org + projekt) i polityk.",
+    "effectivePermissionsExplanation": "Wybierz użytkownika i opcjonalnie projekt, aby zobaczyć końcowe uprawnienia po zsumowaniu ról i ograniczeń polityk.",
+    "designVsPageBuilder": "Obszar Design to ogólny interfejs kreatora. Zakładka Strony pokazuje konkretne strony do edycji. Obie używają tego samego silnika.",
+    "pageBuilderHint": "Użyj kreatora stron do tworzenia i edycji. Zmiany trafiają najpierw do draftu, a potem możesz opublikować je na produkcję."
   },
   "builderAssets": {
     "title": "Zasoby",
@@ -618,7 +685,7 @@
     "uploading": "Wgrywanie...",
     "loading": "Ładowanie zasobów...",
     "empty": "Brak zasobów.",
-    "dropLabel": "Upu? pliki, aby wgra?"
+    "dropLabel": "Upuść pliki, aby wgrać"
   },
   "mediaPicker": {
     "selectImage": "Wybierz obraz",
@@ -654,7 +721,7 @@
     "checkingPlan": "Sprawdzanie planu...",
     "requiresPlan": "Wymagany plan",
     "moduleDisabled": "Moduł wyłączony",
-    "categoryLayout": "Layout",
+    "categoryLayout": "Układ",
     "categoryTypography": "Typografia",
     "categoryMedia": "Media",
     "categoryComponents": "Komponenty",
@@ -670,7 +737,7 @@
     "description": "Włączaj i wyłączaj moduły strony. Zależności są egzekwowane automatycznie.",
     "planLabel": "Plan",
     "siteLabel": "Strona",
-    "loading": "Ladowanie modulow...",
+    "loading": "Ładowanie modułów...",
     "siteNotFound": "Nie znaleziono strony",
     "loadSiteFailed": "Nie udało się wczytać strony",
     "moduleEnabled": "Moduł włączony",
@@ -692,18 +759,18 @@
       "save": "Zapisz ustawienia",
       "consentTitle": "Zgody i bezpieczeństwo",
       "consentDescription": "Skonfiguruj baner cookies, teksty preferencji i captcha.",
-      "bannerTitle": "Tytu? banera",
-      "bannerText": "Tre? banera",
-      "preferencesTitle": "Tytu? preferencji",
-      "preferencesText": "Tre? preferencji",
+      "bannerTitle": "Tytuł banera",
+      "bannerText": "Treść banera",
+      "preferencesTitle": "Tytuł preferencji",
+      "preferencesText": "Treść preferencji",
       "captchaProvider": "Dostawca captcha",
       "captchaNone": "Brak",
       "captchaSiteKey": "Klucz captcha",
       "accessibilityTitle": "Widżet dostępności",
-      "accessibilityDescription": "Ustaw pozycj? toolbaru i jego funkcje.",
+      "accessibilityDescription": "Ustaw pozycję paska narzędzi i jego funkcje.",
       "position": "Pozycja",
-      "positionBottomRight": "Prawy d?",
-      "positionBottomLeft": "Lewy d?",
+      "positionBottomRight": "Prawy dół",
+      "positionBottomLeft": "Lewy dół",
       "positionTopRight": "Prawa góra",
       "positionTopLeft": "Lewa góra",
       "enableTextScale": "Skalowanie tekstu",
@@ -742,7 +809,7 @@
       "mapsDefaultZoom": "Domyślny zoom",
       "blogTitle": "Blog",
       "blogDescription": "Domyślna paginacja listy wpisów.",
-      "blogPostsPerPage": "Wpisy na stron?",
+      "blogPostsPerPage": "Wpisy na stronę",
       "blogShowCategories": "Pokazuj kategorie"
     },
     "plan": "Plan"
@@ -750,46 +817,174 @@
   "sitePanelShell": {
     "overview": {
       "title": "Panel strony - {site}",
-      "subtitle": "Zarzadzanie projektem: {domain}"
+      "subtitle": "Zarządzanie projektem: {domain}"
     },
     "pages": {
       "title": "Strony - {site}",
-      "subtitle": "Lista stron. Kazda strone mozna otworzyc w Builderze."
+      "subtitle": "Lista stron. Każdą stronę można otworzyć w Kreatorze."
     },
     "content": {
-      "title": "Tresci - {site}",
+      "title": "Treści - {site}",
       "subtitle": "Wpisy i kolekcje z filtrami kategorii/autora/statusu."
     },
     "collections": {
       "title": "Kolekcje - {site}",
-      "subtitle": "Modeluj dane i zarzadzaj tresciami strukturalnymi."
+      "subtitle": "Modeluj dane i zarządzaj treściami strukturalnymi."
     },
     "collectionItems": {
       "title": "Kolekcja - {collection}",
-      "subtitle": "Zarzadzaj wpisami tej kolekcji."
+      "subtitle": "Zarządzaj wpisami tej kolekcji."
+    },
+    "collectionItemsUi": {
+      "errors": {
+        "siteNotFound": "Nie znaleziono strony o slug: \"{slug}\"",
+        "failedToLoadData": "Nie udało się wczytać danych",
+        "failedToLoadEntry": "Nie udało się wczytać wpisu",
+        "failedToCreateEntry": "Nie udało się utworzyć wpisu",
+        "failedToUpdateEntry": "Nie udało się zaktualizować wpisu",
+        "failedToDeleteEntry": "Nie udało się usunąć wpisu"
+      },
+      "toasts": {
+        "entryCreated": "Wpis utworzony",
+        "entryUpdated": "Wpis zaktualizowany",
+        "entryDeleted": "Wpis usunięty"
+      },
+      "labels": {
+        "total": "Razem: {count}",
+        "collection": "Kolekcja: {slug}",
+        "status": "Status",
+        "all": "Wszystkie",
+        "draft": "Szkic",
+        "published": "Opublikowany",
+        "entry": "Wpis",
+        "updated": "Zaktualizowano"
+      },
+      "loadingEntries": "Ładowanie wpisów...",
+      "empty": {
+        "title": "Brak wpisów",
+        "description": "Utwórz pierwszy wpis w kolekcji \"{collection}\".",
+        "action": "Utwórz wpis"
+      },
+      "modals": {
+        "newEntryTitle": "Nowy wpis - {collection}",
+        "editEntryTitle": "Edytuj wpis - {collection}",
+        "noFieldsAvailable": "Brak pól dostępnych dla tej kolekcji.",
+        "creating": "Tworzenie...",
+        "createEntry": "Utwórz wpis",
+        "saving": "Zapisywanie...",
+        "saveChanges": "Zapisz zmiany",
+        "deleteEntryTitle": "Usuń wpis",
+        "deleteEntryMessage": "Czy na pewno chcesz usunąć ten wpis? Tej operacji nie można cofnąć."
+      }
+    },
+    "pageBuilderUi": {
+      "toasts": {
+        "selectPageToEdit": "Wybierz stronę do edycji",
+        "siteNotFound": "Nie znaleziono strony o slug: \"{slug}\"",
+        "failedToLoadPage": "Nie udało się wczytać strony",
+        "pageSavedSuccessfully": "Strona zapisana pomyślnie",
+        "failedToSavePage": "Nie udało się zapisać strony",
+        "addContentBeforePublish": "Dodaj treść przed publikacją.",
+        "pageTitleRequired": "Tytuł strony jest wymagany.",
+        "pageSlugRequired": "Slug strony jest wymagany.",
+        "missingAlt": "Dodaj tekst ALT dla obrazów (brakuje: {count}).",
+        "disabledModules": "Wyłączone moduły: {modules}.",
+        "pagePublishedSuccessfully": "Strona opublikowana pomyślnie",
+        "publishFailed": "Publikacja nie powiodła się"
+      },
+      "loading": {
+        "loadingPage": "Ładowanie strony...",
+        "pleaseWait": "Proszę czekać",
+        "pageNotFound": "Nie znaleziono strony"
+      },
+      "actions": {
+        "backToPages": "Powrót do stron",
+        "save": "Zapisz",
+        "saving": "Zapisywanie...",
+        "publish": "Publikuj",
+        "publishing": "Publikowanie..."
+      },
+      "publishModal": {
+        "title": "Publikuj stronę",
+        "whatHappensLabel": "Co się stanie:",
+        "whatHappensDescription": "Publikacja przenosi zmiany ze szkicu na produkcję.",
+        "confirmQuestion": "Opublikować tę stronę teraz? Będzie widoczna pod:"
+      },
+      "header": {
+        "title": "Kreator - {site}",
+        "editing": "Edycja: {page}{slug}",
+        "savedAt": "Zapisano o {time}",
+        "unsavedChanges": "Niezapisane zmiany",
+        "ready": "Gotowe",
+        "environmentProduction": "Produkcja",
+        "environmentDraft": "Szkic",
+        "unsaved": "Niezapisane",
+        "saved": "Zapisane"
+      },
+      "confirm": {
+        "unsavedBeforePublish": "Masz niezapisane zmiany. Zapisać przed publikacją?"
+      },
+      "panels": {
+        "componentsLibrary": "Biblioteka komponentów",
+        "library": "Biblioteka",
+        "layers": "Warstwy",
+        "assets": "Zasoby",
+        "properties": "Właściwości",
+        "history": "Historia",
+        "changesReady": "Zmiany gotowe",
+        "noHistoryYet": "Brak historii"
+      },
+      "toolbar": {
+        "canvasAria": "Płótno",
+        "builderToolbar": "Pasek kreatora",
+        "desktop": "Desktop",
+        "tablet": "Tablet",
+        "mobile": "Telefon",
+        "edit": "Edycja",
+        "preview": "Podgląd",
+        "structure": "Struktura",
+        "zoomOut": "Pomniejsz",
+        "zoomIn": "Powiększ",
+        "resetView": "Reset widoku",
+        "fitToViewport": "Dopasuj do widoku",
+        "panMode": "Tryb przesuwania",
+        "floatingPreview": "Pływający podgląd strony"
+      },
+      "canvas": {
+        "loadingCanvas": "Ładowanie płótna...",
+        "helpText": "Shift + Alt + scroll: zoom | Shift + przeciągnij: przesuwanie | Podwójne kliknięcie: dopasuj"
+      },
+      "historyActions": {
+        "undo": "Cofnij",
+        "redo": "Ponów",
+        "deleteSelected": "Usuń zaznaczone"
+      },
+      "drag": {
+        "block": "Blok"
+      }
     },
     "media": {
       "title": "Media - {site}",
-      "subtitle": "Biblioteka plikow z limitami i filtrowaniem globalnym search."
+      "subtitle": "Biblioteka plików z limitami i filtrowaniem globalnego wyszukiwania."
     },
     "marketing": {
       "title": "Marketing / SEO - {site}",
-      "subtitle": "Kampanie, checklista i status SEO stron."
+      "subtitle": "Kampanie, lista kontrolna i status SEO stron."
     },
     "seo": {
       "title": "Marketing / SEO - {site}",
-      "subtitle": "Kampanie, checklista i status SEO stron."
+      "subtitle": "Kampanie, lista kontrolna i status SEO stron."
     },
     "deployments": {
-      "title": "Wdrozenia - {site}",
-      "subtitle": "Historia wdrozen: pipeline, statusy i rollback."
+      "title": "Wdrożenia - {site}",
+      "subtitle": "Historia wdrożeń: potok, statusy i wycofanie."
     },
     "activity": {
-      "title": "Aktywnosc - {site}",
+      "title": "Aktywność - {site}",
       "subtitle": "Ostatnie zdarzenia: publikacje, SEO, media i snapshoty."
     },
     "modules": {
-      "title": "Moduly - {site}",
+      "title": "Moduły - {site}",
       "subtitle": "Przełączniki funkcji i konfiguracja modułów. Włączone moduły odblokowują bloki w Kreatorze strony."
     },
     "settings": {
@@ -801,19 +996,19 @@
       "subtitle": "Snapshoty i backupy: harmonogram, retencja i restore."
     },
     "actions": {
-      "refresh": "Odswiez",
+      "refresh": "Odśwież",
       "exportCsv": "Eksport CSV",
-      "import": "Import",
+      "import": "Importuj",
       "newEntry": "Nowy wpis",
       "newCollection": "Nowa kolekcja",
-      "redeploy": "Redeploy",
-      "newDeployment": "Nowe wdrozenie",
+      "redeploy": "Wdróż ponownie",
+      "newDeployment": "Nowe wdrożenie",
       "optimize": "Optymalizuj",
-      "upload": "Upload",
-      "goToPages": "Przejdz do stron",
-      "openBuilder": "Otworz Builder",
-      "addPage": "Dodaj strone",
-      "runAudit": "Audit SEO odswiezony",
+      "upload": "Prześlij",
+      "goToPages": "Przejdź do stron",
+      "openBuilder": "Otwórz Kreator",
+      "addPage": "Dodaj stronę",
+      "runAudit": "Audyt SEO odświeżony",
       "applyFixes": "Zastosuj poprawki",
       "testConfig": "Test konfiguracji",
       "saveChanges": "Zapisz zmiany",
@@ -829,7 +1024,7 @@
         "drafts": "Szkice",
         "scheduled": "Zaplanowane: {count}",
         "authors": "Autorzy",
-        "workflowOk": "Workflow: OK"
+        "workflowOk": "Przepływ: OK"
       },
       "sections": {
         "collections": "Kolekcje",
@@ -837,20 +1032,20 @@
       },
       "states": {
         "noCollections": "Brak kolekcji",
-        "noResults": "Brak wynikow."
+        "noResults": "Brak wyników."
       },
       "modals": {
-        "createCampaignTitle": "Utworz kampanie",
-        "createDraftTitle": "Utworz szkic dystrybucji",
-        "publishTitle": "Publikuj tresc"
+        "createCampaignTitle": "Utwórz kampanię",
+        "createDraftTitle": "Utwórz szkic dystrybucji",
+        "publishTitle": "Opublikuj treść"
       },
       "fields": {
         "name": "Nazwa",
         "description": "Opis",
-        "title": "Tytul",
-        "channels": "Kanaly",
+        "title": "Tytuł",
+        "channels": "Kanały",
         "optionalDraft": "Szkic (opcjonalny)",
-        "createNew": "Utworz nowy",
+        "createNew": "Utwórz nowy",
         "campaign": "Kampania: {name}",
         "status": "Status"
       },
@@ -858,27 +1053,37 @@
         "publish": "Publikuj"
       },
       "toasts": {
-        "loadError": "Nie udalo sie pobrac danych marketingu",
-        "campaignCreated": "Kampania utworzona pomyslnie",
-        "campaignCreateError": "Nie udalo sie utworzyc kampanii",
-        "draftTitleRequired": "Tytul szkicu jest wymagany",
-        "channelRequired": "Wybierz przynajmniej jeden kanal",
-        "draftCreated": "Szkic utworzony pomyslnie",
-        "draftCreateError": "Blad podczas tworzenia szkicu",
-        "publishContentRequired": "Dodaj tresc marketingowa, aby opublikowac.",
-        "publishCreated": "Zadanie publikacji utworzone pomyslnie",
-        "publishError": "Blad podczas publikacji"
+        "loadError": "Nie udało się pobrać danych marketingu",
+        "campaignCreated": "Kampania utworzona pomyślnie",
+        "campaignCreateError": "Nie udało się utworzyć kampanii",
+        "draftTitleRequired": "Tytuł szkicu jest wymagany",
+        "channelRequired": "Wybierz przynajmniej jeden kanał",
+        "draftCreated": "Szkic utworzony pomyślnie",
+        "draftCreateError": "Błąd podczas tworzenia szkicu",
+        "publishContentRequired": "Dodaj treść marketingową, aby opublikować.",
+        "publishCreated": "Zadanie publikacji utworzone pomyślnie",
+        "publishError": "Błąd podczas publikacji"
       }
     },
     "seoUi": {
       "sections": {
         "health": "Zdrowie SEO",
-        "checklistOk": "{ok}/{total} punktow checklisty OK",
+        "checklistOk": "{ok}/{total} punktów checklisty OK",
         "pages": "SEO stron",
         "updated": "Zaktualizowano {time}",
-        "index": "Index: {value}",
+        "index": "Indeks: {value}",
         "issues": "Problemy: {count}",
         "score": "Wynik: {score}"
+      },
+      "checklist": {
+        "metaTitle": "Tytuł meta",
+        "metaDescription": "Opis meta",
+        "openGraphTitle": "Tytuł OpenGraph",
+        "openGraphDescription": "Opis OpenGraph",
+        "openGraphImage": "Obraz OpenGraph",
+        "twitterCard": "Karta Twitter",
+        "atLeastOnePage": "Co najmniej jedna strona",
+        "publishedPage": "Strona opublikowana"
       },
       "status": {
         "ok": "OK",
@@ -894,8 +1099,8 @@
       },
       "toasts": {
         "siteNotFound": "Nie znaleziono strony o slug: \"{slug}\"",
-        "loadError": "Nie udalo sie pobrac SEO",
-        "runAudit": "Audit SEO odswiezony"
+        "loadError": "Nie udało się pobrać SEO",
+        "runAudit": "Audyt SEO odświeżony"
       }
     },
     "contentUi": {
@@ -905,7 +1110,7 @@
         "drafts": "Szkice",
         "scheduled": "Zaplanowane: {count}",
         "authors": "Autorzy",
-        "workflowOk": "Workflow: OK"
+        "workflowOk": "Przepływ: OK"
       },
       "sections": {
         "collections": "Kolekcje",
@@ -914,41 +1119,41 @@
       },
       "states": {
         "noCollections": "Brak kolekcji",
-        "noEntries": "Brak wpisow."
+        "noEntries": "Brak wpisów."
       },
       "actions": {
         "preview": "Podgląd"
       },
       "fields": {
-        "title": "Tytul",
-        "titlePlaceholder": "Tytul wpisu"
+        "title": "Tytuł",
+        "titlePlaceholder": "Tytuł wpisu"
       },
       "modals": {
-        "importTitle": "Import tresci",
+        "importTitle": "Import treści",
         "importMock": "Import z CSV/API jest w przygotowaniu.",
         "newEntryTitle": "Nowy wpis"
       },
       "toasts": {
         "siteNotFound": "Nie znaleziono strony o slug: \"{slug}\"",
-        "loadError": "Nie udalo sie pobrac tresci"
+        "loadError": "Nie udało się pobrać treści"
       }
     },
     "mediaUi": {
       "cards": {
         "assets": "Zasoby",
         "searchable": "Przeszukiwalne",
-        "storage": "Storage",
+        "storage": "Pamięć",
         "cdn": "CDN",
         "active": "Aktywne",
         "cache": "Cache: 92%"
       },
       "modals": {
-        "uploadTitle": "Upload"
+        "uploadTitle": "Prześlij"
       },
       "toasts": {
         "siteNotFound": "Nie znaleziono strony o slug: \"{slug}\"",
-        "loadError": "Nie udalo sie pobrac mediow",
-        "optimizeMock": "Optymalizacja obrazow dodana do kolejki."
+        "loadError": "Nie udało się pobrać mediów",
+        "optimizeMock": "Optymalizacja obrazów dodana do kolejki."
       }
     },
     "collectionsUi": {
@@ -961,7 +1166,7 @@
       "actions": {
         "entries": "Wpisy",
         "creating": "Tworzenie...",
-        "createCollection": "Utworz kolekcje",
+        "createCollection": "Utwórz kolekcję",
         "saving": "Zapisywanie...",
         "saveChanges": "Zapisz zmiany"
       },
@@ -973,27 +1178,27 @@
         "fields": "Pola"
       },
       "modals": {
-        "createTitle": "Utworz kolekcje",
-        "editTitle": "Edytuj kolekcje: {name}",
-        "deleteTitle": "Usun kolekcje",
-        "deleteMessage": "Czy na pewno chcesz usunac kolekcje \"{slug}\"? To usunie wszystkie wpisy."
+        "createTitle": "Utwórz kolekcję",
+        "editTitle": "Edytuj kolekcję: {name}",
+        "deleteTitle": "Usuń kolekcję",
+        "deleteMessage": "Czy na pewno chcesz usunąć kolekcję \"{slug}\"? To usunie wszystkie wpisy."
       },
       "toasts": {
         "siteNotFound": "Nie znaleziono strony o slug: \"{slug}\"",
-        "loadError": "Nie udalo sie wczytac kolekcji",
-        "createSuccess": "Kolekcja utworzona pomyslnie",
-        "createError": "Nie udalo sie utworzyc kolekcji",
+        "loadError": "Nie udało się wczytać kolekcji",
+        "createSuccess": "Kolekcja utworzona pomyślnie",
+        "createError": "Nie udało się utworzyć kolekcji",
         "updateSuccess": "Kolekcja zaktualizowana",
-        "updateError": "Nie udalo sie zaktualizowac kolekcji",
-        "deleteSuccess": "Kolekcja usunieta",
-        "deleteError": "Nie udalo sie usunac kolekcji"
+        "updateError": "Nie udało się zaktualizować kolekcji",
+        "deleteSuccess": "Kolekcja usunięta",
+        "deleteError": "Nie udało się usunąć kolekcji"
       }
     },
     "activityUi": {
       "csv": {
         "date": "Data",
         "type": "Typ",
-        "message": "Wiadomosc"
+        "message": "Wiadomość"
       },
       "filters": {
         "title": "Filtry",
@@ -1006,37 +1211,37 @@
         "snapshot": "Snapshoty"
       },
       "notes": {
-        "autoEvents": "Zdarzenia zapisuja sie automatycznie przy publikacji, zmianach SEO, zarzadzaniu mediami oraz snapshotach."
+        "autoEvents": "Zdarzenia zapisują się automatycznie przy publikacji, zmianach SEO, zarządzaniu mediami oraz snapshotach."
       },
       "modal": {
-        "title": "Szczegoly zdarzenia",
+        "title": "Szczegóły zdarzenia",
         "type": "Typ",
         "unknown": "Nieznany",
-        "message": "Wiadomosc",
-        "noMessage": "Brak wiadomosci",
+        "message": "Wiadomość",
+        "noMessage": "Brak wiadomości",
         "when": "Kiedy",
-        "details": "Szczegoly"
+        "details": "Szczegóły"
       },
       "toasts": {
         "siteNotFound": "Nie znaleziono strony o slug: \"{slug}\"",
-        "loadError": "Nie udalo sie pobrac aktywnosci"
+        "loadError": "Nie udało się pobrać aktywności"
       }
     },
     "deploymentsUi": {
       "sections": {
-        "current": "Biezace",
+        "current": "Bieżące",
         "history": "Historia"
       },
       "labels": {
-        "env": "Srodowisko: {value}",
+        "env": "Środowisko: {value}",
         "version": "Wersja: v1.0.0",
         "sha": "SHA: {value}",
         "last": "Ostatnio: {value}",
         "pipeline": "Pipeline: build - tests - optimize - deploy - verify",
-        "deploy": "Wdrozenie"
+        "deploy": "Wdrożenie"
       },
       "states": {
-        "noDeployments": "Brak wdrozen."
+        "noDeployments": "Brak wdrożeń."
       },
       "actions": {
         "rollback": "Rollback",
@@ -1044,9 +1249,9 @@
       },
       "toasts": {
         "siteNotFound": "Nie znaleziono strony o slug: \"{slug}\"",
-        "loadError": "Nie udalo sie pobrac wdrozen",
-        "redeployMock": "Status wdrozen odswiezony.",
-        "newDeploymentMock": "Utworzono nowe zadanie wdrozenia."
+        "loadError": "Nie udało się pobrać wdrożeń",
+        "redeployMock": "Status wdrożeń odświeżony.",
+        "newDeploymentMock": "Utworzono nowe zadanie wdrożenia."
       }
     },
     "snapshotsUi": {
@@ -1060,18 +1265,18 @@
         "retention": "Retencja: 30 dni",
         "retentionShort": "Retencja: 30d",
         "encryption": "Szyfrowanie: AES-256",
-        "policyHint": "Snapshoty sa dostepne z retencja i operacjami przywracania.",
+        "policyHint": "Snapshoty są dostępne z retencją i operacjami przywracania.",
         "size": "Rozmiar: {value}",
         "ok": "OK"
       },
       "actions": {
-        "restore": "Przywroc",
+        "restore": "Przywróć",
         "download": "Pobierz"
       },
       "toasts": {
         "siteNotFound": "Nie znaleziono strony o slug: \"{slug}\"",
-        "loadError": "Nie udalo sie wczytac snapshotow",
-        "retentionMock": "Lista snapshotow odswiezona.",
+        "loadError": "Nie udało się wczytać snapshotów",
+        "retentionMock": "Lista snapshotów odświeżona.",
         "backupNowMock": "Utworzono snapshot kopii zapasowej.",
         "restoreMock": "Rozpoczeto przywracanie snapshotu.",
         "downloadMock": "Archiwum snapshotu jest przygotowywane."
@@ -1080,21 +1285,21 @@
     "overviewUi": {
       "toasts": {
         "siteNotFound": "Nie znaleziono strony o slug: \"{slug}\"",
-        "loadError": "Nie udalo sie pobrac danych",
+        "loadError": "Nie udało się pobrać danych",
         "loadTimeout": "Przekroczono czas ładowania danych strony. Odśwież stronę.",
-        "addPageBeforePublish": "Dodaj przynajmniej jedna strone, aby opublikowac.",
-        "publishSuccess": "Wszystkie strony opublikowane pomyslnie",
-        "publishError": "Nie udalo sie opublikowac stron",
-        "addPageBeforeBuilder": "Dodaj strone, aby otworzyc kreator."
+        "addPageBeforePublish": "Dodaj przynajmniej jedną stronę, aby opublikować.",
+        "publishSuccess": "Wszystkie strony opublikowane pomyślnie",
+        "publishError": "Nie udało się opublikować stron",
+        "addPageBeforeBuilder": "Dodaj stronę, aby otworzyć kreator."
       },
       "sections": {
         "quickActions": "Szybkie akcje",
-        "usage": "Usage",
-        "ops": "Ops",
+        "usage": "Użycie",
+        "ops": "Operacje",
         "recent": "Ostatnio modyfikowane"
       },
       "tooltips": {
-        "createPageToOpenBuilder": "Utworz strone, aby otworzyc kreator"
+        "createPageToOpenBuilder": "Utwórz stronę, aby otworzyć kreator"
       },
       "actions": {
         "openBuilder": "Otworz kreator",
@@ -1108,23 +1313,23 @@
         "selectPageTitle": "Wybierz strone do edycji"
       },
       "labels": {
-        "untitled": "Bez tytulu",
+        "untitled": "Bez tytułu",
         "site": "Strona",
         "status": "Status",
         "notDeployed": "Nie wdrożono",
-        "uptime": "Uptime: 99.98%",
+        "uptime": "Dostępność: 99.98%",
         "identity": "Tozsamosc",
         "build": "Build",
         "lastDeploy": "Ostatni deploy: {value}",
-        "storage": "Storage: {value}",
-        "bandwidth": "Bandwidth: {value}",
+        "storage": "Pamięć: {value}",
+        "bandwidth": "Transfer: {value}",
         "pages": "Strony: {count}",
-        "usageHint": "Metryki zuzycia sa liczone na podstawie biezacych danych strony.",
-        "dns": "DNS: Verified",
-        "ssl": "SSL: Active",
+        "usageHint": "Metryki zużycia są liczone na podstawie bieżących danych strony.",
+        "dns": "DNS: Zweryfikowany",
+        "ssl": "SSL: Aktywny",
         "cdn": "CDN: On",
-        "backups": "Backups: Daily",
-        "opsHint": "Etykiety operacyjne odzwierciedlaja biezaca konfiguracje strony.",
+        "backups": "Kopie zapasowe: codziennie",
+        "opsHint": "Etykiety operacyjne odzwierciedlają bieżącą konfigurację strony.",
         "draftsPublished": "Szkice: {draft} / Published: {published}",
         "lastChange": "Ostatnia zmiana: {value}"
       }
@@ -1140,13 +1345,13 @@
         "loadError": "Nie udalo sie pobrac stron",
         "loadTimeout": "Przekroczono czas ładowania stron. Odśwież stronę.",
         "titleRequired": "Tytul strony jest wymagany",
-        "slugInvalid": "Slug moze zawierac tylko male litery, cyfry i myslniki",
-        "createSuccess": "Strona utworzona pomyslnie",
-        "createError": "Blad podczas tworzenia strony",
-        "updateSuccess": "Strona zaktualizowana pomyslnie",
-        "updateError": "Nie udalo sie zaktualizowac strony",
-        "deleteSuccess": "Strona usunieta pomyslnie",
-        "deleteError": "Nie udalo sie usunac strony",
+        "slugInvalid": "Slug może zawierać tylko małe litery, cyfry i myślniki",
+        "createSuccess": "Strona utworzona pomyślnie",
+        "createError": "Błąd podczas tworzenia strony",
+        "updateSuccess": "Strona zaktualizowana pomyślnie",
+        "updateError": "Nie udało się zaktualizować strony",
+        "deleteSuccess": "Strona usunięta pomyślnie",
+        "deleteError": "Nie udało się usunąć strony",
         "siteNotFound": "Nie znaleziono strony o slug: \"{slug}\""
       },
       "fields": {
@@ -1159,7 +1364,7 @@
         "draft": "Szkic"
       },
       "actions": {
-        "builder": "Builder",
+        "builder": "Kreator",
         "preview": "Podgląd"
       },
       "tooltips": {
@@ -1169,22 +1374,22 @@
         "createTitle": "Utworz nowa strone",
         "editTitle": "Edytuj strone",
         "deleteTitle": "Usun strone",
-        "deleteMessage": "Czy na pewno chcesz usunac te strone?"
+        "deleteMessage": "Czy na pewno chcesz usunąć tę stronę?"
       }
     },
     "settingsUi": {
       "sections": {
-        "general": "Ogolne",
+        "general": "Ogólne",
         "domains": "Domeny / DNS / SSL",
         "integrations": "Integracje"
       },
       "labels": {
         "projectName": "Nazwa projektu",
-        "primaryDomain": "Domena glowna",
+        "primaryDomain": "Domena główna",
         "maintenanceMode": "Tryb maintenance",
         "allowIndexing": "Pozwol na indeksowanie",
-        "cdnEnabled": "CDN wlaczone",
-        "generalHint": "Ustawienia ogolne sa ladowane z biezacej konfiguracji strony.",
+        "cdnEnabled": "CDN włączone",
+        "generalHint": "Ustawienia ogólne są ładowane z bieżącej konfiguracji strony.",
         "dnsVerified": "DNS: Zweryfikowane",
         "sslActive": "SSL: Aktywne",
         "cnameOk": "CNAME: OK",
@@ -1198,16 +1403,16 @@
       },
       "toasts": {
         "siteNotFound": "Nie znaleziono strony o slug: \"{slug}\"",
-        "loadError": "Nie udalo sie pobrac ustawien",
+        "loadError": "Nie udało się pobrać ustawień",
         "seoSaved": "Ustawienia SEO zapisane",
-        "seoSaveError": "Nie udalo sie zapisac ustawien SEO",
-        "testConfigMock": "Konfiguracja odswiezona.",
-        "saveMock": "Ustawienia zapisane pomyslnie."
+        "seoSaveError": "Nie udało się zapisać ustawień SEO",
+        "testConfigMock": "Konfiguracja odświeżona.",
+        "saveMock": "Ustawienia zapisane pomyślnie."
       }
     }
   },
   "sitePanelLayout": {
-    "backToSite": "Wroc do strony",
+    "backToSite": "Wróć do strony",
     "title": "Panel strony",
     "description": "Wszystkie operacje strony w jednym miejscu: podgląd, strony, treści, media, marketing, wdrożenia i ustawienia."
   }

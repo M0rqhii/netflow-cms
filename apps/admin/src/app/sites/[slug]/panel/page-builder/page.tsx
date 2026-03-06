@@ -13,6 +13,7 @@ import { validatePublish } from '@/lib/page-builder/publish-validation';
 import type { PageContent } from '@/lib/page-builder/types';
 import type { SiteInfo, SitePage, SiteEnvironment } from '@repo/sdk';
 import { useToast } from '@/components/ui/Toast';
+import { useTranslations } from '@/hooks/useTranslations';
 import { Button, LoadingSpinner } from '@repo/ui';
 import { FiMonitor, FiTablet, FiSmartphone, FiEye, FiEdit3, FiGrid, FiPlus, FiMinus, FiRotateCcw, FiMove, FiMaximize } from 'react-icons/fi';
 import { PageBuilderProvider } from '@/components/page-builder/PageBuilderContext';
@@ -52,6 +53,7 @@ export default function PageBuilderPage() {
   const slug = params?.slug as string;
   const pageId = searchParams?.get('pageId') || null;
   const toast = useToast();
+  const t = useTranslations();
 
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState<SitePage | null>(null);
@@ -73,11 +75,11 @@ export default function PageBuilderPage() {
     if (!pageId) {
       toast.push({
         tone: 'info',
-        message: 'Select a page to edit',
+        message: t('sitePanelShell.pageBuilderUi.toasts.selectPageToEdit'),
       });
       router.push(`/sites/${slug}/panel/pages`);
     }
-  }, [pageId, slug, router, toast]);
+  }, [pageId, slug, router, toast, t]);
 
   const loadPage = useCallback(async () => {
     if (!slug || !pageId) {
@@ -92,7 +94,7 @@ export default function PageBuilderPage() {
       const site = sites.find((s: SiteInfo) => s.site.slug === slug);
 
       if (!site) {
-        throw new Error(`Site with slug "${slug}" not found`);
+        throw new Error(t('sitePanelShell.pageBuilderUi.toasts.siteNotFound', { slug }));
       }
 
       const id = site.siteId;
@@ -114,13 +116,13 @@ export default function PageBuilderPage() {
       const pageEnv = environmentsData.find((e) => e.id === pageData.environmentId);
       setEnvironment(pageEnv || null);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to load page';
+      const message = err instanceof Error ? err.message : t('sitePanelShell.pageBuilderUi.toasts.failedToLoadPage');
       toast.push({ tone: 'error', message });
       router.push(`/sites/${slug}/panel/pages`);
     } finally {
       setLoading(false);
     }
-  }, [slug, pageId, apiClient, toast, router]);
+  }, [slug, pageId, apiClient, toast, router, t]);
 
   useEffect(() => {
     loadPage();
@@ -142,10 +144,10 @@ export default function PageBuilderPage() {
       setLastSaved(new Date());
       toast.push({
         tone: 'success',
-        message: 'Page saved successfully',
+        message: t('sitePanelShell.pageBuilderUi.toasts.pageSavedSuccessfully'),
       });
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to save page';
+      const message = err instanceof Error ? err.message : t('sitePanelShell.pageBuilderUi.toasts.failedToSavePage');
       toast.push({ tone: 'error', message });
     } finally {
       setSaving(false);
@@ -174,8 +176,8 @@ export default function PageBuilderPage() {
   return (
       <div className="h-full min-h-[460px] flex items-center justify-center bg-background">
         <div className="text-center">
-          <div className="text-lg font-medium mb-2">Loading page...</div>
-          <div className="text-sm text-muted">Please wait</div>
+          <div className="text-lg font-medium mb-2">{t('sitePanelShell.pageBuilderUi.loading.loadingPage')}</div>
+          <div className="text-sm text-muted">{t('sitePanelShell.pageBuilderUi.loading.pleaseWait')}</div>
         </div>
       </div>
     );
@@ -185,9 +187,9 @@ export default function PageBuilderPage() {
   return (
       <div className="h-full min-h-[460px] flex items-center justify-center bg-background">
         <div className="text-center">
-          <div className="text-lg font-medium mb-2">Page not found</div>
+          <div className="text-lg font-medium mb-2">{t('sitePanelShell.pageBuilderUi.loading.pageNotFound')}</div>
           <button onClick={() => router.push(`/sites/${slug}/panel/pages`)} className="text-primary hover:underline">
-            Back to Pages
+            {t('sitePanelShell.pageBuilderUi.actions.backToPages')}
           </button>
         </div>
       </div>
@@ -201,19 +203,19 @@ export default function PageBuilderPage() {
 
     const hasContent = content && typeof content === 'object' && Object.keys(content).length > 0;
     if (!hasContent) {
-      toast.push({ tone: 'error', message: 'Add content before publishing.' });
+      toast.push({ tone: 'error', message: t('sitePanelShell.pageBuilderUi.toasts.addContentBeforePublish') });
       setShowPublishModal(false);
       return;
     }
 
     if (!page.title || page.title.trim().length === 0) {
-      toast.push({ tone: 'error', message: 'Page title is required.' });
+      toast.push({ tone: 'error', message: t('sitePanelShell.pageBuilderUi.toasts.pageTitleRequired') });
       setShowPublishModal(false);
       return;
     }
 
     if (!page.slug || page.slug.trim().length === 0) {
-      toast.push({ tone: 'error', message: 'Page slug is required.' });
+      toast.push({ tone: 'error', message: t('sitePanelShell.pageBuilderUi.toasts.pageSlugRequired') });
       setShowPublishModal(false);
       return;
     }
@@ -225,12 +227,18 @@ export default function PageBuilderPage() {
       const disabledModules = validation.errors.filter((e) => e.type === 'module_disabled');
 
       if (missingAlt.length > 0) {
-        toast.push({ tone: 'error', message: `Add ALT text for images (missing: ${missingAlt.length}).` });
+        toast.push({
+          tone: 'error',
+          message: t('sitePanelShell.pageBuilderUi.toasts.missingAlt', { count: missingAlt.length }),
+        });
       }
 
       if (disabledModules.length > 0) {
         const modules = Array.from(new Set(disabledModules.map((e) => e.moduleKey).filter(Boolean)));
-        toast.push({ tone: 'error', message: `Disabled modules: ${modules.join(', ')}.` });
+        toast.push({
+          tone: 'error',
+          message: t('sitePanelShell.pageBuilderUi.toasts.disabledModules', { modules: modules.join(', ') }),
+        });
       }
 
       setShowPublishModal(false);
@@ -250,10 +258,10 @@ export default function PageBuilderPage() {
       await apiClient.updatePageContent(token, siteId, pageId, content);
       await apiClient.publishPage(token, siteId, pageId);
 
-      toast.push({ tone: 'success', message: 'Page published successfully' });
+      toast.push({ tone: 'success', message: t('sitePanelShell.pageBuilderUi.toasts.pagePublishedSuccessfully') });
       await loadPage();
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Publish failed';
+      const message = err instanceof Error ? err.message : t('sitePanelShell.pageBuilderUi.toasts.publishFailed');
       toast.push({ tone: 'error', message });
     } finally {
       setSaving(false);
@@ -278,18 +286,22 @@ export default function PageBuilderPage() {
       {showPublishModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="glass glass-border rounded-[22px] p-6 max-w-md w-full mx-4 shadow-soft">
-            <h2 className="text-xl font-semibold mb-4">Publish Page</h2>
+            <h2 className="text-xl font-semibold mb-4">{t('sitePanelShell.pageBuilderUi.publishModal.title')}</h2>
             <div className="border border-[rgba(0,163,255,0.25)] bg-[rgba(0,163,255,0.08)] rounded-[18px] p-3 mb-4">
               <p className="text-xs text-text mb-2">
-                <strong>What happens:</strong> Publishing moves your draft changes to production.
+                <strong>{t('sitePanelShell.pageBuilderUi.publishModal.whatHappensLabel')}</strong>{' '}
+                {t('sitePanelShell.pageBuilderUi.publishModal.whatHappensDescription')}
               </p>
             </div>
             <p className="text-sm text-muted mb-4">
-              Publish this page now? It will be visible at: <code className="text-xs bg-surface-2 px-1.5 py-0.5 rounded-[8px]">{page.slug}</code>
+              {t('sitePanelShell.pageBuilderUi.publishModal.confirmQuestion')}{' '}
+              <code className="text-xs bg-surface-2 px-1.5 py-0.5 rounded-[8px]">{page.slug}</code>
             </p>
             <div className="flex gap-2 justify-end">
-              <Button variant="outline" onClick={() => setShowPublishModal(false)}>Cancel</Button>
-              <Button variant="primary" onClick={handlePublishConfirm} disabled={saving}>{saving ? 'Publishing...' : 'Publish'}</Button>
+              <Button variant="outline" onClick={() => setShowPublishModal(false)}>{t('common.cancel')}</Button>
+              <Button variant="primary" onClick={handlePublishConfirm} disabled={saving}>
+                {saving ? t('sitePanelShell.pageBuilderUi.actions.publishing') : t('sitePanelShell.pageBuilderUi.actions.publish')}
+              </Button>
             </div>
           </div>
         </div>
@@ -339,6 +351,7 @@ function PageBuilderWithSave({
   const panRafRef = useRef<number | null>(null);
   const pendingPanRef = useRef<{ x: number; y: number } | null>(null);
   const hasUnsavedChanges = JSON.stringify(content) !== JSON.stringify(initialContent);
+  const t = useTranslations();
 
   const selectedBlock = useSelectedBlock();
   const { canUndo, canRedo } = useHistoryInfo();
@@ -432,7 +445,7 @@ function PageBuilderWithSave({
 
   const handlePublishWithCheck = () => {
     if (hasUnsavedChanges && onPublish) {
-      const confirmed = confirm('You have unsaved changes. Save before publishing?');
+      const confirmed = confirm(t('sitePanelShell.pageBuilderUi.confirm.unsavedBeforePublish'));
       if (confirmed) {
         onSave();
         setTimeout(() => {
@@ -585,24 +598,47 @@ function PageBuilderWithSave({
       <div className="site-builder-head card card-pad">
         <div className="builder-topbar">
           <div className="builder-topbar-left">
-            <div className="view-title">Builder - {siteSlug}</div>
-            <div className="view-sub">Editing: {pageName}{pageSlug ? ` (${pageSlug})` : ''}</div>
+            <div className="view-title">{t('sitePanelShell.pageBuilderUi.header.title', { site: siteSlug })}</div>
+            <div className="view-sub">
+              {t('sitePanelShell.pageBuilderUi.header.editing', {
+                page: pageName,
+                slug: pageSlug ? ` (${pageSlug})` : '',
+              })}
+            </div>
             <div className="detail-label" style={{ marginTop: 8 }}>
-              {lastSaved && !hasUnsavedChanges ? `Saved at ${lastSaved.toLocaleTimeString()}` : hasUnsavedChanges ? 'Unsaved changes' : 'Ready'}
+              {lastSaved && !hasUnsavedChanges
+                ? t('sitePanelShell.pageBuilderUi.header.savedAt', { time: lastSaved.toLocaleTimeString() })
+                : hasUnsavedChanges
+                  ? t('sitePanelShell.pageBuilderUi.header.unsavedChanges')
+                  : t('sitePanelShell.pageBuilderUi.header.ready')}
             </div>
           </div>
 
           <div className="builder-topbar-right">
             <div className="builder-state-row">
-              <span className={environment === 'production' ? 'badge green' : 'badge orange'}>{environment === 'production' ? 'Production' : 'Draft'}</span>
-              <span className={hasUnsavedChanges ? 'badge orange' : 'badge gray'}>{hasUnsavedChanges ? 'Unsaved' : 'Saved'}</span>
+              <span className={environment === 'production' ? 'badge green' : 'badge orange'}>
+                {environment === 'production'
+                  ? t('sitePanelShell.pageBuilderUi.header.environmentProduction')
+                  : t('sitePanelShell.pageBuilderUi.header.environmentDraft')}
+              </span>
+              <span className={hasUnsavedChanges ? 'badge orange' : 'badge gray'}>
+                {hasUnsavedChanges
+                  ? t('sitePanelShell.pageBuilderUi.header.unsaved')
+                  : t('sitePanelShell.pageBuilderUi.header.saved')}
+              </span>
             </div>
 
             <div className="builder-actions-row">
-              <Link className="btn" href={`/sites/${encodeURIComponent(siteSlug)}/panel/pages`}>Back to Pages</Link>
-              <button className="btn" onClick={onSave} disabled={saving || !hasUnsavedChanges}>{saving ? 'Saving...' : 'Save'}</button>
+              <Link className="btn" href={`/sites/${encodeURIComponent(siteSlug)}/panel/pages`}>
+                {t('sitePanelShell.pageBuilderUi.actions.backToPages')}
+              </Link>
+              <button className="btn" onClick={onSave} disabled={saving || !hasUnsavedChanges}>
+                {saving ? t('sitePanelShell.pageBuilderUi.actions.saving') : t('common.save')}
+              </button>
               {onPublish && environment === 'draft' && (
-                <button className="btn btn-primary" onClick={handlePublishWithCheck} disabled={saving}>Publish</button>
+                <button className="btn btn-primary" onClick={handlePublishWithCheck} disabled={saving}>
+                  {t('sitePanelShell.pageBuilderUi.actions.publish')}
+                </button>
               )}
             </div>
           </div>
@@ -613,14 +649,14 @@ function PageBuilderWithSave({
 
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <div className="builder">
-          <aside className="card panel builder-left-panel" aria-label="Components Library">
-            <h3>Components Library</h3>
+          <aside className="card panel builder-left-panel" aria-label={t('sitePanelShell.pageBuilderUi.panels.componentsLibrary')}>
+            <h3>{t('sitePanelShell.pageBuilderUi.panels.componentsLibrary')}</h3>
             <div className="slot" style={{ minHeight: 0 }}>
               <div className="pill-row">
                 {([
-                  { id: 'library', label: 'Library' },
-                  { id: 'layers', label: 'Layers' },
-                  { id: 'assets', label: 'Assets' },
+                  { id: 'library', label: t('sitePanelShell.pageBuilderUi.panels.library') },
+                  { id: 'layers', label: t('sitePanelShell.pageBuilderUi.panels.layers') },
+                  { id: 'assets', label: t('sitePanelShell.pageBuilderUi.panels.assets') },
                 ] as const).map((tab) => (
                   <button
                     key={tab.id}
@@ -644,14 +680,14 @@ function PageBuilderWithSave({
             </div>
           </aside>
 
-          <div className="canvas-wrap card builder-canvas-shell" aria-label="Canvas">
-            <div className="canvas-toolbar" role="toolbar" aria-label="Builder toolbar" data-no-pan="true">
+          <div className="canvas-wrap card builder-canvas-shell" aria-label={t('sitePanelShell.pageBuilderUi.toolbar.canvasAria')}>
+            <div className="canvas-toolbar" role="toolbar" aria-label={t('sitePanelShell.pageBuilderUi.toolbar.builderToolbar')} data-no-pan="true">
               <button
                 className="icon-btn"
                 type="button"
                 aria-pressed={currentBreakpoint === 'desktop'}
                 onClick={() => setBreakpoint('desktop')}
-                title="Desktop"
+                title={t('sitePanelShell.pageBuilderUi.toolbar.desktop')}
               >
                 <FiMonitor />
               </button>
@@ -660,7 +696,7 @@ function PageBuilderWithSave({
                 type="button"
                 aria-pressed={currentBreakpoint === 'tablet'}
                 onClick={() => setBreakpoint('tablet')}
-                title="Tablet"
+                title={t('sitePanelShell.pageBuilderUi.toolbar.tablet')}
               >
                 <FiTablet />
               </button>
@@ -669,7 +705,7 @@ function PageBuilderWithSave({
                 type="button"
                 aria-pressed={currentBreakpoint === 'mobile'}
                 onClick={() => setBreakpoint('mobile')}
-                title="Mobile"
+                title={t('sitePanelShell.pageBuilderUi.toolbar.mobile')}
               >
                 <FiSmartphone />
               </button>
@@ -679,7 +715,7 @@ function PageBuilderWithSave({
                 type="button"
                 aria-pressed={editorMode === 'edit'}
                 onClick={() => setMode('edit')}
-                title="Edit"
+                title={t('sitePanelShell.pageBuilderUi.toolbar.edit')}
               >
                 <FiEdit3 />
               </button>
@@ -688,7 +724,7 @@ function PageBuilderWithSave({
                 type="button"
                 aria-pressed={editorMode === 'preview'}
                 onClick={() => setMode('preview')}
-                title="Preview"
+                title={t('sitePanelShell.pageBuilderUi.toolbar.preview')}
               >
                 <FiEye />
               </button>
@@ -697,21 +733,21 @@ function PageBuilderWithSave({
                 type="button"
                 aria-pressed={editorMode === 'structure'}
                 onClick={() => setMode('structure')}
-                title="Structure"
+                title={t('sitePanelShell.pageBuilderUi.toolbar.structure')}
               >
                 <FiGrid />
               </button>
               <div className="divider" style={{ width: 1, height: 22, margin: '0 6px' }} />
-              <button className="icon-btn" type="button" onClick={handleZoomOut} title="Zoom out">
+              <button className="icon-btn" type="button" onClick={handleZoomOut} title={t('sitePanelShell.pageBuilderUi.toolbar.zoomOut')}>
                 <FiMinus />
               </button>
-              <button className="icon-btn" type="button" onClick={handleZoomIn} title="Zoom in">
+              <button className="icon-btn" type="button" onClick={handleZoomIn} title={t('sitePanelShell.pageBuilderUi.toolbar.zoomIn')}>
                 <FiPlus />
               </button>
-              <button className="icon-btn" type="button" onClick={handleZoomReset} title="Reset view">
+              <button className="icon-btn" type="button" onClick={handleZoomReset} title={t('sitePanelShell.pageBuilderUi.toolbar.resetView')}>
                 <FiRotateCcw />
               </button>
-              <button className="icon-btn" type="button" onClick={handleFitToViewport} title="Fit to viewport">
+              <button className="icon-btn" type="button" onClick={handleFitToViewport} title={t('sitePanelShell.pageBuilderUi.toolbar.fitToViewport')}>
                 <FiMaximize />
               </button>
               <button
@@ -719,7 +755,7 @@ function PageBuilderWithSave({
                 type="button"
                 aria-pressed={panEnabled}
                 onClick={() => setPanEnabled((prev) => !prev)}
-                title="Pan mode"
+                title={t('sitePanelShell.pageBuilderUi.toolbar.panMode')}
               >
                 <FiMove />
               </button>
@@ -742,7 +778,7 @@ function PageBuilderWithSave({
               <div
                 ref={pageRef}
                 className="page-float"
-                aria-label="Floating page preview"
+                aria-label={t('sitePanelShell.pageBuilderUi.toolbar.floatingPreview')}
                 id="builder-page"
                 style={{
                   width: previewWidth,
@@ -760,17 +796,17 @@ function PageBuilderWithSave({
                   </div>
                 </div>
                 <div className={`builder-page-canvas mode-${editorMode}`} id="builder-canvas" style={{ padding: '26px 28px 40px 28px' }}>
-                  <Suspense fallback={<div className="flex items-center justify-center h-full"><LoadingSpinner text="Loading canvas..." /></div>}>
+                  <Suspense fallback={<div className="flex items-center justify-center h-full"><LoadingSpinner text={t('sitePanelShell.pageBuilderUi.canvas.loadingCanvas')} /></div>}>
                     <PageBuilderCanvas content={content} onContentChange={onContentChange} />
                   </Suspense>
                 </div>
               </div>
-              <div className="canvas-help" data-no-pan="true">Shift + Alt + scroll: zoom | Shift + drag: move | Double click: fit</div>
+              <div className="canvas-help" data-no-pan="true">{t('sitePanelShell.pageBuilderUi.canvas.helpText')}</div>
             </div>
           </div>
 
-          <aside className="card panel builder-right-panel" aria-label="Properties">
-            <h3>Properties</h3>
+          <aside className="card panel builder-right-panel" aria-label={t('sitePanelShell.pageBuilderUi.panels.properties')}>
+            <h3>{t('sitePanelShell.pageBuilderUi.panels.properties')}</h3>
             <div className="slot builder-right-stack">
               <Suspense fallback={<div className="card" style={{ padding: 12 }}><LoadingSpinner /></div>}>
                 <PropertiesPanel />
@@ -778,19 +814,23 @@ function PageBuilderWithSave({
 
               <div className="card builder-history-card">
                 <div className="row-between">
-                  <div style={{ fontWeight: 900 }}>History</div>
-                  <div className="detail-label">{canUndo || canRedo ? 'Changes ready' : 'No history yet'}</div>
+                  <div style={{ fontWeight: 900 }}>{t('sitePanelShell.pageBuilderUi.panels.history')}</div>
+                  <div className="detail-label">
+                    {canUndo || canRedo
+                      ? t('sitePanelShell.pageBuilderUi.panels.changesReady')
+                      : t('sitePanelShell.pageBuilderUi.panels.noHistoryYet')}
+                  </div>
                 </div>
                 <div className="builder-history-grid" style={{ marginTop: 10 }}>
-                  <button className="btn" type="button" onClick={undo} disabled={!canUndo}>Undo</button>
-                  <button className="btn" type="button" onClick={redo} disabled={!canRedo}>Redo</button>
+                  <button className="btn" type="button" onClick={undo} disabled={!canUndo}>{t('sitePanelShell.pageBuilderUi.historyActions.undo')}</button>
+                  <button className="btn" type="button" onClick={redo} disabled={!canRedo}>{t('sitePanelShell.pageBuilderUi.historyActions.redo')}</button>
                   <button
                     className="btn"
                     type="button"
                     onClick={() => selectedBlock && deleteBlock(selectedBlock.id)}
                     disabled={!selectedBlock}
                   >
-                    Delete Selected
+                    {t('sitePanelShell.pageBuilderUi.historyActions.deleteSelected')}
                   </button>
                 </div>
               </div>
@@ -801,7 +841,7 @@ function PageBuilderWithSave({
         <DragOverlay>
           {activeDrag && (
             <div className="px-4 py-3 bg-surface-2 border border-[rgba(0,163,255,0.35)] rounded-[14px] shadow-soft text-sm font-semibold text-primary">
-              {getDraggedType(activeDrag) || 'Block'}
+              {getDraggedType(activeDrag) || t('sitePanelShell.pageBuilderUi.drag.block')}
             </div>
           )}
         </DragOverlay>

@@ -76,7 +76,7 @@ export default function SiteUsersPage() {
         setUsers(usersData);
         setInvites(invitesData);
       } catch (err) {
-        const message = err instanceof Error ? err.message : t("users.failedToLoadUsers");
+        const message = err instanceof Error ? err.message : t("users.failedToLoadUsersAndInvites");
         toast.push({ tone: "error", message });
       } finally {
         setLoading(false);

@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { SitePanelLayout } from "@/components/site-panel/SitePanelLayout";
 import { useTranslations } from "@/hooks/useTranslations";
+import { useLanguage } from "@/hooks/useLanguage";
 import { EmptyState, Modal, LoadingSpinner } from "@repo/ui";
 import { useToast } from "@/components/ui/Toast";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
@@ -33,6 +34,7 @@ export default function CollectionItemsPage() {
   const collectionSlug = params?.collectionSlug as string;
   const toast = useToast();
   const t = useTranslations();
+  const { language } = useLanguage();
 
   const [loading, setLoading] = useState(true);
   const [collection, setCollection] = useState<CollectionDetails | null>(null);
@@ -67,7 +69,7 @@ export default function CollectionItemsPage() {
       const site = sites.find((s: SiteInfo) => s.site.slug === slug);
 
       if (!site) {
-        throw new Error(`Site with slug "${slug}" not found`);
+        throw new Error(t("sitePanelShell.collectionItemsUi.errors.siteNotFound", { slug }));
       }
 
       const id = site.siteId;
@@ -91,12 +93,12 @@ export default function CollectionItemsPage() {
       setItems(itemsData.items);
       setTotal(itemsData.total);
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to load data";
+      const message = err instanceof Error ? err.message : t("sitePanelShell.collectionItemsUi.errors.failedToLoadData");
       toast.push({ tone: "error", message });
     } finally {
       setLoading(false);
     }
-  }, [slug, collectionSlug, page, pageSize, statusFilter, toast]);
+  }, [slug, collectionSlug, page, pageSize, statusFilter, toast, t]);
 
   useEffect(() => {
     loadData();
@@ -114,14 +116,14 @@ export default function CollectionItemsPage() {
         status: createStatus,
       });
 
-      toast.push({ tone: "success", message: "Entry created" });
+      toast.push({ tone: "success", message: t("sitePanelShell.collectionItemsUi.toasts.entryCreated") });
 
       setShowCreateModal(false);
       setCreateData({});
       setCreateStatus("DRAFT");
       await loadData();
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to create entry";
+      const message = err instanceof Error ? err.message : t("sitePanelShell.collectionItemsUi.errors.failedToCreateEntry");
       toast.push({ tone: "error", message });
     } finally {
       setCreateSaving(false);
@@ -140,14 +142,14 @@ export default function CollectionItemsPage() {
         status: editStatus,
       });
 
-      toast.push({ tone: "success", message: "Entry updated" });
+      toast.push({ tone: "success", message: t("sitePanelShell.collectionItemsUi.toasts.entryUpdated") });
 
       setEditingItem(null);
       setEditData({});
       setEditStatus("DRAFT");
       await loadData();
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to update entry";
+      const message = err instanceof Error ? err.message : t("sitePanelShell.collectionItemsUi.errors.failedToUpdateEntry");
       toast.push({ tone: "error", message });
     } finally {
       setEditSaving(false);
@@ -160,12 +162,12 @@ export default function CollectionItemsPage() {
     try {
       await deleteCollectionItem(siteId, collectionSlug, deletingItemId);
 
-      toast.push({ tone: "success", message: "Entry deleted" });
+      toast.push({ tone: "success", message: t("sitePanelShell.collectionItemsUi.toasts.entryDeleted") });
 
       setDeletingItemId(null);
       await loadData();
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to delete entry";
+      const message = err instanceof Error ? err.message : t("sitePanelShell.collectionItemsUi.errors.failedToDeleteEntry");
       toast.push({ tone: "error", message });
     }
   };
@@ -181,7 +183,7 @@ export default function CollectionItemsPage() {
     } catch (err) {
       toast.push({
         tone: "error",
-        message: err instanceof Error ? err.message : "Failed to load entry",
+        message: err instanceof Error ? err.message : t("sitePanelShell.collectionItemsUi.errors.failedToLoadEntry"),
       });
     }
   };
@@ -205,20 +207,20 @@ export default function CollectionItemsPage() {
         <div className="card card-pad">
           <div className="row-between flex-wrap gap-3">
             <div className="row flex-wrap gap-2.5">
-              <span className="badge gray">Total: {total}</span>
+              <span className="badge gray">{t("sitePanelShell.collectionItemsUi.labels.total", { count: total })}</span>
               <span className="badge gray">{t("siteModules.siteLabel")}: {slug}</span>
-              <span className="badge blue">Collection: {collectionSlug}</span>
+              <span className="badge blue">{t("sitePanelShell.collectionItemsUi.labels.collection", { slug: collectionSlug })}</span>
             </div>
             <div className="row gap-2.5">
-              <label className="detail-label">Status</label>
+              <label className="detail-label">{t("sitePanelShell.collectionItemsUi.labels.status")}</label>
               <select
                 className="input"
                 value={statusFilter}
                 onChange={(event) => setStatusFilter(event.target.value as "DRAFT" | "PUBLISHED" | "all")}
               >
-                <option value="all">All</option>
-                <option value="DRAFT">Draft</option>
-                <option value="PUBLISHED">Published</option>
+                <option value="all">{t("sitePanelShell.collectionItemsUi.labels.all")}</option>
+                <option value="DRAFT">{t("sitePanelShell.collectionItemsUi.labels.draft")}</option>
+                <option value="PUBLISHED">{t("sitePanelShell.collectionItemsUi.labels.published")}</option>
               </select>
             </div>
           </div>
@@ -229,15 +231,17 @@ export default function CollectionItemsPage() {
         <div className="card card-pad">
           {loading ? (
             <div className="py-12 flex justify-center">
-              <LoadingSpinner text="Loading entries..." />
+              <LoadingSpinner text={t("sitePanelShell.collectionItemsUi.loadingEntries")} />
             </div>
           ) : items.length === 0 ? (
             <div className="py-12">
               <EmptyState
-                title="No entries"
-                description={`Create the first entry in "${collection?.name || collectionSlug}".`}
+                title={t("sitePanelShell.collectionItemsUi.empty.title")}
+                description={t("sitePanelShell.collectionItemsUi.empty.description", {
+                  collection: collection?.name || collectionSlug,
+                })}
                 action={{
-                  label: "Create entry",
+                  label: t("sitePanelShell.collectionItemsUi.empty.action"),
                   onClick: () => setShowCreateModal(true),
                 }}
               />
@@ -247,10 +251,10 @@ export default function CollectionItemsPage() {
               <table className="table">
                 <thead>
                   <tr>
-                    <th>Entry</th>
-                    <th>Status</th>
-                    <th>Updated</th>
-                    <th className="text-right">Actions</th>
+                    <th>{t("sitePanelShell.collectionItemsUi.labels.entry")}</th>
+                    <th>{t("sitePanelShell.collectionItemsUi.labels.status")}</th>
+                    <th>{t("sitePanelShell.collectionItemsUi.labels.updated")}</th>
+                    <th className="text-right">{t("common.actions")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -270,19 +274,21 @@ export default function CollectionItemsPage() {
                       </td>
                       <td>
                         <span className={`badge ${item.status === "PUBLISHED" ? "green" : "gray"}`}>
-                          {item.status === "PUBLISHED" ? "Published" : "Draft"}
+                          {item.status === "PUBLISHED"
+                            ? t("sitePanelShell.collectionItemsUi.labels.published")
+                            : t("sitePanelShell.collectionItemsUi.labels.draft")}
                         </span>
                       </td>
                       <td className="text-muted text-sm">
-                        {new Date(item.updatedAt).toLocaleDateString("en-US")}
+                        {new Date(item.updatedAt).toLocaleDateString(language === "pl" ? "pl-PL" : "en-US")}
                       </td>
                       <td className="text-right">
                         <div className="flex items-center justify-end gap-2">
                           <button className="btn" type="button" onClick={() => openEditModal(item)}>
-                            Edit
+                            {t("common.edit")}
                           </button>
                           <button className="btn" type="button" onClick={() => setDeletingItemId(item.id)}>
-                            Delete
+                            {t("common.delete")}
                           </button>
                         </div>
                       </td>
@@ -302,32 +308,36 @@ export default function CollectionItemsPage() {
               setCreateData({});
               setCreateStatus("DRAFT");
             }}
-            title={`New entry - ${collection?.name || collectionSlug}`}
+            title={t("sitePanelShell.collectionItemsUi.modals.newEntryTitle", {
+              collection: collection?.name || collectionSlug,
+            })}
             size="lg"
           >
             <form onSubmit={handleCreate} className="space-y-4">
               {schemaFields.length > 0 ? (
                 <DynamicForm fields={schemaFields} data={createData} onChange={setCreateData} />
               ) : (
-                <div className="text-sm text-muted">No fields available for this collection.</div>
+                <div className="text-sm text-muted">{t("sitePanelShell.collectionItemsUi.modals.noFieldsAvailable")}</div>
               )}
               <div className="flex items-center gap-3">
-                <label className="text-sm text-muted">Status</label>
+                <label className="text-sm text-muted">{t("sitePanelShell.collectionItemsUi.labels.status")}</label>
                 <select
                   className="input"
                   value={createStatus}
                   onChange={(event) => setCreateStatus(event.target.value as "DRAFT" | "PUBLISHED")}
                 >
-                  <option value="DRAFT">Draft</option>
-                  <option value="PUBLISHED">Published</option>
+                  <option value="DRAFT">{t("sitePanelShell.collectionItemsUi.labels.draft")}</option>
+                  <option value="PUBLISHED">{t("sitePanelShell.collectionItemsUi.labels.published")}</option>
                 </select>
               </div>
               <div className="flex gap-2 justify-end">
                 <button className="btn btn-outline" type="button" onClick={() => setShowCreateModal(false)}>
-                  Cancel
+                  {t("common.cancel")}
                 </button>
                 <button className="btn btn-primary" type="submit" disabled={createSaving}>
-                  {createSaving ? "Creating..." : "Create entry"}
+                  {createSaving
+                    ? t("sitePanelShell.collectionItemsUi.modals.creating")
+                    : t("sitePanelShell.collectionItemsUi.modals.createEntry")}
                 </button>
               </div>
             </form>
@@ -342,32 +352,36 @@ export default function CollectionItemsPage() {
               setEditData({});
               setEditStatus("DRAFT");
             }}
-            title={`Edit entry - ${collection?.name || collectionSlug}`}
+            title={t("sitePanelShell.collectionItemsUi.modals.editEntryTitle", {
+              collection: collection?.name || collectionSlug,
+            })}
             size="lg"
           >
             <form onSubmit={handleEdit} className="space-y-4">
               {schemaFields.length > 0 ? (
                 <DynamicForm fields={schemaFields} data={editData} onChange={setEditData} />
               ) : (
-                <div className="text-sm text-muted">No fields available for this collection.</div>
+                <div className="text-sm text-muted">{t("sitePanelShell.collectionItemsUi.modals.noFieldsAvailable")}</div>
               )}
               <div className="flex items-center gap-3">
-                <label className="text-sm text-muted">Status</label>
+                <label className="text-sm text-muted">{t("sitePanelShell.collectionItemsUi.labels.status")}</label>
                 <select
                   className="input"
                   value={editStatus}
                   onChange={(event) => setEditStatus(event.target.value as "DRAFT" | "PUBLISHED")}
                 >
-                  <option value="DRAFT">Draft</option>
-                  <option value="PUBLISHED">Published</option>
+                  <option value="DRAFT">{t("sitePanelShell.collectionItemsUi.labels.draft")}</option>
+                  <option value="PUBLISHED">{t("sitePanelShell.collectionItemsUi.labels.published")}</option>
                 </select>
               </div>
               <div className="flex gap-2 justify-end">
                 <button className="btn btn-outline" type="button" onClick={() => setEditingItem(null)}>
-                  Cancel
+                  {t("common.cancel")}
                 </button>
                 <button className="btn btn-primary" type="submit" disabled={editSaving}>
-                  {editSaving ? "Saving..." : "Save changes"}
+                  {editSaving
+                    ? t("sitePanelShell.collectionItemsUi.modals.saving")
+                    : t("sitePanelShell.collectionItemsUi.modals.saveChanges")}
                 </button>
               </div>
             </form>
@@ -379,10 +393,10 @@ export default function CollectionItemsPage() {
             open={Boolean(deletingItemId)}
             onClose={() => setDeletingItemId(null)}
             onConfirm={handleDelete}
-            title="Delete entry"
-            message="Are you sure you want to delete this entry? This cannot be undone."
-            confirmLabel="Delete"
-            cancelLabel="Cancel"
+            title={t("sitePanelShell.collectionItemsUi.modals.deleteEntryTitle")}
+            message={t("sitePanelShell.collectionItemsUi.modals.deleteEntryMessage")}
+            confirmLabel={t("common.delete")}
+            cancelLabel={t("common.cancel")}
             variant="danger"
           />
         )}

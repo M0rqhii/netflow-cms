@@ -140,7 +140,74 @@
     "groupByPlan": "Group by Plan",
     "viewAllSites": "View All Projects",
     "noRecentActivity": "No recent activity",
-    "activityWillAppear": "Activity will appear here as you use the system"
+    "activityWillAppear": "Activity will appear here as you use the system",
+    "onboarding": {
+      "title": "Quick Start",
+      "description": "This is your project command center. Create a project or open the panel to begin.",
+      "createSite": "Create project",
+      "enterPanel": "Open panel",
+      "close": "Close"
+    },
+    "kpis": {
+      "activeProjects": {
+        "label": "Active Projects",
+        "sub": "live now"
+      },
+      "views30d": {
+        "label": "Views (30d)",
+        "sub": "monthly traffic"
+      },
+      "mediaFiles": {
+        "label": "Media Files",
+        "sub": "assets ready"
+      },
+      "deploys": {
+        "label": "Recent Deployments",
+        "sub": "last 30 days"
+      }
+    },
+    "infrastructure": {
+      "title": "Infrastructure Status",
+      "operational": "Operational",
+      "highLoad": "High load",
+      "planUsage": "Plan Usage",
+      "transfer": "Transfer",
+      "trend7d": "Load trend (7d)",
+      "services": {
+        "apiGateway": "API Gateway",
+        "mediaCdn": "Media CDN",
+        "buildWorkers": "Build Workers"
+      }
+    },
+    "quickAccess": {
+      "subtitle": "Fast access to the most common actions",
+      "createProject": {
+        "title": "Create project",
+        "subtitle": "Start a new project from scratch"
+      },
+      "viewProjects": {
+        "title": "View all projects",
+        "subtitle": "List and management"
+      },
+      "organizationSettings": {
+        "title": "Organization settings",
+        "subtitle": "Manage organization configuration"
+      },
+      "billing": {
+        "title": "Billing",
+        "subtitle": "Payments and plans"
+      },
+      "account": {
+        "title": "Account",
+        "subtitle": "Profile and preferences"
+      }
+    },
+    "sitesOverviewSubtitle": "Manage all your projects in one place",
+    "noSitesYetTitle": "You don't have any projects yet",
+    "noSitesYetDescription": "Create your first project to get started",
+    "createFirstSiteAction": "Create first project",
+    "recentActivitySubtitle": "Latest actions in the system",
+    "allSitesOption": "All projects"
   },
   "sitesList": {
     "title": "Projects",
@@ -768,6 +835,134 @@
       "title": "Collection - {collection}",
       "subtitle": "Manage entries for this collection."
     },
+    "collectionItemsUi": {
+      "errors": {
+        "siteNotFound": "Site with slug \"{slug}\" not found",
+        "failedToLoadData": "Failed to load data",
+        "failedToLoadEntry": "Failed to load entry",
+        "failedToCreateEntry": "Failed to create entry",
+        "failedToUpdateEntry": "Failed to update entry",
+        "failedToDeleteEntry": "Failed to delete entry"
+      },
+      "toasts": {
+        "entryCreated": "Entry created",
+        "entryUpdated": "Entry updated",
+        "entryDeleted": "Entry deleted"
+      },
+      "labels": {
+        "total": "Total: {count}",
+        "collection": "Collection: {slug}",
+        "status": "Status",
+        "all": "All",
+        "draft": "Draft",
+        "published": "Published",
+        "entry": "Entry",
+        "updated": "Updated"
+      },
+      "loadingEntries": "Loading entries...",
+      "empty": {
+        "title": "No entries",
+        "description": "Create the first entry in \"{collection}\".",
+        "action": "Create entry"
+      },
+      "modals": {
+        "newEntryTitle": "New entry - {collection}",
+        "editEntryTitle": "Edit entry - {collection}",
+        "noFieldsAvailable": "No fields available for this collection.",
+        "creating": "Creating...",
+        "createEntry": "Create entry",
+        "saving": "Saving...",
+        "saveChanges": "Save changes",
+        "deleteEntryTitle": "Delete entry",
+        "deleteEntryMessage": "Are you sure you want to delete this entry? This cannot be undone."
+      }
+    },
+    "pageBuilderUi": {
+      "toasts": {
+        "selectPageToEdit": "Select a page to edit",
+        "siteNotFound": "Site with slug \"{slug}\" not found",
+        "failedToLoadPage": "Failed to load page",
+        "pageSavedSuccessfully": "Page saved successfully",
+        "failedToSavePage": "Failed to save page",
+        "addContentBeforePublish": "Add content before publishing.",
+        "pageTitleRequired": "Page title is required.",
+        "pageSlugRequired": "Page slug is required.",
+        "missingAlt": "Add ALT text for images (missing: {count}).",
+        "disabledModules": "Disabled modules: {modules}.",
+        "pagePublishedSuccessfully": "Page published successfully",
+        "publishFailed": "Publish failed"
+      },
+      "loading": {
+        "loadingPage": "Loading page...",
+        "pleaseWait": "Please wait",
+        "pageNotFound": "Page not found"
+      },
+      "actions": {
+        "backToPages": "Back to Pages",
+        "save": "Save",
+        "saving": "Saving...",
+        "publish": "Publish",
+        "publishing": "Publishing..."
+      },
+      "publishModal": {
+        "title": "Publish Page",
+        "whatHappensLabel": "What happens:",
+        "whatHappensDescription": "Publishing moves your draft changes to production.",
+        "confirmQuestion": "Publish this page now? It will be visible at:"
+      },
+      "header": {
+        "title": "Builder - {site}",
+        "editing": "Editing: {page}{slug}",
+        "savedAt": "Saved at {time}",
+        "unsavedChanges": "Unsaved changes",
+        "ready": "Ready",
+        "environmentProduction": "Production",
+        "environmentDraft": "Draft",
+        "unsaved": "Unsaved",
+        "saved": "Saved"
+      },
+      "confirm": {
+        "unsavedBeforePublish": "You have unsaved changes. Save before publishing?"
+      },
+      "panels": {
+        "componentsLibrary": "Components Library",
+        "library": "Library",
+        "layers": "Layers",
+        "assets": "Assets",
+        "properties": "Properties",
+        "history": "History",
+        "changesReady": "Changes ready",
+        "noHistoryYet": "No history yet"
+      },
+      "toolbar": {
+        "canvasAria": "Canvas",
+        "builderToolbar": "Builder toolbar",
+        "desktop": "Desktop",
+        "tablet": "Tablet",
+        "mobile": "Mobile",
+        "edit": "Edit",
+        "preview": "Preview",
+        "structure": "Structure",
+        "zoomOut": "Zoom out",
+        "zoomIn": "Zoom in",
+        "resetView": "Reset view",
+        "fitToViewport": "Fit to viewport",
+        "panMode": "Pan mode",
+        "floatingPreview": "Floating page preview"
+      },
+      "canvas": {
+        "loadingCanvas": "Loading canvas...",
+        "helpText": "Shift + Alt + scroll: zoom | Shift + drag: move | Double click: fit"
+      },
+      "historyActions": {
+        "undo": "Undo",
+        "redo": "Redo",
+        "deleteSelected": "Delete selected"
+      },
+      "drag": {
+        "block": "Block"
+      }
+    },
     "media": {
       "title": "Media - {site}",
       "subtitle": "Asset library with limits and global search filtering."
@@ -879,6 +1074,16 @@
         "index": "Index: {value}",
         "issues": "Issues: {count}",
         "score": "Score: {score}"
+      },
+      "checklist": {
+        "metaTitle": "Meta title",
+        "metaDescription": "Meta description",
+        "openGraphTitle": "OpenGraph title",
+        "openGraphDescription": "OpenGraph description",
+        "openGraphImage": "OpenGraph image",
+        "twitterCard": "Twitter card",
+        "atLeastOnePage": "At least one page",
+        "publishedPage": "Published page"
       },
       "status": {
         "ok": "OK",

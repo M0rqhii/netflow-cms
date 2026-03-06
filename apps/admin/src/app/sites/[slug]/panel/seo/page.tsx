@@ -62,14 +62,14 @@ export default function SEOPage() {
   }, [loadData]);
 
   const checklist = [
-    { label: "Meta title", ok: Boolean(seoSettings?.title?.trim()) },
-    { label: "Meta description", ok: Boolean(seoSettings?.description?.trim()) },
-    { label: "OpenGraph title", ok: Boolean(seoSettings?.ogTitle?.trim()) },
-    { label: "OpenGraph description", ok: Boolean(seoSettings?.ogDescription?.trim()) },
-    { label: "OpenGraph image", ok: Boolean(seoSettings?.ogImage?.trim()) },
-    { label: "Twitter card", ok: Boolean(seoSettings?.twitterCard?.trim()) },
-    { label: "At least one page", ok: pages.length > 0 },
-    { label: "Published page", ok: pages.some((page) => String(page.status).toLowerCase() === "published") },
+    { label: t("sitePanelShell.seoUi.checklist.metaTitle"), ok: Boolean(seoSettings?.title?.trim()) },
+    { label: t("sitePanelShell.seoUi.checklist.metaDescription"), ok: Boolean(seoSettings?.description?.trim()) },
+    { label: t("sitePanelShell.seoUi.checklist.openGraphTitle"), ok: Boolean(seoSettings?.ogTitle?.trim()) },
+    { label: t("sitePanelShell.seoUi.checklist.openGraphDescription"), ok: Boolean(seoSettings?.ogDescription?.trim()) },
+    { label: t("sitePanelShell.seoUi.checklist.openGraphImage"), ok: Boolean(seoSettings?.ogImage?.trim()) },
+    { label: t("sitePanelShell.seoUi.checklist.twitterCard"), ok: Boolean(seoSettings?.twitterCard?.trim()) },
+    { label: t("sitePanelShell.seoUi.checklist.atLeastOnePage"), ok: pages.length > 0 },
+    { label: t("sitePanelShell.seoUi.checklist.publishedPage"), ok: pages.some((page) => String(page.status).toLowerCase() === "published") },
   ];
 
   const ok = checklist.filter((x) => x.ok).length;
