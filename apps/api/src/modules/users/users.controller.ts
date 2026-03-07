@@ -96,7 +96,7 @@ export class UsersController {
     @CurrentUser() user: { id: string },
     @Body(new ZodValidationPipe(z.object({
       email: z.string().email('Invalid email format'),
-      role: z.enum(['org_admin', 'editor', 'viewer', 'site_admin']).default('viewer'),
+      role: z.enum(['org_admin', 'admin', 'editor-in-chief', 'editor', 'marketing', 'viewer', 'site_admin']).default('viewer'),
     }))) body: { email: string; role: string }
   ) {
     return this.usersService.createInvite(orgId, siteId, body, user.id);
@@ -148,7 +148,7 @@ export class UsersController {
     @Body(new ZodValidationPipe(z.object({
       email: z.string().email('Invalid email format'),
       password: z.string().min(8, 'Password must be at least 8 characters').optional(),
-      role: z.enum(['super_admin', 'org_admin', 'editor', 'viewer', 'site_admin']),
+      role: z.enum(['super_admin', 'org_admin', 'admin', 'editor-in-chief', 'editor', 'marketing', 'viewer', 'site_admin']),
       preferredLanguage: z.enum(['pl', 'en']).optional().default('en'),
     }))) body: { email: string; password?: string; role: string; preferredLanguage?: 'pl' | 'en' }
   ) {
@@ -167,7 +167,7 @@ export class UsersController {
     @CurrentOrg() orgId: string,
     @CurrentUser() user: { role?: string; orgRole?: string; platformRole?: string },
     @Body(new ZodValidationPipe(z.object({
-      role: z.enum(['super_admin', 'org_admin', 'editor', 'viewer', 'site_admin']),
+      role: z.enum(['super_admin', 'org_admin', 'admin', 'editor-in-chief', 'editor', 'marketing', 'viewer', 'site_admin']),
     }))) body: { role: string }
   ) {
     return this.usersService.updateUserRole(userId, orgId, body.role, user.orgRole || user.platformRole || user.role || '');

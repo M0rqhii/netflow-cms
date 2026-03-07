@@ -46,8 +46,19 @@ export class UsersService {
   ) {}
 
   private normalizeInviteRole(role: string): string {
-    const normalized = role === 'site_admin' ? LegacyRole.ORG_ADMIN : role;
-    const allowed: string[] = [LegacyRole.ORG_ADMIN, LegacyRole.EDITOR, LegacyRole.VIEWER];
+    const aliasMap: Record<string, string> = {
+      'site_admin': LegacyRole.ORG_ADMIN,
+      'admin': LegacyRole.ORG_ADMIN,
+      'organization_admin': LegacyRole.ORG_ADMIN,
+    };
+    const normalized = aliasMap[role] || role;
+    const allowed: string[] = [
+      LegacyRole.ORG_ADMIN,
+      'editor-in-chief',
+      LegacyRole.EDITOR,
+      'marketing',
+      LegacyRole.VIEWER,
+    ];
     if (!allowed.includes(normalized)) {
       throw new BadRequestException(`Invalid role. Must be one of: ${allowed.join(', ')}`);
     }
@@ -289,7 +300,12 @@ export class UsersService {
       throw new ForbiddenException('Insufficient permissions to create users');
     }
 
-    const normalizedRole = dto.role === 'site_admin' ? LegacyRole.ORG_ADMIN : dto.role;
+    const aliasMap: Record<string, string> = {
+      'site_admin': LegacyRole.ORG_ADMIN,
+      'admin': LegacyRole.ORG_ADMIN,
+      'organization_admin': LegacyRole.ORG_ADMIN,
+    };
+    const normalizedRole = aliasMap[dto.role] || dto.role;
     const email = dto.email.trim().toLowerCase();
 
     // Security: Only super_admin can create super_admin users
@@ -298,12 +314,23 @@ export class UsersService {
     }
 
     // Validate role
-    const validRoles: string[] = [LegacyRole.SUPER_ADMIN, LegacyRole.ORG_ADMIN, LegacyRole.EDITOR, LegacyRole.VIEWER];
+    const validRoles: string[] = [
+      LegacyRole.SUPER_ADMIN, LegacyRole.ORG_ADMIN,
+      'editor-in-chief', LegacyRole.EDITOR, 'marketing', LegacyRole.VIEWER,
+    ];
     if (!validRoles.includes(normalizedRole)) {
       throw new BadRequestException(`Invalid role. Must be one of: ${validRoles.join(', ')}`);
     }
 
-    const siteRole = normalizedRole === LegacyRole.ORG_ADMIN ? 'admin' : normalizedRole === LegacyRole.EDITOR ? 'editor' : 'viewer';
+    const siteRoleMap: Record<string, string> = {
+      [LegacyRole.SUPER_ADMIN]: 'owner',
+      [LegacyRole.ORG_ADMIN]: 'admin',
+      'editor-in-chief': 'editor-in-chief',
+      [LegacyRole.EDITOR]: 'editor',
+      'marketing': 'marketing',
+      [LegacyRole.VIEWER]: 'viewer',
+    };
+    const siteRole = siteRoleMap[normalizedRole] || 'viewer';
     const platformRole = normalizedRole === LegacyRole.SUPER_ADMIN || normalizedRole === LegacyRole.ORG_ADMIN ? 'admin' : 'user';
     const isSuperAdmin = normalizedRole === LegacyRole.SUPER_ADMIN;
 
@@ -519,7 +546,12 @@ export class UsersService {
       throw new ForbiddenException('Insufficient permissions to update user roles');
     }
 
-    const normalizedRole = newRole === 'site_admin' ? LegacyRole.ORG_ADMIN : newRole;
+    const aliasMap: Record<string, string> = {
+      'site_admin': LegacyRole.ORG_ADMIN,
+      'admin': LegacyRole.ORG_ADMIN,
+      'organization_admin': LegacyRole.ORG_ADMIN,
+    };
+    const normalizedRole = aliasMap[newRole] || newRole;
 
     // Security: Only super_admin can assign super_admin role
     if (normalizedRole === LegacyRole.SUPER_ADMIN && requestingUserRole !== LegacyRole.SUPER_ADMIN) {
@@ -527,7 +559,10 @@ export class UsersService {
     }
 
     // Validate role
-    const validRoles: string[] = [LegacyRole.SUPER_ADMIN, LegacyRole.ORG_ADMIN, LegacyRole.EDITOR, LegacyRole.VIEWER];
+    const validRoles: string[] = [
+      LegacyRole.SUPER_ADMIN, LegacyRole.ORG_ADMIN,
+      'editor-in-chief', LegacyRole.EDITOR, 'marketing', LegacyRole.VIEWER,
+    ];
     if (!validRoles.includes(normalizedRole)) {
       throw new BadRequestException(`Invalid role. Must be one of: ${validRoles.join(', ')}`);
     }
@@ -559,7 +594,15 @@ export class UsersService {
       }
     }
 
-    const siteRole = normalizedRole === LegacyRole.ORG_ADMIN ? 'admin' : normalizedRole === LegacyRole.EDITOR ? 'editor' : 'viewer';
+    const siteRoleMap: Record<string, string> = {
+      [LegacyRole.SUPER_ADMIN]: 'owner',
+      [LegacyRole.ORG_ADMIN]: 'admin',
+      'editor-in-chief': 'editor-in-chief',
+      [LegacyRole.EDITOR]: 'editor',
+      'marketing': 'marketing',
+      [LegacyRole.VIEWER]: 'viewer',
+    };
+    const siteRole = siteRoleMap[normalizedRole] || 'viewer';
     const platformRole = normalizedRole === LegacyRole.SUPER_ADMIN || normalizedRole === LegacyRole.ORG_ADMIN ? 'admin' : 'user';
     const isSuperAdmin = normalizedRole === LegacyRole.SUPER_ADMIN;
 

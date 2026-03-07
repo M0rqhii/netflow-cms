@@ -31,11 +31,16 @@ export default function OrgUsersPage() {
   const t = useTranslations();
   const roleLabel = (value: string) => {
     const normalized = normalizeRole(value);
-    if (normalized === "org_admin") return t("users.admin");
-    if (normalized === "super_admin") return t("users.superAdmin");
-    if (normalized === "editor") return t("users.editor");
-    if (normalized === "viewer") return t("users.viewer");
-    return normalized;
+    const labels: Record<string, string> = {
+      "org_admin": t("users.admin"),
+      "admin": t("users.admin"),
+      "super_admin": t("users.superAdmin"),
+      "editor-in-chief": t("users.editorInChief"),
+      "editor": t("users.editor"),
+      "marketing": t("users.marketing"),
+      "viewer": t("users.viewer"),
+    };
+    return labels[normalized] || normalized;
   };
 
   const [loading, setLoading] = useState(true);
@@ -237,10 +242,12 @@ export default function OrgUsersPage() {
               onChange={(event) => setUserRoleFilter(event.target.value)}
             >
               <option value="">{t("users.allRoles")}</option>
-              <option value="org_admin">{t("users.admin")}</option>
-              <option value="editor">{t("users.editor")}</option>
-              <option value="viewer">{t("users.viewer")}</option>
               <option value="super_admin">{t("users.superAdmin")}</option>
+              <option value="org_admin">{t("users.admin")}</option>
+              <option value="editor-in-chief">{t("users.editorInChief")}</option>
+              <option value="editor">{t("users.editor")}</option>
+              <option value="marketing">{t("users.marketing")}</option>
+              <option value="viewer">{t("users.viewer")}</option>
             </select>
           </div>
         </div>
@@ -305,7 +312,9 @@ export default function OrgUsersPage() {
               onChange={(event) => setCreateRole(event.target.value)}
             >
               <option value="org_admin">{t("users.admin")}</option>
+              <option value="editor-in-chief">{t("users.editorInChief")}</option>
               <option value="editor">{t("users.editor")}</option>
+              <option value="marketing">{t("users.marketing")}</option>
               <option value="viewer">{t("users.viewer")}</option>
             </select>
           </div>
@@ -372,7 +381,9 @@ export default function OrgUsersPage() {
                 onChange={(event) => setInviteRole(event.target.value)}
               >
                 <option value="org_admin">{t("users.admin")}</option>
+                <option value="editor-in-chief">{t("users.editorInChief")}</option>
                 <option value="editor">{t("users.editor")}</option>
+                <option value="marketing">{t("users.marketing")}</option>
                 <option value="viewer">{t("users.viewer")}</option>
               </select>
             </div>

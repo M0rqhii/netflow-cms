@@ -36,18 +36,16 @@ export default function SiteUsersPage() {
   const normalizeRole = (value: string) => (value === "site_admin" ? "org_admin" : value);
   const roleLabel = (value: string) => {
     const normalized = normalizeRole(value);
-    switch (normalized) {
-      case "org_admin":
-        return t("users.admin");
-      case "super_admin":
-        return t("users.superAdmin");
-      case "editor":
-        return t("users.editor");
-      case "viewer":
-        return t("users.viewer");
-      default:
-        return normalized;
-    }
+    const labels: Record<string, string> = {
+      "org_admin": t("users.admin"),
+      "admin": t("users.admin"),
+      "super_admin": t("users.superAdmin"),
+      "editor-in-chief": t("users.editorInChief"),
+      "editor": t("users.editor"),
+      "marketing": t("users.marketing"),
+      "viewer": t("users.viewer"),
+    };
+    return labels[normalized] || normalized;
   };
 
   useEffect(() => {
@@ -226,8 +224,11 @@ export default function SiteUsersPage() {
                   onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setRoleFilter(e.target.value)}
                 >
                   <option value="">{t("users.allRoles")}</option>
+                  <option value="super_admin">{t("users.superAdmin")}</option>
                   <option value="org_admin">{t("users.admin")}</option>
+                  <option value="editor-in-chief">{t("users.editorInChief")}</option>
                   <option value="editor">{t("users.editor")}</option>
+                  <option value="marketing">{t("users.marketing")}</option>
                   <option value="viewer">{t("users.viewer")}</option>
                 </select>
               </div>
@@ -258,7 +259,9 @@ export default function SiteUsersPage() {
                               >
                                 <option value="super_admin">{t("users.superAdmin")}</option>
                                 <option value="org_admin">{t("users.admin")}</option>
+                                <option value="editor-in-chief">{t("users.editorInChief")}</option>
                                 <option value="editor">{t("users.editor")}</option>
+                                <option value="marketing">{t("users.marketing")}</option>
                                 <option value="viewer">{t("users.viewer")}</option>
                               </select>
                               <button className="btn btn-primary" onClick={() => onUpdateRole(u.id, editingRole)}>{t("common.save")}</button>
@@ -318,7 +321,9 @@ export default function SiteUsersPage() {
               required
             >
               <option value="org_admin">{t("users.admin")}</option>
+              <option value="editor-in-chief">{t("users.editorInChief")}</option>
               <option value="editor">{t("users.editor")}</option>
+              <option value="marketing">{t("users.marketing")}</option>
               <option value="viewer">{t("users.viewer")}</option>
             </select>
           </div>
@@ -359,7 +364,9 @@ export default function SiteUsersPage() {
               required
             >
               <option value="org_admin">{t("users.admin")}</option>
+              <option value="editor-in-chief">{t("users.editorInChief")}</option>
               <option value="editor">{t("users.editor")}</option>
+              <option value="marketing">{t("users.marketing")}</option>
               <option value="viewer">{t("users.viewer")}</option>
             </select>
           </div>

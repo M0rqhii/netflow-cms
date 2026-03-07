@@ -261,6 +261,7 @@ export const ORG_ROLE_PERMISSIONS: Record<OrgRole, Permission[]> = {
     Permission.USERS_WRITE,
     Permission.USERS_DELETE,
     Permission.ORGANIZATIONS_READ,
+    Permission.ORGANIZATIONS_WRITE,
     Permission.SITES_READ,
     Permission.SITES_WRITE,
     Permission.SITES_DELETE,
