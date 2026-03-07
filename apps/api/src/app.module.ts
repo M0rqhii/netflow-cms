@@ -55,6 +55,7 @@ import { TerminusModule } from '@nestjs/terminus';
 // import { ContentModule } from './modules/content/content.module';
 
 const isProductionProfile = (process.env.APP_PROFILE || process.env.NODE_ENV || 'development') === 'production';
+const enableDevModule = !isProductionProfile && process.env.ENABLE_DEV_MODE === 'true';
 
 @Module({
   imports: [
@@ -112,7 +113,7 @@ const isProductionProfile = (process.env.APP_PROFILE || process.env.NODE_ENV || 
     OrgDashboardModule,
     OrganizationsModule,
     SitesModule,
-    ...(isProductionProfile ? [] : [DevModule]),
+    ...(enableDevModule ? [DevModule] : []),
     // Add feature modules here
     // ContentModule,
   ],

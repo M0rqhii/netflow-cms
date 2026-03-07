@@ -27,7 +27,7 @@ import { isPlatformAdminValue, isPlatformPowerUser } from '../../common/auth/pla
 
 const createPlatformUserSchema = z.object({
   email: z.string().email('Invalid email format'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
+  password: z.string().min(8, 'Password must be at least 8 characters').max(128, 'Password must be at most 128 characters'),
   role: z.enum(['super_admin', 'organization_admin', 'editor', 'viewer', 'platform_admin']).optional(), // Backward compatibility
   siteRole: z.enum(['viewer', 'editor', 'editor-in-chief', 'marketing', 'admin', 'owner']).optional(),
   platformRole: z.enum(['user', 'editor-in-chief', 'admin', 'owner', 'platform_admin']).optional(),
@@ -242,7 +242,7 @@ export class PlatformUsersController {
     }
 
     // Hash password
-    const passwordHash = await bcrypt.hash(dto.password, 10);
+    const passwordHash = await bcrypt.hash(dto.password, 12);
 
     // Determine roles
     // Normalize legacy role names

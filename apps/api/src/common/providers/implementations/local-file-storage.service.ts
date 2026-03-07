@@ -37,10 +37,21 @@ export class LocalFileStorage implements FileStorage {
   async uploadFile(params: UploadFileParams): Promise<UploadFileResult> {
     const { file, filename, contentType, siteId, folder, metadata } = params;
 
+    // Sanitize siteId and folder to prevent path traversal
+    const safeSiteId = path.basename(siteId);
+    const safeFolder = folder ? path.basename(folder) : undefined;
+
     // Create site-specific folder structure
-    const siteFolder = path.join(this.uploadDir, siteId);
-    const finalFolder = folder ? path.join(siteFolder, folder) : siteFolder;
-    
+    const siteFolder = path.join(this.uploadDir, safeSiteId);
+    const finalFolder = safeFolder ? path.join(siteFolder, safeFolder) : siteFolder;
+
+    // Verify resolved path is within upload directory
+    const resolvedFinalFolder = path.resolve(finalFolder);
+    const resolvedUploadDir = path.resolve(this.uploadDir);
+    if (!resolvedFinalFolder.startsWith(resolvedUploadDir + path.sep)) {
+      throw new Error('Invalid upload path');
+    }
+
     await fs.mkdir(finalFolder, { recursive: true });
 
     // Generate unique filename to avoid collisions
@@ -76,6 +87,14 @@ export class LocalFileStorage implements FileStorage {
     const { key } = params;
     const filePath = path.join(this.uploadDir, key);
 
+    // Prevent path traversal
+    const resolvedPath = path.resolve(filePath);
+    const resolvedUploadDir = path.resolve(this.uploadDir);
+    if (!resolvedPath.startsWith(resolvedUploadDir + path.sep) && resolvedPath !== resolvedUploadDir) {
+      this.logger.warn(`[DEV] Path traversal attempt blocked for deletion: ${key}`);
+      return;
+    }
+
     try {
       await fs.unlink(filePath);
       this.logger.log(`[DEV] Deleted file: ${key}`);
@@ -91,6 +110,11 @@ export class LocalFileStorage implements FileStorage {
   async fileExists(key: string): Promise<boolean> {
     try {
       const filePath = path.join(this.uploadDir, key);
+      const resolvedPath = path.resolve(filePath);
+      const resolvedUploadDir = path.resolve(this.uploadDir);
+      if (!resolvedPath.startsWith(resolvedUploadDir + path.sep) && resolvedPath !== resolvedUploadDir) {
+        return false;
+      }
       await fs.access(filePath);
       return true;
     } catch {

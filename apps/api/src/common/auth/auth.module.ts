@@ -3,8 +3,9 @@ import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 
-// JWT token expiration constants (in seconds)
-const SEVEN_DAYS_IN_SECONDS = 60 * 60 * 24 * 7;
+// JWT access token default expiration (in seconds)
+// Access tokens should be short-lived; refresh tokens handle long sessions
+const ONE_HOUR_IN_SECONDS = 60 * 60;
 import { AuthGuard } from './guards/auth.guard';
 import { RolesGuard } from './guards/roles.guard';
 import { PlatformRolesGuard } from './guards/platform-roles.guard';
@@ -40,7 +41,7 @@ import { FeatureFlagsModule } from '../../modules/feature-flags/feature-flags.mo
         return {
           secret,
           signOptions: {
-            expiresIn: typeof expires === 'number' ? expires : SEVEN_DAYS_IN_SECONDS,
+            expiresIn: typeof expires === 'number' ? expires : ONE_HOUR_IN_SECONDS,
           },
         };
       },

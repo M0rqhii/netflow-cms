@@ -62,7 +62,7 @@ export class UsersController {
    * List all users in the organization (admin only)
    */
   @Get()
-  @Throttle(1000, 60) // 1000 requests per minute (very high limit for development)
+  @Throttle(60, 60) // 60 requests per minute
   @Permissions(Permission.USERS_READ)
   listUsers(
     @CurrentOrg() orgId: string,
@@ -76,7 +76,7 @@ export class UsersController {
    * Get all invites for the current organization (admin only)
    */
   @Get('invites')
-  @Throttle(1000, 60) // 1000 requests per minute (very high limit for development)
+  @Throttle(60, 60) // 60 requests per minute
   @Permissions(Permission.USERS_READ)
   getInvites(@CurrentOrg() orgId: string, @CurrentSite() siteId: string) {
     return this.usersService.listInvites(orgId, siteId);
@@ -87,7 +87,7 @@ export class UsersController {
    * Create a new invite for a user (admin only)
    */
   @Post('invites')
-  @Throttle(1000, 60) // 1000 requests per minute (very high limit for development)
+  @Throttle(60, 60) // 60 requests per minute
   @Permissions(Permission.USERS_WRITE)
   @HttpCode(HttpStatus.CREATED)
   createInvite(
@@ -107,7 +107,7 @@ export class UsersController {
    * Revoke a pending invite (admin only)
    */
   @Delete('invites/:id')
-  @Throttle(1000, 60) // 1000 requests per minute (very high limit for development)
+  @Throttle(60, 60) // 60 requests per minute
   @Permissions(Permission.USERS_WRITE)
   @HttpCode(HttpStatus.NO_CONTENT)
   async revokeInvite(

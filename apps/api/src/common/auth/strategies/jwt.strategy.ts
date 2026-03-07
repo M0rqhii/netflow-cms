@@ -52,10 +52,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
     const user = await this.prisma.$transaction(async (tx) => {
       if (orgIdFromToken) {
-        await tx.$executeRawUnsafe(`SET LOCAL app.current_org_id = '${orgIdFromToken}'`);
+        await tx.$executeRawUnsafe(`SET LOCAL app.current_org_id = $1`, orgIdFromToken);
       }
       if (siteIdFromToken) {
-        await tx.$executeRawUnsafe(`SET LOCAL app.current_site_id = '${siteIdFromToken}'`);
+        await tx.$executeRawUnsafe(`SET LOCAL app.current_site_id = $1`, siteIdFromToken);
       }
       return tx.user.findUnique({
         where: { id: payload.sub },

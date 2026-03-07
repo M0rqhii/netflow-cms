@@ -290,7 +290,7 @@ export class AccountService {
       throw new BadRequestException('Invalid old password');
     }
 
-    const newPasswordHash = await bcrypt.hash(dto.newPassword, 10);
+    const newPasswordHash = await bcrypt.hash(dto.newPassword, 12);
 
     await this.prisma.user.update({
       where: { id: userId },

@@ -130,11 +130,11 @@ export class OrgSiteContextMiddleware implements NestMiddleware {
     // SECURITY: resolvedOrgId and resolvedSiteId are validated as UUID format before use
     try {
       await this.prisma.$executeRawUnsafe(
-        `SET app.current_org_id = '${resolvedOrgId}'`,
+        `SET app.current_org_id = $1`, resolvedOrgId,
       );
       if (resolvedSiteId) {
         await this.prisma.$executeRawUnsafe(
-          `SET app.current_site_id = '${resolvedSiteId}'`,
+          `SET app.current_site_id = $1`, resolvedSiteId,
         );
       }
       this.logger.debug(`Set org context: ${resolvedOrgId}${resolvedSiteId ? `, site: ${resolvedSiteId}` : ''}`);

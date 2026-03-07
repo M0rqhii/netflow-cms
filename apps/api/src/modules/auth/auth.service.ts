@@ -503,9 +503,8 @@ export class AuthService {
 
   private async issueRefreshToken(payload: JwtPayload): Promise<string> {
     const refreshSecret =
-      this.configService.get<string>('REFRESH_TOKEN_SECRET') ||
-      this.configService.get<string>('JWT_SECRET');
-    if (!refreshSecret) throw new Error('Missing REFRESH_TOKEN_SECRET/JWT_SECRET');
+      this.configService.get<string>('REFRESH_TOKEN_SECRET');
+    if (!refreshSecret) throw new Error('Missing REFRESH_TOKEN_SECRET');
     const refreshExpires = this.configService.get<string | number>('REFRESH_TOKEN_EXPIRES_IN') || 60 * 60 * 24 * 7;
     const jti = randomUUID();
     // Whitelist jti in Redis with TTL
@@ -775,7 +774,7 @@ export class AuthService {
     const languageChosenAt = registerDto.preferredLanguage ? new Date() : null;
     
     // Hash password
-    const passwordHash = await bcrypt.hash(registerDto.password, 10);
+    const passwordHash = await bcrypt.hash(registerDto.password, 12);
 
     // Create user
     const user = await this.prisma.user.create({
@@ -926,7 +925,7 @@ export class AuthService {
     const role = invite.role === 'site_admin' ? 'org_admin' : invite.role || 'viewer';
     const siteRole = this.mapRoleToSiteRole(role);
     const platformRole = this.mapRoleToPlatformRole(role);
-    const passwordHash = await bcrypt.hash(dto.password, 10);
+    const passwordHash = await bcrypt.hash(dto.password, 12);
     const preferredLanguage = dto.preferredLanguage || 'en';
     const languageChosenAt = dto.preferredLanguage ? new Date() : null;
 
@@ -1111,7 +1110,7 @@ export class AuthService {
       throw new BadRequestException('Account no longer exists');
     }
 
-    const passwordHash = await bcrypt.hash(dto.password, 10);
+    const passwordHash = await bcrypt.hash(dto.password, 12);
     await this.prisma.user.update({
       where: { id: user.id },
       data: {
@@ -1143,9 +1142,8 @@ export class AuthService {
 
   async refresh(refreshToken: string): Promise<{ access_token: string; refresh_token: string }> {
     const refreshSecret =
-      this.configService.get<string>('REFRESH_TOKEN_SECRET') ||
-      this.configService.get<string>('JWT_SECRET');
-    if (!refreshSecret) throw new Error('Missing REFRESH_TOKEN_SECRET/JWT_SECRET');
+      this.configService.get<string>('REFRESH_TOKEN_SECRET');
+    if (!refreshSecret) throw new Error('Missing REFRESH_TOKEN_SECRET');
 
     let decoded: any;
     try {
@@ -1204,9 +1202,8 @@ export class AuthService {
 
   async logout(refreshToken: string): Promise<void> {
     const refreshSecret =
-      this.configService.get<string>('REFRESH_TOKEN_SECRET') ||
-      this.configService.get<string>('JWT_SECRET');
-    if (!refreshSecret) throw new Error('Missing REFRESH_TOKEN_SECRET/JWT_SECRET');
+      this.configService.get<string>('REFRESH_TOKEN_SECRET');
+    if (!refreshSecret) throw new Error('Missing REFRESH_TOKEN_SECRET');
     try {
       const decoded: any = this.jwtService.verify(refreshToken, { secret: refreshSecret });
       const { sub, jti } = decoded as { sub: string; jti: string };

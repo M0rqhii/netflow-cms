@@ -31,11 +31,21 @@ export class CsrfGuard implements CanActivate {
       .filter((origin) => origin.trim())
       .map((origin) => origin.trim());
 
-    // If no origins configured, skip validation (development mode)
+    // Fallback: use FRONTEND_URL + CORS_ORIGIN if ALLOWED_ORIGINS is not set
     if (allowedOrigins.length === 0) {
-      // In production, this should be configured
+      const frontendUrl = this.configService.get<string>('FRONTEND_URL', '');
+      const corsOrigin = this.configService.get<string>('CORS_ORIGIN', '');
+      [frontendUrl, ...corsOrigin.split(',')].forEach((o) => {
+        const trimmed = o.trim();
+        if (trimmed) allowedOrigins.push(trimmed);
+      });
+    }
+
+    // In production, block if still no origins configured
+    if (allowedOrigins.length === 0) {
       if (this.configService.get<string>('NODE_ENV') === 'production') {
-        this.logger.warn('CSRF Guard: ALLOWED_ORIGINS not configured in production');
+        this.logger.error('CSRF Guard: No allowed origins configured in production — blocking request');
+        throw new ForbiddenException('Server misconfiguration: no allowed origins');
       }
       return true;
     }

@@ -365,7 +365,7 @@ export class UsersService {
       typeof dto.password === 'string' && dto.password.trim().length >= 8
         ? dto.password
         : randomBytes(24).toString('base64url');
-    const passwordHash = await bcrypt.hash(rawPassword, 10);
+    const passwordHash = await bcrypt.hash(rawPassword, 12);
 
     // Create user
     const user = await this.prisma.user.create({

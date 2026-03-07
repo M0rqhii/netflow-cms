@@ -59,8 +59,8 @@ export class EnvironmentVariables {
   JWT_EXPIRES_IN?: string;
 
   @IsString()
-  @IsOptional()
-  REFRESH_TOKEN_SECRET?: string;
+  @IsNotEmpty()
+  REFRESH_TOKEN_SECRET!: string;
 
   @IsString()
   @IsOptional()

@@ -71,14 +71,16 @@ export function isTokenExpired(token: string | null): boolean {
 function setAuthCookie(token: string): void {
   if (typeof document === 'undefined') return;
   const expires = getAuthTokenExpiry(token);
-  const cookieParts = [`authToken=${token}`, 'Path=/', 'SameSite=Lax'];
+  const isSecure = typeof window !== 'undefined' && window.location.protocol === 'https:';
+  const cookieParts = [`authToken=${token}`, 'Path=/', 'SameSite=Strict'];
+  if (isSecure) cookieParts.push('Secure');
   if (expires) cookieParts.push(`Expires=${new Date(expires).toUTCString()}`);
   document.cookie = cookieParts.join('; ');
 }
 
 function clearAuthCookie(): void {
   if (typeof document === 'undefined') return;
-  document.cookie = 'authToken=; Path=/; Max-Age=0; SameSite=Lax';
+  document.cookie = 'authToken=; Path=/; Max-Age=0; SameSite=Strict';
 }
 
 export function getAuthToken(): string | null {
@@ -205,13 +207,13 @@ export async function exchangeOrgToken(orgId: string): Promise<string> {
 
 async function ensureSiteToken(siteId: string): Promise<string> {
   const cached = getSiteToken(siteId);
-  if (cached) return cached;
+  if (cached && !isTokenExpired(cached)) return cached;
   return exchangeSiteToken(siteId);
 }
 
 async function ensureOrgToken(orgId: string): Promise<string> {
   const cached = getOrgToken(orgId);
-  if (cached) return cached;
+  if (cached && !isTokenExpired(cached)) return cached;
   return exchangeOrgToken(orgId);
 }
 

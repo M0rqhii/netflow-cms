@@ -64,7 +64,7 @@ export class AuthController {
   async acceptInvite(
     @Body(new ZodValidationPipe(z.object({
       token: z.string().min(10),
-      password: z.string().min(6),
+      password: z.string().min(8, 'Password must be at least 8 characters').max(128),
       preferredLanguage: z.enum(['pl', 'en']).optional(),
     }))) body: { token: string; password: string; preferredLanguage?: 'pl' | 'en' }
   ) {
@@ -123,6 +123,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle(20, 60) // 20 refresh requests per minute
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   async refresh(
@@ -133,6 +134,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle(20, 60) // 20 logout requests per minute
   @Post('logout')
   @HttpCode(HttpStatus.NO_CONTENT)
   async logout(
@@ -150,7 +152,7 @@ export class AuthController {
   }
 
   @UseGuards(AuthGuard)
-  @Throttle(1000, 60) // 1000 requests per minute (very high limit for development)
+  @Throttle(60, 60) // 60 requests per minute
   @Get('me/orgs')
   async getMyOrgs(@CurrentUser() user: CurrentUserPayload, @Req() req: Request) {
     const orgs = await this.authService.getUserOrgs(user.id);

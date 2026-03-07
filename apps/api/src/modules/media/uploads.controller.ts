@@ -62,11 +62,18 @@ export class UploadsController {
 
       // Read and serve file
       const fileBuffer = await fs.readFile(resolvedPath);
-      
+
       res.setHeader('Content-Type', contentType);
       res.setHeader('Content-Length', fileBuffer.length);
-      res.setHeader('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
-      
+      res.setHeader('Cache-Control', 'public, max-age=31536000');
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      // Prevent SVG/HTML XSS: block scripts inside served files
+      res.setHeader('Content-Security-Policy', "default-src 'none'; style-src 'unsafe-inline'; img-src data:; sandbox");
+      // Force download for potentially dangerous file types
+      if (ext === '.svg' || ext === '.html' || ext === '.htm') {
+        res.setHeader('Content-Disposition', `attachment; filename="${path.basename(resolvedPath)}"`);
+      }
+
       res.send(fileBuffer);
     } catch (error: any) {
       if (error instanceof NotFoundException) {
