@@ -57,6 +57,10 @@ export class ResendMailer implements Mailer {
     }));
   }
 
+  private sanitizeTag(value: string): string {
+    return value.replace(/[^A-Za-z0-9_-]/g, '_').slice(0, 256);
+  }
+
   async sendEmail(params: SendEmailParams): Promise<EmailResult> {
     const apiKey = this.getApiKey();
     if (!apiKey) {
@@ -76,8 +80,8 @@ export class ResendMailer implements Mailer {
         ? Object.entries(params.metadata)
             .slice(0, 5)
             .map(([name, value]) => ({
-              name: String(name),
-              value: String(value),
+              name: this.sanitizeTag(String(name)),
+              value: this.sanitizeTag(String(value)),
             }))
         : undefined,
     };
