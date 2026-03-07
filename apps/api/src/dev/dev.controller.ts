@@ -17,7 +17,7 @@ export class DevController {
       throw new ForbiddenException('User not authenticated');
     }
 
-    // Fast path: check token claims
+    // Fast path: check token claims for super_admin / platform_admin role
     if (
       user.isSuperAdmin === true ||
       user.systemRole === 'super_admin' ||
@@ -27,10 +27,31 @@ export class DevController {
       return;
     }
 
-    // Fallback: verify against database (handles old tokens)
+    // Check if user belongs to the platform organization (slug or name = 'platform_admin')
+    const membership = await this.prisma.userOrg.findFirst({
+      where: {
+        userId: user.id,
+        organization: {
+          OR: [
+            { slug: { equals: 'platform_admin', mode: 'insensitive' } },
+            { name: { equals: 'platform_admin', mode: 'insensitive' } },
+          ],
+        },
+      },
+      select: { id: true },
+    });
+
+    if (membership) {
+      return;
+    }
+
+    // Fallback: check if user's primary org is the platform org
     const dbUser = await this.prisma.user.findUnique({
       where: { id: user.id },
-      select: { role: true, platformRole: true, systemRole: true, isSuperAdmin: true },
+      select: {
+        role: true, platformRole: true, systemRole: true, isSuperAdmin: true,
+        organization: { select: { slug: true, name: true } },
+      },
     });
 
     if (
@@ -42,7 +63,13 @@ export class DevController {
       return;
     }
 
-    throw new ForbiddenException('Dev panel requires super_admin or platform_admin role');
+    const orgSlug = dbUser?.organization?.slug?.toLowerCase();
+    const orgName = dbUser?.organization?.name?.toLowerCase();
+    if (orgSlug === 'platform_admin' || orgName === 'platform_admin') {
+      return;
+    }
+
+    throw new ForbiddenException('Dev panel is only accessible to members of the platform organization');
   }
 
   @Get('summary')
