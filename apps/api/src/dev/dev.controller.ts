@@ -7,87 +7,42 @@ import { DebugService } from '../common/debug/debug.service';
 @Controller('dev')
 @UseGuards(AuthGuard)
 export class DevController {
-  private readonly isProd = (process.env.APP_PROFILE || process.env.NODE_ENV || 'development') === 'production';
-
   constructor(
     private readonly prisma: PrismaService,
     private readonly debugService: DebugService,
   ) {}
 
   private async assertPrivileged(user: CurrentUserPayload | null) {
-    if (this.isProd) {
-      throw new ForbiddenException('Dev endpoints are disabled in production');
-    }
-    
     if (!user || !user.id) {
       throw new ForbiddenException('User not authenticated');
     }
-    
-    // Check isSuperAdmin flag first (highest priority)
-    if (user.isSuperAdmin === true) {
-      return; // Super admin always has access
+
+    // Fast path: check token claims
+    if (
+      user.isSuperAdmin === true ||
+      user.systemRole === 'super_admin' ||
+      user.role === 'super_admin' ||
+      user.platformRole === 'platform_admin'
+    ) {
+      return;
     }
-    
-    // Check systemRole from token
-    if (user.systemRole === 'super_admin') {
-      return; // System super admin has access
+
+    // Fallback: verify against database (handles old tokens)
+    const dbUser = await this.prisma.user.findUnique({
+      where: { id: user.id },
+      select: { role: true, platformRole: true, systemRole: true, isSuperAdmin: true },
+    });
+
+    if (
+      dbUser?.isSuperAdmin === true ||
+      dbUser?.systemRole === 'super_admin' ||
+      dbUser?.role === 'super_admin' ||
+      dbUser?.platformRole === 'platform_admin'
+    ) {
+      return;
     }
-    
-    // Check role from token
-    const tokenRole = user.role;
-    const hasPrivilegedRoleFromToken = 
-      tokenRole === 'super_admin' || 
-      tokenRole === 'org_admin';
-    
-    if (hasPrivilegedRoleFromToken) {
-      return; // User has privileged role in token
-    }
-    
-    // Check platformRole from token (platform_admin should have access)
-    const platformRole = user.platformRole;
-    if (platformRole === 'platform_admin') {
-      return; // Platform admin has access
-    }
-    
-    // Fallback: Check database if token doesn't have role (for old tokens or super_admin)
-    try {
-      const dbUser = await this.prisma.user.findUnique({
-        where: { id: user.id },
-        select: { 
-          role: true, 
-          platformRole: true, 
-          systemRole: true,
-          isSuperAdmin: true,
-        },
-      });
-      
-      if (dbUser) {
-        // Check isSuperAdmin flag in database
-        if (dbUser.isSuperAdmin === true) {
-          return; // Super admin always has access
-        }
-        
-        // Check systemRole in database
-        if (dbUser.systemRole === 'super_admin') {
-          return; // System super admin has access
-        }
-        
-        // Check legacy role
-        if (dbUser.role === 'super_admin' || dbUser.role === 'org_admin') {
-          return; // User has privileged role in database
-        }
-        
-        // Check platform role
-        if (dbUser.platformRole === 'platform_admin') {
-          return; // User has platform admin role in database
-        }
-      }
-    } catch (error) {
-      // If database check fails, continue to throw error
-    }
-    
-    // No privileged role found
-    throw new ForbiddenException('Insufficient permissions to access dev endpoints. Required role: super_admin, org_admin (legacy), or platform_admin');
+
+    throw new ForbiddenException('Dev panel requires super_admin or platform_admin role');
   }
 
   @Get('summary')
