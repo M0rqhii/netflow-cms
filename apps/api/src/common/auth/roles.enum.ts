@@ -259,8 +259,11 @@ export const ORG_ROLE_PERMISSIONS: Record<OrgRole, Permission[]> = {
     // Może zarządzać organizacją
     Permission.USERS_READ,
     Permission.USERS_WRITE,
+    Permission.USERS_DELETE,
+    Permission.ORGANIZATIONS_READ,
     Permission.SITES_READ,
     Permission.SITES_WRITE,
+    Permission.SITES_DELETE,
     Permission.BILLING_READ,
     Permission.BILLING_WRITE,
   ],

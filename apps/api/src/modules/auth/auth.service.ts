@@ -1311,12 +1311,14 @@ export class AuthService {
 
     const finalRole = role ?? 'viewer';
     const platformRole = this.mapRoleToPlatformRole(finalRole);
+    const siteRole = this.mapRoleToSiteRole(finalRole);
 
     const payload: JwtPayload = {
       sub: user.id,
       email: user.email,
       orgId,
       role: finalRole,
+      siteRole,
       platformRole,
     };
     const orgTokenExpiresIn = 60 * 60;
@@ -1371,6 +1373,7 @@ export class AuthService {
 
     const finalRole = role ?? 'viewer';
     const platformRole = this.mapRoleToPlatformRole(finalRole);
+    const siteRole = this.mapRoleToSiteRole(finalRole);
 
     const payload: JwtPayload = {
       sub: currentUser.id,
@@ -1378,6 +1381,7 @@ export class AuthService {
       orgId: site.orgId,
       siteId: site.id,
       role: finalRole,
+      siteRole,
       platformRole,
       isSuperAdmin: isSuperAdmin || undefined,
       systemRole: currentUser.systemRole || undefined,

@@ -66,9 +66,9 @@ export class UsersController {
   @Permissions(Permission.USERS_READ)
   listUsers(
     @CurrentOrg() orgId: string,
-    @CurrentUser() user: { role: string }
+    @CurrentUser() user: { role?: string; orgRole?: string; platformRole?: string }
   ) {
-    return this.usersService.listUsers(orgId, user.role);
+    return this.usersService.listUsers(orgId, user.orgRole || user.platformRole || user.role || '');
   }
 
   /**
@@ -129,9 +129,9 @@ export class UsersController {
   getUserById(
     @Param('id') userId: string,
     @CurrentOrg() orgId: string,
-    @CurrentUser() user: { role: string }
+    @CurrentUser() user: { role?: string; orgRole?: string; platformRole?: string }
   ) {
-    return this.usersService.getUserById(userId, orgId, user.role);
+    return this.usersService.getUserById(userId, orgId, user.orgRole || user.platformRole || user.role || '');
   }
 
   /**
@@ -144,7 +144,7 @@ export class UsersController {
   @HttpCode(HttpStatus.CREATED)
   createUser(
     @CurrentOrg() orgId: string,
-    @CurrentUser() user: { role: string },
+    @CurrentUser() user: { role?: string; orgRole?: string; platformRole?: string },
     @Body(new ZodValidationPipe(z.object({
       email: z.string().email('Invalid email format'),
       password: z.string().min(8, 'Password must be at least 8 characters').optional(),
@@ -152,7 +152,7 @@ export class UsersController {
       preferredLanguage: z.enum(['pl', 'en']).optional().default('en'),
     }))) body: { email: string; password?: string; role: string; preferredLanguage?: 'pl' | 'en' }
   ) {
-    return this.usersService.createUser(orgId, body, user.role);
+    return this.usersService.createUser(orgId, body, user.orgRole || user.platformRole || user.role || '');
   }
 
   /**
@@ -165,12 +165,12 @@ export class UsersController {
   updateUserRole(
     @Param('id') userId: string,
     @CurrentOrg() orgId: string,
-    @CurrentUser() user: { role: string },
+    @CurrentUser() user: { role?: string; orgRole?: string; platformRole?: string },
     @Body(new ZodValidationPipe(z.object({
       role: z.enum(['super_admin', 'org_admin', 'editor', 'viewer', 'site_admin']),
     }))) body: { role: string }
   ) {
-    return this.usersService.updateUserRole(userId, orgId, body.role, user.role);
+    return this.usersService.updateUserRole(userId, orgId, body.role, user.orgRole || user.platformRole || user.role || '');
   }
 }
 

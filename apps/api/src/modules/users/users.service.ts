@@ -17,6 +17,19 @@ const LegacyRole = {
   VIEWER: 'viewer',
 } as const;
 
+/** Accepts both legacy (org_admin) and new (admin/owner) role values */
+function isAdminRole(role?: string): boolean {
+  if (!role) return false;
+  const normalized = role.toLowerCase();
+  return [
+    LegacyRole.SUPER_ADMIN,
+    LegacyRole.ORG_ADMIN,
+    'admin',
+    'owner',
+    'platform_admin',
+  ].includes(normalized);
+}
+
 /**
  * UsersService - business logic for user management
  * AI Note: Handles user operations with proper authorization checks
@@ -163,11 +176,7 @@ export class UsersService {
    * List users in an organization (only for admins)
    */
   async listUsers(orgId: string, requestingUserRole: string) {
-    // Only org admins (org_admin role) and super_admin can list users
-    if (
-      requestingUserRole !== LegacyRole.ORG_ADMIN &&
-      requestingUserRole !== LegacyRole.SUPER_ADMIN
-    ) {
+    if (!isAdminRole(requestingUserRole)) {
       throw new ForbiddenException('Insufficient permissions to list users');
     }
 
@@ -214,11 +223,7 @@ export class UsersService {
    * Get user by ID (only for admins)
    */
   async getUserById(userId: string, orgId: string, requestingUserRole: string) {
-    // Only org admins (org_admin role) and super_admin can view user details
-    if (
-      requestingUserRole !== LegacyRole.ORG_ADMIN &&
-      requestingUserRole !== LegacyRole.SUPER_ADMIN
-    ) {
+    if (!isAdminRole(requestingUserRole)) {
       throw new ForbiddenException('Insufficient permissions to view user');
     }
 
@@ -280,11 +285,7 @@ export class UsersService {
     dto: { email: string; password?: string; role: string; preferredLanguage?: 'pl' | 'en' },
     requestingUserRole: string,
   ) {
-    // Only org admins (org_admin role) and super_admin can create users
-    if (
-      requestingUserRole !== LegacyRole.ORG_ADMIN &&
-      requestingUserRole !== LegacyRole.SUPER_ADMIN
-    ) {
+    if (!isAdminRole(requestingUserRole)) {
       throw new ForbiddenException('Insufficient permissions to create users');
     }
 
@@ -514,11 +515,7 @@ export class UsersService {
     newRole: string,
     requestingUserRole: string,
   ) {
-    // Only org admins (org_admin role) and super_admin can update user roles
-    if (
-      requestingUserRole !== LegacyRole.ORG_ADMIN &&
-      requestingUserRole !== LegacyRole.SUPER_ADMIN
-    ) {
+    if (!isAdminRole(requestingUserRole)) {
       throw new ForbiddenException('Insufficient permissions to update user roles');
     }
 
