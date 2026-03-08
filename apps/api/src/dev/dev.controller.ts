@@ -481,17 +481,20 @@ export class DevController {
     });
 
     // Get latest subscription per org
-    const subs = await this.prisma.subscription.findMany({
-      orderBy: { createdAt: 'desc' },
-      distinct: ['orgId'],
-      select: {
-        orgId: true,
-        status: true,
-        currentPeriodEnd: true,
-      },
-    }).catch(() => []);
+    let subs: Array<{ orgId: string; status: string; currentPeriodEnd: Date | null }> = [];
+    try {
+      subs = await this.prisma.subscription.findMany({
+        orderBy: { createdAt: 'desc' },
+        distinct: ['orgId'],
+        select: {
+          orgId: true,
+          status: true,
+          currentPeriodEnd: true,
+        },
+      });
+    } catch {}
 
-    const subMap = new Map(subs.map((s) => [s.orgId, s]));
+    const subMap = new Map<string, typeof subs[number]>(subs.map((s) => [s.orgId, s]));
 
     return orgs.map((org) => {
       const sub = subMap.get(org.id);
