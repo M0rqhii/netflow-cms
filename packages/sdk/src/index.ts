@@ -593,7 +593,7 @@ export class ApiClient {
   }
 
   async getDevAudit(token: string): Promise<
-    Array<Record<string, unknown>>
+    Array<{ id: string; entityType: string; entityId: string; action: string; actorUserId: string | null; orgId: string | null; siteId: string | null; metadata: Record<string, unknown>; createdAt: string }>
   > {
     return this.request(`/dev/audit`, {
       method: 'GET',
