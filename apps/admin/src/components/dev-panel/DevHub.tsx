@@ -86,7 +86,7 @@ function levelBadgeClass(level?: string): string {
   return "gray";
 }
 
-export type DevHubTab = "runtime" | "api-keys" | "webhooks" | "logs" | "flags";
+export type DevHubTab = "runtime" | "webhooks" | "logs" | "flags";
 
 export function DevHub({ activeTab }: { activeTab: DevHubTab }) {
   const t = useTranslations();
@@ -287,17 +287,6 @@ export function DevHub({ activeTab }: { activeTab: DevHubTab }) {
               </div>
             </div>
           )}
-        </div>
-      )}
-
-      {activeTab === "api-keys" && (
-        <div className="card card-pad">
-          <div className="section-title">{t("devPanel.hub.apiKeys.title")}</div>
-          <div className="text-muted text-xs mt-1.5">
-            {t("devPanel.hub.apiKeys.subtitle")}
-          </div>
-          <div className="spacer-sm" />
-          <div className="dev-empty-state">{t("devPanel.hub.apiKeys.empty")}</div>
         </div>
       )}
 

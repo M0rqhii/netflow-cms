@@ -1814,10 +1814,16 @@
       "sites": "Strony",
       "payments": "Płatności",
       "emails": "E-maile",
-      "apiKeys": "Klucze API",
       "webhooks": "Webhooki",
       "logs": "Logi",
-      "flags": "Flagi funkcji"
+      "flags": "Flagi funkcji",
+      "dashboard": "Dashboard",
+      "organizations": "Organizacje",
+      "invites": "Zaproszenia",
+      "performance": "Wydajność",
+      "audit": "Audit Log",
+      "events": "Zdarzenia",
+      "security": "Bezpieczeństwo"
     },
     "common": {
       "accessDeniedTitle": "Brak dostępu",
@@ -1979,6 +1985,161 @@
         "failed": "Nieudane",
         "lastEvent": "Ostatnie zdarzenie",
         "sentDelivered": "Wysłane / dostarczone"
+      }
+    },
+    "dashboard": {
+      "title": "Dashboard platformy",
+      "description": "Metryki platformy, trendy wzrostu i użycie zasobów.",
+      "loading": "Ładowanie dashboardu...",
+      "empty": "Dane dashboardu są niedostępne.",
+      "kpis": {
+        "organizations": "Organizacje",
+        "sites": "Strony",
+        "users": "Użytkownicy",
+        "media": "Pliki mediów"
+      },
+      "growth": {
+        "title": "Wzrost (7d / 30d)",
+        "orgs": "Organizacje",
+        "sites": "Strony",
+        "users": "Użytkownicy"
+      },
+      "plans": {
+        "title": "Rozkład planów"
+      },
+      "subscriptions": {
+        "title": "Status subskrypcji"
+      },
+      "content": {
+        "title": "Status treści"
+      },
+      "storage": {
+        "title": "Magazyn danych",
+        "totalBytes": "Łączny rozmiar",
+        "mediaCount": "Pliki"
+      }
+    },
+    "organizations": {
+      "title": "Organizacje",
+      "description": "Wszystkie organizacje na platformie z kluczowymi metrykami.",
+      "loading": "Ładowanie organizacji...",
+      "empty": "Nie znaleziono organizacji.",
+      "columns": {
+        "name": "Nazwa",
+        "slug": "Slug",
+        "plan": "Plan",
+        "users": "Użytkownicy",
+        "sites": "Strony",
+        "members": "Członkowie",
+        "invites": "Oczekujące zaproszenia",
+        "subscription": "Subskrypcja",
+        "created": "Utworzono"
+      }
+    },
+    "invites": {
+      "title": "Zaproszenia",
+      "description": "Wszystkie zaproszenia na platformie i ich status.",
+      "loading": "Ładowanie zaproszeń...",
+      "empty": "Nie znaleziono zaproszeń.",
+      "statusCounts": "Przegląd statusów",
+      "columns": {
+        "email": "Email",
+        "role": "Rola",
+        "status": "Status",
+        "org": "Organizacja",
+        "site": "Strona",
+        "expires": "Wygasa",
+        "accepted": "Zaakceptowano",
+        "created": "Utworzono"
+      }
+    },
+    "performance": {
+      "title": "Metryki wydajności",
+      "description": "Wydajność API, statystyki cache i użycie pamięci.",
+      "loading": "Ładowanie danych o wydajności...",
+      "empty": "Dane wydajności są niedostępne.",
+      "cache": {
+        "title": "Statystyki cache",
+        "hits": "Trafienia",
+        "misses": "Pudła",
+        "hitRate": "Wskaźnik trafień"
+      },
+      "memory": {
+        "title": "Użycie pamięci",
+        "heapUsed": "Sterta użyta",
+        "heapTotal": "Sterta całkowita",
+        "rss": "RSS",
+        "external": "Zewnętrzna"
+      },
+      "uptime": "Czas pracy",
+      "slowQueries": {
+        "title": "Wolne zapytania",
+        "query": "Zapytanie",
+        "count": "Liczba",
+        "avgTime": "Średni czas",
+        "totalTime": "Łączny czas"
+      },
+      "topQueries": {
+        "title": "Najpopularniejsze zapytania",
+        "query": "Zapytanie",
+        "count": "Liczba",
+        "avgTime": "Średni czas"
+      }
+    },
+    "audit": {
+      "title": "Audit Log",
+      "description": "Log zdarzeń bezpieczeństwa i zgodności.",
+      "loading": "Ładowanie audit logu...",
+      "empty": "Nie znaleziono wpisów audit logu.",
+      "columns": {
+        "time": "Czas",
+        "entityType": "Typ encji",
+        "entityId": "ID encji",
+        "action": "Akcja",
+        "actor": "Wykonawca",
+        "org": "Organizacja"
+      }
+    },
+    "events": {
+      "title": "Zdarzenia stron",
+      "description": "Oś czasu zdarzeń ze wszystkich stron.",
+      "loading": "Ładowanie zdarzeń...",
+      "empty": "Nie znaleziono zdarzeń.",
+      "columns": {
+        "time": "Czas",
+        "site": "Strona",
+        "type": "Typ",
+        "message": "Wiadomość",
+        "user": "Użytkownik"
+      }
+    },
+    "security": {
+      "title": "Przegląd bezpieczeństwa",
+      "description": "Wykrywanie anomalii, wygasłe tokeny i niedziałające integracje.",
+      "loading": "Ładowanie danych bezpieczeństwa...",
+      "empty": "Dane bezpieczeństwa są niedostępne.",
+      "kpis": {
+        "expiredInvites": "Wygasłe zaproszenia",
+        "pastDueSubs": "Zaległe subskrypcje",
+        "expiredTokens": "Wygasłe tokeny haseł",
+        "failingWebhooks": "Niedziałające webhooki"
+      },
+      "recentDeletions": {
+        "title": "Ostatnie usunięcia i cofnięcia",
+        "columns": {
+          "time": "Czas",
+          "entityType": "Typ encji",
+          "entityId": "ID encji",
+          "action": "Akcja",
+          "actor": "Wykonawca"
+        }
+      },
+      "failingWebhooksList": {
+        "title": "Niedziałające webhooki",
+        "columns": {
+          "url": "URL",
+          "site": "Strona"
+        }
       }
     }
   }

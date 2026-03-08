@@ -1814,10 +1814,16 @@
       "sites": "Sites",
       "payments": "Payments",
       "emails": "Emails",
-      "apiKeys": "API Keys",
       "webhooks": "Webhooks",
       "logs": "Logs",
-      "flags": "Feature Flags"
+      "flags": "Feature Flags",
+      "dashboard": "Dashboard",
+      "organizations": "Organizations",
+      "invites": "Invites",
+      "performance": "Performance",
+      "audit": "Audit Log",
+      "events": "Events",
+      "security": "Security"
     },
     "common": {
       "accessDeniedTitle": "Access denied",
@@ -1979,6 +1985,161 @@
         "failed": "Failed",
         "lastEvent": "Last event",
         "sentDelivered": "Sent / delivered"
+      }
+    },
+    "dashboard": {
+      "title": "Platform Dashboard",
+      "description": "Platform-wide metrics, growth trends and resource usage.",
+      "loading": "Loading dashboard...",
+      "empty": "Dashboard data is not available.",
+      "kpis": {
+        "organizations": "Organizations",
+        "sites": "Sites",
+        "users": "Users",
+        "media": "Media Files"
+      },
+      "growth": {
+        "title": "Growth (7d / 30d)",
+        "orgs": "Organizations",
+        "sites": "Sites",
+        "users": "Users"
+      },
+      "plans": {
+        "title": "Plan Distribution"
+      },
+      "subscriptions": {
+        "title": "Subscription Status"
+      },
+      "content": {
+        "title": "Content Status"
+      },
+      "storage": {
+        "title": "Storage",
+        "totalBytes": "Total size",
+        "mediaCount": "Files"
+      }
+    },
+    "organizations": {
+      "title": "Organizations",
+      "description": "All organizations on the platform with key metrics.",
+      "loading": "Loading organizations...",
+      "empty": "No organizations found.",
+      "columns": {
+        "name": "Name",
+        "slug": "Slug",
+        "plan": "Plan",
+        "users": "Users",
+        "sites": "Sites",
+        "members": "Members",
+        "invites": "Pending Invites",
+        "subscription": "Subscription",
+        "created": "Created"
+      }
+    },
+    "invites": {
+      "title": "Invitations",
+      "description": "All platform invitations and their status.",
+      "loading": "Loading invitations...",
+      "empty": "No invitations found.",
+      "statusCounts": "Status overview",
+      "columns": {
+        "email": "Email",
+        "role": "Role",
+        "status": "Status",
+        "org": "Organization",
+        "site": "Site",
+        "expires": "Expires",
+        "accepted": "Accepted",
+        "created": "Created"
+      }
+    },
+    "performance": {
+      "title": "Performance Metrics",
+      "description": "API performance, cache statistics and memory usage.",
+      "loading": "Loading performance data...",
+      "empty": "Performance data is not available.",
+      "cache": {
+        "title": "Cache Statistics",
+        "hits": "Hits",
+        "misses": "Misses",
+        "hitRate": "Hit Rate"
+      },
+      "memory": {
+        "title": "Memory Usage",
+        "heapUsed": "Heap Used",
+        "heapTotal": "Heap Total",
+        "rss": "RSS",
+        "external": "External"
+      },
+      "uptime": "Uptime",
+      "slowQueries": {
+        "title": "Slow Queries",
+        "query": "Query",
+        "count": "Count",
+        "avgTime": "Avg Time",
+        "totalTime": "Total Time"
+      },
+      "topQueries": {
+        "title": "Top Queries by Count",
+        "query": "Query",
+        "count": "Count",
+        "avgTime": "Avg Time"
+      }
+    },
+    "audit": {
+      "title": "Audit Log",
+      "description": "Security and compliance event log.",
+      "loading": "Loading audit log...",
+      "empty": "No audit log entries found.",
+      "columns": {
+        "time": "Time",
+        "entityType": "Entity Type",
+        "entityId": "Entity ID",
+        "action": "Action",
+        "actor": "Actor",
+        "org": "Organization"
+      }
+    },
+    "events": {
+      "title": "Site Events",
+      "description": "Timeline of events across all sites.",
+      "loading": "Loading events...",
+      "empty": "No events found.",
+      "columns": {
+        "time": "Time",
+        "site": "Site",
+        "type": "Type",
+        "message": "Message",
+        "user": "User"
+      }
+    },
+    "security": {
+      "title": "Security Overview",
+      "description": "Anomaly detection, expired tokens and failing integrations.",
+      "loading": "Loading security data...",
+      "empty": "Security data is not available.",
+      "kpis": {
+        "expiredInvites": "Expired Invites",
+        "pastDueSubs": "Past Due Subscriptions",
+        "expiredTokens": "Expired Password Tokens",
+        "failingWebhooks": "Failing Webhooks"
+      },
+      "recentDeletions": {
+        "title": "Recent Deletions & Revocations",
+        "columns": {
+          "time": "Time",
+          "entityType": "Entity Type",
+          "entityId": "Entity ID",
+          "action": "Action",
+          "actor": "Actor"
+        }
+      },
+      "failingWebhooksList": {
+        "title": "Failing Webhooks",
+        "columns": {
+          "url": "URL",
+          "site": "Site"
+        }
       }
     }
   }

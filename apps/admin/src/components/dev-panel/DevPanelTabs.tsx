@@ -7,10 +7,16 @@ import { useTranslations } from "@/hooks/useTranslations";
 
 export const DEV_PANEL_TABS = [
   { id: "runtime", labelKey: "devPanel.tabs.runtime", href: "/dev/runtime" },
+  { id: "dashboard", labelKey: "devPanel.tabs.dashboard", href: "/dev/dashboard" },
+  { id: "organizations", labelKey: "devPanel.tabs.organizations", href: "/dev/organizations" },
   { id: "sites", labelKey: "devPanel.tabs.sites", href: "/dev/sites" },
   { id: "payments", labelKey: "devPanel.tabs.payments", href: "/dev/payments" },
   { id: "emails", labelKey: "devPanel.tabs.emails", href: "/dev/emails" },
-  { id: "api-keys", labelKey: "devPanel.tabs.apiKeys", href: "/dev/api-keys" },
+  { id: "invites", labelKey: "devPanel.tabs.invites", href: "/dev/invites" },
+  { id: "performance", labelKey: "devPanel.tabs.performance", href: "/dev/performance" },
+  { id: "audit", labelKey: "devPanel.tabs.audit", href: "/dev/audit" },
+  { id: "events", labelKey: "devPanel.tabs.events", href: "/dev/events" },
+  { id: "security", labelKey: "devPanel.tabs.security", href: "/dev/security" },
   { id: "webhooks", labelKey: "devPanel.tabs.webhooks", href: "/dev/webhooks" },
   { id: "logs", labelKey: "devPanel.tabs.logs", href: "/dev/logs" },
   { id: "flags", labelKey: "devPanel.tabs.flags", href: "/dev/flags" },

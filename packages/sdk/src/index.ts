@@ -579,6 +579,119 @@ export class ApiClient {
     });
   }
 
+  async getDevPerformance(token: string): Promise<{
+    cache: Record<string, unknown>;
+    slowQueries: Array<{ key: string; avgTime: number; count: number }>;
+    topQueries: Array<{ key: string; avgTime: number; count: number }>;
+    memory: { heapUsed: number; heapTotal: number; rss: number; external: number };
+    uptime: number;
+  }> {
+    return this.request(`/dev/performance`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  }
+
+  async getDevAudit(token: string): Promise<
+    Array<Record<string, unknown>>
+  > {
+    return this.request(`/dev/audit`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  }
+
+  async getDevEvents(token: string): Promise<
+    Array<{
+      id: string;
+      siteId: string;
+      siteName: string;
+      userId: string | null;
+      type: string;
+      message: string;
+      metadata: unknown;
+      createdAt: string;
+    }>
+  > {
+    return this.request(`/dev/events`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  }
+
+  async getDevInvites(token: string): Promise<{
+    statusCounts: Record<string, number>;
+    total: number;
+    items: Array<{
+      id: string;
+      email: string;
+      role: string;
+      status: string;
+      orgName: string;
+      siteName: string | null;
+      expiresAt: string;
+      acceptedAt: string | null;
+      createdAt: string;
+    }>;
+  }> {
+    return this.request(`/dev/invites`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  }
+
+  async getDevDashboard(token: string): Promise<{
+    totals: { orgs: number; sites: number; users: number; media: number };
+    growth: { orgs7d: number; orgs30d: number; sites7d: number; sites30d: number; users7d: number; users30d: number };
+    plans: Record<string, number>;
+    subscriptions: Record<string, number>;
+    content: Record<string, number>;
+    storage: { totalBytes: number; mediaCount: number };
+  }> {
+    return this.request(`/dev/dashboard`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  }
+
+  async getDevOrganizations(token: string): Promise<
+    Array<{
+      id: string;
+      name: string;
+      slug: string;
+      plan: string;
+      createdAt: string;
+      stats: { users: number; sites: number; members: number; pendingInvites: number };
+      subscription: { status: string; currentPeriodEnd: string | null } | null;
+    }>
+  > {
+    return this.request(`/dev/organizations`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  }
+
+  async getDevSecurity(token: string): Promise<{
+    expiredInvites: number;
+    pastDueSubscriptions: number;
+    expiredPasswordTokens: number;
+    failingWebhooksCount: number;
+    failingWebhooks: Array<{ id: string; url: string; siteName: string }>;
+    recentDeletions: Array<{
+      id: string;
+      entityType: string;
+      entityId: string;
+      action: string;
+      actorUserId: string;
+      createdAt: string;
+    }>;
+  }> {
+    return this.request(`/dev/security`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  }
+
   // Site media (Site Panel)
   async listSiteMedia(token: string, siteId: string): Promise<MediaItem[]> {
     return this.request(`/site-panel/${encodeURIComponent(siteId)}/media`, {

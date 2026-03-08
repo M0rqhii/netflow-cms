@@ -1919,6 +1919,110 @@ export async function getDevFlags(): Promise<
   return client.getDevFlags(token);
 }
 
+export async function getDevPerformance(): Promise<{
+  cache: Record<string, unknown>;
+  slowQueries: Array<{ key: string; avgTime: number; count: number }>;
+  topQueries: Array<{ key: string; avgTime: number; count: number }>;
+  memory: { heapUsed: number; heapTotal: number; rss: number; external: number };
+  uptime: number;
+}> {
+  const token = getAuthToken();
+  if (!token) throw new Error('Missing auth token. Please login.');
+  return client.getDevPerformance(token);
+}
+
+export async function getDevAudit(): Promise<Array<Record<string, unknown>>> {
+  const token = getAuthToken();
+  if (!token) throw new Error('Missing auth token. Please login.');
+  return client.getDevAudit(token);
+}
+
+export async function getDevEvents(): Promise<
+  Array<{
+    id: string;
+    siteId: string;
+    siteName: string;
+    userId: string | null;
+    type: string;
+    message: string;
+    metadata: unknown;
+    createdAt: string;
+  }>
+> {
+  const token = getAuthToken();
+  if (!token) throw new Error('Missing auth token. Please login.');
+  return client.getDevEvents(token);
+}
+
+export async function getDevInvites(): Promise<{
+  statusCounts: Record<string, number>;
+  total: number;
+  items: Array<{
+    id: string;
+    email: string;
+    role: string;
+    status: string;
+    orgName: string;
+    siteName: string | null;
+    expiresAt: string;
+    acceptedAt: string | null;
+    createdAt: string;
+  }>;
+}> {
+  const token = getAuthToken();
+  if (!token) throw new Error('Missing auth token. Please login.');
+  return client.getDevInvites(token);
+}
+
+export async function getDevDashboard(): Promise<{
+  totals: { orgs: number; sites: number; users: number; media: number };
+  growth: { orgs7d: number; orgs30d: number; sites7d: number; sites30d: number; users7d: number; users30d: number };
+  plans: Record<string, number>;
+  subscriptions: Record<string, number>;
+  content: Record<string, number>;
+  storage: { totalBytes: number; mediaCount: number };
+}> {
+  const token = getAuthToken();
+  if (!token) throw new Error('Missing auth token. Please login.');
+  return client.getDevDashboard(token);
+}
+
+export async function getDevOrganizations(): Promise<
+  Array<{
+    id: string;
+    name: string;
+    slug: string;
+    plan: string;
+    createdAt: string;
+    stats: { users: number; sites: number; members: number; pendingInvites: number };
+    subscription: { status: string; currentPeriodEnd: string | null } | null;
+  }>
+> {
+  const token = getAuthToken();
+  if (!token) throw new Error('Missing auth token. Please login.');
+  return client.getDevOrganizations(token);
+}
+
+export async function getDevSecurity(): Promise<{
+  expiredInvites: number;
+  pastDueSubscriptions: number;
+  expiredPasswordTokens: number;
+  failingWebhooksCount: number;
+  failingWebhooks: Array<{ id: string; url: string; siteName: string }>;
+  recentDeletions: Array<{
+    id: string;
+    entityType: string;
+    entityId: string;
+    action: string;
+    actorUserId: string;
+    createdAt: string;
+  }>;
+}> {
+  const token = getAuthToken();
+  if (!token) throw new Error('Missing auth token. Please login.');
+  return client.getDevSecurity(token);
+}
+
 // Alias for getCurrentUser (as requested)
 export async function getCurrentUser(): Promise<AccountInfo> {
   return getAccount();
