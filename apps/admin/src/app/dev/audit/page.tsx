@@ -54,7 +54,7 @@ export default function DevAuditPage() {
     let cancelled = false;
     setLoading(true);
     getDevAudit()
-      .then((d) => { if (!cancelled) setEntries(Array.isArray(d) ? d : []); })
+      .then((d) => { if (!cancelled) setEntries(Array.isArray(d) ? d as AuditEntry[] : []); })
       .catch((e) => { if (!cancelled) setError(e instanceof Error ? e.message : "Failed"); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };

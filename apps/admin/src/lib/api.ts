@@ -1931,7 +1931,7 @@ export async function getDevPerformance(): Promise<{
   return client.getDevPerformance(token);
 }
 
-export async function getDevAudit(): Promise<Array<Record<string, unknown>>> {
+export async function getDevAudit(): Promise<Array<{ id: string; entityType: string; entityId: string; action: string; actorUserId: string | null; orgId: string | null; siteId: string | null; metadata: Record<string, unknown>; createdAt: string }>> {
   const token = getAuthToken();
   if (!token) throw new Error('Missing auth token. Please login.');
   return client.getDevAudit(token);
