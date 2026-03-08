@@ -3,6 +3,7 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 import { CurrentUserPayload } from '../decorators/current-user.decorator';
 import { isPlatformPowerUser } from '../platform-admin.util';
 
@@ -52,10 +53,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
     const user = await this.prisma.$transaction(async (tx) => {
       if (orgIdFromToken) {
-        await tx.$executeRawUnsafe(`SET LOCAL app.current_org_id = $1`, orgIdFromToken);
+        await tx.$executeRaw(Prisma.sql`SELECT set_config('app.current_org_id', ${orgIdFromToken}, true)`);
       }
       if (siteIdFromToken) {
-        await tx.$executeRawUnsafe(`SET LOCAL app.current_site_id = $1`, siteIdFromToken);
+        await tx.$executeRaw(Prisma.sql`SELECT set_config('app.current_site_id', ${siteIdFromToken}, true)`);
       }
       return tx.user.findUnique({
         where: { id: payload.sub },

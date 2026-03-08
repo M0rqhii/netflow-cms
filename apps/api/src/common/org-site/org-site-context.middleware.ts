@@ -9,6 +9,7 @@ import { Request, Response, NextFunction } from 'express';
 import { OrganizationService } from '../organization/organization.service';
 import { SiteService } from '../site/site.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 import { CurrentUserPayload } from '../auth/decorators/current-user.decorator';
 import { isPlatformPowerUser } from '../auth/platform-admin.util';
 
@@ -128,13 +129,15 @@ export class OrgSiteContextMiddleware implements NestMiddleware {
     // Set PostgreSQL session variables for Row-Level Security
     // This ensures all queries are automatically filtered by org/site
     // SECURITY: resolvedOrgId and resolvedSiteId are validated as UUID format before use
+    // NOTE: PostgreSQL SET does not support parameterized queries ($1),
+    // so we use Prisma.raw() to safely embed the validated UUID values.
     try {
-      await this.prisma.$executeRawUnsafe(
-        `SET app.current_org_id = $1`, resolvedOrgId,
+      await this.prisma.$executeRaw(
+        Prisma.sql`SELECT set_config('app.current_org_id', ${resolvedOrgId}, true)`
       );
       if (resolvedSiteId) {
-        await this.prisma.$executeRawUnsafe(
-          `SET app.current_site_id = $1`, resolvedSiteId,
+        await this.prisma.$executeRaw(
+          Prisma.sql`SELECT set_config('app.current_site_id', ${resolvedSiteId}, true)`
         );
       }
       this.logger.debug(`Set org context: ${resolvedOrgId}${resolvedSiteId ? `, site: ${resolvedSiteId}` : ''}`);
@@ -148,9 +151,9 @@ export class OrgSiteContextMiddleware implements NestMiddleware {
     // Clear org/site context after request completes
     res.on('finish', async () => {
       try {
-        await this.prisma.$executeRawUnsafe(`RESET app.current_org_id`);
+        await this.prisma.$executeRaw(Prisma.sql`SELECT set_config('app.current_org_id', '', true)`);
         if (resolvedSiteId) {
-          await this.prisma.$executeRawUnsafe(`RESET app.current_site_id`);
+          await this.prisma.$executeRaw(Prisma.sql`SELECT set_config('app.current_site_id', '', true)`);
         }
       } catch (error) {
         this.logger.error(
