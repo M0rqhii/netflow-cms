@@ -302,6 +302,10 @@ html[data-theme="light"] .card {
   border-color: rgba(255, 176, 66, 0.35);
   background: rgba(255, 176, 66, 0.14);
 }
+.badge.red {
+  border-color: rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.12);
+}
 .badge.gray {
   border-color: rgba(255, 255, 255, 0.12);
   background: rgba(255, 255, 255, 0.06);

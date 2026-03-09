@@ -18,10 +18,66 @@ import { useToast } from "@/components/ui/Toast";
 import { toFriendlyMessage } from "@/lib/errors";
 import { useLanguage } from "@/hooks/useLanguage";
 import { useTranslations } from "@/hooks/useTranslations";
+import Modal from "@/components/ui/Modal";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import { Button } from "@/components/ui/Button";
+
+/* ─── Helpers ─── */
 
 function normalizeRole(value: string): string {
   return value === "site_admin" ? "org_admin" : value;
 }
+
+const ROLE_BADGE_COLORS: Record<string, string> = {
+  super_admin: "red",
+  org_admin: "orange",
+  admin: "blue",
+  "editor-in-chief": "blue",
+  editor: "gray",
+  marketing: "gray",
+  viewer: "gray",
+  owner: "green",
+};
+
+function roleBadgeColor(role: string): string {
+  return ROLE_BADGE_COLORS[normalizeRole(role)] || "gray";
+}
+
+function userInitials(email: string): string {
+  const parts = email.split("@")[0].split(/[._-]/);
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  return email.substring(0, 2).toUpperCase();
+}
+
+function timeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const days = Math.floor(diff / 86400000);
+  if (days === 0) return "Today";
+  if (days === 1) return "Yesterday";
+  if (days < 7) return `${days}d ago`;
+  if (days < 30) return `${Math.floor(days / 7)}w ago`;
+  if (days < 365) return `${Math.floor(days / 30)}mo ago`;
+  return `${Math.floor(days / 365)}y ago`;
+}
+
+function daysUntil(dateStr: string): { text: string; urgent: boolean } {
+  const diff = new Date(dateStr).getTime() - Date.now();
+  const days = Math.ceil(diff / 86400000);
+  if (days < 0) return { text: "Expired", urgent: true };
+  if (days === 0) return { text: "Today", urgent: true };
+  if (days === 1) return { text: "Tomorrow", urgent: true };
+  if (days <= 3) return { text: `${days}d`, urgent: true };
+  return { text: `${days}d`, urgent: false };
+}
+
+const INVITE_STATUS_COLORS: Record<string, string> = {
+  pending: "orange",
+  accepted: "green",
+  revoked: "gray",
+  expired: "red",
+};
+
+/* ─── Page ─── */
 
 export default function OrgUsersPage() {
   const params = useParams<{ orgId: string }>();
@@ -29,63 +85,77 @@ export default function OrgUsersPage() {
   const { push } = useToast();
   const { language } = useLanguage();
   const t = useTranslations();
+
   const roleLabel = (value: string) => {
     const normalized = normalizeRole(value);
     const labels: Record<string, string> = {
-      "org_admin": t("users.admin"),
-      "admin": t("users.admin"),
-      "super_admin": t("users.superAdmin"),
+      org_admin: t("users.admin"),
+      admin: t("users.admin"),
+      super_admin: t("users.superAdmin"),
       "editor-in-chief": t("users.editorInChief"),
-      "editor": t("users.editor"),
-      "marketing": t("users.marketing"),
-      "viewer": t("users.viewer"),
+      editor: t("users.editor"),
+      marketing: t("users.marketing"),
+      viewer: t("users.viewer"),
+      owner: t("users.owner"),
     };
     return labels[normalized] || normalized;
   };
 
+  // Data
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [users, setUsers] = useState<UserSummary[]>([]);
   const [sites, setSites] = useState<DashboardSiteCard[]>([]);
   const [selectedSiteId, setSelectedSiteId] = useState("");
 
+  // User filters
+  const [userQuery, setUserQuery] = useState("");
+  const [userRoleFilter, setUserRoleFilter] = useState("");
+
+  // Create user
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [createEmail, setCreateEmail] = useState("");
   const [createPassword, setCreatePassword] = useState("");
   const [createRole, setCreateRole] = useState("viewer");
   const [creating, setCreating] = useState(false);
 
+  // Invite
+  const [showInviteModal, setShowInviteModal] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState("viewer");
+  const [inviteSiteId, setInviteSiteId] = useState("");
   const [sendingInvite, setSendingInvite] = useState(false);
 
+  // Invites list
   const [invites, setInvites] = useState<InviteSummary[]>([]);
   const [loadingInvites, setLoadingInvites] = useState(false);
-
-  const [userQuery, setUserQuery] = useState("");
-  const [userRoleFilter, setUserRoleFilter] = useState("");
   const [inviteQuery, setInviteQuery] = useState("");
+
+  // Revoke confirm
+  const [revokeTarget, setRevokeTarget] = useState<InviteSummary | null>(null);
+  const [revoking, setRevoking] = useState(false);
+
+  // Active tab
+  const [activeTab, setActiveTab] = useState<"users" | "invites">("users");
 
   const selectedSite = useMemo(
     () => sites.find((site) => site.id === selectedSiteId) ?? null,
     [sites, selectedSiteId]
   );
 
-  const loadBaseData = useCallback(async () => {
-    if (!orgId) {
-      setLoading(false);
-      return;
-    }
+  /* ─── Data Loading ─── */
 
+  const loadBaseData = useCallback(async () => {
+    if (!orgId) { setLoading(false); return; }
     setLoading(true);
     setError(null);
     try {
       const [usersData, dashboardData] = await Promise.all([fetchOrgUsers(orgId), fetchOrgDashboard(orgId)]);
-
       const nextSites = dashboardData?.sites ?? [];
       setUsers(usersData);
       setSites(nextSites);
       setSelectedSiteId((current) => {
-        if (current && nextSites.some((site) => site.id === current)) return current;
+        if (current && nextSites.some((s) => s.id === current)) return current;
         return nextSites[0]?.id ?? "";
       });
     } catch (err) {
@@ -97,15 +167,10 @@ export default function OrgUsersPage() {
 
   const loadInvites = useCallback(
     async (siteId: string) => {
-      if (!siteId) {
-        setInvites([]);
-        return;
-      }
-
+      if (!siteId) { setInvites([]); return; }
       setLoadingInvites(true);
       try {
-        const data = await fetchSiteInvites(siteId);
-        setInvites(data);
+        setInvites(await fetchSiteInvites(siteId));
       } catch (err) {
         push({ tone: "error", message: toFriendlyMessage(err, t("users.failedToLoadInvites")) });
       } finally {
@@ -115,49 +180,44 @@ export default function OrgUsersPage() {
     [push, t]
   );
 
-  useEffect(() => {
-    if (!orgId) return;
-    loadBaseData();
-  }, [loadBaseData, orgId]);
+  useEffect(() => { if (orgId) loadBaseData(); }, [loadBaseData, orgId]);
+  useEffect(() => { loadInvites(selectedSiteId); }, [loadInvites, selectedSiteId]);
 
-  useEffect(() => {
-    loadInvites(selectedSiteId);
-  }, [loadInvites, selectedSiteId]);
+  /* ─── Filtered Data ─── */
 
   const filteredUsers = useMemo(() => {
-    return users.filter((user) => {
-      const matchesSearch = !userQuery || user.email.toLowerCase().includes(userQuery.toLowerCase());
-      const matchesRole = !userRoleFilter || normalizeRole(user.role) === userRoleFilter;
+    return users.filter((u) => {
+      const matchesSearch = !userQuery || u.email.toLowerCase().includes(userQuery.toLowerCase());
+      const matchesRole = !userRoleFilter || normalizeRole(u.role) === userRoleFilter;
       return matchesSearch && matchesRole;
     });
   }, [users, userQuery, userRoleFilter]);
 
   const filteredInvites = useMemo(() => {
-    return invites.filter((invite) => {
-      const matchesSearch = !inviteQuery || invite.email.toLowerCase().includes(inviteQuery.toLowerCase());
-      return matchesSearch;
+    return invites.filter((inv) => {
+      return !inviteQuery || inv.email.toLowerCase().includes(inviteQuery.toLowerCase());
     });
   }, [invites, inviteQuery]);
 
-  const handleCreateUser = async (event: FormEvent) => {
-    event.preventDefault();
-    if (!orgId || !createEmail.trim()) return;
+  const pendingCount = useMemo(() => invites.filter((i) => i.status === "pending").length, [invites]);
 
+  /* ─── Handlers ─── */
+
+  const handleCreateUser = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!orgId || !createEmail.trim()) return;
+    setCreating(true);
     try {
-      setCreating(true);
       await createOrgUser(orgId, {
         email: createEmail.trim().toLowerCase(),
         password: createPassword.trim() ? createPassword : undefined,
         role: createRole,
         preferredLanguage: language,
       });
-
       push({ tone: "success", message: `${t("users.userCreatedSuccessfully")}: ${createEmail}` });
-      setCreateEmail("");
-      setCreatePassword("");
-
-      const usersData = await fetchOrgUsers(orgId);
-      setUsers(usersData);
+      setCreateEmail(""); setCreatePassword(""); setCreateRole("viewer");
+      setShowCreateModal(false);
+      setUsers(await fetchOrgUsers(orgId));
     } catch (err) {
       push({ tone: "error", message: toFriendlyMessage(err, t("users.failedToCreateUser")) });
     } finally {
@@ -165,15 +225,16 @@ export default function OrgUsersPage() {
     }
   };
 
-  const handleInvite = async (event: FormEvent) => {
-    event.preventDefault();
-    if (!selectedSiteId || !inviteEmail.trim()) return;
-
+  const handleInvite = async (e: FormEvent) => {
+    e.preventDefault();
+    const siteId = inviteSiteId || selectedSiteId;
+    if (!siteId || !inviteEmail.trim()) return;
+    setSendingInvite(true);
     try {
-      setSendingInvite(true);
-      await inviteUserToSite(inviteEmail.trim().toLowerCase(), inviteRole, selectedSiteId);
+      await inviteUserToSite(inviteEmail.trim().toLowerCase(), inviteRole, siteId);
       push({ tone: "success", message: `${t("users.inviteSentTo")} ${inviteEmail}` });
-      setInviteEmail("");
+      setInviteEmail(""); setInviteRole("viewer");
+      setShowInviteModal(false);
       await loadInvites(selectedSiteId);
     } catch (err) {
       push({ tone: "error", message: toFriendlyMessage(err, t("users.failedToSendInvite")) });
@@ -182,113 +243,344 @@ export default function OrgUsersPage() {
     }
   };
 
-  const handleRevokeInvite = async (inviteId: string) => {
-    if (!selectedSiteId) return;
-
+  const handleRevokeInvite = async () => {
+    if (!revokeTarget || !selectedSiteId) return;
+    setRevoking(true);
     try {
-      await revokeInvite(selectedSiteId, inviteId);
+      await revokeInvite(selectedSiteId, revokeTarget.id);
       push({ tone: "success", message: t("users.inviteRevoked") });
+      setRevokeTarget(null);
       await loadInvites(selectedSiteId);
     } catch (err) {
       push({ tone: "error", message: toFriendlyMessage(err, t("users.failedToRevokeInvite")) });
+    } finally {
+      setRevoking(false);
     }
   };
 
+  /* ─── Loading / Error ─── */
+
   if (loading) {
     return (
-      <div className="card card-pad">
-        <Skeleton variant="text" width={220} height={28} className="mb-4" />
-        <Skeleton variant="rectangular" width="100%" height={280} />
+      <div className="animate-fade-in org-settings-page">
+        <div className="card card-pad">
+          <Skeleton variant="text" width={220} height={28} className="mb-2" />
+          <Skeleton variant="text" width={340} height={16} />
+        </div>
+        <div className="spacer" />
+        <div className="card card-pad">
+          <Skeleton variant="rectangular" width="100%" height={280} />
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="card card-pad">
-        <div className="text-error">{error}</div>
-        <div className="spacer-sm" />
-        <button className="btn" onClick={loadBaseData}>{t("common.retry")}</button>
+      <div className="animate-fade-in org-settings-page">
+        <div className="card card-pad">
+          <div className="text-error">{error}</div>
+          <div className="spacer-sm" />
+          <Button variant="outline" onClick={loadBaseData}>{t("common.retry")}</Button>
+        </div>
       </div>
     );
   }
 
+  /* ─── Render ─── */
+
   return (
     <div className="animate-fade-in org-settings-page">
+      {/* Header */}
       <div className="card card-pad">
-        <div className="section-title">{t("users.title")}</div>
-        <div className="detail-label mt-1.5">{t("users.manageOrganizationUsersAndInvites")}</div>
-      </div>
-
-      <div className="spacer" />
-
-      <div className="card card-pad">
-        <div className="section-title">{t("users.organizationUsers")}</div>
-        <div className="spacer-sm" />
-        <div className="row-wrap" style={{ marginBottom: 10 }}>
-          <Input
-            label={t("common.search")}
-            placeholder={t("users.searchByEmail")}
-            value={userQuery}
-            onChange={(event) => setUserQuery(event.target.value)}
-            className="w-full"
-          />
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <label htmlFor="users-role-filter" className="block text-xs font-semibold uppercase tracking-wide text-muted mb-1">{t("users.role")}</label>
-            <select
-              id="users-role-filter"
-              className="input"
-              value={userRoleFilter}
-              onChange={(event) => setUserRoleFilter(event.target.value)}
-            >
-              <option value="">{t("users.allRoles")}</option>
-              <option value="super_admin">{t("users.superAdmin")}</option>
-              <option value="org_admin">{t("users.admin")}</option>
-              <option value="editor-in-chief">{t("users.editorInChief")}</option>
-              <option value="editor">{t("users.editor")}</option>
-              <option value="marketing">{t("users.marketing")}</option>
-              <option value="viewer">{t("users.viewer")}</option>
-            </select>
+            <div className="section-title">{t("users.title")}</div>
+            <div className="detail-label mt-1">{t("users.manageOrganizationUsersAndInvites")}</div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => { setInviteSiteId(selectedSiteId); setShowInviteModal(true); }} disabled={sites.length === 0}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mr-1.5" aria-hidden="true">
+                <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />
+              </svg>
+              {t("users.sendInvite")}
+            </Button>
+            <Button variant="primary" onClick={() => setShowCreateModal(true)}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="mr-1.5" aria-hidden="true">
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+              {t("users.createUser")}
+            </Button>
           </div>
         </div>
-
-        {filteredUsers.length === 0 ? (
-          <EmptyState title={t("users.noUsersFound")} description={t("users.adjustFiltersOrCreateUser")} />
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>{t("users.email")}</th>
-                  <th>{t("users.role")}</th>
-                  <th>{t("users.joined")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredUsers.map((user) => (
-                  <tr key={user.id}>
-                    <td>{user.email}</td>
-                    <td><span className="badge gray">{roleLabel(user.role)}</span></td>
-                    <td className="text-muted">{new Date(user.createdAt).toLocaleDateString()}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
       </div>
 
       <div className="spacer" />
 
-      <div className="card card-pad">
-        <div className="section-title">{t("users.createUser")}</div>
-        <div className="spacer-sm" />
-        <form onSubmit={handleCreateUser} className="space-y-3" style={{ maxWidth: 520 }}>
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="card card-pad tight">
+          <div className="detail-label">{t("users.members")}</div>
+          <div className="text-xl font-extrabold leading-tight mt-1">{users.length}</div>
+        </div>
+        <div className="card card-pad tight">
+          <div className="detail-label">{t("users.pendingInvites")}</div>
+          <div className="text-xl font-extrabold leading-tight mt-1">{pendingCount}</div>
+        </div>
+        <div className="card card-pad tight">
+          <div className="detail-label">{t("users.project")}</div>
+          <div className="text-sm font-bold leading-tight mt-1 truncate">{selectedSite?.name || "-"}</div>
+        </div>
+      </div>
+
+      <div className="spacer" />
+
+      {/* Tab Toggle */}
+      <div className="flex items-center gap-1 p-1 rounded-lg bg-surface/50 w-fit">
+        <button
+          className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+            activeTab === "users"
+              ? "bg-[rgba(0,163,255,0.12)] text-[rgb(0,163,255)]"
+              : "text-muted hover:text-foreground"
+          }`}
+          onClick={() => setActiveTab("users")}
+        >
+          {t("users.organizationUsers")} ({users.length})
+        </button>
+        <button
+          className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+            activeTab === "invites"
+              ? "bg-[rgba(255,176,66,0.12)] text-[rgb(255,176,66)]"
+              : "text-muted hover:text-foreground"
+          }`}
+          onClick={() => setActiveTab("invites")}
+        >
+          {t("users.pendingInvites")} ({pendingCount})
+        </button>
+      </div>
+
+      <div className="spacer" />
+
+      {/* ─── Users Tab ─── */}
+      {activeTab === "users" && (
+        <>
+          {/* Search & Filter */}
+          <div className="card card-pad">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex-1">
+                <Input
+                  placeholder={t("users.searchByEmail")}
+                  value={userQuery}
+                  onChange={(e) => setUserQuery(e.target.value)}
+                />
+              </div>
+              <div>
+                <select
+                  className="input h-[38px]"
+                  value={userRoleFilter}
+                  onChange={(e) => setUserRoleFilter(e.target.value)}
+                >
+                  <option value="">{t("users.allRoles")}</option>
+                  <option value="super_admin">{t("users.superAdmin")}</option>
+                  <option value="org_admin">{t("users.admin")}</option>
+                  <option value="editor-in-chief">{t("users.editorInChief")}</option>
+                  <option value="editor">{t("users.editor")}</option>
+                  <option value="marketing">{t("users.marketing")}</option>
+                  <option value="viewer">{t("users.viewer")}</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div className="spacer" />
+
+          {/* Users Table */}
+          {filteredUsers.length === 0 ? (
+            <div className="card card-pad">
+              <EmptyState
+                title={t("users.noUsersFound")}
+                description={userQuery || userRoleFilter ? t("users.adjustFiltersOrCreateUser") : undefined}
+              />
+            </div>
+          ) : (
+            <div className="card overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th className="pl-5">{t("users.email")}</th>
+                      <th>{t("users.role")}</th>
+                      <th>{t("users.joined")}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredUsers.map((user) => (
+                      <tr key={user.id} className="group">
+                        <td className="pl-5">
+                          <div className="flex items-center gap-3">
+                            <div className="w-7 h-7 rounded-full bg-blue-500/15 text-blue-400 flex items-center justify-center text-[10px] font-bold shrink-0">
+                              {userInitials(user.email)}
+                            </div>
+                            <span className="text-sm">{user.email}</span>
+                          </div>
+                        </td>
+                        <td>
+                          <span className={`badge ${roleBadgeColor(user.role)}`}>
+                            {roleLabel(user.role)}
+                          </span>
+                        </td>
+                        <td>
+                          <span className="text-sm text-muted" title={new Date(user.createdAt).toLocaleString()}>
+                            {timeAgo(user.createdAt)}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ─── Invites Tab ─── */}
+      {activeTab === "invites" && (
+        <>
+          {/* Site selector + search */}
+          <div className="card card-pad">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="sm:w-56">
+                <label className="block text-xs font-semibold uppercase tracking-wide text-muted mb-1">
+                  {t("users.project")}
+                </label>
+                <select
+                  className="input w-full"
+                  value={selectedSiteId}
+                  onChange={(e) => setSelectedSiteId(e.target.value)}
+                >
+                  {sites.map((site) => (
+                    <option key={site.id} value={site.id}>
+                      {site.name} ({site.slug})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex-1">
+                <label className="block text-xs font-semibold uppercase tracking-wide text-muted mb-1">
+                  {t("users.searchInvites")}
+                </label>
+                <Input
+                  placeholder={t("users.searchByEmail")}
+                  value={inviteQuery}
+                  onChange={(e) => setInviteQuery(e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="spacer" />
+
+          {/* Invites Table */}
+          {!selectedSiteId ? (
+            <div className="card card-pad">
+              <EmptyState title={t("users.noProjectSelected")} />
+            </div>
+          ) : loadingInvites ? (
+            <div className="card card-pad">
+              <Skeleton variant="rectangular" width="100%" height={200} />
+            </div>
+          ) : filteredInvites.length === 0 ? (
+            <div className="card card-pad">
+              <EmptyState
+                title={t("users.noPendingInvites")}
+                description={t("users.invitesWillAppearAfterSending")}
+              />
+            </div>
+          ) : (
+            <div className="card overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th className="pl-5">{t("users.email")}</th>
+                      <th>{t("users.role")}</th>
+                      <th>{t("users.status")}</th>
+                      <th>{t("users.sent")}</th>
+                      <th>{t("users.expires")}</th>
+                      <th className="text-right pr-5">{t("common.actions")}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredInvites.map((invite) => {
+                      const expiry = daysUntil(invite.expiresAt);
+                      const statusColor = INVITE_STATUS_COLORS[invite.status] || "gray";
+                      return (
+                        <tr key={invite.id} className="group">
+                          <td className="pl-5">
+                            <div className="flex items-center gap-3">
+                              <div className="w-7 h-7 rounded-full bg-orange-500/15 text-orange-400 flex items-center justify-center text-[10px] font-bold shrink-0">
+                                {userInitials(invite.email)}
+                              </div>
+                              <span className="text-sm">{invite.email}</span>
+                            </div>
+                          </td>
+                          <td>
+                            <span className={`badge ${roleBadgeColor(invite.role)}`}>
+                              {roleLabel(invite.role)}
+                            </span>
+                          </td>
+                          <td>
+                            <span className={`badge ${statusColor}`}>
+                              {invite.status}
+                            </span>
+                          </td>
+                          <td>
+                            <span className="text-sm text-muted" title={new Date(invite.createdAt).toLocaleString()}>
+                              {timeAgo(invite.createdAt)}
+                            </span>
+                          </td>
+                          <td>
+                            <span className={`text-sm ${expiry.urgent ? "text-orange-400 font-medium" : "text-muted"}`}>
+                              {expiry.text}
+                            </span>
+                          </td>
+                          <td className="text-right pr-5">
+                            {invite.status === "pending" && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setRevokeTarget(invite)}
+                                className="opacity-0 group-hover:opacity-100 transition-opacity text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                              >
+                                {t("users.revoke")}
+                              </Button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ─── Create User Modal ─── */}
+      <Modal
+        open={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        title={t("users.createUser")}
+        size="md"
+      >
+        <form onSubmit={handleCreateUser} className="space-y-4">
           <Input
             label={t("users.emailAddress")}
             type="email"
             value={createEmail}
-            onChange={(event) => setCreateEmail(event.target.value)}
+            onChange={(e) => setCreateEmail(e.target.value)}
             required
             placeholder={t("users.emailPlaceholder")}
           />
@@ -296,21 +588,16 @@ export default function OrgUsersPage() {
             label={t("auth.password")}
             type="password"
             value={createPassword}
-            onChange={(event) => setCreatePassword(event.target.value)}
+            onChange={(e) => setCreatePassword(e.target.value)}
             placeholder="********"
             minLength={8}
             helperText={t("users.passwordOptionalHelper")}
           />
           <div>
-            <label htmlFor="create-org-user-role" className="block text-xs font-semibold uppercase tracking-wide text-muted mb-1">
+            <label className="block text-xs font-semibold uppercase tracking-wide text-muted mb-1.5">
               {t("users.role")}
             </label>
-            <select
-              id="create-org-user-role"
-              className="input"
-              value={createRole}
-              onChange={(event) => setCreateRole(event.target.value)}
-            >
+            <select className="input w-full" value={createRole} onChange={(e) => setCreateRole(e.target.value)}>
               <option value="org_admin">{t("users.admin")}</option>
               <option value="editor-in-chief">{t("users.editorInChief")}</option>
               <option value="editor">{t("users.editor")}</option>
@@ -318,43 +605,33 @@ export default function OrgUsersPage() {
               <option value="viewer">{t("users.viewer")}</option>
             </select>
           </div>
-          <div className="row-wrap">
-            <button
-              className="btn"
-              type="button"
-              onClick={() => {
-                setCreateEmail("");
-                setCreatePassword("");
-                setCreateRole("viewer");
-              }}
-            >
+          <div className="flex items-center gap-3 justify-end pt-2">
+            <Button variant="outline" type="button" onClick={() => setShowCreateModal(false)} disabled={creating}>
               {t("common.cancel")}
-            </button>
-            <button className="btn btn-primary" type="submit" disabled={creating}>
-              {creating ? t("users.creating") : t("users.createUser")}
-            </button>
+            </Button>
+            <Button variant="primary" type="submit" isLoading={creating}>
+              {t("users.createUser")}
+            </Button>
           </div>
         </form>
-      </div>
+      </Modal>
 
-      <div className="spacer" />
-
-      <div className="card card-pad">
-        <div className="section-title">{t("users.inviteUserToProject")}</div>
-        <div className="spacer-sm" />
+      {/* ─── Invite Modal ─── */}
+      <Modal
+        open={showInviteModal}
+        onClose={() => setShowInviteModal(false)}
+        title={t("users.inviteUserToProject")}
+        size="md"
+      >
         {sites.length === 0 ? (
           <EmptyState title={t("users.noProjectsAvailable")} description={t("users.createProjectFirstThenSendInvites")} />
         ) : (
-          <form onSubmit={handleInvite} className="space-y-3" style={{ maxWidth: 520 }}>
+          <form onSubmit={handleInvite} className="space-y-4">
             <div>
-              <label htmlFor="invite-site" className="block text-xs font-semibold uppercase tracking-wide text-muted mb-1">{t("users.project")}</label>
-              <select
-                id="invite-site"
-                className="input"
-                value={selectedSiteId}
-                onChange={(event) => setSelectedSiteId(event.target.value)}
-                required
-              >
+              <label className="block text-xs font-semibold uppercase tracking-wide text-muted mb-1.5">
+                {t("users.project")}
+              </label>
+              <select className="input w-full" value={inviteSiteId || selectedSiteId} onChange={(e) => setInviteSiteId(e.target.value)} required>
                 {sites.map((site) => (
                   <option key={site.id} value={site.id}>
                     {site.name} ({site.slug})
@@ -366,20 +643,15 @@ export default function OrgUsersPage() {
               label={t("users.emailAddress")}
               type="email"
               value={inviteEmail}
-              onChange={(event) => setInviteEmail(event.target.value)}
+              onChange={(e) => setInviteEmail(e.target.value)}
               required
               placeholder={t("users.emailPlaceholder")}
             />
             <div>
-              <label htmlFor="invite-org-user-role" className="block text-xs font-semibold uppercase tracking-wide text-muted mb-1">
+              <label className="block text-xs font-semibold uppercase tracking-wide text-muted mb-1.5">
                 {t("users.role")}
               </label>
-              <select
-                id="invite-org-user-role"
-                className="input"
-                value={inviteRole}
-                onChange={(event) => setInviteRole(event.target.value)}
-              >
+              <select className="input w-full" value={inviteRole} onChange={(e) => setInviteRole(e.target.value)}>
                 <option value="org_admin">{t("users.admin")}</option>
                 <option value="editor-in-chief">{t("users.editorInChief")}</option>
                 <option value="editor">{t("users.editor")}</option>
@@ -387,76 +659,30 @@ export default function OrgUsersPage() {
                 <option value="viewer">{t("users.viewer")}</option>
               </select>
             </div>
-            <div className="row-wrap">
-              <button className="btn btn-primary" type="submit" disabled={sendingInvite || !selectedSiteId}>
-                {sendingInvite ? t("users.sending") : t("users.sendInvite")}
-              </button>
+            <div className="flex items-center gap-3 justify-end pt-2">
+              <Button variant="outline" type="button" onClick={() => setShowInviteModal(false)} disabled={sendingInvite}>
+                {t("common.cancel")}
+              </Button>
+              <Button variant="primary" type="submit" isLoading={sendingInvite}>
+                {t("users.sendInvite")}
+              </Button>
             </div>
           </form>
         )}
-      </div>
+      </Modal>
 
-      <div className="spacer" />
-
-      <div className="card card-pad">
-        <div className="section-title">{t("users.pendingInvites")}</div>
-        <div className="detail-label mt-1.5">
-          {selectedSite
-            ? t("users.projectDetails", { name: selectedSite.name, slug: selectedSite.slug })
-            : t("users.selectProjectToListInvites")}
-        </div>
-        <div className="spacer-sm" />
-
-        {!selectedSiteId ? (
-          <div className="text-muted">{t("users.noProjectSelected")}</div>
-        ) : loadingInvites ? (
-          <div className="py-6">
-            <Skeleton variant="text" width={200} height={22} className="mb-3" />
-            <Skeleton variant="rectangular" width="100%" height={160} />
-          </div>
-        ) : (
-          <>
-            <Input
-              label={t("users.searchInvites")}
-              placeholder={t("users.searchByEmail")}
-              value={inviteQuery}
-              onChange={(event) => setInviteQuery(event.target.value)}
-              className="w-full"
-            />
-            <div className="spacer-sm" />
-            {filteredInvites.length === 0 ? (
-              <EmptyState title={t("users.noPendingInvites")} description={t("users.invitesWillAppearAfterSending")} />
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="table">
-                  <thead>
-                    <tr>
-                      <th>{t("users.email")}</th>
-                      <th>{t("users.role")}</th>
-                      <th>{t("users.sent")}</th>
-                      <th>{t("users.expires")}</th>
-                      <th className="text-right">{t("common.actions")}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredInvites.map((invite) => (
-                      <tr key={invite.id}>
-                        <td>{invite.email}</td>
-                        <td><span className="badge gray">{roleLabel(invite.role)}</span></td>
-                        <td className="text-muted">{new Date(invite.createdAt).toLocaleDateString()}</td>
-                        <td className="text-muted">{new Date(invite.expiresAt).toLocaleDateString()}</td>
-                        <td className="text-right">
-                          <button className="btn" onClick={() => handleRevokeInvite(invite.id)}>{t("users.revoke")}</button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </>
-        )}
-      </div>
+      {/* ─── Revoke Confirm ─── */}
+      <ConfirmDialog
+        open={!!revokeTarget}
+        onClose={() => setRevokeTarget(null)}
+        onConfirm={handleRevokeInvite}
+        title={t("users.revokeInviteTitle")}
+        message={`${t("users.revokeInviteMessage")} ${revokeTarget?.email || ""}?`}
+        confirmLabel={t("users.revoke")}
+        cancelLabel={t("common.cancel")}
+        variant="danger"
+        loading={revoking}
+      />
     </div>
   );
 }

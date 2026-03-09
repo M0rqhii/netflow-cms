@@ -879,7 +879,7 @@ export async function fetchSiteUsers(siteId: string): Promise<UserSummary[]> {
   return res.json();
 }
 
-export type InviteSummary = { id: string; email: string; role: string; createdAt: string; expiresAt: string };
+export type InviteSummary = { id: string; email: string; role: string; status: string; createdAt: string; expiresAt: string };
 export async function fetchSiteInvites(siteId: string): Promise<InviteSummary[]> {
   const token = await ensureSiteToken(siteId).catch(() => getAuthToken());
   if (!token) throw new Error('Missing auth token. Please login.');
@@ -1018,11 +1018,11 @@ export type PlatformUser = {
   siteRole?: string; // Site role (viewer, editor, editor-in-chief, marketing, admin, owner)
   platformRole?: string; // Platform role (user, editor-in-chief, admin, owner)
   systemRole?: string; // System role (super_admin, system_admin, system_dev, system_support)
-  isSuperAdmin?: boolean; // Flaga dla super admin
-  siteId: string;
+  isSuperAdmin?: boolean;
+  orgId: string;
   createdAt: string;
   updatedAt: string;
-  site?: {
+  organization?: {
     id: string;
     name: string;
     slug: string;
