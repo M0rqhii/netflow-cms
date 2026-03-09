@@ -2172,7 +2172,7 @@ async function getOrgAuthToken(orgId: string): Promise<string> {
   return token;
 }
 
-function buildOrgHeaders(token: string, orgId: string): HeadersInit {
+function buildOrgHeaders(token: string, orgId: string): Record<string, string> {
   return {
     Authorization: `Bearer ${token}`,
     'X-Org-ID': orgId,
