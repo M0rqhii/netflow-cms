@@ -879,13 +879,36 @@ export async function fetchSiteUsers(siteId: string): Promise<UserSummary[]> {
   return res.json();
 }
 
-export type InviteSummary = { id: string; email: string; role: string; status: string; createdAt: string; expiresAt: string };
+export type InviteSummary = {
+  id: string;
+  email: string;
+  role: string;
+  status: string;
+  siteId?: string | null;
+  site?: { id: string; name: string; slug: string } | null;
+  createdAt: string;
+  expiresAt: string;
+};
+
 export async function fetchSiteInvites(siteId: string): Promise<InviteSummary[]> {
   const token = await ensureSiteToken(siteId).catch(() => getAuthToken());
   if (!token) throw new Error('Missing auth token. Please login.');
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
   const res = await fetch(`${baseUrl}/users/invites`, {
     headers: { Authorization: `Bearer ${token}`, 'X-Site-ID': siteId },
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`Failed to fetch invites: ${res.status} ${res.statusText}${text ? ` - ${text}` : ''}`);
+  }
+  return res.json();
+}
+
+export async function fetchOrgInvites(orgId: string): Promise<InviteSummary[]> {
+  const token = await getOrgAuthToken(orgId);
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+  const res = await fetch(`${baseUrl}/users/invites`, {
+    headers: { ...buildOrgHeaders(token, orgId) },
   });
   if (!res.ok) {
     const text = await res.text().catch(() => '');
@@ -951,6 +974,39 @@ export async function inviteUserToSite(email: string, role: string, siteId: stri
   return inviteUser(siteId, { email, role });
 }
 
+export async function inviteUserToOrg(
+  orgId: string,
+  payload: { email: string; role: string; siteId?: string }
+): Promise<InviteSummary> {
+  const token = await getOrgAuthToken(orgId);
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+  const headers: Record<string, string> = { 'Content-Type': 'application/json', ...buildOrgHeaders(token, orgId) };
+  const res = await fetch(`${baseUrl}/users/invites`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    if (res.status === 401) handleApiError(res, text);
+    throw new Error(text || res.statusText);
+  }
+  return res.json();
+}
+
+export async function revokeOrgInvite(orgId: string, inviteId: string): Promise<void> {
+  const token = await getOrgAuthToken(orgId);
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+  const res = await fetch(`${baseUrl}/users/invites/${encodeURIComponent(inviteId)}`, {
+    method: 'DELETE',
+    headers: { ...buildOrgHeaders(token, orgId) },
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(text || res.statusText);
+  }
+}
+
 /**
  * Create a new user directly (admin only)
  * Security: Only super_admin can create super_admin users
@@ -973,7 +1029,7 @@ export async function createUser(siteId: string, payload: { email: string; passw
 
 export async function createOrgUser(
   orgId: string,
-  payload: { email: string; password?: string; role: string; preferredLanguage?: 'pl' | 'en' }
+  payload: { email: string; password?: string; role: string; preferredLanguage?: 'pl' | 'en'; siteId?: string }
 ): Promise<UserSummary> {
   const token = await getOrgAuthToken(orgId);
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';

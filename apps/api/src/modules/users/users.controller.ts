@@ -74,17 +74,19 @@ export class UsersController {
   /**
    * GET /api/v1/users/invites
    * Get all invites for the current organization (admin only)
+   * If X-Site-ID is provided, filters by that site; otherwise returns all org invites
    */
   @Get('invites')
   @Throttle(60, 60) // 60 requests per minute
   @Permissions(Permission.USERS_READ)
   getInvites(@CurrentOrg() orgId: string, @CurrentSite() siteId: string) {
-    return this.usersService.listInvites(orgId, siteId);
+    return this.usersService.listInvites(orgId, siteId || undefined);
   }
 
   /**
    * POST /api/v1/users/invites
    * Create a new invite for a user (admin only)
+   * siteId can come from body or X-Site-ID header; omit for org-level invite
    */
   @Post('invites')
   @Throttle(60, 60) // 60 requests per minute
@@ -97,9 +99,11 @@ export class UsersController {
     @Body(new ZodValidationPipe(z.object({
       email: z.string().email('Invalid email format'),
       role: z.enum(['org_admin', 'admin', 'editor-in-chief', 'editor', 'marketing', 'viewer', 'site_admin']).default('viewer'),
-    }))) body: { email: string; role: string }
+      siteId: z.string().uuid().optional(),
+    }))) body: { email: string; role: string; siteId?: string }
   ) {
-    return this.usersService.createInvite(orgId, siteId, body, user.id);
+    const resolvedSiteId = body.siteId || siteId || undefined;
+    return this.usersService.createInvite(orgId, resolvedSiteId, body, user.id);
   }
 
   /**
@@ -116,7 +120,7 @@ export class UsersController {
     @CurrentSite() siteId: string,
     @CurrentUser() user: { id: string }
   ) {
-    await this.usersService.revokeInvite(orgId, siteId, inviteId, user.id);
+    await this.usersService.revokeInvite(orgId, siteId || undefined, inviteId, user.id);
     return;
   }
 
@@ -150,7 +154,8 @@ export class UsersController {
       password: z.string().min(8, 'Password must be at least 8 characters').optional(),
       role: z.enum(['super_admin', 'org_admin', 'admin', 'editor-in-chief', 'editor', 'marketing', 'viewer', 'site_admin']),
       preferredLanguage: z.enum(['pl', 'en']).optional().default('en'),
-    }))) body: { email: string; password?: string; role: string; preferredLanguage?: 'pl' | 'en' }
+      siteId: z.string().uuid().optional(),
+    }))) body: { email: string; password?: string; role: string; preferredLanguage?: 'pl' | 'en'; siteId?: string }
   ) {
     return this.usersService.createUser(orgId, body, user.orgRole || user.platformRole || user.role || '');
   }

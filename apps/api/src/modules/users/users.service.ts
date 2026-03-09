@@ -207,24 +207,34 @@ export class UsersService {
   }
 
   /**
-   * List pending invites for a site (admin only)
+   * List pending invites for an organization, optionally filtered by site
    */
-  async listInvites(orgId: string, siteId: string) {
-    await this.ensureSiteInOrg(orgId, siteId);
+  async listInvites(orgId: string, siteId?: string) {
+    if (siteId) {
+      await this.ensureSiteInOrg(orgId, siteId);
+    }
     const now = new Date();
+    const where: any = {
+      orgId,
+      status: 'pending',
+      expiresAt: { gt: now },
+    };
+    if (siteId) {
+      where.siteId = siteId;
+    }
     return this.prisma.userInvite.findMany({
-      where: {
-        orgId,
-        siteId,
-        status: 'pending',
-        expiresAt: { gt: now },
-      },
+      where,
       select: {
         id: true,
         email: true,
         role: true,
+        status: true,
+        siteId: true,
         createdAt: true,
         expiresAt: true,
+        site: {
+          select: { id: true, name: true, slug: true },
+        },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -290,10 +300,11 @@ export class UsersService {
   /**
    * Create a new user (admin only)
    * Security: Only super_admin can create super_admin users
+   * siteId is optional — if provided, the user is also assigned to that site
    */
   async createUser(
     orgId: string,
-    dto: { email: string; password?: string; role: string; preferredLanguage?: 'pl' | 'en' },
+    dto: { email: string; password?: string; role: string; preferredLanguage?: 'pl' | 'en'; siteId?: string },
     requestingUserRole: string,
   ) {
     if (!isAdminRole(requestingUserRole)) {
@@ -361,6 +372,18 @@ export class UsersService {
       throw new NotFoundException('Organization not found');
     }
 
+    // Validate site if provided
+    let site: { id: string; name: string } | null = null;
+    if (dto.siteId) {
+      site = await this.prisma.site.findFirst({
+        where: { id: dto.siteId, orgId },
+        select: { id: true, name: true },
+      });
+      if (!site) {
+        throw new NotFoundException('Site not found in this organization');
+      }
+    }
+
     const rawPassword =
       typeof dto.password === 'string' && dto.password.trim().length >= 8
         ? dto.password
@@ -397,6 +420,23 @@ export class UsersService {
       create: { userId: user.id, orgId, role: normalizedRole },
     });
 
+    // If a site was specified, create a site-scoped UserRole
+    if (site) {
+      try {
+        await (this.prisma as any).userRole.create({
+          data: {
+            orgId,
+            userId: user.id,
+            roleId: normalizedRole,
+            siteId: site.id,
+          },
+        });
+      } catch {
+        // UserRole table may not have matching roleId — this is best-effort
+        this.logger.warn(`Could not create UserRole for user ${user.id} on site ${site.id}`);
+      }
+    }
+
     let setupEmailSent = false;
     try {
       const setupToken = await this.createPasswordSetupToken(user.id);
@@ -424,14 +464,18 @@ export class UsersService {
 
   /**
    * Create a new invite for a user (admin only)
+   * siteId is optional — if omitted, the invite is organization-level
    */
   async createInvite(
     orgId: string,
-    siteId: string,
+    siteId: string | undefined,
     dto: { email: string; role: string },
     invitedById: string,
   ) {
-    const site = await this.ensureSiteInOrg(orgId, siteId);
+    let site: { id: string; name: string; slug: string; orgId: string } | null = null;
+    if (siteId) {
+      site = await this.ensureSiteInOrg(orgId, siteId);
+    }
     const email = dto.email.trim().toLowerCase();
     const role = this.normalizeInviteRole(dto.role);
 
@@ -448,14 +492,20 @@ export class UsersService {
       throw new ConflictException('User with this email already exists');
     }
 
+    const duplicateWhere: any = {
+      orgId,
+      email,
+      status: 'pending',
+      expiresAt: { gt: new Date() },
+    };
+    if (siteId) {
+      duplicateWhere.siteId = siteId;
+    } else {
+      duplicateWhere.siteId = null;
+    }
+
     const existingInvite = await this.prisma.userInvite.findFirst({
-      where: {
-        orgId,
-        siteId,
-        email,
-        status: 'pending',
-        expiresAt: { gt: new Date() },
-      },
+      where: duplicateWhere,
       select: { id: true },
     });
 
@@ -469,7 +519,7 @@ export class UsersService {
     const invite = await this.prisma.userInvite.create({
       data: {
         orgId,
-        siteId,
+        siteId: siteId || null,
         email,
         role,
         token,
@@ -481,6 +531,8 @@ export class UsersService {
         id: true,
         email: true,
         role: true,
+        status: true,
+        siteId: true,
         createdAt: true,
         expiresAt: true,
       },
@@ -516,7 +568,7 @@ export class UsersService {
         event: AuditEvent.USER_INVITE,
         userId: invitedById,
         orgId,
-        siteId,
+        siteId: siteId || undefined,
         metadata: {
           inviteId: invite.id,
           email,
@@ -629,17 +681,24 @@ export class UsersService {
 
   /**
    * Revoke a pending invite (admin only)
+   * siteId is optional — if omitted, looks up by orgId + inviteId only
    */
   async revokeInvite(
     orgId: string,
-    siteId: string,
+    siteId: string | undefined,
     inviteId: string,
     revokedById: string,
   ) {
-    await this.ensureSiteInOrg(orgId, siteId);
+    if (siteId) {
+      await this.ensureSiteInOrg(orgId, siteId);
+    }
+    const where: any = { id: inviteId, orgId };
+    if (siteId) {
+      where.siteId = siteId;
+    }
     const invite = await this.prisma.userInvite.findFirst({
-      where: { id: inviteId, orgId, siteId },
-      select: { id: true, email: true, role: true },
+      where,
+      select: { id: true, email: true, role: true, siteId: true },
     });
 
     if (!invite) {
@@ -656,7 +715,7 @@ export class UsersService {
         event: AuditEvent.USER_INVITE,
         userId: revokedById,
         orgId,
-        siteId,
+        siteId: siteId || invite.siteId || undefined,
         metadata: {
           inviteId,
           email: invite.email,

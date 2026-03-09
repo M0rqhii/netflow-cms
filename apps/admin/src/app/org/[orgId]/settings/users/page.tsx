@@ -7,9 +7,10 @@ import {
   createOrgUser,
   fetchOrgDashboard,
   fetchOrgUsers,
+  fetchOrgInvites,
   fetchSiteInvites,
-  inviteUserToSite,
-  revokeInvite,
+  inviteUserToOrg,
+  revokeOrgInvite,
   type DashboardSiteCard,
   type InviteSummary,
   type UserSummary,
@@ -166,22 +167,30 @@ export default function OrgUsersPage() {
   }, [orgId, t]);
 
   const loadInvites = useCallback(
-    async (siteId: string) => {
-      if (!siteId) { setInvites([]); return; }
+    async () => {
+      if (!orgId) { setInvites([]); return; }
       setLoadingInvites(true);
       try {
-        setInvites(await fetchSiteInvites(siteId));
-      } catch (err) {
-        push({ tone: "error", message: toFriendlyMessage(err, t("users.failedToLoadInvites")) });
+        // Load all org invites (site-specific + org-level)
+        setInvites(await fetchOrgInvites(orgId));
+      } catch {
+        // Fallback to site-specific if org-level fails
+        if (selectedSiteId) {
+          try {
+            setInvites(await fetchSiteInvites(selectedSiteId));
+          } catch (err) {
+            push({ tone: "error", message: toFriendlyMessage(err, t("users.failedToLoadInvites")) });
+          }
+        }
       } finally {
         setLoadingInvites(false);
       }
     },
-    [push, t]
+    [orgId, selectedSiteId, push, t]
   );
 
   useEffect(() => { if (orgId) loadBaseData(); }, [loadBaseData, orgId]);
-  useEffect(() => { loadInvites(selectedSiteId); }, [loadInvites, selectedSiteId]);
+  useEffect(() => { loadInvites(); }, [loadInvites]);
 
   /* ─── Filtered Data ─── */
 
@@ -193,15 +202,25 @@ export default function OrgUsersPage() {
     });
   }, [users, userQuery, userRoleFilter]);
 
+  // Filter for invites tab: "all" shows everything, a siteId filters, "org" shows org-level only
+  const [inviteSiteFilter, setInviteSiteFilter] = useState<string>("all");
+
   const filteredInvites = useMemo(() => {
     return invites.filter((inv) => {
-      return !inviteQuery || inv.email.toLowerCase().includes(inviteQuery.toLowerCase());
+      const matchesSearch = !inviteQuery || inv.email.toLowerCase().includes(inviteQuery.toLowerCase());
+      const matchesSite =
+        inviteSiteFilter === "all" ||
+        (inviteSiteFilter === "org" ? !inv.siteId : inv.siteId === inviteSiteFilter);
+      return matchesSearch && matchesSite;
     });
-  }, [invites, inviteQuery]);
+  }, [invites, inviteQuery, inviteSiteFilter]);
 
   const pendingCount = useMemo(() => invites.filter((i) => i.status === "pending").length, [invites]);
 
   /* ─── Handlers ─── */
+
+  // Create user state - optional site assignment
+  const [createSiteId, setCreateSiteId] = useState("");
 
   const handleCreateUser = async (e: FormEvent) => {
     e.preventDefault();
@@ -213,9 +232,10 @@ export default function OrgUsersPage() {
         password: createPassword.trim() ? createPassword : undefined,
         role: createRole,
         preferredLanguage: language,
+        siteId: createSiteId || undefined,
       });
       push({ tone: "success", message: `${t("users.userCreatedSuccessfully")}: ${createEmail}` });
-      setCreateEmail(""); setCreatePassword(""); setCreateRole("viewer");
+      setCreateEmail(""); setCreatePassword(""); setCreateRole("viewer"); setCreateSiteId("");
       setShowCreateModal(false);
       setUsers(await fetchOrgUsers(orgId));
     } catch (err) {
@@ -227,15 +247,19 @@ export default function OrgUsersPage() {
 
   const handleInvite = async (e: FormEvent) => {
     e.preventDefault();
-    const siteId = inviteSiteId || selectedSiteId;
-    if (!siteId || !inviteEmail.trim()) return;
+    if (!orgId || !inviteEmail.trim()) return;
+    const resolvedSiteId = inviteSiteId || undefined;
     setSendingInvite(true);
     try {
-      await inviteUserToSite(inviteEmail.trim().toLowerCase(), inviteRole, siteId);
+      await inviteUserToOrg(orgId, {
+        email: inviteEmail.trim().toLowerCase(),
+        role: inviteRole,
+        siteId: resolvedSiteId,
+      });
       push({ tone: "success", message: `${t("users.inviteSentTo")} ${inviteEmail}` });
-      setInviteEmail(""); setInviteRole("viewer");
+      setInviteEmail(""); setInviteRole("viewer"); setInviteSiteId("");
       setShowInviteModal(false);
-      await loadInvites(selectedSiteId);
+      await loadInvites();
     } catch (err) {
       push({ tone: "error", message: toFriendlyMessage(err, t("users.failedToSendInvite")) });
     } finally {
@@ -244,13 +268,13 @@ export default function OrgUsersPage() {
   };
 
   const handleRevokeInvite = async () => {
-    if (!revokeTarget || !selectedSiteId) return;
+    if (!revokeTarget || !orgId) return;
     setRevoking(true);
     try {
-      await revokeInvite(selectedSiteId, revokeTarget.id);
+      await revokeOrgInvite(orgId, revokeTarget.id);
       push({ tone: "success", message: t("users.inviteRevoked") });
       setRevokeTarget(null);
-      await loadInvites(selectedSiteId);
+      await loadInvites();
     } catch (err) {
       push({ tone: "error", message: toFriendlyMessage(err, t("users.failedToRevokeInvite")) });
     } finally {
@@ -447,18 +471,20 @@ export default function OrgUsersPage() {
       {/* ─── Invites Tab ─── */}
       {activeTab === "invites" && (
         <>
-          {/* Site selector + search */}
+          {/* Filter + search */}
           <div className="card card-pad">
             <div className="flex flex-col sm:flex-row gap-3">
               <div className="sm:w-56">
                 <label className="block text-xs font-semibold uppercase tracking-wide text-muted mb-1">
-                  {t("users.project")}
+                  {t("users.scope")}
                 </label>
                 <select
                   className="input w-full"
-                  value={selectedSiteId}
-                  onChange={(e) => setSelectedSiteId(e.target.value)}
+                  value={inviteSiteFilter}
+                  onChange={(e) => setInviteSiteFilter(e.target.value)}
                 >
+                  <option value="all">{t("users.allInvites")}</option>
+                  <option value="org">{t("users.orgLevelOnly")}</option>
                   {sites.map((site) => (
                     <option key={site.id} value={site.id}>
                       {site.name} ({site.slug})
@@ -482,11 +508,7 @@ export default function OrgUsersPage() {
           <div className="spacer" />
 
           {/* Invites Table */}
-          {!selectedSiteId ? (
-            <div className="card card-pad">
-              <EmptyState title={t("users.noProjectSelected")} />
-            </div>
-          ) : loadingInvites ? (
+          {loadingInvites ? (
             <div className="card card-pad">
               <Skeleton variant="rectangular" width="100%" height={200} />
             </div>
@@ -505,8 +527,8 @@ export default function OrgUsersPage() {
                     <tr>
                       <th className="pl-5">{t("users.email")}</th>
                       <th>{t("users.role")}</th>
+                      <th>{t("users.scope")}</th>
                       <th>{t("users.status")}</th>
-                      <th>{t("users.sent")}</th>
                       <th>{t("users.expires")}</th>
                       <th className="text-right pr-5">{t("common.actions")}</th>
                     </tr>
@@ -531,17 +553,19 @@ export default function OrgUsersPage() {
                             </span>
                           </td>
                           <td>
+                            {invite.site ? (
+                              <span className="badge blue">{invite.site.name}</span>
+                            ) : (
+                              <span className="badge green">{t("users.organization")}</span>
+                            )}
+                          </td>
+                          <td>
                             <span className={`badge ${statusColor}`}>
                               {invite.status}
                             </span>
                           </td>
                           <td>
-                            <span className="text-sm text-muted" title={new Date(invite.createdAt).toLocaleString()}>
-                              {timeAgo(invite.createdAt)}
-                            </span>
-                          </td>
-                          <td>
-                            <span className={`text-sm ${expiry.urgent ? "text-orange-400 font-medium" : "text-muted"}`}>
+                            <span className={`text-sm ${expiry.urgent ? "text-orange-400 font-medium" : "text-muted"}`} title={new Date(invite.expiresAt).toLocaleString()}>
                               {expiry.text}
                             </span>
                           </td>
@@ -605,6 +629,22 @@ export default function OrgUsersPage() {
               <option value="viewer">{t("users.viewer")}</option>
             </select>
           </div>
+          {sites.length > 0 && (
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wide text-muted mb-1.5">
+                {t("users.assignToSite")}
+              </label>
+              <select className="input w-full" value={createSiteId} onChange={(e) => setCreateSiteId(e.target.value)}>
+                <option value="">{t("users.orgLevelOnly")}</option>
+                {sites.map((site) => (
+                  <option key={site.id} value={site.id}>
+                    {site.name} ({site.slug})
+                  </option>
+                ))}
+              </select>
+              <div className="text-[11px] text-muted mt-1">{t("users.assignToSiteHint")}</div>
+            </div>
+          )}
           <div className="flex items-center gap-3 justify-end pt-2">
             <Button variant="outline" type="button" onClick={() => setShowCreateModal(false)} disabled={creating}>
               {t("common.cancel")}
@@ -620,55 +660,53 @@ export default function OrgUsersPage() {
       <Modal
         open={showInviteModal}
         onClose={() => setShowInviteModal(false)}
-        title={t("users.inviteUserToProject")}
+        title={t("users.inviteUser")}
         size="md"
       >
-        {sites.length === 0 ? (
-          <EmptyState title={t("users.noProjectsAvailable")} description={t("users.createProjectFirstThenSendInvites")} />
-        ) : (
-          <form onSubmit={handleInvite} className="space-y-4">
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wide text-muted mb-1.5">
-                {t("users.project")}
-              </label>
-              <select className="input w-full" value={inviteSiteId || selectedSiteId} onChange={(e) => setInviteSiteId(e.target.value)} required>
-                {sites.map((site) => (
-                  <option key={site.id} value={site.id}>
-                    {site.name} ({site.slug})
-                  </option>
-                ))}
-              </select>
-            </div>
-            <Input
-              label={t("users.emailAddress")}
-              type="email"
-              value={inviteEmail}
-              onChange={(e) => setInviteEmail(e.target.value)}
-              required
-              placeholder={t("users.emailPlaceholder")}
-            />
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wide text-muted mb-1.5">
-                {t("users.role")}
-              </label>
-              <select className="input w-full" value={inviteRole} onChange={(e) => setInviteRole(e.target.value)}>
-                <option value="org_admin">{t("users.admin")}</option>
-                <option value="editor-in-chief">{t("users.editorInChief")}</option>
-                <option value="editor">{t("users.editor")}</option>
-                <option value="marketing">{t("users.marketing")}</option>
-                <option value="viewer">{t("users.viewer")}</option>
-              </select>
-            </div>
-            <div className="flex items-center gap-3 justify-end pt-2">
-              <Button variant="outline" type="button" onClick={() => setShowInviteModal(false)} disabled={sendingInvite}>
-                {t("common.cancel")}
-              </Button>
-              <Button variant="primary" type="submit" isLoading={sendingInvite}>
-                {t("users.sendInvite")}
-              </Button>
-            </div>
-          </form>
-        )}
+        <form onSubmit={handleInvite} className="space-y-4">
+          <Input
+            label={t("users.emailAddress")}
+            type="email"
+            value={inviteEmail}
+            onChange={(e) => setInviteEmail(e.target.value)}
+            required
+            placeholder={t("users.emailPlaceholder")}
+          />
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wide text-muted mb-1.5">
+              {t("users.role")}
+            </label>
+            <select className="input w-full" value={inviteRole} onChange={(e) => setInviteRole(e.target.value)}>
+              <option value="org_admin">{t("users.admin")}</option>
+              <option value="editor-in-chief">{t("users.editorInChief")}</option>
+              <option value="editor">{t("users.editor")}</option>
+              <option value="marketing">{t("users.marketing")}</option>
+              <option value="viewer">{t("users.viewer")}</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wide text-muted mb-1.5">
+              {t("users.assignToSite")}
+            </label>
+            <select className="input w-full" value={inviteSiteId} onChange={(e) => setInviteSiteId(e.target.value)}>
+              <option value="">{t("users.orgLevelOnly")}</option>
+              {sites.map((site) => (
+                <option key={site.id} value={site.id}>
+                  {site.name} ({site.slug})
+                </option>
+              ))}
+            </select>
+            <div className="text-[11px] text-muted mt-1">{t("users.inviteScopeHint")}</div>
+          </div>
+          <div className="flex items-center gap-3 justify-end pt-2">
+            <Button variant="outline" type="button" onClick={() => setShowInviteModal(false)} disabled={sendingInvite}>
+              {t("common.cancel")}
+            </Button>
+            <Button variant="primary" type="submit" isLoading={sendingInvite}>
+              {t("users.sendInvite")}
+            </Button>
+          </div>
+        </form>
       </Modal>
 
       {/* ─── Revoke Confirm ─── */}

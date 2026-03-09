@@ -572,6 +572,13 @@
     "failedToRevokeInvite": "Nie udało się cofnąć zaproszenia",
     "passwordOptionalHelper": "Opcjonalne. Zostaw puste, aby wymusić bezpieczne ustawienie hasła przez link email.",
     "status": "Status",
+    "scope": "Zakres",
+    "organization": "Organizacja",
+    "allInvites": "Wszystkie zaproszenia",
+    "orgLevelOnly": "Poziom organizacji (bez konkretnej strony)",
+    "assignToSite": "Przypisz do strony (opcjonalne)",
+    "assignToSiteHint": "Zostaw puste, aby dodać użytkownika tylko na poziomie organizacji.",
+    "inviteScopeHint": "Zostaw puste, aby zaprosić na poziomie organizacji, lub wybierz stronę.",
     "revokeInviteTitle": "Cofnij zaproszenie",
     "revokeInviteMessage": "Czy na pewno chcesz cofnąć zaproszenie dla"
   },

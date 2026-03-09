@@ -572,6 +572,13 @@
     "failedToRevokeInvite": "Failed to revoke invite",
     "passwordOptionalHelper": "Optional. Leave empty to force secure password setup by email link.",
     "status": "Status",
+    "scope": "Scope",
+    "organization": "Organization",
+    "allInvites": "All invites",
+    "orgLevelOnly": "Organization-level (no specific site)",
+    "assignToSite": "Assign to site (optional)",
+    "assignToSiteHint": "Leave empty to add the user at organization level only.",
+    "inviteScopeHint": "Leave empty to invite at organization level, or pick a specific site.",
     "revokeInviteTitle": "Revoke Invite",
     "revokeInviteMessage": "Are you sure you want to revoke the invite for"
   },
