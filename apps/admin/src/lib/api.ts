@@ -980,7 +980,7 @@ export async function inviteUserToOrg(
 ): Promise<InviteSummary> {
   const token = await getOrgAuthToken(orgId);
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
-  const headers: Record<string, string> = { 'Content-Type': 'application/json', ...buildOrgHeaders(token, orgId) };
+  const headers = { 'Content-Type': 'application/json', ...buildOrgHeaders(token, orgId) };
   const res = await fetch(`${baseUrl}/users/invites`, {
     method: 'POST',
     headers,
