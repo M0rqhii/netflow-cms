@@ -79,7 +79,7 @@ export class UsersController {
   @Get('invites')
   @Throttle(60, 60) // 60 requests per minute
   @Permissions(Permission.USERS_READ)
-  getInvites(@CurrentOrg() orgId: string, @CurrentSite() siteId: string) {
+  getInvites(@CurrentOrg() orgId: string, @CurrentSite({ required: false }) siteId?: string) {
     return this.usersService.listInvites(orgId, siteId || undefined);
   }
 
@@ -94,7 +94,7 @@ export class UsersController {
   @HttpCode(HttpStatus.CREATED)
   createInvite(
     @CurrentOrg() orgId: string,
-    @CurrentSite() siteId: string,
+    @CurrentSite({ required: false }) siteId: string | undefined,
     @CurrentUser() user: { id: string },
     @Body(new ZodValidationPipe(z.object({
       email: z.string().email('Invalid email format'),
@@ -117,7 +117,7 @@ export class UsersController {
   async revokeInvite(
     @Param('id') inviteId: string,
     @CurrentOrg() orgId: string,
-    @CurrentSite() siteId: string,
+    @CurrentSite({ required: false }) siteId: string | undefined,
     @CurrentUser() user: { id: string }
   ) {
     await this.usersService.revokeInvite(orgId, siteId || undefined, inviteId, user.id);
@@ -178,4 +178,3 @@ export class UsersController {
     return this.usersService.updateUserRole(userId, orgId, body.role, user.orgRole || user.platformRole || user.role || '');
   }
 }
-

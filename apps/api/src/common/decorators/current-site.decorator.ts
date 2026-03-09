@@ -1,11 +1,16 @@
 import { BadRequestException, createParamDecorator, ExecutionContext } from '@nestjs/common';
 
+type CurrentSiteOptions = {
+  required?: boolean;
+};
+
 /**
  * CurrentSite decorator - gets siteId from request
  * AI Note: Use in controllers: @CurrentSite() siteId: string
  */
 export const CurrentSite = createParamDecorator(
-  (_data: any, ctx: ExecutionContext): string => {
+  (options: CurrentSiteOptions | undefined, ctx: ExecutionContext): string | undefined => {
+    const required = options?.required !== false;
     const request = ctx.switchToHttp().getRequest() as {
       siteId?: string;
       params?: { siteId?: string };
@@ -22,7 +27,7 @@ export const CurrentSite = createParamDecorator(
         request.siteId = resolvedSiteId;
       }
     }
-    if (!request.siteId) {
+    if (required && !request.siteId) {
       throw new BadRequestException('SiteId not found in request');
     }
     return request.siteId;
