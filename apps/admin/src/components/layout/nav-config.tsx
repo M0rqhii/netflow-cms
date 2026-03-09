@@ -204,8 +204,10 @@ export function useShellRoleState(): ShellRoleState {
 
   const isSiteAdmin = role === 'site_admin' || systemRole === 'site_admin';
 
-  const isOwner = isSuperFromToken || (hasOrgOwnerRole !== null ? hasOrgOwnerRole : isOwnerFromToken);
-  const isAdmin = isSuperFromToken || (hasOrgAdminRole !== null ? hasOrgAdminRole : isAdminFromToken);
+  // RBAC lookup can confirm extra privileges, but it should never downgrade
+  // privileges already present in a valid session token/platform role.
+  const isOwner = isSuperFromToken || isOwnerFromToken || hasOrgOwnerRole === true;
+  const isAdmin = isSuperFromToken || isAdminFromToken || hasOrgAdminRole === true;
 
   const canAccessOrgSettings = isSuperFromToken || isOwner || isAdmin || isSiteAdmin;
 
