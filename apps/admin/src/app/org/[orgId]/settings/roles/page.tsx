@@ -8,8 +8,6 @@ import {
   deleteRbacRole,
   fetchRbacCapabilities,
   fetchRbacRoles,
-  getAuthToken,
-  decodeAuthToken,
   updateRbacRole,
   type RbacRole,
 } from "@/lib/api";
@@ -21,6 +19,7 @@ import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/components/ui/Toast";
 import { toFriendlyMessage } from "@/lib/errors";
 import { useTranslations } from "@/hooks/useTranslations";
+import { usePlatformAccess } from "@/hooks/usePlatformAccess";
 
 type RoleEditorState = {
   name: string;
@@ -33,6 +32,7 @@ const MODULE_LABEL_KEYS: Record<CapabilityModule, string> = {
   org: "orgRbac.modules.org",
   billing: "orgRbac.modules.billing",
   sites: "orgRbac.modules.sites",
+  platform: "orgRbac.modules.platform",
   builder: "orgRbac.modules.builder",
   content: "orgRbac.modules.content",
   hosting: "orgRbac.modules.hosting",
@@ -75,22 +75,12 @@ function isBlockedForCustomRole(capability: RbacCapability): boolean {
   return Boolean(capability.metadata?.blockedForCustomRoles);
 }
 
-function getOwnerFlag(): boolean {
-  const payload = decodeAuthToken(getAuthToken());
-  const roleMarker = String(payload?.platformRole ?? payload?.role ?? "").toLowerCase();
-  return (
-    roleMarker === "org_owner" ||
-    roleMarker === "owner" ||
-    roleMarker === "platform_owner" ||
-    roleMarker === "platform_admin"
-  );
-}
-
 export default function OrgRolesPage() {
   const params = useParams<{ orgId: string }>();
   const orgId = params?.orgId ?? "";
   const { push } = useToast();
   const t = useTranslations();
+  const platformAccess = usePlatformAccess();
   const moduleLabel = useCallback((module: CapabilityModule) => t(MODULE_LABEL_KEYS[module]), [t]);
 
   const [loading, setLoading] = useState(true);
@@ -116,7 +106,7 @@ export default function OrgRolesPage() {
   const [capabilitySearch, setCapabilitySearch] = useState("");
   const [capabilityModuleFilter, setCapabilityModuleFilter] = useState("all");
 
-  const isOwner = useMemo(() => getOwnerFlag(), []);
+  const isOwner = platformAccess.canViewBilling;
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -183,7 +173,7 @@ export default function OrgRolesPage() {
       setEditorState({
         name: mode === "duplicate" ? `${role.name} ${t("orgRoles.copySuffix")}` : role.name,
         description: role.description ?? "",
-        scope: role.scope,
+        scope: normalizeRoleScope(role.scope) === "ORG" ? "ORG" : "SITE",
         capabilityKeys: role.capabilities.map((cap) => cap.key),
       });
     }

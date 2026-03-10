@@ -1,15 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { decodeAuthToken, getAuthToken, getDevPayments } from "@/lib/api";
+import { getDevPayments } from "@/lib/api";
 import { LoadingSpinner } from "@repo/ui";
 import { DevPanelLayout } from "@/components/dev-panel/DevPanelLayout";
 import { DevPanelTabs } from "@/components/dev-panel/DevPanelTabs";
 import { useTranslations } from "@/hooks/useTranslations";
 import { formatPlanTierLabel } from "@/lib/plans";
-
-const PRIVILEGED_ROLES = ["super_admin", "org_admin", "site_admin"];
-const PRIVILEGED_PLATFORM_ROLES = ["platform_admin"];
+import { usePlatformAccess } from "@/hooks/usePlatformAccess";
 
 type DevPaymentEvent = {
   id: string;
@@ -50,13 +48,8 @@ export default function DevPaymentsPage() {
   const t = useTranslations();
   const appProfile = process.env.NEXT_PUBLIC_APP_PROFILE || process.env.NODE_ENV || "development";
   const isProd = appProfile === "production";
-  const token = getAuthToken();
-  const payload = useMemo(() => decodeAuthToken(token), [token]);
-  const userRole = (payload?.role as string) || "";
-  const userPlatformRole = (payload?.platformRole as string) || "";
-  const isSuperAdmin = Boolean(payload?.isSuperAdmin) || userRole === "super_admin";
-  const isPrivileged =
-    isSuperAdmin || PRIVILEGED_ROLES.includes(userRole) || PRIVILEGED_PLATFORM_ROLES.includes(userPlatformRole);
+  const platformAccess = usePlatformAccess();
+  const isPrivileged = platformAccess.canAccessDevTools;
   const [payments, setPayments] = useState<DevPaymentEvent[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -97,7 +90,7 @@ export default function DevPaymentsPage() {
     return dates[0];
   }, [payments]);
 
-  if (isProd && !isSuperAdmin) {
+  if (isProd && !platformAccess.isSuperAdmin) {
     return (
       <DevPanelLayout title={t("devPanel.payments.title")} description={t("devPanel.payments.description")}>
         <div className="card card-pad">

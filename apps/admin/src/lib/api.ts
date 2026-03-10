@@ -1,7 +1,13 @@
 'use client';
 
 import { ApiClient, createApiClient, SiteInfo } from '@repo/sdk';
-import type { CapabilityKey, CapabilityModule, RbacCapability } from '@repo/schemas';
+import type {
+  CapabilityKey,
+  CapabilityModule,
+  PublicRbacUserRoleKey,
+  RbacCapability,
+  RbacScope,
+} from '@repo/schemas';
 
 const client: ApiClient = createApiClient();
 
@@ -20,10 +26,12 @@ export type AuthSessionUser = {
 type JwtPayload = {
   exp?: number;
   email?: string;
-  role?: string; // role (super_admin, org_admin, editor, viewer)
-  platformRole?: string; // platform role (platform_admin, org_owner, user)
-  systemRole?: string; // system role (super_admin, system_admin, system_dev, system_support)
-  isSuperAdmin?: boolean; // flag for super admin
+  orgRoleKey?: PublicRbacUserRoleKey;
+  orgRoleName?: string;
+  siteRoleKey?: PublicRbacUserRoleKey;
+  siteRoleName?: string;
+  platformRbacRoles?: string[]; // effective platform RBAC role names
+  isSuperAdmin?: boolean; // derived platform-root flag
   sub?: string; // user id
   siteId?: string;
   orgId?: string; // organization id
@@ -844,7 +852,7 @@ export async function deleteMediaItem(siteId: string, id: string): Promise<void>
 }
 
 // Users
-export type UserSummary = { id: string; email: string; role: string; createdAt: string };
+export type UserSummary = { id: string; email: string; role: PublicRbacUserRoleKey; createdAt: string };
 export async function fetchSiteUsers(siteId: string): Promise<UserSummary[]> {
   let token: string | null = null;
   try {
@@ -882,7 +890,7 @@ export async function fetchSiteUsers(siteId: string): Promise<UserSummary[]> {
 export type InviteSummary = {
   id: string;
   email: string;
-  role: string;
+  role: PublicRbacUserRoleKey;
   status: string;
   siteId?: string | null;
   site?: { id: string; name: string; slug: string } | null;
@@ -920,7 +928,7 @@ export async function fetchOrgInvites(orgId: string): Promise<InviteSummary[]> {
 export type InviteDetails = {
   id: string;
   email: string;
-  role: string;
+  role: PublicRbacUserRoleKey;
   expiresAt: string;
   organization: { id: string; name: string; slug: string };
   site?: { id: string; name: string; slug: string } | null;
@@ -954,7 +962,10 @@ export async function acceptInvite(
   return res.json();
 }
 
-export async function inviteUser(siteId: string, payload: { email: string; role: string }): Promise<InviteSummary> {
+export async function inviteUser(
+  siteId: string,
+  payload: { email: string; role: PublicRbacUserRoleKey },
+): Promise<InviteSummary> {
   const token = await ensureSiteToken(siteId).catch(() => getAuthToken());
   if (!token) throw new Error('Missing auth token. Please login.');
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
@@ -970,13 +981,17 @@ export async function inviteUser(siteId: string, payload: { email: string; role:
   return res.json();
 }
 
-export async function inviteUserToSite(email: string, role: string, siteId: string): Promise<InviteSummary> {
+export async function inviteUserToSite(
+  email: string,
+  role: PublicRbacUserRoleKey,
+  siteId: string,
+): Promise<InviteSummary> {
   return inviteUser(siteId, { email, role });
 }
 
 export async function inviteUserToOrg(
   orgId: string,
-  payload: { email: string; role: string; siteId?: string }
+  payload: { email: string; role: PublicRbacUserRoleKey; siteId?: string }
 ): Promise<InviteSummary> {
   const token = await getOrgAuthToken(orgId);
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
@@ -1008,10 +1023,17 @@ export async function revokeOrgInvite(orgId: string, inviteId: string): Promise<
 }
 
 /**
- * Create a new user directly (admin only)
- * Security: Only super_admin can create super_admin users
+ * Create a new ORG or SITE user using a public RBAC role key.
  */
-export async function createUser(siteId: string, payload: { email: string; password?: string; role: string; preferredLanguage?: 'pl' | 'en' }): Promise<UserSummary> {
+export async function createUser(
+  siteId: string,
+  payload: {
+    email: string;
+    password?: string;
+    role: PublicRbacUserRoleKey;
+    preferredLanguage?: 'pl' | 'en';
+  },
+): Promise<UserSummary> {
   const token = await ensureSiteToken(siteId).catch(() => getAuthToken());
   if (!token) throw new Error('Missing auth token. Please login.');
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
@@ -1029,7 +1051,13 @@ export async function createUser(siteId: string, payload: { email: string; passw
 
 export async function createOrgUser(
   orgId: string,
-  payload: { email: string; password?: string; role: string; preferredLanguage?: 'pl' | 'en'; siteId?: string }
+  payload: {
+    email: string;
+    password?: string;
+    role: PublicRbacUserRoleKey;
+    preferredLanguage?: 'pl' | 'en';
+    siteId?: string;
+  }
 ): Promise<UserSummary> {
   const token = await getOrgAuthToken(orgId);
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
@@ -1047,10 +1075,13 @@ export async function createOrgUser(
 }
 
 /**
- * Update user role (admin only)
- * Security: Only super_admin can assign super_admin role
+ * Update a SITE user role using a public RBAC role key.
  */
-export async function updateUserRole(siteId: string, userId: string, role: string): Promise<UserSummary> {
+export async function updateUserRole(
+  siteId: string,
+  userId: string,
+  role: PublicRbacUserRoleKey,
+): Promise<UserSummary> {
   const token = await ensureSiteToken(siteId).catch(() => getAuthToken());
   if (!token) throw new Error('Missing auth token. Please login.');
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
@@ -1070,12 +1101,9 @@ export async function updateUserRole(siteId: string, userId: string, role: strin
 export type PlatformUser = {
   id: string;
   email: string;
-  role: string; // Backward compatibility
-  siteRole?: string; // Site role (viewer, editor, editor-in-chief, marketing, admin, owner)
-  platformRole?: string; // Platform role (user, editor-in-chief, admin, owner)
-  systemRole?: string; // System role (super_admin, system_admin, system_dev, system_support)
-  isSuperAdmin?: boolean;
   orgId: string;
+  preferredLanguage?: 'pl' | 'en';
+  platformRbacRoles?: string[];
   createdAt: string;
   updatedAt: string;
   organization?: {
@@ -1083,6 +1111,15 @@ export type PlatformUser = {
     name: string;
     slug: string;
   };
+};
+
+export type PlatformRbacUser = {
+  id: string;
+  email: string;
+  orgId?: string | null;
+  preferredLanguage?: 'pl' | 'en';
+  platformRbacRoles?: string[];
+  createdAt: string;
 };
 
 export type PlatformUsersResponse = {
@@ -1112,9 +1149,7 @@ export async function fetchPlatformUsers(page: number = 1, pageSize: number = 20
 export async function createPlatformUser(payload: {
   email: string;
   password: string;
-  role: string;
-  platformRole?: string;
-  permissions?: string[];
+  preferredLanguage?: 'pl' | 'en';
 }): Promise<PlatformUser> {
   const token = getAuthToken();
   if (!token) throw new Error('Missing auth token. Please login.');
@@ -1132,11 +1167,7 @@ export async function createPlatformUser(payload: {
 }
 
 export async function updatePlatformUser(userId: string, payload: {
-  role?: string;
-  siteRole?: string;
-  platformRole?: string;
-  systemRole?: string;
-  permissions?: string[];
+  preferredLanguage?: 'pl' | 'en';
 }): Promise<PlatformUser> {
   const token = getAuthToken();
   if (!token) throw new Error('Missing auth token. Please login.');
@@ -1699,7 +1730,6 @@ export async function getSiteBilling(siteSlug: string): Promise<SiteBillingData>
 export type AccountInfo = {
   id: string;
   email: string;
-  role: string;
   orgId?: string; // organization id
   preferredLanguage: string;
   firstName?: string | null;
@@ -2112,12 +2142,14 @@ export async function getGlobalBillingInfo(): Promise<GlobalBillingInfo> {
 }
 
 // RBAC (org-level)
+export type TenantRbacScope = Exclude<RbacScope, 'PLATFORM'>;
+
 export type RbacRole = {
   id: string;
   name: string;
   description?: string | null;
   type: 'SYSTEM' | 'CUSTOM';
-  scope: 'ORG' | 'SITE';
+  scope: RbacScope;
   isImmutable: boolean;
   capabilities: Array<{
     key: CapabilityKey;
@@ -2296,7 +2328,7 @@ export async function fetchOrgUsers(orgId: string): Promise<UserSummary[]> {
   return res.json();
 }
 
-export async function fetchRbacRoles(orgId: string, scope?: 'ORG' | 'SITE'): Promise<RbacRole[]> {
+export async function fetchRbacRoles(orgId: string, scope?: TenantRbacScope): Promise<RbacRole[]> {
   const token = await getOrgAuthToken(orgId);
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
   const query = scope ? `?scope=${scope}` : '';
@@ -2313,7 +2345,7 @@ export async function fetchRbacRoles(orgId: string, scope?: 'ORG' | 'SITE'): Pro
 
 export async function createRbacRole(
   orgId: string,
-  payload: { name: string; description?: string; scope: 'ORG' | 'SITE'; capabilityKeys: CapabilityKey[] },
+  payload: { name: string; description?: string; scope: TenantRbacScope; capabilityKeys: CapabilityKey[] },
 ): Promise<RbacRole> {
   const token = await getOrgAuthToken(orgId);
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
@@ -2326,6 +2358,131 @@ export async function createRbacRole(
     const text = await res.text().catch(() => '');
     if (res.status === 401) handleApiError(res, text);
     throw new Error(text || res.statusText);
+  }
+  return res.json();
+}
+
+export async function fetchPlatformRbacUsers(): Promise<PlatformRbacUser[]> {
+  const token = getAuthToken();
+  if (!token) throw new Error('Missing auth token. Please login.');
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+  const res = await fetch(`${baseUrl}/platform/rbac/users`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    if (res.status === 401) handleApiError(res, text);
+    throw new Error(`Failed to fetch platform users: ${res.status} ${res.statusText}${text ? ` - ${text}` : ''}`);
+  }
+  return res.json();
+}
+
+export async function fetchPlatformRbacCapabilities(): Promise<RbacCapability[]> {
+  const token = getAuthToken();
+  if (!token) throw new Error('Missing auth token. Please login.');
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+  const res = await fetch(`${baseUrl}/platform/rbac/capabilities`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    if (res.status === 401) handleApiError(res, text);
+    throw new Error(`Failed to fetch platform capabilities: ${res.status} ${res.statusText}${text ? ` - ${text}` : ''}`);
+  }
+  return res.json();
+}
+
+export async function fetchPlatformRbacRoles(): Promise<RbacRole[]> {
+  const token = getAuthToken();
+  if (!token) throw new Error('Missing auth token. Please login.');
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+  const res = await fetch(`${baseUrl}/platform/rbac/roles`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    if (res.status === 401) handleApiError(res, text);
+    throw new Error(`Failed to fetch platform roles: ${res.status} ${res.statusText}${text ? ` - ${text}` : ''}`);
+  }
+  return res.json();
+}
+
+export async function fetchPlatformRbacAssignments(userId?: string): Promise<RbacAssignment[]> {
+  const token = getAuthToken();
+  if (!token) throw new Error('Missing auth token. Please login.');
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+  const query = userId ? `?userId=${encodeURIComponent(userId)}` : '';
+  const res = await fetch(`${baseUrl}/platform/rbac/assignments${query}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    if (res.status === 401) handleApiError(res, text);
+    throw new Error(`Failed to fetch platform assignments: ${res.status} ${res.statusText}${text ? ` - ${text}` : ''}`);
+  }
+  return res.json();
+}
+
+export async function createPlatformRbacAssignment(payload: { userId: string; roleId: string }): Promise<RbacAssignment> {
+  const token = getAuthToken();
+  if (!token) throw new Error('Missing auth token. Please login.');
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+  const res = await fetch(`${baseUrl}/platform/rbac/assignments`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    if (res.status === 401) handleApiError(res, text);
+    throw new Error(text || res.statusText);
+  }
+  return res.json();
+}
+
+export async function deletePlatformRbacAssignment(assignmentId: string): Promise<{ success: boolean }> {
+  const token = getAuthToken();
+  if (!token) throw new Error('Missing auth token. Please login.');
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+  const res = await fetch(`${baseUrl}/platform/rbac/assignments/${encodeURIComponent(assignmentId)}`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    if (res.status === 401) handleApiError(res, text);
+    throw new Error(text || res.statusText);
+  }
+  return res.json();
+}
+
+export async function fetchPlatformRbacEffective(userId?: string): Promise<EffectivePermission[]> {
+  const token = getAuthToken();
+  if (!token) throw new Error('Missing auth token. Please login.');
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+  const query = userId ? `?userId=${encodeURIComponent(userId)}` : '';
+  const res = await fetch(`${baseUrl}/platform/rbac/effective${query}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    if (res.status === 401) handleApiError(res, text);
+    throw new Error(`Failed to fetch platform effective permissions: ${res.status} ${res.statusText}${text ? ` - ${text}` : ''}`);
   }
   return res.json();
 }

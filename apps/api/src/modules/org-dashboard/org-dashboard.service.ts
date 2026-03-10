@@ -4,7 +4,6 @@ import { RbacService } from '../rbac/rbac.service';
 import { BillingService } from '../billing/billing.service';
 import { EnvironmentType, PageStatus } from '@prisma/client';
 import { getPlanConfig } from '@repo/schemas';
-import { isPlatformAdminValue, isPlatformPowerUser } from '../../common/auth/platform-admin.util';
 
 export type DashboardRole = 'owner' | 'admin' | 'member';
 
@@ -120,59 +119,39 @@ export class OrgDashboardService {
   ) {}
 
   private async hasPlatformAdminInOrg(orgId: string): Promise<boolean> {
-    const [platformAdminUsers, platformAdminMemberships, privilegedOrganization] = await Promise.all([
-      this.prisma.user.count({
-        where: {
-          orgId,
-          OR: [
-            { platformRole: 'platform_admin' },
-            { role: 'platform_admin' },
-          ],
-        },
-      }),
-      this.prisma.userOrg.count({
-        where: {
-          orgId,
-          role: 'platform_admin',
-        },
-      }),
-      this.prisma.organization.findFirst({
-        where: {
-          id: orgId,
-          OR: [
-            { slug: { equals: 'platform_admin', mode: 'insensitive' } },
-            { name: { equals: 'platform_admin', mode: 'insensitive' } },
-          ],
-        },
-        select: { id: true },
-      }),
-    ]);
+    const privilegedAssignments = await this.prisma.platformUserRole.findMany({
+      select: { userId: true },
+      distinct: ['userId'],
+    });
 
-    return platformAdminUsers > 0 || platformAdminMemberships > 0 || Boolean(privilegedOrganization);
+    if (privilegedAssignments.length === 0) {
+      return false;
+    }
+
+    const privilegedUserIds = privilegedAssignments.map((assignment) => assignment.userId);
+    const platformStaffInOrg = await this.prisma.user.count({
+      where: {
+        orgId,
+        id: { in: privilegedUserIds },
+      },
+    });
+
+    return platformStaffInOrg > 0;
   }
 
   /**
    * Get user's role in organization
    */
   async getUserRole(orgId: string, userId: string): Promise<DashboardRole> {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        role: true,
-        platformRole: true,
-        systemRole: true,
-        isSuperAdmin: true,
-      },
-    });
-
-    if (isPlatformPowerUser(user) || isPlatformAdminValue(user?.platformRole) || isPlatformAdminValue(user?.role)) {
+    const platformProfile = await this.rbacService.getEffectivePlatformProfile(userId);
+    if (platformProfile.isPlatformPowerUser) {
       return 'owner';
     }
 
     // Check if user is Owner
     const assignments = await this.rbacService.getAssignments(orgId, userId);
     const hasOwnerRole = assignments.some(
-      a => a.role.name === 'Org Owner' && a.role.type === 'SYSTEM' && a.role.scope === 'ORG'
+      a => a.role.name === 'Org Owner' && a.role.type === 'SYSTEM' && a.role.scope === 'ORG' && !a.siteId
     );
 
     if (hasOwnerRole) {
@@ -181,7 +160,7 @@ export class OrgDashboardService {
 
     // Check if user is Admin
     const hasAdminRole = assignments.some(
-      a => a.role.name === 'Org Admin' && a.role.type === 'SYSTEM' && a.role.scope === 'ORG'
+      a => a.role.name === 'Org Admin' && a.role.type === 'SYSTEM' && a.role.scope === 'ORG' && !a.siteId
     );
 
     if (hasAdminRole) {

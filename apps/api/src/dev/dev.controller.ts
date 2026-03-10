@@ -4,6 +4,8 @@ import { CurrentUser, CurrentUserPayload } from '../common/auth/decorators/curre
 import { PrismaService } from '../common/prisma/prisma.service';
 import { DebugService } from '../common/debug/debug.service';
 import { MonitoringService } from '../common/monitoring/monitoring.service';
+import { canAccessPlatformDevTools } from '../common/auth/platform-admin.util';
+import { RbacService } from '../modules/rbac/rbac.service';
 
 @Controller('dev')
 @UseGuards(AuthGuard)
@@ -12,6 +14,7 @@ export class DevController {
     private readonly prisma: PrismaService,
     private readonly debugService: DebugService,
     private readonly monitoringService: MonitoringService,
+    private readonly rbacService: RbacService,
   ) {}
 
   private async assertPrivileged(user: CurrentUserPayload | null) {
@@ -19,59 +22,20 @@ export class DevController {
       throw new ForbiddenException('User not authenticated');
     }
 
-    // Fast path: check token claims for super_admin / platform_admin role
-    if (
-      user.isSuperAdmin === true ||
-      user.systemRole === 'super_admin' ||
-      user.role === 'super_admin' ||
-      user.platformRole === 'platform_admin'
-    ) {
+    if (canAccessPlatformDevTools(user)) {
       return;
     }
 
-    // Check if user belongs to the platform organization (slug or name = 'platform_admin')
-    const membership = await this.prisma.userOrg.findFirst({
-      where: {
-        userId: user.id,
-        organization: {
-          OR: [
-            { slug: { equals: 'platform_admin', mode: 'insensitive' } },
-            { name: { equals: 'platform_admin', mode: 'insensitive' } },
-          ],
-        },
-      },
-      select: { id: true },
-    });
-
-    if (membership) {
+    const platformCapabilities = await this.rbacService.getEffectivePlatformCapabilities(user.id);
+    const hasDevToolsAccess = platformCapabilities.some(
+      (capability: { key: string; allowed: boolean }) =>
+        capability.key === 'platform.dev.tools.access' && capability.allowed,
+    );
+    if (hasDevToolsAccess) {
       return;
     }
 
-    // Fallback: check if user's primary org is the platform org
-    const dbUser = await this.prisma.user.findUnique({
-      where: { id: user.id },
-      select: {
-        role: true, platformRole: true, systemRole: true, isSuperAdmin: true,
-        organization: { select: { slug: true, name: true } },
-      },
-    });
-
-    if (
-      dbUser?.isSuperAdmin === true ||
-      dbUser?.systemRole === 'super_admin' ||
-      dbUser?.role === 'super_admin' ||
-      dbUser?.platformRole === 'platform_admin'
-    ) {
-      return;
-    }
-
-    const orgSlug = dbUser?.organization?.slug?.toLowerCase();
-    const orgName = dbUser?.organization?.name?.toLowerCase();
-    if (orgSlug === 'platform_admin' || orgName === 'platform_admin') {
-      return;
-    }
-
-    throw new ForbiddenException('Dev panel is only accessible to members of the platform organization');
+    throw new ForbiddenException('Dev panel requires Platform Developer, Platform Admin, or Platform Root access');
   }
 
   @Get('summary')

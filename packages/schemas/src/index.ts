@@ -116,6 +116,7 @@ export const UpdateContentEntrySchema = z.object({
 
 // RBAC schemas
 export const CAPABILITY_MODULES = [
+  'platform',
   'org',
   'billing',
   'sites',
@@ -130,7 +131,26 @@ export const CAPABILITY_MODULES = [
 export const CapabilityModuleSchema = z.enum(CAPABILITY_MODULES);
 export type CapabilityModule = z.infer<typeof CapabilityModuleSchema>;
 
+export const RBAC_SCOPES = ['PLATFORM', 'ORG', 'SITE'] as const;
+export const RbacScopeSchema = z.enum(RBAC_SCOPES);
+export type RbacScope = z.infer<typeof RbacScopeSchema>;
+
 export const CAPABILITY_KEYS = [
+  'platform.dashboard.view',
+  'platform.organizations.view',
+  'platform.organizations.manage',
+  'platform.users.view',
+  'platform.users.manage',
+  'platform.roles.view',
+  'platform.roles.manage',
+  'platform.billing.view',
+  'platform.billing.manage',
+  'platform.audit.view',
+  'platform.feature_flags.manage',
+  'platform.support.impersonate',
+  'platform.dev.tools.access',
+  'platform.dev.logs.view',
+  'platform.dev.jobs.manage',
   'org.view_dashboard',
   'org.users.view',
   'org.users.invite',
@@ -864,3 +884,5 @@ export * from './site-events';
 // Builder modules
 export * from './builder-modules';
 export * from './builder-block-modules';
+export * from './publish-validation';
+export * from './rbac-user-roles';

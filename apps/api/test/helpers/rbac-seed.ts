@@ -1,63 +1,9 @@
 import { PrismaService } from '../../src/common/prisma/prisma.service';
+import { CAPABILITY_REGISTRY } from '@repo/schemas';
+import { buildSystemRoleDefinitions } from '../../src/modules/rbac/system-role-definitions';
 
-const CAPABILITY_KEYS = [
-  'org.view_dashboard',
-  'org.users.view',
-  'org.users.invite',
-  'org.users.remove',
-  'org.roles.view',
-  'org.roles.manage',
-  'org.policies.view',
-  'org.policies.manage',
-  'billing.view_plan',
-  'billing.change_plan',
-  'billing.view_invoices',
-  'billing.manage_payment_methods',
-  'sites.view',
-  'sites.create',
-  'sites.delete',
-  'sites.settings.view',
-  'sites.settings.manage',
-  'builder.view',
-  'builder.edit',
-  'builder.draft.save',
-  'builder.publish',
-  'builder.rollback',
-  'builder.history.view',
-  'builder.assets.upload',
-  'builder.assets.delete',
-  'builder.custom_code',
-  'builder.site_roles.manage',
-  'content.view',
-  'content.create',
-  'content.edit',
-  'content.delete',
-  'content.publish',
-  'content.media.manage',
-  'hosting.usage.view',
-  'hosting.deploy',
-  'hosting.files.view',
-  'hosting.files.edit',
-  'hosting.logs.view',
-  'hosting.backups.manage',
-  'hosting.restart.manage',
-  'domains.view',
-  'domains.assign',
-  'domains.dns.manage',
-  'domains.ssl.manage',
-  'domains.add_remove',
-  'marketing.view',
-  'marketing.content.edit',
-  'marketing.schedule',
-  'marketing.publish',
-  'marketing.campaign.manage',
-  'marketing.social.connect',
-  'marketing.ads.manage',
-  'marketing.stats.view',
-  'analytics.view',
-] as const;
-
-type CapabilityKey = typeof CAPABILITY_KEYS[number];
+const CAPABILITY_KEYS = CAPABILITY_REGISTRY.map((capability) => capability.key);
+type CapabilityKey = (typeof CAPABILITY_KEYS)[number];
 
 const toCapabilityData = (key: CapabilityKey) => ({
   key,
@@ -133,11 +79,13 @@ export async function ensureRoleWithCapabilities(prisma: PrismaService, params: 
 }
 
 export async function ensureOrgOwnerRole(prisma: PrismaService, orgId: string) {
+  const definitions = buildSystemRoleDefinitions(CAPABILITY_KEYS as string[]);
+  const orgOwner = definitions.find((definition) => definition.scope === 'ORG' && definition.name === 'Org Owner');
   return ensureRoleWithCapabilities(prisma, {
     orgId,
     name: 'Org Owner',
     scope: 'ORG',
-    capabilityKeys: CAPABILITY_KEYS as unknown as string[],
+    capabilityKeys: orgOwner?.capabilityKeys || [],
     type: 'SYSTEM',
     isImmutable: true,
   });
@@ -168,6 +116,63 @@ export async function ensureUserRole(prisma: PrismaService, params: {
       userId: params.userId,
       roleId: params.roleId,
       siteId: params.siteId ?? null,
+    },
+  });
+}
+
+export async function ensurePlatformRoleWithCapabilities(prisma: PrismaService, params: {
+  name: string;
+  capabilityKeys: string[];
+  type?: 'SYSTEM' | 'CUSTOM';
+  isImmutable?: boolean;
+}) {
+  const role = await prisma.platformRole.upsert({
+    where: {
+      name: params.name,
+    },
+    update: {},
+    create: {
+      name: params.name,
+      description: `${params.name} (seeded)`,
+      type: params.type ?? 'CUSTOM',
+      isImmutable: params.isImmutable ?? false,
+    },
+  });
+
+  const capabilities = await prisma.capability.findMany({
+    where: { key: { in: params.capabilityKeys } },
+    select: { id: true },
+  });
+
+  await prisma.platformRoleCapability.deleteMany({ where: { roleId: role.id } });
+  if (capabilities.length > 0) {
+    await prisma.platformRoleCapability.createMany({
+      data: capabilities.map((capability) => ({
+        roleId: role.id,
+        capabilityId: capability.id,
+      })),
+      skipDuplicates: true,
+    });
+  }
+
+  return role;
+}
+
+export async function ensurePlatformUserRole(prisma: PrismaService, params: {
+  userId: string;
+  roleId: string;
+}) {
+  return prisma.platformUserRole.upsert({
+    where: {
+      userId_roleId: {
+        userId: params.userId,
+        roleId: params.roleId,
+      },
+    },
+    update: {},
+    create: {
+      userId: params.userId,
+      roleId: params.roleId,
     },
   });
 }

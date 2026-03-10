@@ -15,10 +15,14 @@ type DragPreviewProps = {
 };
 
 export const DragPreview: React.FC<DragPreviewProps> = ({ data }) => {
+  // Use selector instead of getState() in render to stay reactive
+  const node = usePageBuilderStore((state) =>
+    !isNewBlockDrag(data) ? state.content.nodes[data.nodeId] : null
+  );
+
   if (isNewBlockDrag(data)) {
-    // New block from palette
     const definition = blockRegistry.getBlock(data.blockType);
-    
+
     return (
       <div className={styles.preview}>
         <div className={styles.icon}>
@@ -30,12 +34,9 @@ export const DragPreview: React.FC<DragPreviewProps> = ({ data }) => {
       </div>
     );
   }
-  
-  // Existing block
-  const content = usePageBuilderStore.getState().content;
-  const node = content.nodes[data.nodeId];
+
   const definition = node ? blockRegistry.getBlock(node.type) : null;
-  
+
   return (
     <div className={styles.preview}>
       <div className={styles.icon}>

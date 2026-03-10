@@ -1,10 +1,16 @@
 import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { Permission, SiteRole, SystemRole, hasSitePermission } from '../roles.enum';
+import { Permission, hasSitePermission } from '../roles.enum';
 import { PERMISSIONS_KEY } from '../decorators/permissions.decorator';
 import { CurrentUserPayload } from '../decorators/current-user.decorator';
+import {
+  getCapabilityCandidatesForPermission,
+  resolveAuthorizationContext,
+  resolveLegacySiteRole,
+} from '../legacy-rbac-bridge';
 import { CollectionRolesService } from '../../../modules/collection-roles/collection-roles.service';
 import { isPlatformPowerUser } from '../platform-admin.util';
+import { RbacService } from '../../../modules/rbac/rbac.service';
 
 /**
  * CollectionPermissionsGuard - checks permissions per collection
@@ -24,6 +30,7 @@ export class CollectionPermissionsGuard implements CanActivate {
   constructor(
     private reflector: Reflector,
     private collectionRolesService: CollectionRolesService,
+    private rbacService: RbacService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -43,16 +50,33 @@ export class CollectionPermissionsGuard implements CanActivate {
       throw new ForbiddenException('User not authenticated');
     }
 
-    const siteId = request.siteId || user.siteId;
+    const { orgId, siteId } = resolveAuthorizationContext(request, user);
 
     // Super/platform admin has all permissions
-    if (isPlatformPowerUser(user) || user.systemRole === SystemRole.SUPER_ADMIN) {
+    if (isPlatformPowerUser(user)) {
       return true;
     }
 
+    if (user.id && orgId && siteId) {
+      const capabilityKeys = Array.from(
+        new Set(
+          requiredPermissions
+            .flatMap((permission) => getCapabilityCandidatesForPermission(permission))
+            .filter((capabilityKey) => !capabilityKey.startsWith('platform.')),
+        ),
+      );
+
+      for (const capabilityKey of capabilityKeys) {
+        const canPerform = await this.rbacService.canUserPerform(orgId, user.id, capabilityKey, siteId);
+        if (canPerform) {
+          return true;
+        }
+      }
+    }
+
     // Check site-level permissions based on siteRole
-    if (user.siteRole) {
-      const userSiteRole = user.siteRole as SiteRole;
+    const userSiteRole = resolveLegacySiteRole(user);
+    if (userSiteRole) {
       const hasSitePerm = requiredPermissions.some(perm => hasSitePermission(userSiteRole, perm));
       if (hasSitePerm) {
         return true;

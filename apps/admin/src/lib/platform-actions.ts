@@ -1,6 +1,7 @@
 ﻿'use client';
 
 import { type SiteInfo } from '@repo/sdk';
+import { type PublicRbacUserRoleKey } from '@repo/schemas';
 import {
   fetchMySites,
   createSite as createSiteRequest,
@@ -66,7 +67,7 @@ export async function getSiteInvites(identifier: SiteIdentifier, sitesCache?: Si
 
 export async function inviteUserToSite(
   identifier: SiteIdentifier,
-  payload: { email: string; role: string },
+  payload: { email: string; role: PublicRbacUserRoleKey },
   sitesCache?: SiteInfo[]
 ): Promise<InviteSummary> {
   const site = await resolveSite(identifier, sitesCache);

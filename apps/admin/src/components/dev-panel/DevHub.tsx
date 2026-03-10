@@ -4,8 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import { DevPanelLayout } from "@/components/dev-panel/DevPanelLayout";
 import { DevPanelTabs } from "@/components/dev-panel/DevPanelTabs";
 import {
-  decodeAuthToken,
-  getAuthToken,
   getDevFlags,
   getDevLogs,
   getDevRuntime,
@@ -14,6 +12,7 @@ import {
 import { timeAgo } from "@/lib/formatters";
 import { readGlobalSearch, subscribeGlobalSearch } from "@/lib/shell";
 import { useTranslations } from "@/hooks/useTranslations";
+import { usePlatformAccess } from "@/hooks/usePlatformAccess";
 
 type DevRuntimeData = {
   profile: string;
@@ -62,8 +61,6 @@ type DevLogData = {
   metadata?: Record<string, unknown>;
 };
 
-const PRIVILEGED_ROLES = ["super_admin", "org_admin", "site_admin", "tenant_admin", "platform_admin"];
-
 function formatDate(value?: string): string {
   if (!value) return "-";
   const date = new Date(value);
@@ -92,17 +89,9 @@ export function DevHub({ activeTab }: { activeTab: DevHubTab }) {
   const t = useTranslations();
   const appProfile = process.env.NEXT_PUBLIC_APP_PROFILE || process.env.NODE_ENV || "development";
   const isProd = appProfile === "production";
-  const token = getAuthToken();
-  const payload = useMemo(() => decodeAuthToken(token), [token]);
-  const userRole = (payload?.role as string) || "";
-  const userPlatformRole = (payload?.platformRole as string) || "";
-  const userSystemRole = (payload?.systemRole as string) || "";
-  const isSuperAdmin = (payload?.isSuperAdmin as boolean) || false;
-  const isPrivileged =
-    PRIVILEGED_ROLES.includes(userRole) ||
-    PRIVILEGED_ROLES.includes(userPlatformRole) ||
-    isSuperAdmin ||
-    userSystemRole === "super_admin";
+  const platformAccess = usePlatformAccess();
+  const isSuperAdmin = platformAccess.isSuperAdmin;
+  const isPrivileged = platformAccess.canAccessDevTools;
 
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);

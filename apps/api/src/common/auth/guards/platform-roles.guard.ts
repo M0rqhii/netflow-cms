@@ -1,10 +1,11 @@
 import { Injectable, CanActivate, ExecutionContext, ForbiddenException, Logger } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { OrgRole, SystemRole } from '../roles.enum';
+import { OrgRole } from '../roles.enum';
 import { ORG_ROLES_KEY } from '../decorators/platform-roles.decorator';
 import { CurrentUserPayload } from '../decorators/current-user.decorator';
-import { PrismaService } from '../../prisma/prisma.service';
-import { isPlatformAdminValue, isPlatformPowerUser } from '../platform-admin.util';
+import { matchesRequiredOrgRole, resolveAuthorizationContext } from '../legacy-rbac-bridge';
+import { isPlatformPowerUser } from '../platform-admin.util';
+import { RbacService } from '../../../modules/rbac/rbac.service';
 
 /**
  * OrgRolesGuard - checks if user has required organization role
@@ -19,7 +20,7 @@ export class OrgRolesGuard implements CanActivate {
 
   constructor(
     private reflector: Reflector,
-    private prisma: PrismaService,
+    private rbacService: RbacService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -40,76 +41,51 @@ export class OrgRolesGuard implements CanActivate {
       throw new ForbiddenException('User not authenticated');
     }
 
-    this.logger.debug(`Checking org role for user ${user.id} (orgRole: ${user.orgRole}, systemRole: ${user.systemRole}, isSuperAdmin: ${user.isSuperAdmin})`);
+    this.logger.debug(
+      `Checking org role for user ${user.id} (orgRoleKey: ${user.orgRoleKey}, orgRoleName: ${user.orgRoleName}, platformRoles: ${(user.platformRbacRoles || []).join(',')})`,
+    );
 
     // Check if user is super admin / platform admin - they have access to everything
-    if (isPlatformPowerUser(user) || user.systemRole === SystemRole.SUPER_ADMIN) {
+    if (isPlatformPowerUser(user)) {
       this.logger.debug(`User ${user.id} is super admin - granting access`);
       return true;
     }
 
-    // System admins also have org admin access
-    if (user.systemRole === SystemRole.SYSTEM_ADMIN) {
-      this.logger.debug(`User ${user.id} is system admin - granting access`);
-      return true;
-    }
+    const { orgId } = resolveAuthorizationContext(request, user);
+    if (user.id && orgId) {
+      const platformProfile = await this.rbacService.getEffectivePlatformProfile(user.id);
+      if (platformProfile.isPlatformPowerUser) {
+        this.logger.debug(`User ${user.id} has platform RBAC bypass - granting access`);
+        return true;
+      }
 
-    let userOrgRole = user.orgRole as OrgRole | undefined;
+      const assignments = await this.rbacService.getAssignments(orgId, user.id);
+      const assignedOrgRoles = new Set(
+        assignments
+          .filter((assignment) => assignment.role.scope === 'ORG' && !assignment.siteId)
+          .map((assignment) => assignment.role.name),
+      );
 
-    // Check database for current org role (stored as platformRole in DB)
-    if (user.id) {
-      try {
-        const dbUser = await this.prisma.user.findUnique({
-          where: { id: user.id },
-          select: {
-            isSuperAdmin: true,
-            systemRole: true,
-            platformRole: true, // DB column is still platformRole
-            role: true,
-          },
-        });
+      if (assignedOrgRoles.has('Org Owner')) {
+        return true;
+      }
 
-        // If user is super_admin in database, always grant access
-        if (
-          dbUser?.isSuperAdmin ||
-          dbUser?.systemRole === SystemRole.SUPER_ADMIN ||
-          isPlatformAdminValue(dbUser?.platformRole) ||
-          isPlatformAdminValue(dbUser?.role)
-        ) {
-          this.logger.log(`Granting access to user ${user.id} based on super_admin/systemRole in database`);
-          return true;
-        }
+      if (
+        assignedOrgRoles.has('Org Admin') &&
+        requiredOrgRoles.some((role) =>
+          [OrgRole.USER, OrgRole.EDITOR_IN_CHIEF, OrgRole.ADMIN].includes(role),
+        )
+      ) {
+        return true;
+      }
 
-        // System admin also has access
-        if (dbUser?.systemRole === SystemRole.SYSTEM_ADMIN) {
-          this.logger.log(`Granting access to user ${user.id} based on system_admin role in database`);
-          return true;
-        }
-
-        // Use platformRole from database as orgRole
-        if (dbUser?.platformRole) {
-          userOrgRole = dbUser.platformRole as OrgRole;
-        }
-      } catch (error) {
-        // If database check fails, fall back to token-based check
-        this.logger.warn(`Failed to check user role in database for user ${user.id}: ${error instanceof Error ? error.message : String(error)}`);
+      if (assignedOrgRoles.has('Org Member') && requiredOrgRoles.includes(OrgRole.USER)) {
+        return true;
       }
     }
 
-    if (!userOrgRole) {
-      this.logger.warn(`User ${user.id} (orgRole: ${user.orgRole}) does not have an org role. Required: ${requiredOrgRoles.join(' or ')}`);
-      throw new ForbiddenException(
-        `Access denied. Required org role: ${requiredOrgRoles.join(' or ')}`,
-      );
-    }
-
-    // Org admin/owner has access to everything
-    if (userOrgRole === OrgRole.ADMIN || userOrgRole === OrgRole.OWNER) {
-      return true;
-    }
-
-    // Check if user org role is in required org roles
-    if (!requiredOrgRoles.includes(userOrgRole)) {
+    if (!matchesRequiredOrgRole(user, requiredOrgRoles)) {
+      this.logger.warn(`User ${user.id} (orgRoleKey: ${user.orgRoleKey}, orgRoleName: ${user.orgRoleName}) does not have an org role. Required: ${requiredOrgRoles.join(' or ')}`);
       throw new ForbiddenException(
         `Access denied. Required org role: ${requiredOrgRoles.join(' or ')}`,
       );

@@ -1,65 +1,65 @@
 import {
-  Controller,
-  Get,
-  Post,
-  Patch,
-  Delete,
+  BadRequestException,
   Body,
-  Param,
-  UseGuards,
-  Query,
-  ParseIntPipe,
+  Controller,
   DefaultValuePipe,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  NotFoundException,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '../../common/auth/guards/auth.guard';
 import { OrgRolesGuard } from '../../common/auth/guards/platform-roles.guard';
 import { PermissionsGuard } from '../../common/auth/guards/permissions.guard';
 import { OrgRoles } from '../../common/auth/decorators/platform-roles.decorator';
 import { Permissions } from '../../common/auth/decorators/permissions.decorator';
-import { OrgRole, Permission } from '../../common/auth/roles.enum';
 import { CurrentUser } from '../../common/auth/decorators/current-user.decorator';
-import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
-import { z } from 'zod';
+import { OrgRole, Permission } from '../../common/auth/roles.enum';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
+import { RbacService } from '../rbac/rbac.service';
 import * as bcrypt from 'bcrypt';
-import { BadRequestException, ConflictException, ForbiddenException, NotFoundException, Injectable } from '@nestjs/common';
-import { isPlatformAdminValue, isPlatformPowerUser } from '../../common/auth/platform-admin.util';
+import { z } from 'zod';
 
 const createPlatformUserSchema = z.object({
   email: z.string().email('Invalid email format'),
   password: z.string().min(8, 'Password must be at least 8 characters').max(128, 'Password must be at most 128 characters'),
-  role: z.enum(['super_admin', 'organization_admin', 'editor', 'viewer', 'platform_admin']).optional(), // Backward compatibility
-  siteRole: z.enum(['viewer', 'editor', 'editor-in-chief', 'marketing', 'admin', 'owner']).optional(),
-  platformRole: z.enum(['user', 'editor-in-chief', 'admin', 'owner', 'platform_admin']).optional(),
-  systemRole: z.enum(['super_admin', 'system_admin', 'system_dev', 'system_support']).optional(),
   preferredLanguage: z.enum(['pl', 'en']).optional().default('en'),
-  // Granular permissions (optional, overrides role permissions)
-  permissions: z.array(z.string()).optional(), // Use string instead of nativeEnum for flexibility
 });
 
 const updatePlatformUserSchema = z.object({
-  role: z.enum(['super_admin', 'organization_admin', 'editor', 'viewer', 'platform_admin']).optional(), // Backward compatibility
-  siteRole: z.enum(['viewer', 'editor', 'editor-in-chief', 'marketing', 'admin', 'owner']).optional(),
-  platformRole: z.enum(['user', 'editor-in-chief', 'admin', 'owner', 'platform_admin']).optional(),
-  systemRole: z.enum(['super_admin', 'system_admin', 'system_dev', 'system_support']).optional(),
-  permissions: z.array(z.string()).optional(), // Use string instead of nativeEnum for flexibility
+  preferredLanguage: z.enum(['pl', 'en']).optional(),
 });
 
-/**
- * PlatformUsersController - RESTful API for platform-level user management
- * AI Note: All endpoints require platform-level roles (platform_admin)
- * This is for managing users across the entire platform, not organization-scoped
- */
-@Injectable()
+type PlatformUserRecord = {
+  id: string;
+  email: string;
+  orgId: string;
+  preferredLanguage: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  organization?: {
+    id: string;
+    name: string;
+    slug: string;
+  } | null;
+};
+
 @UseGuards(AuthGuard, OrgRolesGuard, PermissionsGuard)
 @Controller('platform/users')
 export class PlatformUsersController {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly rbacService: RbacService,
+  ) {}
 
-  /**
-   * GET /api/v1/platform/users
-   * List all platform users (platform_admin only)
-   */
   @Get()
   @OrgRoles(OrgRole.ADMIN, OrgRole.OWNER)
   @Permissions(Permission.USERS_READ)
@@ -68,7 +68,7 @@ export class PlatformUsersController {
     @Query('pageSize', new DefaultValuePipe(20), ParseIntPipe) pageSize: number,
   ) {
     const skip = (page - 1) * pageSize;
-    
+
     const [users, total] = await Promise.all([
       this.prisma.user.findMany({
         skip,
@@ -76,12 +76,8 @@ export class PlatformUsersController {
         select: {
           id: true,
           email: true,
-          role: true, // Backward compatibility
-          siteRole: true,
-          platformRole: true,
-          systemRole: true,
-          isSuperAdmin: true,
           orgId: true,
+          preferredLanguage: true,
           createdAt: true,
           updatedAt: true,
           organization: {
@@ -97,32 +93,10 @@ export class PlatformUsersController {
       this.prisma.user.count(),
     ]);
 
-    // Map users with all role information
-    // Use new fields if available, fall back to old role field for backward compatibility
-    const usersWithRoles = users.map((user) => {
-      // Map old role names to new structure
-      let mappedSiteRole = user.siteRole;
-      if (!mappedSiteRole && user.role) {
-        const roleMapping: Record<string, string> = {
-          'super_admin': 'owner', // Super admin maps to owner in site context
-          'organization_admin': 'admin',
-          'editor': 'editor',
-          'viewer': 'viewer',
-        };
-        mappedSiteRole = roleMapping[user.role] || user.role;
-      }
-
-      return {
-        ...user,
-        siteRole: mappedSiteRole || 'viewer',
-        platformRole: user.platformRole || (user.role === 'super_admin' || user.role === 'org_admin' ? 'admin' : user.role === 'platform_admin' ? 'platform_admin' : 'user'),
-        systemRole: user.systemRole || (user.role === 'super_admin' ? 'super_admin' : undefined),
-        isSuperAdmin: user.isSuperAdmin || user.role === 'super_admin' || user.systemRole === 'super_admin',
-      };
-    });
+    const data = await this.serializeUsers(users);
 
     return {
-      data: usersWithRoles,
+      data,
       pagination: {
         page,
         pageSize,
@@ -132,10 +106,6 @@ export class PlatformUsersController {
     };
   }
 
-  /**
-   * GET /api/v1/platform/users/:id
-   * Get platform user by ID (platform_admin only)
-   */
   @Get(':id')
   @OrgRoles(OrgRole.ADMIN, OrgRole.OWNER)
   @Permissions(Permission.USERS_READ)
@@ -145,11 +115,6 @@ export class PlatformUsersController {
       select: {
         id: true,
         email: true,
-        role: true, // Backward compatibility
-        siteRole: true,
-        platformRole: true,
-        systemRole: true,
-        isSuperAdmin: true,
         orgId: true,
         preferredLanguage: true,
         createdAt: true,
@@ -168,69 +133,32 @@ export class PlatformUsersController {
       throw new NotFoundException('User not found');
     }
 
-    // Map user with all role information (same as listUsers)
-    // Map old role names to new structure
-    let mappedSiteRole = user.siteRole;
-    if (!mappedSiteRole && user.role) {
-      const roleMapping: Record<string, string> = {
-        'super_admin': 'owner', // Super admin maps to owner in site context
-        'organization_admin': 'admin',
-        'editor': 'editor',
-        'viewer': 'viewer',
-      };
-      mappedSiteRole = roleMapping[user.role] || user.role;
-    }
-
-    return {
-      ...user,
-      siteRole: mappedSiteRole || 'viewer',
-      platformRole: user.platformRole || (user.role === 'super_admin' || user.role === 'org_admin' ? 'admin' : user.role === 'platform_admin' ? 'platform_admin' : 'user'),
-      systemRole: user.systemRole || (user.role === 'super_admin' ? 'super_admin' : undefined),
-      isSuperAdmin: user.isSuperAdmin || user.role === 'super_admin' || user.systemRole === 'super_admin',
-    };
+    return this.serializeUser(user, await this.rbacService.getPlatformRoleNames(user.id));
   }
 
-  /**
-   * POST /api/v1/platform/users
-   * Create a new platform user (platform_admin only)
-   * Security: Only platform_admin can create platform_admin users
-   */
   @Post()
   @OrgRoles(OrgRole.ADMIN, OrgRole.OWNER)
   @Permissions(Permission.USERS_WRITE)
   async createUser(
     @Body(new ZodValidationPipe(createPlatformUserSchema)) dto: z.infer<typeof createPlatformUserSchema>,
-    @CurrentUser() user: { platformRole?: string; role: string; isSuperAdmin?: boolean; systemRole?: string },
   ) {
-    // Security: Only platform_admin can create platform_admin users
-    // This check is now handled by the new security checks above
+    const email = dto.email.trim().toLowerCase();
 
-    // Security: Only super_admin can create super_admin users
-    if (dto.role === 'super_admin' && !user.isSuperAdmin && user.systemRole !== 'super_admin') {
-      throw new ForbiddenException('Only super_admin can create super_admin users');
-    }
-
-    if (dto.platformRole === 'platform_admin' && !isPlatformPowerUser(user)) {
-      throw new ForbiddenException('Only super_admin/platform_admin can create platform_admin users');
-    }
-
-    // Check if user already exists (check all organizations)
     const existingUser = await this.prisma.user.findFirst({
-      where: { email: dto.email },
+      where: { email },
+      select: { id: true },
     });
 
     if (existingUser) {
-      throw new ConflictException('User with this email already exists');
+      throw new BadRequestException('User with this email already exists');
     }
 
-    // Find or create a default organization for platform users
-    // For now, we'll use the first organization or create a default one
     let organization = await this.prisma.organization.findFirst({
-      orderBy: { createdAt: 'asc' },
+      where: { slug: 'platform-users' },
+      select: { id: true },
     });
 
     if (!organization) {
-      // Create a default organization for platform users
       organization = await this.prisma.organization.create({
         data: {
           name: 'Platform Users',
@@ -238,236 +166,181 @@ export class PlatformUsersController {
           plan: 'enterprise',
           settings: {},
         },
+        select: { id: true },
       });
     }
 
-    // Hash password
     const passwordHash = await bcrypt.hash(dto.password, 12);
 
-    // Determine roles
-    // Normalize legacy role names
-    const normalizedRole = dto.role === 'organization_admin' ? 'org_admin' : dto.role;
-
-    const siteRole = dto.siteRole || (
-      normalizedRole === 'platform_admin'
-        ? 'owner'
-        : normalizedRole || 'viewer'
-    );
-    const platformRole = dto.platformRole || (
-      normalizedRole === 'platform_admin'
-        ? 'platform_admin'
-        : normalizedRole === 'super_admin' || normalizedRole === 'org_admin'
-          ? 'admin'
-          : 'user'
-    );
-    const systemRole = dto.systemRole || (normalizedRole === 'super_admin' ? 'super_admin' : undefined);
-    const isSuperAdmin = dto.systemRole === 'super_admin' || normalizedRole === 'super_admin';
-
-    if (platformRole === 'platform_admin' && organization.plan !== 'enterprise') {
-      organization = await this.prisma.organization.update({
-        where: { id: organization.id },
-        data: { plan: 'enterprise' },
-      });
-    }
-
-    // Create user
-    const newUser = await this.prisma.user.create({
+    const user = await this.prisma.user.create({
       data: {
-        email: dto.email,
+        email,
         passwordHash,
         orgId: organization.id,
-        role: normalizedRole || siteRole, // Backward compatibility
-        siteRole,
-        platformRole,
-        systemRole,
-        isSuperAdmin,
         preferredLanguage: dto.preferredLanguage || 'en',
       },
       select: {
         id: true,
         email: true,
-        role: true, // Backward compatibility
-        siteRole: true,
-        platformRole: true,
-        systemRole: true,
-        isSuperAdmin: true,
         orgId: true,
+        preferredLanguage: true,
         createdAt: true,
         updatedAt: true,
+        organization: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
       },
     });
 
-    // TODO: Store granular permissions in a separate table if needed
-    // For now, permissions are derived from role
-
     await this.prisma.userOrg.upsert({
-      where: { userId_orgId: { userId: newUser.id, orgId: organization.id } },
-      update: { role: normalizedRole || siteRole },
-      create: { userId: newUser.id, orgId: organization.id, role: normalizedRole || siteRole },
+      where: { userId_orgId: { userId: user.id, orgId: organization.id } },
+      update: { role: 'org_member' },
+      create: { userId: user.id, orgId: organization.id, role: 'org_member' },
     });
 
-    return newUser;
+    return this.serializeUser(user, []);
   }
 
-  /**
-   * PATCH /api/v1/platform/users/:id
-   * Update platform user (platform_admin only)
-   */
   @Patch(':id')
   @OrgRoles(OrgRole.ADMIN, OrgRole.OWNER)
   @Permissions(Permission.USERS_WRITE)
   async updateUser(
     @Param('id') userId: string,
     @Body(new ZodValidationPipe(updatePlatformUserSchema)) dto: z.infer<typeof updatePlatformUserSchema>,
-    @CurrentUser() user: { platformRole?: string; role: string; isSuperAdmin?: boolean; systemRole?: string },
   ) {
-    // Check if user exists
     const existingUser = await this.prisma.user.findUnique({
       where: { id: userId },
+      select: { id: true },
     });
 
     if (!existingUser) {
       throw new NotFoundException('User not found');
-    }
-
-    const normalizedRole = dto.role === 'organization_admin' ? 'org_admin' : dto.role;
-    const actorIsPlatformPower = isPlatformPowerUser(user);
-
-    // Security: Only org admin/owner can assign org admin/owner role
-    if (dto.platformRole && ['admin', 'owner'].includes(dto.platformRole)) {
-      const userOrgRole = user.platformRole as OrgRole | undefined;
-      if (userOrgRole !== OrgRole.ADMIN && userOrgRole !== OrgRole.OWNER && !actorIsPlatformPower) {
-        throw new ForbiddenException('Only org admin/owner can assign org admin/owner role');
-      }
-    }
-
-    if (dto.platformRole === 'platform_admin' && !actorIsPlatformPower) {
-      throw new ForbiddenException('Only super_admin/platform_admin can assign platform_admin role');
-    }
-
-    // Security: Only super_admin can assign super_admin/system admin role
-    if (dto.systemRole && ['super_admin', 'system_admin'].includes(dto.systemRole)) {
-      if (!user.isSuperAdmin && user.systemRole !== 'super_admin') {
-        throw new ForbiddenException('Only super_admin can assign super_admin/system_admin role');
-      }
-    }
-
-    // Security: Only super_admin can assign super_admin role (backward compatibility)
-    if (normalizedRole === 'super_admin' && !user.isSuperAdmin && user.systemRole !== 'super_admin') {
-      throw new ForbiddenException('Only super_admin can assign super_admin role');
-    }
-
-    // Prevent self-demotion of last super_admin
-    if ((existingUser.isSuperAdmin || existingUser.systemRole === 'super_admin' || existingUser.role === 'super_admin') &&
-        dto.systemRole && dto.systemRole !== 'super_admin') {
-      const superAdminCount = await this.prisma.user.count({
-        where: {
-          OR: [
-            { isSuperAdmin: true },
-            { systemRole: 'super_admin' },
-            { role: 'super_admin' },
-          ],
-        },
-      });
-
-      if (superAdminCount === 1) {
-        throw new BadRequestException('Cannot remove the last super_admin from platform');
-      }
-    }
-
-    // Update user
-    const updateData: any = {};
-    if (normalizedRole) {
-      updateData.role = normalizedRole; // Backward compatibility
-      if (!dto.siteRole) {
-        updateData.siteRole =
-          normalizedRole === 'platform_admin'
-            ? 'owner'
-            : normalizedRole === 'org_admin'
-              ? 'admin'
-              : normalizedRole;
-      }
-      if (!dto.platformRole) {
-        updateData.platformRole =
-          normalizedRole === 'platform_admin'
-            ? 'platform_admin'
-            : normalizedRole === 'super_admin' || normalizedRole === 'org_admin'
-              ? 'admin'
-              : 'user';
-      }
-    }
-    if (dto.siteRole) updateData.siteRole = dto.siteRole;
-    if (dto.platformRole) updateData.platformRole = dto.platformRole;
-    if (dto.systemRole) {
-      updateData.systemRole = dto.systemRole;
-      updateData.isSuperAdmin = dto.systemRole === 'super_admin';
     }
 
     const updatedUser = await this.prisma.user.update({
       where: { id: userId },
-      data: updateData,
+      data: {
+        preferredLanguage: dto.preferredLanguage,
+      },
       select: {
         id: true,
         email: true,
-        role: true, // Backward compatibility
-        siteRole: true,
-        platformRole: true,
-        systemRole: true,
-        isSuperAdmin: true,
         orgId: true,
+        preferredLanguage: true,
+        createdAt: true,
         updatedAt: true,
+        organization: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
       },
     });
 
-    return updatedUser;
+    return this.serializeUser(updatedUser, await this.rbacService.getPlatformRoleNames(updatedUser.id));
   }
 
-  /**
-   * DELETE /api/v1/platform/users/:id
-   * Delete platform user (platform_admin only)
-   */
   @Delete(':id')
   @OrgRoles(OrgRole.ADMIN, OrgRole.OWNER)
   @Permissions(Permission.USERS_DELETE)
+  @HttpCode(HttpStatus.OK)
   async deleteUser(
     @Param('id') userId: string,
-    @CurrentUser() user: { id: string; role: string },
+    @CurrentUser() user: { id: string },
   ) {
-    // Prevent self-deletion
     if (userId === user.id) {
       throw new BadRequestException('Cannot delete yourself');
     }
 
-    // Check if user exists
     const existingUser = await this.prisma.user.findUnique({
       where: { id: userId },
+      select: { id: true },
     });
 
     if (!existingUser) {
       throw new NotFoundException('User not found');
     }
 
-    // Prevent deletion of last super_admin
-    if (existingUser.isSuperAdmin || existingUser.systemRole === 'super_admin' || existingUser.role === 'super_admin') {
-      const superAdminCount = await this.prisma.user.count({
+    const roleNames = await this.rbacService.getPlatformRoleNames(userId);
+    if (roleNames.includes('Platform Root')) {
+      const rootAssignments = await this.prisma.platformUserRole.count({
         where: {
-          OR: [
-            { isSuperAdmin: true },
-            { systemRole: 'super_admin' },
-            { role: 'super_admin' },
-          ],
+          role: {
+            name: 'Platform Root',
+          },
         },
       });
 
-      if (superAdminCount === 1) {
-        throw new BadRequestException('Cannot delete the last super_admin from platform');
+      if (rootAssignments <= 1) {
+        throw new BadRequestException('Cannot delete the last Platform Root user');
       }
     }
+
+    await this.prisma.platformUserRole.deleteMany({
+      where: { userId },
+    });
 
     await this.prisma.user.delete({
       where: { id: userId },
     });
 
     return { message: 'User deleted successfully' };
+  }
+
+  private async serializeUsers(users: PlatformUserRecord[]) {
+    const roleMap = await this.getPlatformRoleMap(users.map((user) => user.id));
+    return users.map((user) => this.serializeUser(user, roleMap.get(user.id) ?? []));
+  }
+
+  private async getPlatformRoleMap(userIds: string[]) {
+    if (userIds.length === 0) {
+      return new Map<string, string[]>();
+    }
+
+    const assignments = await this.prisma.platformUserRole.findMany({
+      where: {
+        userId: { in: userIds },
+      },
+      select: {
+        userId: true,
+        role: {
+          select: {
+            name: true,
+          },
+        },
+      },
+    });
+
+    const roleMap = new Map<string, string[]>();
+    for (const assignment of assignments) {
+      const current = roleMap.get(assignment.userId) ?? [];
+      current.push(assignment.role.name);
+      roleMap.set(assignment.userId, current);
+    }
+
+    for (const userId of userIds) {
+      roleMap.set(userId, (roleMap.get(userId) ?? []).sort());
+    }
+
+    return roleMap;
+  }
+
+  private serializeUser(user: PlatformUserRecord, platformRbacRoles: string[]) {
+    return {
+      id: user.id,
+      email: user.email,
+      orgId: user.orgId,
+      preferredLanguage: user.preferredLanguage || 'en',
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+      organization: user.organization || undefined,
+      platformRbacRoles,
+    };
   }
 }

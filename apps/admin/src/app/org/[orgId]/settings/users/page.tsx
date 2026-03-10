@@ -4,6 +4,10 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { EmptyState, Input, Skeleton } from "@repo/ui";
 import {
+  getPublicRbacUserRoles,
+  type PublicRbacUserRoleKey,
+} from "@repo/schemas";
+import {
   createOrgUser,
   fetchOrgDashboard,
   fetchOrgUsers,
@@ -25,23 +29,25 @@ import { Button } from "@/components/ui/Button";
 
 /* ─── Helpers ─── */
 
-function normalizeRole(value: string): string {
-  return value === "site_admin" ? "org_admin" : value;
-}
+const ORG_ROLE_OPTIONS = getPublicRbacUserRoles("ORG");
+const SITE_ROLE_OPTIONS = getPublicRbacUserRoles("SITE");
 
 const ROLE_BADGE_COLORS: Record<string, string> = {
-  super_admin: "red",
   org_admin: "orange",
-  admin: "blue",
-  "editor-in-chief": "blue",
+  org_member: "gray",
+  site_admin: "blue",
+  editor_in_chief: "blue",
   editor: "gray",
-  marketing: "gray",
+  publisher: "green",
+  marketing_manager: "pink",
+  marketing_editor: "pink",
+  marketing_publisher: "pink",
+  marketing_viewer: "pink",
   viewer: "gray",
-  owner: "green",
 };
 
 function roleBadgeColor(role: string): string {
-  return ROLE_BADGE_COLORS[normalizeRole(role)] || "gray";
+  return ROLE_BADGE_COLORS[role] || "gray";
 }
 
 function userInitials(email: string): string {
@@ -88,18 +94,20 @@ export default function OrgUsersPage() {
   const t = useTranslations();
 
   const roleLabel = (value: string) => {
-    const normalized = normalizeRole(value);
     const labels: Record<string, string> = {
-      org_admin: t("users.admin"),
-      admin: t("users.admin"),
-      super_admin: t("users.superAdmin"),
-      "editor-in-chief": t("users.editorInChief"),
+      org_admin: t("users.orgAdmin"),
+      org_member: t("users.orgMember"),
+      site_admin: t("users.siteAdmin"),
+      editor_in_chief: t("users.editorInChief"),
       editor: t("users.editor"),
-      marketing: t("users.marketing"),
+      publisher: t("users.publisher"),
+      marketing_manager: t("users.marketingManager"),
+      marketing_editor: t("users.marketingEditor"),
+      marketing_publisher: t("users.marketingPublisher"),
+      marketing_viewer: t("users.marketingViewer"),
       viewer: t("users.viewer"),
-      owner: t("users.owner"),
     };
-    return labels[normalized] || normalized;
+    return labels[value] || value;
   };
 
   // Data
@@ -111,19 +119,20 @@ export default function OrgUsersPage() {
 
   // User filters
   const [userQuery, setUserQuery] = useState("");
-  const [userRoleFilter, setUserRoleFilter] = useState("");
+  const [userRoleFilter, setUserRoleFilter] = useState<PublicRbacUserRoleKey | "">("");
 
   // Create user
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [createEmail, setCreateEmail] = useState("");
   const [createPassword, setCreatePassword] = useState("");
-  const [createRole, setCreateRole] = useState("viewer");
+  const [createRole, setCreateRole] = useState<PublicRbacUserRoleKey>("org_member");
+  const [createSiteId, setCreateSiteId] = useState("");
   const [creating, setCreating] = useState(false);
 
   // Invite
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteRole, setInviteRole] = useState("viewer");
+  const [inviteRole, setInviteRole] = useState<PublicRbacUserRoleKey>("org_member");
   const [inviteSiteId, setInviteSiteId] = useState("");
   const [sendingInvite, setSendingInvite] = useState(false);
 
@@ -143,6 +152,20 @@ export default function OrgUsersPage() {
     () => sites.find((site) => site.id === selectedSiteId) ?? null,
     [sites, selectedSiteId]
   );
+  const createRoleOptions = createSiteId ? SITE_ROLE_OPTIONS : ORG_ROLE_OPTIONS;
+  const inviteRoleOptions = inviteSiteId ? SITE_ROLE_OPTIONS : ORG_ROLE_OPTIONS;
+
+  useEffect(() => {
+    if (!createRoleOptions.some((role) => role.key === createRole)) {
+      setCreateRole(createSiteId ? "viewer" : "org_member");
+    }
+  }, [createRole, createRoleOptions, createSiteId]);
+
+  useEffect(() => {
+    if (!inviteRoleOptions.some((role) => role.key === inviteRole)) {
+      setInviteRole(inviteSiteId ? "viewer" : "org_member");
+    }
+  }, [inviteRole, inviteRoleOptions, inviteSiteId]);
 
   /* ─── Data Loading ─── */
 
@@ -197,7 +220,7 @@ export default function OrgUsersPage() {
   const filteredUsers = useMemo(() => {
     return users.filter((u) => {
       const matchesSearch = !userQuery || u.email.toLowerCase().includes(userQuery.toLowerCase());
-      const matchesRole = !userRoleFilter || normalizeRole(u.role) === userRoleFilter;
+      const matchesRole = !userRoleFilter || u.role === userRoleFilter;
       return matchesSearch && matchesRole;
     });
   }, [users, userQuery, userRoleFilter]);
@@ -219,9 +242,6 @@ export default function OrgUsersPage() {
 
   /* ─── Handlers ─── */
 
-  // Create user state - optional site assignment
-  const [createSiteId, setCreateSiteId] = useState("");
-
   const handleCreateUser = async (e: FormEvent) => {
     e.preventDefault();
     if (!orgId || !createEmail.trim()) return;
@@ -235,7 +255,7 @@ export default function OrgUsersPage() {
         siteId: createSiteId || undefined,
       });
       push({ tone: "success", message: `${t("users.userCreatedSuccessfully")}: ${createEmail}` });
-      setCreateEmail(""); setCreatePassword(""); setCreateRole("viewer"); setCreateSiteId("");
+      setCreateEmail(""); setCreatePassword(""); setCreateRole("org_member"); setCreateSiteId("");
       setShowCreateModal(false);
       setUsers(await fetchOrgUsers(orgId));
     } catch (err) {
@@ -257,7 +277,7 @@ export default function OrgUsersPage() {
         siteId: resolvedSiteId,
       });
       push({ tone: "success", message: `${t("users.inviteSentTo")} ${inviteEmail}` });
-      setInviteEmail(""); setInviteRole("viewer"); setInviteSiteId("");
+      setInviteEmail(""); setInviteRole("org_member"); setInviteSiteId("");
       setShowInviteModal(false);
       await loadInvites();
     } catch (err) {
@@ -402,15 +422,14 @@ export default function OrgUsersPage() {
                 <select
                   className="input h-[38px]"
                   value={userRoleFilter}
-                  onChange={(e) => setUserRoleFilter(e.target.value)}
+                  onChange={(e) => setUserRoleFilter(e.target.value as PublicRbacUserRoleKey | "")}
                 >
                   <option value="">{t("users.allRoles")}</option>
-                  <option value="super_admin">{t("users.superAdmin")}</option>
-                  <option value="org_admin">{t("users.admin")}</option>
-                  <option value="editor-in-chief">{t("users.editorInChief")}</option>
-                  <option value="editor">{t("users.editor")}</option>
-                  <option value="marketing">{t("users.marketing")}</option>
-                  <option value="viewer">{t("users.viewer")}</option>
+                  {ORG_ROLE_OPTIONS.map((role) => (
+                    <option key={role.key} value={role.key}>
+                      {roleLabel(role.key)}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
@@ -621,12 +640,16 @@ export default function OrgUsersPage() {
             <label className="block text-xs font-semibold uppercase tracking-wide text-muted mb-1.5">
               {t("users.role")}
             </label>
-            <select className="input w-full" value={createRole} onChange={(e) => setCreateRole(e.target.value)}>
-              <option value="org_admin">{t("users.admin")}</option>
-              <option value="editor-in-chief">{t("users.editorInChief")}</option>
-              <option value="editor">{t("users.editor")}</option>
-              <option value="marketing">{t("users.marketing")}</option>
-              <option value="viewer">{t("users.viewer")}</option>
+            <select
+              className="input w-full"
+              value={createRole}
+              onChange={(e) => setCreateRole(e.target.value as PublicRbacUserRoleKey)}
+            >
+              {createRoleOptions.map((role) => (
+                <option key={role.key} value={role.key}>
+                  {roleLabel(role.key)}
+                </option>
+              ))}
             </select>
           </div>
           {sites.length > 0 && (
@@ -676,12 +699,16 @@ export default function OrgUsersPage() {
             <label className="block text-xs font-semibold uppercase tracking-wide text-muted mb-1.5">
               {t("users.role")}
             </label>
-            <select className="input w-full" value={inviteRole} onChange={(e) => setInviteRole(e.target.value)}>
-              <option value="org_admin">{t("users.admin")}</option>
-              <option value="editor-in-chief">{t("users.editorInChief")}</option>
-              <option value="editor">{t("users.editor")}</option>
-              <option value="marketing">{t("users.marketing")}</option>
-              <option value="viewer">{t("users.viewer")}</option>
+            <select
+              className="input w-full"
+              value={inviteRole}
+              onChange={(e) => setInviteRole(e.target.value as PublicRbacUserRoleKey)}
+            >
+              {inviteRoleOptions.map((role) => (
+                <option key={role.key} value={role.key}>
+                  {roleLabel(role.key)}
+                </option>
+              ))}
             </select>
           </div>
           <div>

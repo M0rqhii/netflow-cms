@@ -1,14 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { decodeAuthToken, getAuthToken, getDevEmails } from "@/lib/api";
+import { getDevEmails } from "@/lib/api";
 import { LoadingSpinner } from "@repo/ui";
 import { DevPanelLayout } from "@/components/dev-panel/DevPanelLayout";
 import { DevPanelTabs } from "@/components/dev-panel/DevPanelTabs";
 import { useTranslations } from "@/hooks/useTranslations";
-
-const PRIVILEGED_ROLES = ["super_admin", "org_admin", "site_admin"];
-const PRIVILEGED_PLATFORM_ROLES = ["platform_admin"];
+import { usePlatformAccess } from "@/hooks/usePlatformAccess";
 
 type DevEmailLog = {
   id: string;
@@ -42,13 +40,8 @@ export default function DevEmailsPage() {
   const t = useTranslations();
   const appProfile = process.env.NEXT_PUBLIC_APP_PROFILE || process.env.NODE_ENV || "development";
   const isProd = appProfile === "production";
-  const token = getAuthToken();
-  const payload = useMemo(() => decodeAuthToken(token), [token]);
-  const userRole = (payload?.role as string) || "";
-  const userPlatformRole = (payload?.platformRole as string) || "";
-  const isSuperAdmin = Boolean(payload?.isSuperAdmin) || userRole === "super_admin";
-  const isPrivileged =
-    isSuperAdmin || PRIVILEGED_ROLES.includes(userRole) || PRIVILEGED_PLATFORM_ROLES.includes(userPlatformRole);
+  const platformAccess = usePlatformAccess();
+  const isPrivileged = platformAccess.canAccessDevTools;
   const [logs, setLogs] = useState<DevEmailLog[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -89,7 +82,7 @@ export default function DevEmailsPage() {
     return sortedDates[0];
   }, [logs]);
 
-  if (isProd && !isSuperAdmin) {
+  if (isProd && !platformAccess.isSuperAdmin) {
     return (
       <DevPanelLayout title={t("devPanel.emails.title")} description={t("devPanel.emails.description")}>
         <div className="card card-pad">

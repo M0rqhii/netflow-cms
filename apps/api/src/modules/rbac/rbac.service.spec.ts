@@ -22,6 +22,21 @@ describe('RbacService', () => {
     roleCapability: {
       deleteMany: jest.fn(),
     },
+    platformRole: {
+      findMany: jest.fn(),
+      findUnique: jest.fn(),
+      upsert: jest.fn(),
+    },
+    platformRoleCapability: {
+      deleteMany: jest.fn(),
+      createMany: jest.fn(),
+    },
+    platformUserRole: {
+      findMany: jest.fn(),
+      findUnique: jest.fn(),
+      upsert: jest.fn(),
+      delete: jest.fn(),
+    },
     userRole: {
       findMany: jest.fn(),
       findFirst: jest.fn(),
@@ -365,7 +380,6 @@ describe('RbacService', () => {
     });
   });
 });
-
 
 
 

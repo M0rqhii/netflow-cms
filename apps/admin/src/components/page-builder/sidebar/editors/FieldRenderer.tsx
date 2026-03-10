@@ -224,6 +224,19 @@ const ColorInput: React.FC<{
   const t = useTranslations();
   const [isOpen, setIsOpen] = useState(false);
   const [hexInput, setHexInput] = useState(normalizeHex(value) ?? '#3b82f6');
+  const colorWrapRef = React.useRef<HTMLDivElement>(null);
+
+  // Close popover on click outside
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (colorWrapRef.current && !colorWrapRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen]);
 
   const initialRgb = hexToRgb(hexInput);
   const initialHsv = rgbToHsv(initialRgb.r, initialRgb.g, initialRgb.b);
@@ -264,7 +277,7 @@ const ColorInput: React.FC<{
   const currentHex = normalizeHex(hexInput) ?? '#3b82f6';
 
   return (
-    <div className={styles.colorInputWrap}>
+    <div className={styles.colorInputWrap} ref={colorWrapRef}>
       <div className={styles.colorInput}>
         <button
           type="button"
@@ -361,6 +374,10 @@ const SpacingInput: React.FC<{
     }
     if (parts.length === 2) {
       return { top: parts[0], right: parts[1], bottom: parts[0], left: parts[1] };
+    }
+    // CSS 3-value shorthand: top right bottom (left = right)
+    if (parts.length === 3) {
+      return { top: parts[0], right: parts[1], bottom: parts[2], left: parts[1] };
     }
     if (parts.length === 4) {
       return { top: parts[0], right: parts[1], bottom: parts[2], left: parts[3] };

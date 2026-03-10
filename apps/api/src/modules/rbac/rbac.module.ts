@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { RbacController } from './rbac.controller';
 import { SiteRbacController } from './site-rbac.controller';
+import { PlatformRbacController } from './platform-rbac.controller';
 import { RbacService } from './rbac.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { RbacEvaluatorService } from './rbac-evaluator.service';
@@ -17,7 +18,7 @@ import { RbacEvaluatorService } from './rbac-evaluator.service';
  * - Organization policies
  */
 @Module({
-  controllers: [RbacController, SiteRbacController],
+  controllers: [RbacController, SiteRbacController, PlatformRbacController],
   providers: [RbacService, RbacEvaluatorService, PrismaService],
   exports: [RbacService, RbacEvaluatorService],
 })

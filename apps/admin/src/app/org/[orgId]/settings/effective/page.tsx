@@ -3,12 +3,10 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import {
-  decodeAuthToken,
   fetchMySites,
   fetchRbacCapabilities,
   fetchRbacEffectivePermissions,
   fetchOrgUsers,
-  getAuthToken,
   type EffectivePermission,
   type UserSummary,
 } from "@/lib/api";
@@ -18,11 +16,13 @@ import SearchAndFilters from "@/components/ui/SearchAndFilters";
 import { useToast } from "@/components/ui/Toast";
 import { toFriendlyMessage } from "@/lib/errors";
 import { useTranslations } from "@/hooks/useTranslations";
+import { usePlatformAccess } from "@/hooks/usePlatformAccess";
 
 const MODULE_LABEL_KEYS: Record<CapabilityModule, string> = {
   org: "orgRbac.modules.org",
   billing: "orgRbac.modules.billing",
   sites: "orgRbac.modules.sites",
+  platform: "orgRbac.modules.platform",
   builder: "orgRbac.modules.builder",
   content: "orgRbac.modules.content",
   hosting: "orgRbac.modules.hosting",
@@ -31,17 +31,6 @@ const MODULE_LABEL_KEYS: Record<CapabilityModule, string> = {
   analytics: "orgRbac.modules.analytics",
 };
 
-function getOwnerFlag(): boolean {
-  const payload = decodeAuthToken(getAuthToken());
-  const roleMarker = String(payload?.platformRole ?? payload?.role ?? "").toLowerCase();
-  return (
-    roleMarker === "org_owner" ||
-    roleMarker === "owner" ||
-    roleMarker === "platform_owner" ||
-    roleMarker === "platform_admin"
-  );
-}
-
 export default function OrgEffectivePermissionsPage() {
   const params = useParams<{ orgId: string }>();
   const searchParams = useSearchParams();
@@ -49,6 +38,7 @@ export default function OrgEffectivePermissionsPage() {
   const defaultSiteId = searchParams?.get("siteId") ?? "";
   const { push } = useToast();
   const t = useTranslations();
+  const platformAccess = usePlatformAccess();
   const moduleLabel = useCallback((module: CapabilityModule) => t(MODULE_LABEL_KEYS[module]), [t]);
 
   const [loading, setLoading] = useState(true);
@@ -62,7 +52,7 @@ export default function OrgEffectivePermissionsPage() {
   const [loadingEffective, setLoadingEffective] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [moduleFilter, setModuleFilter] = useState("all");
-  const isOwner = useMemo(() => getOwnerFlag(), []);
+  const isOwner = platformAccess.canViewBilling;
 
   const loadBaseData = useCallback(async () => {
     setLoading(true);

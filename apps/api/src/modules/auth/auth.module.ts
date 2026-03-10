@@ -8,6 +8,7 @@ import { CacheModule } from '@nestjs/cache-manager';
 import { redisStore } from 'cache-manager-redis-yet';
 import { ConfigModule } from '@nestjs/config';
 import { NotificationsModule } from '../../common/notifications/notifications.module';
+import { RbacModule } from '../rbac/rbac.module';
 
 /**
  * AuthModule - moduł autentykacji z endpointami login/register
@@ -21,6 +22,7 @@ import { NotificationsModule } from '../../common/notifications/notifications.mo
     AuditModule, // Import AuditModule for AuditService (though it's global)
     ConfigModule,
     NotificationsModule,
+    RbacModule,
     CacheModule.registerAsync({
       isGlobal: false,
       useFactory: async () => {

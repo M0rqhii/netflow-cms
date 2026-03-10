@@ -1,7 +1,7 @@
 import { Injectable, Logger, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { CurrentUserPayload } from '../../common/auth/decorators/current-user.decorator';
-import { isPlatformAdminValue, isPlatformPowerUser } from '../../common/auth/platform-admin.util';
+import { RbacService } from '../rbac/rbac.service';
 
 /**
  * ActivityService - provides activity feed for the platform
@@ -11,7 +11,10 @@ import { isPlatformAdminValue, isPlatformPowerUser } from '../../common/auth/pla
 export class ActivityService {
   private readonly logger = new Logger(ActivityService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly rbacService: RbacService,
+  ) {}
 
   /**
    * Get activity feed
@@ -35,8 +38,10 @@ export class ActivityService {
     siteId?: string,
   ) {
     try {
+      const platformProfile = await this.rbacService.getEffectivePlatformProfile(user.id);
+
       // Super/platform admin can see all logs
-      if (isPlatformPowerUser(user) || user.systemRole === 'super_admin') {
+      if (platformProfile.isPlatformPowerUser) {
         return this.getActivityForSuperAdmin(limit, orgId, siteId);
       }
 
@@ -47,7 +52,7 @@ export class ActivityService {
       }
 
       // Get user's role in organization
-      const orgMembership = await this.getUserOrgRole(user.id, effectiveOrgId);
+      const orgMembership = await this.getUserOrgRole(user, effectiveOrgId);
       if (!orgMembership) {
         throw new ForbiddenException('You are not a member of this organization');
       }
@@ -105,11 +110,28 @@ export class ActivityService {
   /**
    * Get user's role in organization
    */
-  private async getUserOrgRole(userId: string, orgId: string): Promise<{ role: string } | null> {
+  private async getUserOrgRole(user: CurrentUserPayload, orgId: string): Promise<{ role: string } | null> {
+    const assignments = await this.rbacService.getAssignments(orgId, user.id);
+    const assignedOrgRoles = new Set(
+      assignments
+        .filter((assignment) => assignment.role.scope === 'ORG' && !assignment.siteId)
+        .map((assignment) => assignment.role.name),
+    );
+
+    if (assignedOrgRoles.has('Org Owner')) {
+      return { role: 'owner' };
+    }
+    if (assignedOrgRoles.has('Org Admin')) {
+      return { role: 'admin' };
+    }
+    if (assignedOrgRoles.has('Org Member')) {
+      return { role: 'member' };
+    }
+
     const membership = await this.prisma.userOrg.findUnique({
       where: {
         userId_orgId: {
-          userId,
+          userId: user.id,
           orgId,
         },
       },
@@ -126,33 +148,32 @@ export class ActivityService {
       return { role: 'member' };
     }
 
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
+    if (user.orgId === orgId) {
+      if (user.orgRoleName === 'Org Owner') {
+        return { role: 'owner' };
+      }
+      if (user.orgRoleName === 'Org Admin' || user.orgRoleKey === 'org_admin') {
+        return { role: 'admin' };
+      }
+      if (user.orgRoleName === 'Org Member' || user.orgRoleKey === 'org_member') {
+        return { role: 'member' };
+      }
+    }
+
+    const platformProfile = await this.rbacService.getEffectivePlatformProfile(user.id);
+    if (platformProfile.isPlatformPowerUser) {
+      return { role: 'owner' };
+    }
+
+    const persistedUser = await this.prisma.user.findUnique({
+      where: { id: user.id },
       select: {
         orgId: true,
-        role: true,
-        platformRole: true,
-        systemRole: true,
-        isSuperAdmin: true,
       },
     });
 
-    if (!user || user.orgId != orgId) {
+    if (!persistedUser || persistedUser.orgId != orgId) {
       return null;
-    }
-
-    const platformRole = user.platformRole?.toLowerCase();
-    if (isPlatformPowerUser(user) || user.systemRole === 'super_admin') {
-      return { role: 'owner' };
-    }
-    if (isPlatformAdminValue(user.platformRole) || isPlatformAdminValue(user.role)) {
-      return { role: 'owner' };
-    }
-    if (platformRole == 'owner' || platformRole == 'org_owner') {
-      return { role: 'owner' };
-    }
-    if (platformRole == 'admin' || platformRole == 'org_admin' || user.role == 'org_admin') {
-      return { role: 'admin' };
     }
 
     return { role: 'member' };

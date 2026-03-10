@@ -24,6 +24,7 @@
         "clsx": "^2.1.0",
         "critters": "^0.0.20",
         "dompurify": "^3.0.8",
+        "isomorphic-dompurify": "^2.16.0",
         "framer-motion": "^11.0.24",
         "next": "^14.0.4",
         "next-intl": "^3.0.0",

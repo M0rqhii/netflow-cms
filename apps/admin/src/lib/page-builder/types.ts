@@ -167,9 +167,8 @@ export type HistoryState = {
 // DRAG & DROP
 // =============================================================================
 
-export type DragData = 
-  | { dragType: 'new-block'; blockType: string }
-  | { dragType: 'existing-node'; nodeId: string };
+// DragData types are defined in dnd-utils.ts (single source of truth)
+// Import from there: DragData, DragDataNewBlock, DragDataExistingNode
 
 export type DropZoneData = {
   parentId: string;
@@ -235,25 +234,6 @@ export type DeepPartial<T> = {
   [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P];
 };
 
-/**
- * Empty content z root node
- */
-export function createEmptyContent(): PageContent {
-  const rootId = crypto.randomUUID();
-  return {
-    version: '1.0',
-    rootId,
-    nodes: {
-      [rootId]: {
-        id: rootId,
-        type: 'root',
-        parentId: null,
-        childIds: [],
-        props: {
-          content: {},
-          style: { base: {} },
-        },
-      },
-    },
-  };
-}
+// createEmptyContent moved to tree-ops.ts as createInitialContent (single source of truth)
+// Re-export for backward compatibility
+export { createNodeId as createEmptyContentId } from './tree-ops';

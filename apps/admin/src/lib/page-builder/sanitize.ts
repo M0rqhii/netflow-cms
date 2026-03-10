@@ -5,7 +5,7 @@
  * Używane na frontend (przed renderem) i backend (przed zapisem).
  */
 
-import DOMPurify from 'dompurify';
+import DOMPurify from 'isomorphic-dompurify';
 
 // =============================================================================
 // HTML SANITIZATION

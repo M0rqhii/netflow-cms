@@ -3,6 +3,10 @@
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { Input, EmptyState, Skeleton } from "@repo/ui";
+import {
+  getPublicRbacUserRoles,
+  type PublicRbacUserRoleKey,
+} from "@repo/schemas";
 import { fetchSiteUsers, fetchMySites, createUser, updateUserRole, fetchSiteInvites, inviteUserToSite, revokeInvite } from "@/lib/api";
 import type { UserSummary, InviteSummary } from "@/lib/api";
 import type { SiteInfo } from "@repo/sdk";
@@ -10,6 +14,8 @@ import { useToast } from "@/components/ui/Toast";
 import { useTranslations } from "@/hooks/useTranslations";
 import { SitePanelLayout } from "@/components/site-panel/SitePanelLayout";
 import { useLanguage } from "@/hooks/useLanguage";
+
+const SITE_ROLE_OPTIONS = getPublicRbacUserRoles("SITE");
 
 export default function SiteUsersPage() {
   const params = useParams<{ slug: string }>();
@@ -23,29 +29,29 @@ export default function SiteUsersPage() {
   const [createEmail, setCreateEmail] = useState("");
   const [inviteEmail, setInviteEmail] = useState("");
   const [createPassword, setCreatePassword] = useState("");
-  const [role, setRole] = useState("editor");
-  const [inviteRole, setInviteRole] = useState("editor");
+  const [role, setRole] = useState<PublicRbacUserRoleKey>("editor");
+  const [inviteRole, setInviteRole] = useState<PublicRbacUserRoleKey>("editor");
   const [sending, setSending] = useState(false);
   const [creating, setCreating] = useState(false);
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
-  const [editingRole, setEditingRole] = useState<string>("");
+  const [editingRole, setEditingRole] = useState<PublicRbacUserRoleKey>("editor");
   const [query, setQuery] = useState("");
-  const [roleFilter, setRoleFilter] = useState("");
+  const [roleFilter, setRoleFilter] = useState<PublicRbacUserRoleKey | "">("");
   const toast = useToast();
 
-  const normalizeRole = (value: string) => (value === "site_admin" ? "org_admin" : value);
   const roleLabel = (value: string) => {
-    const normalized = normalizeRole(value);
     const labels: Record<string, string> = {
-      "org_admin": t("users.admin"),
-      "admin": t("users.admin"),
-      "super_admin": t("users.superAdmin"),
-      "editor-in-chief": t("users.editorInChief"),
+      site_admin: t("users.siteAdmin"),
+      editor_in_chief: t("users.editorInChief"),
       "editor": t("users.editor"),
-      "marketing": t("users.marketing"),
+      publisher: t("users.publisher"),
+      marketing_manager: t("users.marketingManager"),
+      marketing_editor: t("users.marketingEditor"),
+      marketing_publisher: t("users.marketingPublisher"),
+      marketing_viewer: t("users.marketingViewer"),
       "viewer": t("users.viewer"),
     };
-    return labels[normalized] || normalized;
+    return labels[value] || value;
   };
 
   useEffect(() => {
@@ -102,7 +108,7 @@ export default function SiteUsersPage() {
 
   const filteredUsers = users.filter((u) =>
     (!query || u.email.toLowerCase().includes(query.toLowerCase())) &&
-    (!roleFilter || normalizeRole(u.role) === roleFilter)
+    (!roleFilter || u.role === roleFilter)
   );
 
   const onCreateUser = async (e: React.FormEvent) => {
@@ -129,7 +135,7 @@ export default function SiteUsersPage() {
     }
   };
 
-  const onUpdateRole = async (userId: string, newRole: string) => {
+  const onUpdateRole = async (userId: string, newRole: PublicRbacUserRoleKey) => {
     if (!siteId) return;
 
     try {
@@ -145,12 +151,12 @@ export default function SiteUsersPage() {
 
   const startEditRole = (user: UserSummary) => {
     setEditingUserId(user.id);
-    setEditingRole(normalizeRole(user.role));
+    setEditingRole(user.role);
   };
 
   const cancelEditRole = () => {
     setEditingUserId(null);
-    setEditingRole("");
+    setEditingRole("editor");
   };
 
   const onInvite = async (e: React.FormEvent) => {
@@ -186,7 +192,7 @@ export default function SiteUsersPage() {
 
   const filteredInvites = invites.filter((iv) =>
     (!query || iv.email.toLowerCase().includes(query.toLowerCase())) &&
-    (!roleFilter || normalizeRole(iv.role) === roleFilter)
+    (!roleFilter || iv.role === roleFilter)
   );
 
   return (
@@ -221,15 +227,16 @@ export default function SiteUsersPage() {
                   id="role-filter"
                   className="input"
                   value={roleFilter}
-                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setRoleFilter(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                    setRoleFilter(e.target.value as PublicRbacUserRoleKey | "")
+                  }
                 >
                   <option value="">{t("users.allRoles")}</option>
-                  <option value="super_admin">{t("users.superAdmin")}</option>
-                  <option value="org_admin">{t("users.admin")}</option>
-                  <option value="editor-in-chief">{t("users.editorInChief")}</option>
-                  <option value="editor">{t("users.editor")}</option>
-                  <option value="marketing">{t("users.marketing")}</option>
-                  <option value="viewer">{t("users.viewer")}</option>
+                  {SITE_ROLE_OPTIONS.map((roleOption) => (
+                    <option key={roleOption.key} value={roleOption.key}>
+                      {roleLabel(roleOption.key)}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
@@ -255,14 +262,13 @@ export default function SiteUsersPage() {
                               <select
                                 className="input"
                                 value={editingRole}
-                                onChange={(e) => setEditingRole(e.target.value)}
+                                onChange={(e) => setEditingRole(e.target.value as PublicRbacUserRoleKey)}
                               >
-                                <option value="super_admin">{t("users.superAdmin")}</option>
-                                <option value="org_admin">{t("users.admin")}</option>
-                                <option value="editor-in-chief">{t("users.editorInChief")}</option>
-                                <option value="editor">{t("users.editor")}</option>
-                                <option value="marketing">{t("users.marketing")}</option>
-                                <option value="viewer">{t("users.viewer")}</option>
+                                {SITE_ROLE_OPTIONS.map((roleOption) => (
+                                  <option key={roleOption.key} value={roleOption.key}>
+                                    {roleLabel(roleOption.key)}
+                                  </option>
+                                ))}
                               </select>
                               <button className="btn btn-primary" onClick={() => onUpdateRole(u.id, editingRole)}>{t("common.save")}</button>
                               <button className="btn" onClick={cancelEditRole}>{t("common.cancel")}</button>
@@ -317,14 +323,14 @@ export default function SiteUsersPage() {
               id="create-user-role"
               className="input"
               value={role}
-              onChange={(e) => setRole(e.target.value)}
+              onChange={(e) => setRole(e.target.value as PublicRbacUserRoleKey)}
               required
             >
-              <option value="org_admin">{t("users.admin")}</option>
-              <option value="editor-in-chief">{t("users.editorInChief")}</option>
-              <option value="editor">{t("users.editor")}</option>
-              <option value="marketing">{t("users.marketing")}</option>
-              <option value="viewer">{t("users.viewer")}</option>
+              {SITE_ROLE_OPTIONS.map((roleOption) => (
+                <option key={roleOption.key} value={roleOption.key}>
+                  {roleLabel(roleOption.key)}
+                </option>
+              ))}
             </select>
           </div>
           <div className="row-wrap">
@@ -360,14 +366,14 @@ export default function SiteUsersPage() {
               id="invite-user-role"
               className="input"
               value={inviteRole}
-              onChange={(e) => setInviteRole(e.target.value)}
+              onChange={(e) => setInviteRole(e.target.value as PublicRbacUserRoleKey)}
               required
             >
-              <option value="org_admin">{t("users.admin")}</option>
-              <option value="editor-in-chief">{t("users.editorInChief")}</option>
-              <option value="editor">{t("users.editor")}</option>
-              <option value="marketing">{t("users.marketing")}</option>
-              <option value="viewer">{t("users.viewer")}</option>
+              {SITE_ROLE_OPTIONS.map((roleOption) => (
+                <option key={roleOption.key} value={roleOption.key}>
+                  {roleLabel(roleOption.key)}
+                </option>
+              ))}
             </select>
           </div>
           <div className="row-wrap">
@@ -418,4 +424,3 @@ export default function SiteUsersPage() {
     </SitePanelLayout>
   );
 }
-

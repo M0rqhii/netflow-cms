@@ -2,11 +2,16 @@ import { Injectable, ExecutionContext, Logger } from '@nestjs/common';
 import { ThrottlerGuard } from '@nestjs/throttler';
 import { Request } from 'express';
 import { Reflector } from '@nestjs/core';
-import { isPlatformAdminValue } from '../auth/platform-admin.util';
+import { isPlatformPowerUser } from '../auth/platform-admin.util';
+import { type CurrentUserPayload } from '../auth/decorators/current-user.decorator';
 
 const THROTTLER_LIMIT = 'THROTTLER:LIMIT';
 const THROTTLER_TTL = 'THROTTLER:TTL';
 const THROTTLER_SKIP = 'THROTTLER:SKIP';
+
+function normalize(value: unknown): string {
+  return typeof value === 'string' ? value.trim().toLowerCase() : '';
+}
 
 /**
  * Role-based Throttler Guard
@@ -70,7 +75,13 @@ export class RoleBasedThrottlerGuard extends ThrottlerGuard {
     // Use user ID + role for tracking to allow different limits per role
     const user = req.user;
     if (user?.id) {
-      return `${user.id}:${user.role || 'anonymous'}`;
+      const roleMarker =
+        user.orgRoleKey ||
+        user.siteRoleKey ||
+        (Array.isArray(user.platformRbacRoles) && user.platformRbacRoles.length > 0
+          ? user.platformRbacRoles.join(',')
+          : 'authenticated');
+      return `${user.id}:${roleMarker}`;
     }
     return req.ip || 'unknown';
   }
@@ -83,7 +94,7 @@ export class RoleBasedThrottlerGuard extends ThrottlerGuard {
 
     // Otherwise, use role-based limits
     const request = context.switchToHttp().getRequest<Request>();
-    const user = (request as any).user;
+    const user = (request as any).user as CurrentUserPayload | undefined;
 
     // Different limits based on role
     // In development, set to very high limit (effectively unlimited)
@@ -95,14 +106,32 @@ export class RoleBasedThrottlerGuard extends ThrottlerGuard {
     }
 
     let limit = 50; // Default limit for unauthenticated users
-    if (user?.role === 'super_admin' || isPlatformAdminValue(user?.platformRole) || isPlatformAdminValue(user?.role)) {
+    if (isPlatformPowerUser(user)) {
       limit = 1000; // 1000 requests per minute for super admin
-    } else if (user?.role === 'org_admin') {
-      limit = 500; // 500 requests per minute for org admin (org_admin role)
-    } else if (user?.role === 'editor') {
-      limit = 200; // 200 requests per minute for editor
-    } else if (user?.role === 'viewer') {
-      limit = 100; // 100 requests per minute for viewer
+    } else if (
+      user?.orgRoleKey === 'org_admin' ||
+      normalize(user?.orgRoleName) === 'org owner' ||
+      normalize(user?.orgRoleName) === 'org admin'
+    ) {
+      limit = 500;
+    } else if (
+      [
+        'site_admin',
+        'editor_in_chief',
+        'editor',
+        'publisher',
+        'marketing_manager',
+        'marketing_editor',
+        'marketing_publisher',
+      ].includes(String(user?.siteRoleKey || ''))
+    ) {
+      limit = 200;
+    } else if (
+      user?.orgRoleKey === 'org_member' ||
+      user?.siteRoleKey === 'viewer' ||
+      user?.siteRoleKey === 'marketing_viewer'
+    ) {
+      limit = 100;
     }
 
     return limit;

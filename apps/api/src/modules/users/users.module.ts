@@ -5,13 +5,14 @@ import { UsersService } from './users.service';
 import { AuthModule } from '../../common/auth/auth.module';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { NotificationsModule } from '../../common/notifications/notifications.module';
+import { RbacModule } from '../rbac/rbac.module';
 
 /**
  * UsersModule - user management module
  * AI Note: Provides user endpoints with RBAC protection
  */
 @Module({
-  imports: [AuthModule, NotificationsModule],
+  imports: [AuthModule, NotificationsModule, RbacModule],
   controllers: [UsersController, PlatformUsersController],
   providers: [UsersService, PrismaService],
   exports: [UsersService],

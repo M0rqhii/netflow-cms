@@ -197,6 +197,11 @@ export const usePageBuilderStore = create<PageBuilderState & PageBuilderActions>
     },
     
     resetContent: () => {
+      // Clear any pending commit timeout
+      if (commitTimeout) {
+        clearTimeout(commitTimeout);
+        commitTimeout = null;
+      }
       set({
         ...initialState,
         content: createInitialContent(),
@@ -253,36 +258,44 @@ export const usePageBuilderStore = create<PageBuilderState & PageBuilderActions>
     },
     
     moveBlock: (nodeId: string, newParentId: string, newIndex: number) => {
-      const { content } = get();
+      const state = get();
+      const { content } = state;
       const node = content.nodes[nodeId];
       const newParent = content.nodes[newParentId];
-      
+
       if (!node || !newParent) {
         console.error(`[PageBuilder] Node or parent not found`);
         return;
       }
-      
+
       // Check if node is locked
       if (node.meta?.locked) {
         console.warn(`[PageBuilder] Cannot move locked block`);
         return;
       }
-      
+
       // Check composition rules
       if (!canAddChild(newParent.type, node.type)) {
         const errorMsg = blockRegistry.getCompositionErrorMessage(newParent.type, node.type);
         console.warn(`[PageBuilder] ${errorMsg}`);
         return;
       }
-      
+
       // Check if new parent is locked (no paste into)
       if (newParent.meta?.locked && node.parentId !== newParentId) {
         console.warn(`[PageBuilder] Cannot move into locked block`);
         return;
       }
-      
+
+      // Flush pending commit before move so previous state is a separate undo step
+      if (state.isDirty && commitTimeout) {
+        clearTimeout(commitTimeout);
+        commitTimeout = null;
+        state.commit('blur');
+      }
+
       const newContent = moveNode(content, nodeId, newParentId, newIndex);
-      
+
       set({
         content: newContent,
         isDirty: true,
@@ -290,28 +303,37 @@ export const usePageBuilderStore = create<PageBuilderState & PageBuilderActions>
     },
     
     deleteBlock: (nodeId: string) => {
-      const { content, selectedBlockId } = get();
+      const state = get();
+      const { content, selectedBlockId } = state;
       const node = content.nodes[nodeId];
-      
+
       if (!node) {
         console.error(`[PageBuilder] Node "${nodeId}" not found`);
         return;
       }
-      
+
       // Cannot delete root
       if (!node.parentId) {
         console.warn(`[PageBuilder] Cannot delete root node`);
         return;
       }
-      
+
       // Check if locked
       if (node.meta?.locked) {
         console.warn(`[PageBuilder] Cannot delete locked block`);
         return;
       }
-      
+
+      // BLOCKER-03 fix: flush any pending commit before destructive operation
+      // so the previous state is preserved as a separate undo step
+      if (state.isDirty && commitTimeout) {
+        clearTimeout(commitTimeout);
+        commitTimeout = null;
+        state.commit('blur');
+      }
+
       const newContent = removeNode(content, nodeId);
-      
+
       set({
         content: newContent,
         isDirty: true,
@@ -437,13 +459,24 @@ export const usePageBuilderStore = create<PageBuilderState & PageBuilderActions>
     },
     
     undo: () => {
-      const { history, content } = get();
-      
+      const { history, content, selectedBlockId } = get();
+
       if (history.past.length === 0) return;
-      
+
+      // Flush any pending commit
+      if (commitTimeout) {
+        clearTimeout(commitTimeout);
+        commitTimeout = null;
+      }
+
       const previous = history.past[history.past.length - 1];
       const newPast = history.past.slice(0, -1);
-      
+
+      // Preserve selection if the node still exists in restored state
+      const preservedSelection = selectedBlockId && previous.nodes[selectedBlockId]
+        ? selectedBlockId
+        : null;
+
       set({
         content: previous,
         history: {
@@ -451,18 +484,29 @@ export const usePageBuilderStore = create<PageBuilderState & PageBuilderActions>
           future: [content, ...history.future],
         },
         isDirty: false,
-        selectedBlockId: null,
+        selectedBlockId: preservedSelection,
       });
     },
-    
+
     redo: () => {
-      const { history, content } = get();
-      
+      const { history, content, selectedBlockId } = get();
+
       if (history.future.length === 0) return;
-      
+
+      // Flush any pending commit
+      if (commitTimeout) {
+        clearTimeout(commitTimeout);
+        commitTimeout = null;
+      }
+
       const next = history.future[0];
       const newFuture = history.future.slice(1);
-      
+
+      // Preserve selection if the node still exists in restored state
+      const preservedSelection = selectedBlockId && next.nodes[selectedBlockId]
+        ? selectedBlockId
+        : null;
+
       set({
         content: next,
         history: {
@@ -470,7 +514,7 @@ export const usePageBuilderStore = create<PageBuilderState & PageBuilderActions>
           future: newFuture,
         },
         isDirty: false,
-        selectedBlockId: null,
+        selectedBlockId: preservedSelection,
       });
     },
     
@@ -490,11 +534,22 @@ export const usePageBuilderStore = create<PageBuilderState & PageBuilderActions>
     },
     
     cutBlock: (nodeId: string) => {
-      const { copyBlock, deleteBlock, commit } = get();
-      
-      copyBlock(nodeId);
-      deleteBlock(nodeId);
-      commit('delete');
+      const state = get();
+      const node = state.content.nodes[nodeId];
+
+      if (!node) {
+        console.error(`[PageBuilder] Node "${nodeId}" not found`);
+        return;
+      }
+      if (node.meta?.locked) {
+        console.warn(`[PageBuilder] Cannot cut locked block`);
+        return;
+      }
+
+      // Copy first, then delete + commit as single operation
+      state.copyBlock(nodeId);
+      state.deleteBlock(nodeId);
+      state.commit('delete');
     },
     
     pasteBlock: (parentId: string, index?: number) => {
@@ -535,26 +590,17 @@ export const usePageBuilderStore = create<PageBuilderState & PageBuilderActions>
         { ...content, nodes: { ...content.nodes, ...clipboard.nodes } },
         clipboard.rootId
       );
-      
-      // Build new content
-      const newContent: PageContent = {
+
+      // Build content with cloned nodes, then use insertNode for consistency
+      const contentWithClonedNodes: PageContent = {
         ...content,
         nodes: { ...content.nodes, ...newNodes },
       };
-      
-      // Update parent's childIds
+
       const insertIndex = index ?? parent.childIds.length;
-      const updatedParent = { ...parent };
-      const newChildIds = [...updatedParent.childIds];
-      newChildIds.splice(insertIndex, 0, newRootId);
-      updatedParent.childIds = newChildIds;
-      
-      newContent.nodes[parentId] = updatedParent;
-      newContent.nodes[newRootId] = {
-        ...newContent.nodes[newRootId],
-        parentId,
-      };
-      
+      const pastedRootNode = contentWithClonedNodes.nodes[newRootId];
+      const newContent = insertNode(contentWithClonedNodes, parentId, insertIndex, pastedRootNode);
+
       set({
         content: newContent,
         isDirty: true,

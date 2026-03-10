@@ -18,10 +18,11 @@ type AdvancedEditorProps = {
 };
 
 // Default advanced fields
+// NOTE: customAttributes only allows data-* and aria-* attributes (sanitized at render time)
 const DEFAULT_ADVANCED_FIELDS: Record<string, PropFieldSchema> = {
   cssClass: { type: 'text', label: 'CSS Classes', placeholder: 'custom-class another-class' },
   cssId: { type: 'text', label: 'CSS ID', placeholder: 'my-element' },
-  customAttributes: { type: 'text', label: 'Custom Attributes', placeholder: 'data-attr="value"' },
+  customAttributes: { type: 'text', label: 'Custom Attributes (data-*, aria-*)', placeholder: 'data-tracking="hero" aria-label="Main"' },
 };
 
 export const AdvancedEditor: React.FC<AdvancedEditorProps> = ({

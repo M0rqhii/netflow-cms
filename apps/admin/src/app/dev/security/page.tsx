@@ -2,11 +2,10 @@
 
 import { DevPanelLayout } from "@/components/dev-panel/DevPanelLayout";
 import { DevPanelTabs } from "@/components/dev-panel/DevPanelTabs";
-import { useEffect, useMemo, useState } from "react";
-import { decodeAuthToken, getAuthToken, getDevSecurity } from "@/lib/api";
+import { useEffect, useState } from "react";
+import { getDevSecurity } from "@/lib/api";
 import { useTranslations } from "@/hooks/useTranslations";
-
-const PRIVILEGED_ROLES = ["super_admin", "org_admin", "site_admin", "tenant_admin", "platform_admin"];
+import { usePlatformAccess } from "@/hooks/usePlatformAccess";
 
 type SecurityData = {
   expiredInvites: number;
@@ -33,14 +32,8 @@ function formatDate(value?: string): string {
 
 export default function DevSecurityPage() {
   const t = useTranslations();
-  const token = getAuthToken();
-  const payload = useMemo(() => decodeAuthToken(token), [token]);
-  const isSuperAdmin = (payload?.isSuperAdmin as boolean) || false;
-  const isPrivileged =
-    PRIVILEGED_ROLES.includes((payload?.role as string) || "") ||
-    PRIVILEGED_ROLES.includes((payload?.platformRole as string) || "") ||
-    isSuperAdmin ||
-    (payload?.systemRole as string) === "super_admin";
+  const platformAccess = usePlatformAccess();
+  const isPrivileged = platformAccess.canAccessDevTools;
 
   const [data, setData] = useState<SecurityData | null>(null);
   const [loading, setLoading] = useState(false);

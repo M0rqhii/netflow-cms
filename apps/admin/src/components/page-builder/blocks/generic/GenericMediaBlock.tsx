@@ -75,7 +75,7 @@ export const GenericMediaBlock: React.FC<BlockComponentProps> = ({ node }) => {
         style={iframeStyle}
         src={safeEmbedSrc}
         title={alt || 'Embed'}
-        sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+        sandbox="allow-scripts allow-popups allow-forms"
       />
     );
   }

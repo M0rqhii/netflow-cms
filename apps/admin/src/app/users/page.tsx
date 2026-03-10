@@ -1,61 +1,47 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
-import { Input, EmptyState, Skeleton } from "@repo/ui";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { EmptyState, Input, Skeleton } from "@repo/ui";
+import { Button } from "@/components/ui/Button";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import Modal from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
 import { useTranslations } from "@/hooks/useTranslations";
-import Modal from "@/components/ui/Modal";
-import ConfirmDialog from "@/components/ui/ConfirmDialog";
-import { Button } from "@/components/ui/Button";
+import { usePlatformAccess } from "@/hooks/usePlatformAccess";
 import {
-  fetchPlatformUsers,
+  createPlatformRbacAssignment,
   createPlatformUser,
-  updatePlatformUser,
+  deletePlatformRbacAssignment,
   deletePlatformUser,
-  type PlatformUser,
+  fetchPlatformRbacAssignments,
+  fetchPlatformRbacEffective,
+  fetchPlatformRbacRoles,
+  fetchPlatformRbacUsers,
+  type EffectivePermission,
+  type PlatformRbacUser,
+  type RbacAssignment,
+  type RbacRole,
 } from "@/lib/api";
 
-type UpdatePayload = Parameters<typeof updatePlatformUser>[1];
-
-/* ─── Role Configuration ─── */
-
-const SYSTEM_ROLES = ["super_admin", "system_admin", "system_dev", "system_support"] as const;
-const SITE_ROLES = ["viewer", "editor", "editor-in-chief", "marketing", "admin", "owner"] as const;
-const PLATFORM_ROLES = ["user", "editor-in-chief", "admin", "owner", "platform_admin"] as const;
+type AccessTab = "assignments" | "roles";
 
 const ROLE_BADGE_COLORS: Record<string, string> = {
-  super_admin: "red",
-  system_admin: "orange",
-  system_dev: "blue",
-  system_support: "gray",
-  owner: "green",
-  admin: "blue",
-  "platform_admin": "orange",
-  "editor-in-chief": "blue",
-  editor: "gray",
-  marketing: "gray",
-  viewer: "gray",
-  user: "gray",
+  "platform root": "red",
+  "platform admin": "orange",
+  "platform developer": "blue",
+  "platform support": "gray",
+  "super admin": "red",
+  "system admin": "orange",
+  "system dev": "blue",
+  "system support": "gray",
 };
 
-function roleBadgeColor(role: string | undefined): string {
-  if (!role) return "gray";
-  return ROLE_BADGE_COLORS[role] || "gray";
+function normalizeRoleLabel(value: string): string {
+  return value.trim().toLowerCase();
 }
 
-function formatRoleName(role: string): string {
-  return role
-    .split(/[_-]/)
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(" ");
-}
-
-function isSystemUser(u: PlatformUser): boolean {
-  return (
-    !!u.isSuperAdmin ||
-    SYSTEM_ROLES.includes((u.systemRole || "") as typeof SYSTEM_ROLES[number]) ||
-    u.role === "super_admin"
-  );
+function roleBadgeColor(value: string): string {
+  return ROLE_BADGE_COLORS[normalizeRoleLabel(value)] || "gray";
 }
 
 function userInitials(email: string): string {
@@ -67,7 +53,7 @@ function userInitials(email: string): string {
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
   const days = Math.floor(diff / 86400000);
-  if (days === 0) return "Today";
+  if (days <= 0) return "Today";
   if (days === 1) return "Yesterday";
   if (days < 7) return `${days}d ago`;
   if (days < 30) return `${Math.floor(days / 7)}w ago`;
@@ -75,516 +61,626 @@ function timeAgo(dateStr: string): string {
   return `${Math.floor(days / 365)}y ago`;
 }
 
-/* ─── Page ─── */
+function isPlatformPowerAssignment(roleName: string): boolean {
+  return roleName === "Platform Root" || roleName === "Platform Admin";
+}
 
 export default function PlatformUsersPage() {
   const t = useTranslations();
   const toast = useToast();
+  const platformAccess = usePlatformAccess();
 
-  // Data
+  const [activeTab, setActiveTab] = useState<AccessTab>("assignments");
   const [loading, setLoading] = useState(true);
-  const [users, setUsers] = useState<PlatformUser[]>([]);
-  const [pagination, setPagination] = useState({ page: 1, pageSize: 20, total: 0, totalPages: 0 });
-
-  // Filters
+  const [error, setError] = useState<string | null>(null);
+  const [users, setUsers] = useState<PlatformRbacUser[]>([]);
+  const [roles, setRoles] = useState<RbacRole[]>([]);
+  const [assignments, setAssignments] = useState<RbacAssignment[]>([]);
+  const [selectedUserId, setSelectedUserId] = useState("");
+  const [selectedRoleId, setSelectedRoleId] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [roleFilter, setRoleFilter] = useState<"all" | "system" | "org">("all");
+  const [loadingEffective, setLoadingEffective] = useState(false);
+  const [effective, setEffective] = useState<EffectivePermission[]>([]);
+  const [assigning, setAssigning] = useState(false);
 
-  // Create modal
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [createEmail, setCreateEmail] = useState("");
   const [createPassword, setCreatePassword] = useState("");
-  const [createSystemRole, setCreateSystemRole] = useState("");
-  const [createSiteRole, setCreateSiteRole] = useState("viewer");
-  const [createPlatformRole, setCreatePlatformRole] = useState("user");
+  const [createRoleId, setCreateRoleId] = useState("");
   const [creating, setCreating] = useState(false);
 
-  // Edit modal
-  const [editUser, setEditUser] = useState<PlatformUser | null>(null);
-  const [editSiteRole, setEditSiteRole] = useState("");
-  const [editPlatformRole, setEditPlatformRole] = useState("");
-  const [editSystemRole, setEditSystemRole] = useState("");
-  const [saving, setSaving] = useState(false);
-
-  // Delete confirm
-  const [deleteTarget, setDeleteTarget] = useState<PlatformUser | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<PlatformRbacUser | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  // Expanded row
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const canManagePlatform = platformAccess.canManagePlatformRoles || platformAccess.canManagePlatformUsers;
 
-  /* ─── Data Loading ─── */
-
-  const loadUsers = useCallback(async (page = pagination.page) => {
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
     try {
-      setLoading(true);
-      const result = await fetchPlatformUsers(page, pagination.pageSize);
-      setUsers(result.data);
-      setPagination(result.pagination);
+      const [usersData, rolesData, assignmentsData] = await Promise.all([
+        fetchPlatformRbacUsers(),
+        fetchPlatformRbacRoles(),
+        fetchPlatformRbacAssignments(),
+      ]);
+      setUsers(usersData);
+      setRoles(rolesData);
+      setAssignments(assignmentsData);
     } catch (err) {
       const message = err instanceof Error ? err.message : t("platformUsers.failedToLoadUsers");
+      setError(message);
       toast.push({ tone: "error", message });
     } finally {
       setLoading(false);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pagination.page, pagination.pageSize]);
+  }, [t, toast]);
+
+  const loadEffective = useCallback(
+    async (userId: string) => {
+      if (!userId) {
+        setEffective([]);
+        return;
+      }
+
+      setLoadingEffective(true);
+      try {
+        const next = await fetchPlatformRbacEffective(userId);
+        setEffective(next);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : t("platformUsers.failedToLoadUsers");
+        toast.push({ tone: "error", message });
+      } finally {
+        setLoadingEffective(false);
+      }
+    },
+    [t, toast],
+  );
 
   useEffect(() => {
-    loadUsers();
-  }, [loadUsers]);
+    if (!canManagePlatform) return;
+    void loadData();
+  }, [canManagePlatform, loadData]);
 
-  /* ─── Filtered Users ─── */
+  useEffect(() => {
+    if (!selectedUserId && users.length > 0) {
+      setSelectedUserId(users[0].id);
+    }
+  }, [selectedUserId, users]);
+
+  useEffect(() => {
+    if (!selectedUserId) return;
+    void loadEffective(selectedUserId);
+  }, [loadEffective, selectedUserId]);
+
+  const assignmentsByUser = useMemo(() => {
+    const map = new Map<string, RbacAssignment[]>();
+    for (const assignment of assignments) {
+      const current = map.get(assignment.userId) ?? [];
+      current.push(assignment);
+      map.set(assignment.userId, current);
+    }
+    return map;
+  }, [assignments]);
 
   const filteredUsers = useMemo(() => {
-    return users.filter((u) => {
-      const matchesSearch = !searchQuery ||
-        u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (u.organization?.name || "").toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesRole =
-        roleFilter === "all" ||
-        (roleFilter === "system" && isSystemUser(u)) ||
-        (roleFilter === "org" && !isSystemUser(u));
-      return matchesSearch && matchesRole;
+    const needle = searchQuery.trim().toLowerCase();
+    return users.filter((user) => {
+      const assignmentRoleNames = (assignmentsByUser.get(user.id) ?? []).map((assignment) => assignment.role.name);
+      const blob = [
+        user.email,
+        user.orgId ?? "",
+        ...assignmentRoleNames,
+      ]
+        .join(" ")
+        .toLowerCase();
+
+      return !needle || blob.includes(needle);
     });
-  }, [users, searchQuery, roleFilter]);
+  }, [assignmentsByUser, searchQuery, users]);
 
-  const systemCount = useMemo(() => users.filter(isSystemUser).length, [users]);
-  const orgCount = useMemo(() => users.filter((u) => !isSystemUser(u)).length, [users]);
+  const selectedUser = useMemo(
+    () => users.find((user) => user.id === selectedUserId) ?? null,
+    [selectedUserId, users],
+  );
 
-  /* ─── Handlers ─── */
+  const selectedAssignments = useMemo(
+    () => assignmentsByUser.get(selectedUserId) ?? [],
+    [assignmentsByUser, selectedUserId],
+  );
 
-  const onCreateUser = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const assignableRoles = useMemo(() => {
+    const assignedRoleIds = new Set(selectedAssignments.map((assignment) => assignment.roleId));
+    return roles.filter((role) => !assignedRoleIds.has(role.id));
+  }, [roles, selectedAssignments]);
+
+  const totalAssignedUsers = useMemo(
+    () => users.filter((user) => (assignmentsByUser.get(user.id) ?? []).length > 0).length,
+    [assignmentsByUser, users],
+  );
+
+  const platformPowerUsers = useMemo(
+    () =>
+      users.filter((user) =>
+        (assignmentsByUser.get(user.id) ?? []).some((assignment) => isPlatformPowerAssignment(assignment.role.name)),
+      ).length,
+    [assignmentsByUser, users],
+  );
+
+  const developerUsers = useMemo(
+    () =>
+      users.filter((user) =>
+        (assignmentsByUser.get(user.id) ?? []).some((assignment) => assignment.role.name === "Platform Developer"),
+      ).length,
+    [assignmentsByUser, users],
+  );
+
+  const resetCreateForm = () => {
+    setCreateEmail("");
+    setCreatePassword("");
+    setCreateRoleId("");
+  };
+
+  const handleAssignRole = async () => {
+    if (!selectedUserId || !selectedRoleId) return;
+
+    setAssigning(true);
+    try {
+      await createPlatformRbacAssignment({ userId: selectedUserId, roleId: selectedRoleId });
+      toast.push({ tone: "success", message: t("platformUsers.roleAssigned") });
+      setSelectedRoleId("");
+      await loadData();
+      await loadEffective(selectedUserId);
+    } catch (err) {
+      toast.push({
+        tone: "error",
+        message: err instanceof Error ? err.message : t("platformUsers.failedToAssignRole"),
+      });
+    } finally {
+      setAssigning(false);
+    }
+  };
+
+  const handleRemoveAssignment = async (assignmentId: string) => {
+    try {
+      await deletePlatformRbacAssignment(assignmentId);
+      toast.push({ tone: "success", message: t("platformUsers.roleRemoved") });
+      await loadData();
+      await loadEffective(selectedUserId);
+    } catch (err) {
+      toast.push({
+        tone: "error",
+        message: err instanceof Error ? err.message : t("platformUsers.failedToRemoveRole"),
+      });
+    }
+  };
+
+  const handleCreateUser = async (event: React.FormEvent) => {
+    event.preventDefault();
     if (!createEmail || !createPassword) return;
+
     setCreating(true);
     try {
-      await createPlatformUser({
+      const user = await createPlatformUser({
         email: createEmail,
         password: createPassword,
-        role: createSystemRole || createSiteRole,
-        platformRole: createPlatformRole === "user" ? undefined : createPlatformRole,
       });
-      toast.push({ tone: "success", message: `${t("platformUsers.userCreatedSuccessfully") || "User created"}: ${createEmail}` });
-      resetCreateForm();
+
+      if (createRoleId) {
+        await createPlatformRbacAssignment({ userId: user.id, roleId: createRoleId });
+      }
+
+      toast.push({ tone: "success", message: t("platformUsers.userCreatedSuccessfully") });
       setShowCreateModal(false);
-      await loadUsers();
+      resetCreateForm();
+      await loadData();
+      setSelectedUserId(user.id);
     } catch (err) {
-      toast.push({ tone: "error", message: err instanceof Error ? err.message : t("platformUsers.failedToCreateUser") });
+      toast.push({
+        tone: "error",
+        message: err instanceof Error ? err.message : t("platformUsers.failedToCreateUser"),
+      });
     } finally {
       setCreating(false);
     }
   };
 
-  const resetCreateForm = () => {
-    setCreateEmail("");
-    setCreatePassword("");
-    setCreateSystemRole("");
-    setCreateSiteRole("viewer");
-    setCreatePlatformRole("user");
-  };
-
-  const openEditModal = (user: PlatformUser) => {
-    setEditUser(user);
-    setEditSiteRole(user.siteRole || "viewer");
-    setEditPlatformRole(user.platformRole || "user");
-    setEditSystemRole(user.systemRole || "");
-  };
-
-  const onUpdateUser = async () => {
-    if (!editUser) return;
-    setSaving(true);
-    try {
-      const isSys = isSystemUser(editUser);
-      const payload: UpdatePayload = {};
-
-      if (isSys) {
-        if (editSystemRole) {
-          payload.systemRole = editSystemRole;
-          payload.role = editSystemRole;
-        }
-      } else {
-        if (editSiteRole) payload.siteRole = editSiteRole;
-        if (editPlatformRole && editPlatformRole !== "user") payload.platformRole = editPlatformRole;
-      }
-
-      await updatePlatformUser(editUser.id, payload);
-      toast.push({ tone: "success", message: t("platformUsers.userUpdatedSuccessfully") });
-      setEditUser(null);
-      await loadUsers();
-    } catch (err) {
-      toast.push({ tone: "error", message: err instanceof Error ? err.message : t("platformUsers.failedToUpdateUser") });
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const onDeleteUser = async () => {
+  const handleDeleteUser = async () => {
     if (!deleteTarget) return;
+
     setDeleting(true);
     try {
       await deletePlatformUser(deleteTarget.id);
       toast.push({ tone: "success", message: t("platformUsers.userDeletedSuccessfully") });
+      if (selectedUserId === deleteTarget.id) {
+        setSelectedUserId("");
+        setEffective([]);
+      }
       setDeleteTarget(null);
-      await loadUsers();
+      await loadData();
     } catch (err) {
-      toast.push({ tone: "error", message: err instanceof Error ? err.message : t("platformUsers.failedToDeleteUser") });
+      toast.push({
+        tone: "error",
+        message: err instanceof Error ? err.message : t("platformUsers.failedToDeleteUser"),
+      });
     } finally {
       setDeleting(false);
     }
   };
 
-  const goToPage = (page: number) => {
-    if (page < 1 || page > pagination.totalPages) return;
-    setPagination((prev) => ({ ...prev, page }));
-  };
+  if (platformAccess.isLoading && !canManagePlatform) {
+    return (
+      <div className="card card-pad">
+        <div className="text-muted">{t("common.loading")}</div>
+      </div>
+    );
+  }
 
-  /* ─── Render ─── */
+  if (!canManagePlatform) {
+    return (
+      <div className="card card-pad">
+        <div className="font-black">{t("devPanel.common.accessDeniedTitle")}</div>
+        <div className="text-muted text-xs mt-1.5">{t("platformUsers.platformRbacOnly")}</div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full px-3 sm:px-5 lg:px-6 2xl:px-8 py-4 sm:py-6">
-      {/* Header */}
       <div className="card card-pad">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <div className="view-title">{t("platformUsers.title")}</div>
-            <div className="view-sub">{t("platformUsers.description")}</div>
+            <div className="view-sub">{t("platformUsers.platformRbacDescription")}</div>
           </div>
-          <Button variant="primary" onClick={() => setShowCreateModal(true)}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="mr-1.5" aria-hidden="true">
-              <path d="M12 5v14M5 12h14" />
-            </svg>
-            {t("platformUsers.createNewUser")}
-          </Button>
-        </div>
-      </div>
-
-      <div className="spacer" />
-
-      {/* Stats Strip */}
-      <div className="grid grid-cols-3 gap-3">
-        <button
-          className={`card card-pad tight text-left transition-all ${roleFilter === "all" ? "ring-1 ring-[rgba(0,163,255,0.4)]" : "hover:ring-1 hover:ring-[rgba(255,255,255,0.1)]"}`}
-          onClick={() => setRoleFilter("all")}
-        >
-          <div className="detail-label">{t("platformUsers.totalUsers")}</div>
-          <div className="text-xl font-extrabold leading-tight mt-1">{pagination.total}</div>
-        </button>
-        <button
-          className={`card card-pad tight text-left transition-all ${roleFilter === "system" ? "ring-1 ring-[rgba(255,176,66,0.4)]" : "hover:ring-1 hover:ring-[rgba(255,255,255,0.1)]"}`}
-          onClick={() => setRoleFilter("system")}
-        >
-          <div className="detail-label">{t("platformUsers.systemAdministrators")}</div>
-          <div className="text-xl font-extrabold leading-tight mt-1">{systemCount}</div>
-        </button>
-        <button
-          className={`card card-pad tight text-left transition-all ${roleFilter === "org" ? "ring-1 ring-[rgba(0,229,188,0.4)]" : "hover:ring-1 hover:ring-[rgba(255,255,255,0.1)]"}`}
-          onClick={() => setRoleFilter("org")}
-        >
-          <div className="detail-label">{t("platformUsers.organizationUsers")}</div>
-          <div className="text-xl font-extrabold leading-tight mt-1">{orgCount}</div>
-        </button>
-      </div>
-
-      <div className="spacer" />
-
-      {/* Search */}
-      <div className="card card-pad">
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="flex-1">
-            <Input
-              placeholder={t("platformUsers.searchPlaceholder")}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-          {roleFilter !== "all" && (
-            <Button variant="ghost" size="sm" onClick={() => setRoleFilter("all")}>
-              {t("platformUsers.clearFilter")}
+          <div className="flex flex-wrap gap-2">
+            <Button variant="primary" onClick={() => setShowCreateModal(true)}>
+              {t("platformUsers.createNewUser")}
             </Button>
-          )}
+          </div>
         </div>
       </div>
 
       <div className="spacer" />
 
-      {/* Table */}
-      {loading && users.length === 0 ? (
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+        <div className="card card-pad tight">
+          <div className="detail-label">{t("platformUsers.totalUsers")}</div>
+          <div className="text-xl font-extrabold leading-tight mt-1">{users.length}</div>
+        </div>
+        <div className="card card-pad tight">
+          <div className="detail-label">{t("platformUsers.usersWithPlatformRoles")}</div>
+          <div className="text-xl font-extrabold leading-tight mt-1">{totalAssignedUsers}</div>
+        </div>
+        <div className="card card-pad tight">
+          <div className="detail-label">{t("platformUsers.platformPowerUsers")}</div>
+          <div className="text-xl font-extrabold leading-tight mt-1">{platformPowerUsers}</div>
+          <div className="detail-label mt-1">{t("platformUsers.platformDevelopersCount", { count: developerUsers })}</div>
+        </div>
+      </div>
+
+      <div className="spacer" />
+
+      <div className="card card-pad">
+        <div className="row-wrap justify-start">
+          <button
+            className={`btn ${activeTab === "assignments" ? "btn-primary" : "btn-outline"}`}
+            onClick={() => setActiveTab("assignments")}
+          >
+            {t("platformUsers.platformAssignments")}
+          </button>
+          <button
+            className={`btn ${activeTab === "roles" ? "btn-primary" : "btn-outline"}`}
+            onClick={() => setActiveTab("roles")}
+          >
+            {t("platformUsers.systemRoles")}
+          </button>
+        </div>
+      </div>
+
+      <div className="spacer" />
+
+      {loading ? (
         <div className="card card-pad">
           <Skeleton className="h-8 w-64 mb-4" />
           <Skeleton className="h-12 w-full mb-2" />
           <Skeleton className="h-12 w-full mb-2" />
           <Skeleton className="h-12 w-full mb-2" />
-          <Skeleton className="h-12 w-full" />
         </div>
-      ) : filteredUsers.length === 0 ? (
+      ) : error ? (
         <div className="card card-pad">
-          <EmptyState
-            title={searchQuery ? t("platformUsers.noSearchResults") : t("platformUsers.noUsersFound")}
-            description={searchQuery ? t("platformUsers.tryDifferentSearch") : undefined}
-          />
+          <div className="text-error">{error}</div>
+          <div className="spacer-sm" />
+          <Button variant="outline" onClick={() => void loadData()}>
+            {t("common.retry")}
+          </Button>
+        </div>
+      ) : activeTab === "roles" ? (
+        <div className="space-y-3">
+          {roles.length === 0 ? (
+            <div className="card card-pad text-muted">{t("platformUsers.noPlatformRoles")}</div>
+          ) : (
+            roles.map((role) => (
+              <div key={role.id} className="card card-pad">
+                <div className="row-between flex-wrap">
+                  <div>
+                    <div className="font-black text-[15px]">{role.name}</div>
+                    <div className="detail-label">{role.description || t("platformUsers.systemRolePreset")}</div>
+                  </div>
+                  <div className="row-wrap">
+                    <span className={`badge ${roleBadgeColor(role.name)}`}>{role.name}</span>
+                    <span className="badge gray">{t("platformUsers.capabilitiesCount", { count: role.capabilities.length })}</span>
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto mt-3">
+                  <table className="table">
+                    <thead>
+                      <tr>
+                        <th>{t("platformUsers.capability")}</th>
+                        <th>{t("platformUsers.key")}</th>
+                        <th>{t("platformUsers.module")}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {role.capabilities.map((capability) => (
+                        <tr key={`${role.id}-${capability.key}`}>
+                          <td>{capability.label || capability.key}</td>
+                          <td className="text-muted">{capability.key}</td>
+                          <td>{capability.module}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       ) : (
-        <div className="card overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th className="pl-5">{t("platformUsers.user")}</th>
-                  <th>{t("platformUsers.roles")}</th>
-                  <th>{t("platformUsers.organization")}</th>
-                  <th>{t("platformUsers.created")}</th>
-                  <th className="text-right pr-5">{t("platformUsers.actions")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredUsers.map((u) => {
-                  const isSys = isSystemUser(u);
-                  const expanded = expandedId === u.id;
-                  const primaryRole = isSys
-                    ? (u.systemRole || u.role || "")
-                    : (u.siteRole || u.role || "viewer");
-                  const secondaryRole = !isSys ? (u.platformRole || "user") : undefined;
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(360px,0.8fr)]">
+          <div className="space-y-3">
+            <div className="card card-pad">
+              <Input
+                placeholder={t("platformUsers.searchPlaceholder")}
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+              />
+            </div>
 
-                  return (
-                    <tr
-                      key={u.id}
-                      className={`group cursor-pointer transition-colors ${expanded ? "bg-surface/50" : "hover:bg-surface/30"}`}
-                      onClick={() => setExpandedId(expanded ? null : u.id)}
-                    >
-                      {/* User */}
-                      <td className="pl-5">
-                        <div className="flex items-center gap-3">
-                          <div
-                            className={`w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 ${
-                              isSys
-                                ? "bg-orange-500/15 text-orange-400"
-                                : "bg-blue-500/15 text-blue-400"
-                            }`}
+            {filteredUsers.length === 0 ? (
+              <div className="card card-pad">
+                <EmptyState
+                  title={t("platformUsers.noUsersFound")}
+                  description={searchQuery ? t("platformUsers.tryDifferentSearch") : t("platformUsers.noPlatformAssignmentsYet")}
+                />
+              </div>
+            ) : (
+              <div className="card overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="table">
+                    <thead>
+                      <tr>
+                        <th className="pl-5">{t("platformUsers.user")}</th>
+                        <th>{t("platformUsers.roles")}</th>
+                        <th>{t("platformUsers.created")}</th>
+                        <th className="text-right pr-5">{t("platformUsers.actions")}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredUsers.map((user) => {
+                        const userAssignments = assignmentsByUser.get(user.id) ?? [];
+                        const platformRoleNames = userAssignments.map((assignment) => assignment.role.name);
+                        const isSelected = selectedUserId === user.id;
+
+                        return (
+                          <tr
+                            key={user.id}
+                            className={`group cursor-pointer transition-colors ${isSelected ? "bg-surface/50" : "hover:bg-surface/30"}`}
+                            onClick={() => setSelectedUserId(user.id)}
                           >
-                            {userInitials(u.email)}
-                          </div>
-                          <div className="min-w-0">
-                            <div className="text-sm font-medium truncate">{u.email}</div>
-                            {expanded && (
-                              <div className="text-[11px] text-muted font-mono mt-0.5 truncate">{u.id}</div>
-                            )}
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* Roles */}
-                      <td>
-                        <div className="flex flex-wrap gap-1.5">
-                          <span className={`badge ${roleBadgeColor(primaryRole)}`}>
-                            {formatRoleName(primaryRole)}
-                          </span>
-                          {secondaryRole && secondaryRole !== "user" && (
-                            <span className={`badge ${roleBadgeColor(secondaryRole)}`}>
-                              {formatRoleName(secondaryRole)}
-                            </span>
-                          )}
-                          {u.isSuperAdmin && primaryRole !== "super_admin" && (
-                            <span className="badge red">Super Admin</span>
-                          )}
-                        </div>
-                      </td>
-
-                      {/* Organization */}
-                      <td>
-                        <span className="text-sm text-muted">
-                          {u.organization?.name || u.organization?.slug || "-"}
-                        </span>
-                      </td>
-
-                      {/* Created */}
-                      <td>
-                        <div className="text-sm text-muted" title={new Date(u.createdAt).toLocaleString()}>
-                          {timeAgo(u.createdAt)}
-                        </div>
-                      </td>
-
-                      {/* Actions */}
-                      <td className="text-right pr-5" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => openEditModal(u)}
-                            aria-label={`${t("common.edit")} ${u.email}`}
-                          >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                              <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
-                              <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
-                            </svg>
-                            {t("common.edit")}
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setDeleteTarget(u)}
-                            aria-label={`${t("common.delete")} ${u.email}`}
-                            className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
-                          >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                              <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
-                            </svg>
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                            <td className="pl-5">
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-blue-500/15 text-blue-400 flex items-center justify-center text-[11px] font-bold shrink-0">
+                                  {userInitials(user.email)}
+                                </div>
+                                <div className="min-w-0">
+                                  <div className="text-sm font-medium truncate">{user.email}</div>
+                                  <div className="text-[11px] text-muted truncate">{user.orgId || "-"}</div>
+                                </div>
+                              </div>
+                            </td>
+                            <td>
+                              <div className="flex flex-wrap gap-1.5">
+                                {platformRoleNames.map((roleName) => (
+                                  <span key={`${user.id}-${roleName}`} className={`badge ${roleBadgeColor(roleName)}`}>
+                                    {roleName}
+                                  </span>
+                                ))}
+                                {platformRoleNames.length === 0 ? <span className="text-xs text-muted">No platform role</span> : null}
+                              </div>
+                            </td>
+                            <td>
+                              <div className="text-sm text-muted" title={new Date(user.createdAt).toLocaleString()}>
+                                {timeAgo(user.createdAt)}
+                              </div>
+                            </td>
+                            <td className="text-right pr-5" onClick={(event) => event.stopPropagation()}>
+                              <div className="flex items-center justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                                  onClick={() => setDeleteTarget(user)}
+                                >
+                                  {t("common.delete")}
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Pagination */}
-          {pagination.totalPages > 1 && (
-            <div className="flex items-center justify-between px-5 py-3 border-t border-[rgba(255,255,255,0.06)]">
-              <div className="text-xs text-muted">
-                {t("platformUsers.showing")} {(pagination.page - 1) * pagination.pageSize + 1}-
-                {Math.min(pagination.page * pagination.pageSize, pagination.total)} {t("platformUsers.of")} {pagination.total}
-              </div>
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  disabled={pagination.page <= 1}
-                  onClick={() => goToPage(pagination.page - 1)}
-                >
-                  {t("common.previous")}
-                </Button>
-                {Array.from({ length: Math.min(pagination.totalPages, 5) }, (_, i) => {
-                  let pageNum: number;
-                  if (pagination.totalPages <= 5) {
-                    pageNum = i + 1;
-                  } else if (pagination.page <= 3) {
-                    pageNum = i + 1;
-                  } else if (pagination.page >= pagination.totalPages - 2) {
-                    pageNum = pagination.totalPages - 4 + i;
-                  } else {
-                    pageNum = pagination.page - 2 + i;
-                  }
-                  return (
-                    <button
-                      key={pageNum}
-                      onClick={() => goToPage(pageNum)}
-                      className={`h-7 w-7 rounded text-xs font-medium transition-colors ${
-                        pageNum === pagination.page
-                          ? "bg-[rgba(0,163,255,0.15)] text-[rgb(0,163,255)]"
-                          : "text-muted hover:text-foreground hover:bg-surface"
-                      }`}
+          <div className="space-y-3">
+            <div className="card card-pad">
+              {!selectedUser ? (
+                <div className="text-muted">{t("platformUsers.selectUserToManage")}</div>
+              ) : (
+                <>
+                  <div className="row-between flex-wrap">
+                    <div>
+                      <div className="font-black text-[15px]">{selectedUser.email}</div>
+                      <div className="detail-label">{selectedUser.orgId || "-"}</div>
+                    </div>
+                    <span className="badge gray">{t("platformUsers.platformAssignments")}</span>
+                  </div>
+
+                  <div className="space-y-2 mt-3">
+                    {selectedAssignments.length === 0 ? (
+                      <div className="text-muted">{t("platformUsers.noPlatformRolesAssigned")}</div>
+                    ) : (
+                      selectedAssignments.map((assignment) => (
+                        <div key={assignment.id} className="card card-pad tight">
+                          <div className="row-between flex-wrap">
+                            <div>
+                              <div className="font-semibold">{assignment.role.name}</div>
+                              <div className="detail-label">{assignment.role.capabilities.length} {t("platformUsers.capabilitiesShort")}</div>
+                            </div>
+                            <div className="row-wrap">
+                              <span className={`badge ${roleBadgeColor(assignment.role.name)}`}>{assignment.role.name}</span>
+                              <Button variant="ghost" size="sm" onClick={() => void handleRemoveAssignment(assignment.id)}>
+                                {t("common.delete")}
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_auto] mt-4">
+                    <select
+                      className="input"
+                      value={selectedRoleId}
+                      onChange={(event) => setSelectedRoleId(event.target.value)}
                     >
-                      {pageNum}
-                    </button>
-                  );
-                })}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  disabled={pagination.page >= pagination.totalPages}
-                  onClick={() => goToPage(pagination.page + 1)}
-                >
-                  {t("common.next")}
-                </Button>
+                      <option value="">{t("platformUsers.selectRoleToAssign")}</option>
+                      {assignableRoles.map((role) => (
+                        <option key={role.id} value={role.id}>
+                          {role.name}
+                        </option>
+                      ))}
+                    </select>
+                    <Button variant="primary" onClick={() => void handleAssignRole()} isLoading={assigning} disabled={!selectedRoleId}>
+                      {t("platformUsers.assignRole")}
+                    </Button>
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className="card card-pad">
+              <div className="section-title">{t("platformUsers.effectivePlatformAccess")}</div>
+              <div className="text-muted text-xs mt-1.5">{t("platformUsers.effectivePlatformAccessHint")}</div>
+
+              <div className="overflow-x-auto mt-3">
+                {loadingEffective ? (
+                  <div className="text-muted">{t("orgEffective.calculatingAccess")}</div>
+                ) : effective.length === 0 ? (
+                  <div className="text-muted">{t("platformUsers.noEffectiveAccess")}</div>
+                ) : (
+                  <table className="table">
+                    <thead>
+                      <tr>
+                        <th>{t("platformUsers.capability")}</th>
+                        <th>{t("platformUsers.access")}</th>
+                        <th>{t("platformUsers.roleSources")}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {effective.map((item) => (
+                        <tr key={item.key}>
+                          <td>{item.key}</td>
+                          <td>
+                            <span className={`badge ${item.allowed ? "green" : "gray"}`}>
+                              {item.allowed ? t("orgEffective.yes") : t("orgEffective.no")}
+                            </span>
+                          </td>
+                          <td className="text-muted">
+                            {Array.isArray(item.roleSources) && item.roleSources.length > 0
+                              ? item.roleSources.map((source) => (typeof source === "string" ? source : source.roleName || source.name || source.id || "Unknown")).join(", ")
+                              : "-"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
               </div>
             </div>
-          )}
+
+          </div>
         </div>
       )}
 
-      {/* ─── Create User Modal ─── */}
-      <Modal open={showCreateModal} onClose={() => { setShowCreateModal(false); resetCreateForm(); }} title={t("platformUsers.createNewUser")} size="md">
-        <form onSubmit={onCreateUser} className="space-y-4">
+      <Modal
+        open={showCreateModal}
+        onClose={() => {
+          if (creating) return;
+          setShowCreateModal(false);
+          resetCreateForm();
+        }}
+        title={t("platformUsers.createNewUser")}
+        size="md"
+      >
+        <form onSubmit={handleCreateUser} className="space-y-4">
           <Input
             label={t("platformUsers.email")}
             type="email"
             value={createEmail}
-            onChange={(e) => setCreateEmail(e.target.value)}
-            required
+            onChange={(event) => setCreateEmail(event.target.value)}
             placeholder="user@example.com"
+            required
           />
           <Input
             label={t("platformUsers.password")}
             type="password"
             value={createPassword}
-            onChange={(e) => setCreatePassword(e.target.value)}
-            required
+            onChange={(event) => setCreatePassword(event.target.value)}
             placeholder="Min. 8 characters"
             minLength={8}
+            required
           />
-
           <div>
             <label className="block text-xs font-semibold uppercase tracking-wide text-muted mb-1.5">
-              {t("platformUsers.userType")}
+              {t("platformUsers.initialPlatformRole")}
             </label>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                className={`card card-pad tight text-left text-sm transition-all ${
-                  !createSystemRole
-                    ? "ring-1 ring-[rgba(0,163,255,0.4)]"
-                    : "opacity-60 hover:opacity-80"
-                }`}
-                onClick={() => setCreateSystemRole("")}
-              >
-                <div className="font-semibold text-xs">{t("platformUsers.orgUser")}</div>
-                <div className="text-[11px] text-muted mt-0.5">{t("platformUsers.orgUserDesc")}</div>
-              </button>
-              <button
-                type="button"
-                className={`card card-pad tight text-left text-sm transition-all ${
-                  createSystemRole
-                    ? "ring-1 ring-[rgba(255,176,66,0.4)]"
-                    : "opacity-60 hover:opacity-80"
-                }`}
-                onClick={() => setCreateSystemRole("system_admin")}
-              >
-                <div className="font-semibold text-xs">{t("platformUsers.systemUser")}</div>
-                <div className="text-[11px] text-muted mt-0.5">{t("platformUsers.systemUserDesc")}</div>
-              </button>
-            </div>
+            <select className="input w-full" value={createRoleId} onChange={(event) => setCreateRoleId(event.target.value)}>
+              <option value="">{t("platformUsers.noPlatformRole")}</option>
+              {roles.map((role) => (
+                <option key={role.id} value={role.id}>
+                  {role.name}
+                </option>
+              ))}
+            </select>
+            <div className="text-[11px] text-muted mt-1.5">{t("platformUsers.newUserCompatibilityHint")}</div>
           </div>
 
-          {createSystemRole ? (
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wide text-muted mb-1.5">
-                {t("platformUsers.systemRole")}
-              </label>
-              <select className="input w-full" value={createSystemRole} onChange={(e) => setCreateSystemRole(e.target.value)}>
-                {SYSTEM_ROLES.map((r) => (
-                  <option key={r} value={r}>{formatRoleName(r)}</option>
-                ))}
-              </select>
-            </div>
-          ) : (
-            <>
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wide text-muted mb-1.5">
-                  {t("platformUsers.siteRole")}
-                </label>
-                <select className="input w-full" value={createSiteRole} onChange={(e) => setCreateSiteRole(e.target.value)}>
-                  {SITE_ROLES.map((r) => (
-                    <option key={r} value={r}>{formatRoleName(r)}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wide text-muted mb-1.5">
-                  {t("platformUsers.platformRole")}
-                </label>
-                <select className="input w-full" value={createPlatformRole} onChange={(e) => setCreatePlatformRole(e.target.value)}>
-                  {PLATFORM_ROLES.map((r) => (
-                    <option key={r} value={r}>{formatRoleName(r)}</option>
-                  ))}
-                </select>
-              </div>
-            </>
-          )}
-
           <div className="flex items-center gap-3 justify-end pt-2">
-            <Button variant="outline" type="button" onClick={() => { setShowCreateModal(false); resetCreateForm(); }} disabled={creating}>
+            <Button
+              variant="outline"
+              type="button"
+              onClick={() => {
+                setShowCreateModal(false);
+                resetCreateForm();
+              }}
+              disabled={creating}
+            >
               {t("common.cancel")}
             </Button>
             <Button variant="primary" type="submit" isLoading={creating}>
@@ -594,90 +690,10 @@ export default function PlatformUsersPage() {
         </form>
       </Modal>
 
-      {/* ─── Edit User Modal ─── */}
-      <Modal
-        open={!!editUser}
-        onClose={() => setEditUser(null)}
-        title={`${t("platformUsers.editUser")} ${editUser?.email || ""}`}
-        size="md"
-      >
-        {editUser && (
-          <div className="space-y-4">
-            {/* User info header */}
-            <div className="flex items-center gap-3 pb-3 border-b border-[rgba(255,255,255,0.06)]">
-              <div
-                className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ${
-                  isSystemUser(editUser)
-                    ? "bg-orange-500/15 text-orange-400"
-                    : "bg-blue-500/15 text-blue-400"
-                }`}
-              >
-                {userInitials(editUser.email)}
-              </div>
-              <div>
-                <div className="text-sm font-medium">{editUser.email}</div>
-                <div className="text-[11px] text-muted">
-                  {editUser.organization?.name || "-"} &middot; {t("platformUsers.created")} {new Date(editUser.createdAt).toLocaleDateString()}
-                </div>
-              </div>
-            </div>
-
-            {isSystemUser(editUser) ? (
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wide text-muted mb-1.5">
-                  {t("platformUsers.systemRole")}
-                </label>
-                <select className="input w-full" value={editSystemRole} onChange={(e) => setEditSystemRole(e.target.value)}>
-                  {SYSTEM_ROLES.map((r) => (
-                    <option key={r} value={r}>{formatRoleName(r)}</option>
-                  ))}
-                </select>
-                <div className="text-[11px] text-muted mt-1.5">{t("platformUsers.systemRoleHint")}</div>
-              </div>
-            ) : (
-              <>
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wide text-muted mb-1.5">
-                    {t("platformUsers.siteRole")}
-                  </label>
-                  <select className="input w-full" value={editSiteRole} onChange={(e) => setEditSiteRole(e.target.value)}>
-                    {SITE_ROLES.map((r) => (
-                      <option key={r} value={r}>{formatRoleName(r)}</option>
-                    ))}
-                  </select>
-                  <div className="text-[11px] text-muted mt-1.5">{t("platformUsers.siteRoleHint")}</div>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wide text-muted mb-1.5">
-                    {t("platformUsers.platformRole")}
-                  </label>
-                  <select className="input w-full" value={editPlatformRole} onChange={(e) => setEditPlatformRole(e.target.value)}>
-                    {PLATFORM_ROLES.map((r) => (
-                      <option key={r} value={r}>{formatRoleName(r)}</option>
-                    ))}
-                  </select>
-                  <div className="text-[11px] text-muted mt-1.5">{t("platformUsers.platformRoleHint")}</div>
-                </div>
-              </>
-            )}
-
-            <div className="flex items-center gap-3 justify-end pt-2">
-              <Button variant="outline" onClick={() => setEditUser(null)} disabled={saving}>
-                {t("common.cancel")}
-              </Button>
-              <Button variant="primary" onClick={onUpdateUser} isLoading={saving}>
-                {t("common.save")}
-              </Button>
-            </div>
-          </div>
-        )}
-      </Modal>
-
-      {/* ─── Delete Confirm ─── */}
       <ConfirmDialog
-        open={!!deleteTarget}
+        open={Boolean(deleteTarget)}
         onClose={() => setDeleteTarget(null)}
-        onConfirm={onDeleteUser}
+        onConfirm={handleDeleteUser}
         title={t("platformUsers.deleteUserTitle")}
         message={`${t("platformUsers.deleteUserMessage")} ${deleteTarget?.email || ""}?`}
         confirmLabel={t("common.delete")}

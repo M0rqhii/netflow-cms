@@ -86,6 +86,7 @@ export class SitesController {
     const mapRole = (value: string) => {
       const normalized = value.toLowerCase();
       if (normalized == 'org_admin') return 'admin';
+      if (normalized == 'org_member') return 'viewer';
       if (normalized == 'super_admin') return 'owner';
       return normalized;
     };
@@ -103,15 +104,15 @@ export class SitesController {
         // Fallback: check if user's orgId matches
         const userRecord = await this.prisma.user.findUnique({
           where: { id: user.id },
-          select: { orgId: true, role: true },
+          select: { orgId: true },
         });
         if (userRecord?.orgId === orgId) {
-          userRole = mapRole(userRecord.role || 'viewer');
+          userRole = 'viewer';
         }
       }
     } catch (error) {
-      // If UserOrg doesn't exist, use user's role
-      userRole = mapRole(user.role || 'viewer');
+      // If membership lookup fails, fall back to the request context or readonly access.
+      userRole = mapRole(user.orgRoleKey || 'viewer');
     }
     
     // Get organization plan for sites

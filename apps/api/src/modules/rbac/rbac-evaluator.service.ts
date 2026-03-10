@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { CAPABILITY_REGISTRY, getCapabilityByKey, type CapabilityDefinition } from '@repo/schemas';
-import { isPlatformPowerUser } from '../../common/auth/platform-admin.util';
+import { getPlatformAccessProfile } from '../../common/auth/platform-admin.util';
 
 export type RbacCanParams = {
   userId: string;
@@ -35,7 +35,7 @@ export class RbacEvaluatorService {
   async getEffectiveCapabilities(params: Omit<RbacCanParams, 'capabilityKey'>) {
     const context = await this.buildContext(params.orgId, params.userId, params.siteId);
 
-    return CAPABILITY_REGISTRY.map((capability: CapabilityDefinition) => ({
+    return CAPABILITY_REGISTRY.filter((capability) => !capability.key.startsWith('platform.')).map((capability: CapabilityDefinition) => ({
       key: capability.key,
       ...this.evaluateWithContext(capability.key, context),
     }));
@@ -44,17 +44,38 @@ export class RbacEvaluatorService {
   private async buildContext(orgId: string, userId: string, siteId?: string): Promise<EvaluationContext> {
     const roleSourcesByCapability = new Map<string, Set<string>>();
 
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        isSuperAdmin: true,
-        systemRole: true,
-        role: true,
-        platformRole: true,
+    const platformAssignments = await this.prisma.platformUserRole.findMany({
+      where: { userId },
+      include: {
+        role: {
+          include: {
+            roleCapabilities: {
+              include: {
+                capability: true,
+              },
+            },
+          },
+        },
       },
     });
 
-    const isSuperAdmin = isPlatformPowerUser(user);
+    const platformProfile = getPlatformAccessProfile({
+      platformRbacRoles: platformAssignments.map((assignment) => assignment.role.name),
+    });
+    const isSuperAdmin = platformProfile.isPlatformPowerUser;
+
+    for (const assignment of platformAssignments) {
+      const role = assignment.role;
+      const sourceLabel = `${role.name}`;
+
+      for (const roleCap of role.roleCapabilities) {
+        const key = roleCap.capability.key;
+        if (!roleSourcesByCapability.has(key)) {
+          roleSourcesByCapability.set(key, new Set());
+        }
+        roleSourcesByCapability.get(key)?.add(sourceLabel);
+      }
+    }
 
     const where: any = {
       orgId,

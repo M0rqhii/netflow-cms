@@ -3,15 +3,19 @@ import { Reflector } from '@nestjs/core';
 import {
   Permission,
   OrgRole,
-  SystemRole,
-  SiteRole,
   hasAnyOrgPermission,
-  hasSystemPermission,
   hasSitePermission,
 } from '../roles.enum';
 import { PERMISSIONS_KEY } from '../decorators/permissions.decorator';
 import { CurrentUserPayload } from '../decorators/current-user.decorator';
+import {
+  getCapabilityCandidatesForPermission,
+  resolveAuthorizationContext,
+  resolveLegacyOrgRole,
+  resolveLegacySiteRole,
+} from '../legacy-rbac-bridge';
 import { isPlatformPowerUser } from '../platform-admin.util';
+import { RbacService } from '../../../modules/rbac/rbac.service';
 
 /**
  * PermissionsGuard - central permission checking guard
@@ -26,9 +30,12 @@ import { isPlatformPowerUser } from '../platform-admin.util';
  */
 @Injectable()
 export class PermissionsGuard implements CanActivate {
-  constructor(private reflector: Reflector) {}
+  constructor(
+    private reflector: Reflector,
+    private rbacService: RbacService,
+  ) {}
 
-  canActivate(context: ExecutionContext): boolean {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const requiredPermissions = this.reflector.getAllAndOverride<Permission[]>(
       PERMISSIONS_KEY,
       [context.getHandler(), context.getClass()],
@@ -47,23 +54,18 @@ export class PermissionsGuard implements CanActivate {
     }
 
     // 1. Check System / platform-admin permissions (highest priority)
-    if (isPlatformPowerUser(user) || user.systemRole === SystemRole.SUPER_ADMIN) {
+    if (isPlatformPowerUser(user)) {
       return true; // Super admin has all permissions
     }
 
-    if (user.systemRole) {
-      const systemRole = user.systemRole as SystemRole;
-      const hasSystemPerm = requiredPermissions.some(perm =>
-        hasSystemPermission(systemRole, perm)
-      );
-      if (hasSystemPerm) {
-        return true;
-      }
+    const { orgId, siteId } = resolveAuthorizationContext(request, user);
+    if (await this.hasMappedCapabilityAccess(requiredPermissions, user, orgId, siteId)) {
+      return true;
     }
 
     // 2. Check Site Role permissions
-    if (user.siteRole) {
-      const siteRole = user.siteRole as SiteRole;
+    const siteRole = resolveLegacySiteRole(user);
+    if (siteRole) {
       const hasSitePerm = requiredPermissions.some(perm =>
         hasSitePermission(siteRole, perm)
       );
@@ -73,11 +75,10 @@ export class PermissionsGuard implements CanActivate {
     }
 
     // 3. Check Org Role permissions
-    const resolvedOrgRole = (user.orgRole || user.platformRole) as OrgRole | undefined;
+    const resolvedOrgRole = resolveLegacyOrgRole(user);
     if (resolvedOrgRole) {
-      const orgRole = resolvedOrgRole;
       const hasOrgPerm = requiredPermissions.some(perm =>
-        hasAnyOrgPermission(orgRole, [perm])
+        hasAnyOrgPermission(resolvedOrgRole as OrgRole, [perm])
       );
       if (hasOrgPerm) {
         return true;
@@ -88,5 +89,57 @@ export class PermissionsGuard implements CanActivate {
       `Insufficient permissions. Required: ${requiredPermissions.join(', ')}`,
     );
   }
-}
 
+  private async hasMappedCapabilityAccess(
+    requiredPermissions: Permission[],
+    user: CurrentUserPayload,
+    orgId?: string,
+    siteId?: string,
+  ): Promise<boolean> {
+    if (!user.id) {
+      return false;
+    }
+
+    const capabilityKeys = Array.from(
+      new Set(
+        requiredPermissions.flatMap((permission) => getCapabilityCandidatesForPermission(permission)),
+      ),
+    );
+
+    if (capabilityKeys.length === 0) {
+      return false;
+    }
+
+    const platformCapabilityKeys = capabilityKeys.filter((key) => key.startsWith('platform.'));
+    if (platformCapabilityKeys.length > 0) {
+      const platformCapabilities = await this.rbacService.getEffectivePlatformCapabilities(user.id);
+      const allowedPlatformKeys = new Set(
+        platformCapabilities
+          .filter((capability: { key: string; allowed: boolean }) => capability.allowed)
+          .map((capability: { key: string }) => capability.key),
+      );
+
+      if (platformCapabilityKeys.some((key) => allowedPlatformKeys.has(key))) {
+        return true;
+      }
+    }
+
+    if (!orgId) {
+      return false;
+    }
+
+    for (const capabilityKey of capabilityKeys.filter((key) => !key.startsWith('platform.'))) {
+      const canPerform = await this.rbacService.canUserPerform(
+        orgId,
+        user.id,
+        capabilityKey,
+        siteId,
+      );
+      if (canPerform) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+}

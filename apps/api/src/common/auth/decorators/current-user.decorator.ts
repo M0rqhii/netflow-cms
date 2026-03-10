@@ -1,4 +1,5 @@
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
+import type { PublicRbacUserRoleKey } from '@repo/schemas';
 
 /**
  * CurrentUser decorator - extracts user from request
@@ -7,14 +8,14 @@ import { createParamDecorator, ExecutionContext } from '@nestjs/common';
 export interface CurrentUserPayload {
   id: string;
   email: string;
-  role?: string; // Legacy role field (backward compatibility with database)
-  siteRole?: string; // Site role (viewer, editor, editor-in-chief, marketing, admin, owner)
-  orgRole?: string; // Org role (user, editor-in-chief, admin, owner)
-  platformRole?: string; // Alias for orgRole (backward compatibility)
-  systemRole?: string; // System role (super_admin, system_admin, system_dev, system_support)
-  isSuperAdmin?: boolean; // Flag for super admin
   orgId?: string; // Organization ID
   siteId?: string; // Site ID (optional, only for site-scoped tokens)
+  orgRoleKey?: PublicRbacUserRoleKey;
+  orgRoleName?: string;
+  siteRoleKey?: PublicRbacUserRoleKey;
+  siteRoleName?: string;
+  platformRbacRoles?: string[]; // New RBAC platform role names (Platform Admin, Platform Developer, etc.)
+  isSuperAdmin?: boolean; // Derived platform-root flag for compatibility with some UI/runtime checks
 }
 
 export const CurrentUser = createParamDecorator(
@@ -28,5 +29,3 @@ export const CurrentUser = createParamDecorator(
     return request.user;
   }
 );
-
-

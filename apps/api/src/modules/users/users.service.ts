@@ -1,68 +1,61 @@
-import { Injectable, NotFoundException, ForbiddenException, ConflictException, BadRequestException, Optional, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, BadRequestException, Optional, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuditService, AuditEvent } from '../../common/audit/audit.service';
 import { randomBytes, createHash } from 'crypto';
 import * as bcrypt from 'bcrypt';
 import { AccountNotificationsService } from '../../common/notifications/account-notifications.service';
+import {
+  coercePublicRbacUserRoleKey,
+  getPublicRbacUserRole,
+  getPublicRbacUserRoleByName,
+  type PublicRbacUserRoleDefinition,
+  type PublicRbacUserRoleKey,
+  type PublicRbacUserRoleScope,
+} from '@repo/schemas';
+import { RbacService } from '../rbac/rbac.service';
 
-/**
- * Legacy role values for backward compatibility with database
- * These match the values stored in the 'role' column
- */
-const LegacyRole = {
-  SUPER_ADMIN: 'super_admin',
-  ORG_ADMIN: 'org_admin',
-  EDITOR: 'editor',
-  VIEWER: 'viewer',
-} as const;
-
-/** Accepts both legacy (org_admin) and new (admin/owner) role values */
-function isAdminRole(role?: string): boolean {
-  if (!role) return false;
-  const normalized = role.toLowerCase();
-  return [
-    LegacyRole.SUPER_ADMIN,
-    LegacyRole.ORG_ADMIN,
-    'admin',
-    'owner',
-    'platform_admin',
-  ].includes(normalized);
-}
-
-/**
- * UsersService - business logic for user management
- * AI Note: Handles user operations with proper authorization checks
- */
 @Injectable()
 export class UsersService {
   private readonly logger = new Logger(UsersService.name);
 
   constructor(
     private readonly prisma: PrismaService,
+    private readonly rbacService: RbacService,
     private readonly notifications: AccountNotificationsService,
     @Optional() private readonly configService?: ConfigService,
     @Optional() private readonly auditService?: AuditService,
   ) {}
 
-  private normalizeInviteRole(role: string): string {
-    const aliasMap: Record<string, string> = {
-      'site_admin': LegacyRole.ORG_ADMIN,
-      'admin': LegacyRole.ORG_ADMIN,
-      'organization_admin': LegacyRole.ORG_ADMIN,
-    };
-    const normalized = aliasMap[role] || role;
-    const allowed: string[] = [
-      LegacyRole.ORG_ADMIN,
-      'editor-in-chief',
-      LegacyRole.EDITOR,
-      'marketing',
-      LegacyRole.VIEWER,
-    ];
-    if (!allowed.includes(normalized)) {
-      throw new BadRequestException(`Invalid role. Must be one of: ${allowed.join(', ')}`);
+  private async resolvePublicRole(
+    orgId: string,
+    roleKey: string,
+    scope: PublicRbacUserRoleScope,
+  ): Promise<PublicRbacUserRoleDefinition & { id: string }> {
+    const normalizedRoleKey = coercePublicRbacUserRoleKey(roleKey, scope) || roleKey;
+    const definition = getPublicRbacUserRole(normalizedRoleKey);
+    if (!definition || definition.scope !== scope) {
+      throw new BadRequestException(`Invalid ${scope} role: ${roleKey}`);
     }
-    return normalized;
+
+    await this.rbacService.getRoles(orgId, scope);
+
+    const role = await this.prisma.role.findUnique({
+      where: {
+        orgId_name_scope: {
+          orgId,
+          name: definition.roleName,
+          scope,
+        },
+      },
+      select: { id: true },
+    });
+
+    if (!role) {
+      throw new NotFoundException(`RBAC role not found: ${definition.roleName}`);
+    }
+
+    return { ...definition, id: role.id };
   }
 
   private getInviteTtlMs(): number {
@@ -148,16 +141,107 @@ export class UsersService {
     return site;
   }
 
-  /**
-   * Get current user information
-   */
+  private serializeOrgUser(user: {
+    id: string;
+    email: string;
+    createdAt: Date;
+    roleAssignments?: Array<{ role: { name: string } }>;
+    membershipRole?: string | null;
+  }) {
+    const roleName = user.roleAssignments?.[0]?.role.name;
+    const roleKey =
+      (roleName ? getPublicRbacUserRoleByName(roleName, 'ORG')?.key : undefined) ||
+      (user.membershipRole
+        ? coercePublicRbacUserRoleKey(user.membershipRole, 'ORG') || undefined
+        : undefined) ||
+      'org_member';
+
+    return {
+      id: user.id,
+      email: user.email,
+      role: roleKey,
+      createdAt: user.createdAt.toISOString(),
+    };
+  }
+
+  private serializeSiteUser(user: {
+    id: string;
+    email: string;
+    createdAt: Date;
+    roleAssignments: Array<{ role: { name: string } }>;
+  }) {
+    const roleName = user.roleAssignments[0]?.role.name;
+    const roleKey = roleName ? getPublicRbacUserRoleByName(roleName, 'SITE')?.key : undefined;
+
+    if (!roleKey) {
+      throw new BadRequestException('Invalid site assignment state');
+    }
+
+    return {
+      id: user.id,
+      email: user.email,
+      role: roleKey,
+      createdAt: user.createdAt.toISOString(),
+    };
+  }
+
+  private async getPrimaryOrgRoleKey(orgId: string, userId: string): Promise<PublicRbacUserRoleKey> {
+    const assignment = await this.prisma.userRole.findFirst({
+      where: {
+        orgId,
+        userId,
+        siteId: null,
+        role: {
+          scope: 'ORG',
+        },
+      },
+      include: {
+        role: {
+          select: {
+            name: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    if (!assignment) {
+      return 'org_member';
+    }
+
+    return getPublicRbacUserRoleByName(assignment.role.name, 'ORG')?.key || 'org_member';
+  }
+
+  private async syncCompatibilityForOrgRole(orgId: string, userId: string, roleKey: PublicRbacUserRoleKey) {
+    const role = getPublicRbacUserRole(roleKey);
+    if (!role || role.scope !== 'ORG') return;
+
+    await this.prisma.userOrg.upsert({
+      where: { userId_orgId: { userId, orgId } },
+      update: { role: role.key },
+      create: { userId, orgId, role: role.key },
+    });
+  }
+
+  private async syncCompatibilityForSiteRole(orgId: string, userId: string, roleKey: PublicRbacUserRoleKey) {
+    const siteRole = getPublicRbacUserRole(roleKey);
+    if (!siteRole || siteRole.scope !== 'SITE') return;
+
+    const orgRoleKey = await this.getPrimaryOrgRoleKey(orgId, userId);
+
+    await this.prisma.userOrg.upsert({
+      where: { userId_orgId: { userId, orgId } },
+      update: { role: orgRoleKey },
+      create: { userId, orgId, role: orgRoleKey },
+    });
+  }
+
   async getCurrentUser(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: {
         id: true,
         email: true,
-        role: true,
         orgId: true,
         preferredLanguage: true,
         createdAt: true,
@@ -183,36 +267,114 @@ export class UsersService {
     };
   }
 
-  /**
-   * List users in an organization (only for admins)
-   */
-  async listUsers(orgId: string, requestingUserRole: string) {
-    if (!isAdminRole(requestingUserRole)) {
-      throw new ForbiddenException('Insufficient permissions to list users');
+  async listUsers(orgId: string, siteId?: string) {
+    if (siteId) {
+      await this.ensureSiteInOrg(orgId, siteId);
+
+      const assignments = await this.prisma.userRole.findMany({
+        where: {
+          orgId,
+          siteId,
+          role: {
+            scope: 'SITE',
+          },
+        },
+        include: {
+          role: {
+            select: {
+              name: true,
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+      const assignedUserIds = [...new Set(assignments.map((assignment) => assignment.userId))];
+      const assignedUsers = assignedUserIds.length
+        ? await this.prisma.user.findMany({
+            where: {
+              id: { in: assignedUserIds },
+              orgId,
+            },
+            select: {
+              id: true,
+              email: true,
+              createdAt: true,
+            },
+          })
+        : [];
+      const userMap = new Map(assignedUsers.map((user) => [user.id, user]));
+
+      const users = new Map<string, { id: string; email: string; createdAt: Date; roleAssignments: Array<{ role: { name: string } }> }>();
+      for (const assignment of assignments) {
+        const assignedUser = userMap.get(assignment.userId);
+        if (assignedUser && !users.has(assignment.userId)) {
+          users.set(assignment.userId, {
+            id: assignedUser.id,
+            email: assignedUser.email,
+            createdAt: assignedUser.createdAt,
+            roleAssignments: [{ role: { name: assignment.role.name } }],
+          });
+        }
+      }
+
+      return Array.from(users.values()).map((user) => this.serializeSiteUser(user));
     }
 
-    const users = await this.prisma.user.findMany({
-      where: { orgId: orgId },
-      select: {
-        id: true,
-        email: true,
-        role: true,
-        createdAt: true,
-        updatedAt: true,
+    const memberships = await this.prisma.userOrg.findMany({
+      where: { orgId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            createdAt: true,
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
     });
+    const orgAssignments = await this.prisma.userRole.findMany({
+      where: {
+        orgId,
+        siteId: null,
+        role: {
+          scope: 'ORG',
+        },
+      },
+      include: {
+        role: {
+          select: {
+            name: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+    const assignmentMap = new Map<string, string>();
+    for (const assignment of orgAssignments) {
+      if (!assignmentMap.has(assignment.userId)) {
+        assignmentMap.set(
+          assignment.userId,
+          getPublicRbacUserRoleByName(assignment.role.name, 'ORG')?.key || 'org_member',
+        );
+      }
+    }
 
-    return users;
+    return memberships.map((membership) =>
+      this.serializeOrgUser({
+        id: membership.user.id,
+        email: membership.user.email,
+        createdAt: membership.user.createdAt,
+        membershipRole: assignmentMap.get(membership.user.id) || membership.role,
+      }),
+    );
   }
 
-  /**
-   * List pending invites for an organization, optionally filtered by site
-   */
   async listInvites(orgId: string, siteId?: string) {
     if (siteId) {
       await this.ensureSiteInOrg(orgId, siteId);
     }
+
     const now = new Date();
     const where: any = {
       orgId,
@@ -222,7 +384,8 @@ export class UsersService {
     if (siteId) {
       where.siteId = siteId;
     }
-    return this.prisma.userInvite.findMany({
+
+    const invites = await this.prisma.userInvite.findMany({
       where,
       select: {
         id: true,
@@ -238,43 +401,116 @@ export class UsersService {
       },
       orderBy: { createdAt: 'desc' },
     });
+
+    return invites.map((invite) => ({
+      ...invite,
+      role: coercePublicRbacUserRoleKey(invite.role, invite.siteId ? 'SITE' : 'ORG') || invite.role,
+    }));
   }
 
-  /**
-   * Get user by ID (only for admins)
-   */
-  async getUserById(userId: string, orgId: string, requestingUserRole: string) {
-    if (!isAdminRole(requestingUserRole)) {
-      throw new ForbiddenException('Insufficient permissions to view user');
+  async getUserById(userId: string, orgId: string, siteId?: string) {
+    if (siteId) {
+      await this.ensureSiteInOrg(orgId, siteId);
+
+      const assignment = await this.prisma.userRole.findFirst({
+        where: {
+          orgId,
+          userId,
+          siteId,
+          role: {
+            scope: 'SITE',
+          },
+        },
+        include: {
+          role: {
+            select: {
+              name: true,
+            },
+          },
+        },
+      });
+
+      if (!assignment) {
+        throw new NotFoundException('User not found');
+      }
+      const assignedUser = await this.prisma.user.findFirst({
+        where: {
+          id: assignment.userId,
+          orgId,
+        },
+        select: {
+          id: true,
+          email: true,
+          createdAt: true,
+        },
+      });
+
+      if (!assignedUser) {
+        throw new NotFoundException('User not found');
+      }
+
+      return this.serializeSiteUser({
+        id: assignedUser.id,
+        email: assignedUser.email,
+        createdAt: assignedUser.createdAt,
+        roleAssignments: [{ role: { name: assignment.role.name } }],
+      });
     }
 
-    const user = await this.prisma.user.findFirst({
+    const membership = await this.prisma.userOrg.findUnique({
       where: {
-        id: userId,
-        orgId: orgId, // Ensure user belongs to the same organization
+        userId_orgId: {
+          userId,
+          orgId,
+        },
       },
-      select: {
-        id: true,
-        email: true,
-        role: true,
-        createdAt: true,
-        updatedAt: true,
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            createdAt: true,
+          },
+        },
       },
     });
 
-    if (!user) {
+    if (!membership) {
       throw new NotFoundException('User not found');
     }
+    const orgAssignment = await this.prisma.userRole.findFirst({
+      where: {
+        orgId,
+        userId,
+        siteId: null,
+        role: {
+          scope: 'ORG',
+        },
+      },
+      include: {
+        role: {
+          select: {
+            name: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
 
-    return user;
+    return this.serializeOrgUser({
+      id: membership.user.id,
+      email: membership.user.email,
+      createdAt: membership.user.createdAt,
+      membershipRole:
+        (orgAssignment
+          ? getPublicRbacUserRoleByName(orgAssignment.role.name, 'ORG')?.key
+          : undefined) || membership.role,
+    });
   }
 
-  /**
-   * Update user preferences (language, etc.)
-   */
   async updatePreferences(userId: string, preferences: { preferredLanguage?: 'pl' | 'en' }) {
     const updateData: { preferredLanguage?: string; languageChosenAt?: Date } = {};
-    
+
     if (preferences.preferredLanguage !== undefined) {
       updateData.preferredLanguage = preferences.preferredLanguage;
       updateData.languageChosenAt = new Date();
@@ -297,59 +533,21 @@ export class UsersService {
     };
   }
 
-  /**
-   * Create a new user (admin only)
-   * Security: Only super_admin can create super_admin users
-   * siteId is optional — if provided, the user is also assigned to that site
-   */
   async createUser(
     orgId: string,
     dto: { email: string; password?: string; role: string; preferredLanguage?: 'pl' | 'en'; siteId?: string },
-    requestingUserRole: string,
+    siteId?: string,
+    actorUserId?: string,
   ) {
-    if (!isAdminRole(requestingUserRole)) {
-      throw new ForbiddenException('Insufficient permissions to create users');
-    }
-
-    const aliasMap: Record<string, string> = {
-      'site_admin': LegacyRole.ORG_ADMIN,
-      'admin': LegacyRole.ORG_ADMIN,
-      'organization_admin': LegacyRole.ORG_ADMIN,
-    };
-    const normalizedRole = aliasMap[dto.role] || dto.role;
     const email = dto.email.trim().toLowerCase();
+    const resolvedSiteId = dto.siteId || siteId || undefined;
+    const roleScope: PublicRbacUserRoleScope = resolvedSiteId ? 'SITE' : 'ORG';
+    const publicRole = await this.resolvePublicRole(orgId, dto.role, roleScope);
 
-    // Security: Only super_admin can create super_admin users
-    if (normalizedRole === LegacyRole.SUPER_ADMIN && requestingUserRole !== LegacyRole.SUPER_ADMIN) {
-      throw new ForbiddenException('Only super_admin can create super_admin users');
-    }
-
-    // Validate role
-    const validRoles: string[] = [
-      LegacyRole.SUPER_ADMIN, LegacyRole.ORG_ADMIN,
-      'editor-in-chief', LegacyRole.EDITOR, 'marketing', LegacyRole.VIEWER,
-    ];
-    if (!validRoles.includes(normalizedRole)) {
-      throw new BadRequestException(`Invalid role. Must be one of: ${validRoles.join(', ')}`);
-    }
-
-    const siteRoleMap: Record<string, string> = {
-      [LegacyRole.SUPER_ADMIN]: 'owner',
-      [LegacyRole.ORG_ADMIN]: 'admin',
-      'editor-in-chief': 'editor-in-chief',
-      [LegacyRole.EDITOR]: 'editor',
-      'marketing': 'marketing',
-      [LegacyRole.VIEWER]: 'viewer',
-    };
-    const siteRole = siteRoleMap[normalizedRole] || 'viewer';
-    const platformRole = normalizedRole === LegacyRole.SUPER_ADMIN || normalizedRole === LegacyRole.ORG_ADMIN ? 'admin' : 'user';
-    const isSuperAdmin = normalizedRole === LegacyRole.SUPER_ADMIN;
-
-    // Check if user already exists
     const existingUser = await this.prisma.user.findUnique({
       where: {
         orgId_email: {
-          orgId: orgId,
+          orgId,
           email,
         },
       },
@@ -359,7 +557,6 @@ export class UsersService {
       throw new ConflictException('User with this email already exists');
     }
 
-    // Check if organization exists
     const organization = await this.prisma.organization.findUnique({
       where: { id: orgId },
       select: {
@@ -372,11 +569,10 @@ export class UsersService {
       throw new NotFoundException('Organization not found');
     }
 
-    // Validate site if provided
     let site: { id: string; name: string } | null = null;
-    if (dto.siteId) {
+    if (resolvedSiteId) {
       site = await this.prisma.site.findFirst({
-        where: { id: dto.siteId, orgId },
+        where: { id: resolvedSiteId, orgId },
         select: { id: true, name: true },
       });
       if (!site) {
@@ -390,16 +586,11 @@ export class UsersService {
         : randomBytes(24).toString('base64url');
     const passwordHash = await bcrypt.hash(rawPassword, 12);
 
-    // Create user
     const user = await this.prisma.user.create({
       data: {
         email,
         passwordHash,
-        orgId: orgId,
-        role: normalizedRole,
-        siteRole,
-        platformRole,
-        isSuperAdmin,
+        orgId,
         preferredLanguage: dto.preferredLanguage || 'en',
         languageChosenAt: null,
         mustCompleteOnboarding: true,
@@ -407,65 +598,52 @@ export class UsersService {
       },
       select: {
         id: true,
-        email: true,
-        role: true,
-        createdAt: true,
-        updatedAt: true,
       },
     });
 
-    await this.prisma.userOrg.upsert({
-      where: { userId_orgId: { userId: user.id, orgId } },
-      update: { role: normalizedRole },
-      create: { userId: user.id, orgId, role: normalizedRole },
-    });
-
-    // If a site was specified, create a site-scoped UserRole
-    if (site) {
-      try {
-        await (this.prisma as any).userRole.create({
-          data: {
-            orgId,
-            userId: user.id,
-            roleId: normalizedRole,
-            siteId: site.id,
-          },
-        });
-      } catch {
-        // UserRole table may not have matching roleId — this is best-effort
-        this.logger.warn(`Could not create UserRole for user ${user.id} on site ${site.id}`);
-      }
+    if (publicRole.scope === 'ORG') {
+      await this.rbacService.createAssignment(
+        orgId,
+        { userId: user.id, roleId: publicRole.id, siteId: null },
+        actorUserId || user.id,
+      );
+      await this.syncCompatibilityForOrgRole(orgId, user.id, publicRole.key);
+    } else if (site) {
+      await this.rbacService.createAssignment(
+        orgId,
+        { userId: user.id, roleId: publicRole.id, siteId: site.id },
+        actorUserId || user.id,
+      );
+      await this.syncCompatibilityForSiteRole(orgId, user.id, publicRole.key);
     }
 
     let setupEmailSent = false;
     try {
       const setupToken = await this.createPasswordSetupToken(user.id);
       await this.notifications.sendAccountCreatedEmail({
-        to: user.email,
+        to: email,
         organizationName: organization.name,
-        role: normalizedRole,
+        role: publicRole.roleName,
         setupUrl: this.buildPasswordSetupLink(setupToken.token),
         expiresAt: setupToken.expiresAt,
       });
       setupEmailSent = true;
     } catch (error) {
       this.logger.error(
-        `Failed to send account setup email for ${user.email}: ${
+        `Failed to send account setup email for ${email}: ${
           error instanceof Error ? error.message : String(error)
         }`,
       );
     }
 
     return {
-      ...user,
+      ...(resolvedSiteId
+        ? await this.getUserById(user.id, orgId, resolvedSiteId)
+        : await this.getUserById(user.id, orgId)),
       setupEmailSent,
     };
   }
 
-  /**
-   * Create a new invite for a user (admin only)
-   * siteId is optional — if omitted, the invite is organization-level
-   */
   async createInvite(
     orgId: string,
     siteId: string | undefined,
@@ -476,8 +654,11 @@ export class UsersService {
     if (siteId) {
       site = await this.ensureSiteInOrg(orgId, siteId);
     }
+
     const email = dto.email.trim().toLowerCase();
-    const role = this.normalizeInviteRole(dto.role);
+    const roleScope: PublicRbacUserRoleScope = siteId ? 'SITE' : 'ORG';
+    const publicRole = await this.resolvePublicRole(orgId, dto.role, roleScope);
+    const role = publicRole.key;
 
     const existingUser = await this.prisma.user.findUnique({
       where: {
@@ -540,7 +721,7 @@ export class UsersService {
 
     const organization = await this.prisma.organization.findUnique({
       where: { id: orgId },
-      select: { name: true, slug: true },
+      select: { name: true },
     });
 
     const inviteLink = this.buildInviteLink(token);
@@ -550,7 +731,7 @@ export class UsersService {
         to: email,
         organizationName: organization?.name || 'Net-Flow',
         siteName: site?.name || null,
-        role,
+        role: publicRole.roleName,
         inviteUrl: inviteLink,
         expiresAt,
       });
@@ -584,105 +765,76 @@ export class UsersService {
     };
   }
 
-  /**
-   * Update user role (admin only)
-   * Security: Only super_admin can assign super_admin role
-   */
   async updateUserRole(
     userId: string,
     orgId: string,
     newRole: string,
-    requestingUserRole: string,
+    siteId?: string,
+    actorUserId?: string,
   ) {
-    if (!isAdminRole(requestingUserRole)) {
-      throw new ForbiddenException('Insufficient permissions to update user roles');
-    }
+    const scope: PublicRbacUserRoleScope = siteId ? 'SITE' : 'ORG';
+    const publicRole = await this.resolvePublicRole(orgId, newRole, scope);
 
-    const aliasMap: Record<string, string> = {
-      'site_admin': LegacyRole.ORG_ADMIN,
-      'admin': LegacyRole.ORG_ADMIN,
-      'organization_admin': LegacyRole.ORG_ADMIN,
-    };
-    const normalizedRole = aliasMap[newRole] || newRole;
-
-    // Security: Only super_admin can assign super_admin role
-    if (normalizedRole === LegacyRole.SUPER_ADMIN && requestingUserRole !== LegacyRole.SUPER_ADMIN) {
-      throw new ForbiddenException('Only super_admin can assign super_admin role');
-    }
-
-    // Validate role
-    const validRoles: string[] = [
-      LegacyRole.SUPER_ADMIN, LegacyRole.ORG_ADMIN,
-      'editor-in-chief', LegacyRole.EDITOR, 'marketing', LegacyRole.VIEWER,
-    ];
-    if (!validRoles.includes(normalizedRole)) {
-      throw new BadRequestException(`Invalid role. Must be one of: ${validRoles.join(', ')}`);
-    }
-
-    // Check if user exists and belongs to organization
     const user = await this.prisma.user.findFirst({
       where: {
         id: userId,
-        orgId: orgId,
+        orgId,
       },
+      select: { id: true },
     });
 
     if (!user) {
       throw new NotFoundException('User not found');
     }
 
-    // Prevent self-demotion of last super_admin (optional safety check)
-    if (user.role === LegacyRole.SUPER_ADMIN && newRole !== LegacyRole.SUPER_ADMIN) {
-      // Check if this is the last super_admin in the organization
-      const superAdminCount = await this.prisma.user.count({
+    if (publicRole.scope === 'ORG') {
+      await this.prisma.userRole.deleteMany({
         where: {
-          orgId: orgId,
-          role: LegacyRole.SUPER_ADMIN,
+          orgId,
+          userId,
+          siteId: null,
+          role: {
+            scope: 'ORG',
+          },
         },
       });
 
-      if (superAdminCount === 1) {
-        throw new BadRequestException('Cannot remove the last super_admin from organization');
-      }
+      await this.rbacService.createAssignment(
+        orgId,
+        { userId, roleId: publicRole.id, siteId: null },
+        actorUserId || userId,
+      );
+      await this.syncCompatibilityForOrgRole(orgId, userId, publicRole.key);
+
+      return this.getUserById(userId, orgId);
     }
 
-    const siteRoleMap: Record<string, string> = {
-      [LegacyRole.SUPER_ADMIN]: 'owner',
-      [LegacyRole.ORG_ADMIN]: 'admin',
-      'editor-in-chief': 'editor-in-chief',
-      [LegacyRole.EDITOR]: 'editor',
-      'marketing': 'marketing',
-      [LegacyRole.VIEWER]: 'viewer',
-    };
-    const siteRole = siteRoleMap[normalizedRole] || 'viewer';
-    const platformRole = normalizedRole === LegacyRole.SUPER_ADMIN || normalizedRole === LegacyRole.ORG_ADMIN ? 'admin' : 'user';
-    const isSuperAdmin = normalizedRole === LegacyRole.SUPER_ADMIN;
+    if (!siteId) {
+      throw new BadRequestException('Site role update requires siteId');
+    }
 
-    // Update user role
-    const updatedUser = await this.prisma.user.update({
-      where: { id: userId },
-      data: { role: normalizedRole, siteRole, platformRole, isSuperAdmin },
-      select: {
-        id: true,
-        email: true,
-        role: true,
-        updatedAt: true,
+    await this.ensureSiteInOrg(orgId, siteId);
+    await this.prisma.userRole.deleteMany({
+      where: {
+        orgId,
+        userId,
+        siteId,
+        role: {
+          scope: 'SITE',
+        },
       },
     });
 
-    await this.prisma.userOrg.upsert({
-      where: { userId_orgId: { userId, orgId } },
-      update: { role: normalizedRole },
-      create: { userId, orgId, role: normalizedRole },
-    });
+    await this.rbacService.createAssignment(
+      orgId,
+      { userId, roleId: publicRole.id, siteId },
+      actorUserId || userId,
+    );
+    await this.syncCompatibilityForSiteRole(orgId, userId, publicRole.key);
 
-    return updatedUser;
+    return this.getUserById(userId, orgId, siteId);
   }
 
-  /**
-   * Revoke a pending invite (admin only)
-   * siteId is optional — if omitted, looks up by orgId + inviteId only
-   */
   async revokeInvite(
     orgId: string,
     siteId: string | undefined,
@@ -725,5 +877,4 @@ export class UsersService {
       });
     }
   }
-
 }

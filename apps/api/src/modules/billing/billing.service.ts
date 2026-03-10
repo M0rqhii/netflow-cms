@@ -52,42 +52,27 @@ export class BillingService {
       return new Set<string>();
     }
 
-    const [privilegedUsers, privilegedMemberships, privilegedOrganizations] = await Promise.all([
-      this.prisma.user.findMany({
-        where: {
-          orgId: { in: orgIds },
-          OR: [
-            { platformRole: 'platform_admin' },
-            { role: 'platform_admin' },
-          ],
-        },
-        select: { orgId: true },
-        distinct: ['orgId'],
-      }),
-      this.prisma.userOrg.findMany({
-        where: {
-          orgId: { in: orgIds },
-          role: 'platform_admin',
-        },
-        select: { orgId: true },
-        distinct: ['orgId'],
-      }),
-      this.prisma.organization.findMany({
-        where: {
-          id: { in: orgIds },
-          OR: [
-            { slug: { equals: 'platform_admin', mode: 'insensitive' } },
-            { name: { equals: 'platform_admin', mode: 'insensitive' } },
-          ],
-        },
-        select: { id: true },
-      }),
-    ]);
+    const privilegedAssignments = await this.prisma.platformUserRole.findMany({
+      select: { userId: true },
+      distinct: ['userId'],
+    });
+
+    if (privilegedAssignments.length === 0) {
+      return new Set<string>();
+    }
+
+    const privilegedUserIds = privilegedAssignments.map((assignment) => assignment.userId);
+    const privilegedUsers = await this.prisma.user.findMany({
+      where: {
+        orgId: { in: orgIds },
+        id: { in: privilegedUserIds },
+      },
+      select: { orgId: true },
+      distinct: ['orgId'],
+    });
 
     const privilegedOrgSet = new Set<string>();
     privilegedUsers.forEach((item) => privilegedOrgSet.add(item.orgId));
-    privilegedMemberships.forEach((item) => privilegedOrgSet.add(item.orgId));
-    privilegedOrganizations.forEach((item) => privilegedOrgSet.add(item.id));
     return privilegedOrgSet;
   }
 
@@ -662,7 +647,7 @@ export class BillingService {
         userOrgs = [
           {
             orgId: legacy.orgId,
-            role: legacy.role,
+            role: 'org_member',
             organization: legacy.organization,
           },
         ];

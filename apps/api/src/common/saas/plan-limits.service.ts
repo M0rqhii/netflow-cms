@@ -52,35 +52,24 @@ export class PlanLimitsService {
   }
 
   private async hasPrivilegedOrgAccess(orgId: string): Promise<boolean> {
-    const [platformAdminUsers, platformAdminMemberships, privilegedOrganization] = await Promise.all([
-      this.prisma.user.count({
-        where: {
-          orgId,
-          OR: [
-            { platformRole: 'platform_admin' },
-            { role: 'platform_admin' },
-          ],
-        },
-      }),
-      this.prisma.userOrg.count({
-        where: {
-          orgId,
-          role: 'platform_admin',
-        },
-      }),
-      this.prisma.organization.findFirst({
-        where: {
-          id: orgId,
-          OR: [
-            { slug: { equals: 'platform_admin', mode: 'insensitive' } },
-            { name: { equals: 'platform_admin', mode: 'insensitive' } },
-          ],
-        },
-        select: { id: true },
-      }),
-    ]);
+    const privilegedAssignments = await this.prisma.platformUserRole.findMany({
+      select: { userId: true },
+      distinct: ['userId'],
+    });
 
-    return platformAdminUsers > 0 || platformAdminMemberships > 0 || Boolean(privilegedOrganization);
+    if (privilegedAssignments.length === 0) {
+      return false;
+    }
+
+    const privilegedUserIds = privilegedAssignments.map((assignment) => assignment.userId);
+    const platformStaffInOrg = await this.prisma.user.count({
+      where: {
+        orgId,
+        id: { in: privilegedUserIds },
+      },
+    });
+
+    return platformStaffInOrg > 0;
   }
 
   private async resolveEffectivePlan(orgId: string, plan: string | null | undefined): Promise<keyof typeof this.PLAN_LIMITS> {

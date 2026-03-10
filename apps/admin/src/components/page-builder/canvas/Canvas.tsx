@@ -213,86 +213,85 @@ export const Canvas: React.FC = () => {
   
   const handleDragEnd = useCallback((event: DragEndEvent) => {
     const { over } = event;
-    
+    const dragData = activeDragData;
+
     setActiveDragData(null);
     setInsertionIndicator(null);
-    
-    if (!over || !activeDragData) return;
-    
+
+    if (!over || !dragData) return;
+
+    // BLOCKER-02 fix: use fresh content from store to avoid stale closure
+    const freshContent = usePageBuilderStore.getState().content;
+
     const overId = over.id as string;
     const overData = over.data.current;
-    
+
     // Determine target
     let targetParentId: string;
     let targetIndex: number;
-    
+
     if (overData?.isDropZone) {
       targetParentId = overData.parentId;
-      targetIndex = overData.index ?? content.nodes[targetParentId]?.childIds.length ?? 0;
+      targetIndex = overData.index ?? freshContent.nodes[targetParentId]?.childIds.length ?? 0;
     } else {
-      const overNode = content.nodes[overId];
+      const overNode = freshContent.nodes[overId];
       if (!overNode || !overNode.parentId) return;
-      
+
       targetParentId = overNode.parentId;
-      const parent = content.nodes[targetParentId];
+      const parent = freshContent.nodes[targetParentId];
+      if (!parent) return;
       targetIndex = parent.childIds.indexOf(overId);
-      
+
       // Adjust for cursor position
       if (over.rect && event.active.rect.current.translated) {
         const pointerY = event.active.rect.current.translated.top;
         const overMiddle = over.rect.top + over.rect.height / 2;
-        
+
         if (pointerY > overMiddle) {
           targetIndex += 1;
         }
       }
     }
-    
+
     // Validate
-    const draggedType = getDraggedType(activeDragData);
-    const targetParent = content.nodes[targetParentId];
-    
+    const draggedType = getDraggedType(dragData);
+    const targetParent = freshContent.nodes[targetParentId];
+
     if (!targetParent) return;
-    
+
     const validation = validateDrop(
       draggedType,
       targetParent.type,
-      content,
-      isNewBlockDrag(activeDragData) ? undefined : activeDragData.nodeId,
+      freshContent,
+      isNewBlockDrag(dragData) ? undefined : dragData.nodeId,
       targetParentId
     );
-    
+
     if (!validation.valid) {
       console.warn('[Canvas] Invalid drop:', validation.errorMessage);
       return;
     }
-    
+
     // Execute drop
-    if (isNewBlockDrag(activeDragData)) {
+    if (isNewBlockDrag(dragData)) {
       // Add new block
-      const newId = addBlock(targetParentId, activeDragData.blockType, targetIndex);
+      const newId = addBlock(targetParentId, dragData.blockType, targetIndex);
       if (newId) {
         commit('add');
         selectBlock(newId);
       }
     } else {
       // Move existing block
-      const nodeId = activeDragData.nodeId;
-      
-      // Adjust index if moving within same parent
-      const node = content.nodes[nodeId];
-      if (node.parentId === targetParentId) {
-        const currentIndex = content.nodes[targetParentId].childIds.indexOf(nodeId);
-        if (currentIndex < targetIndex) {
-          targetIndex -= 1;
-        }
-      }
-      
+      // BLOCKER-01 fix: do NOT adjust index here — moveNode() in tree-ops.ts
+      // already handles same-parent index correction. Double correction
+      // caused off-by-one errors.
+      const nodeId = dragData.nodeId;
+
       moveBlock(nodeId, targetParentId, targetIndex);
       commit('dnd');
       selectBlock(nodeId);
     }
-  }, [activeDragData, content, addBlock, moveBlock, commit, selectBlock]);
+  }, [activeDragData, addBlock, moveBlock, commit, selectBlock]);
   
   const handleDragCancel = useCallback(() => {
     setActiveDragData(null);

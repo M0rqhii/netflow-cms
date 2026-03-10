@@ -2,14 +2,13 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { decodeAuthToken, getAuthToken, logout } from '@/lib/api';
+import { logout } from '@/lib/api';
 import { useTranslations } from '@/hooks/useTranslations';
+import { usePlatformAccess } from '@/hooks/usePlatformAccess';
 
 type UserInfo = {
   email: string;
-  role: string;
-  platformRole: string;
-  isSuperAdmin: boolean;
+  roleLabel: string;
 };
 
 function toInitials(email: string): string {
@@ -24,35 +23,25 @@ function toInitials(email: string): string {
   return `${chunks[0].charAt(0)}${chunks[1].charAt(0)}`.toUpperCase();
 }
 
-function prettifyRole(role: string): string {
-  if (!role) return 'Member';
-  return role
-    .replace(/[_-]/g, ' ')
-    .split(' ')
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ');
-}
-
 export default function UserBar() {
   const t = useTranslations();
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const platformAccess = usePlatformAccess();
 
   const [open, setOpen] = useState(false);
-  const [user, setUser] = useState<UserInfo | null>(null);
+  const user = useMemo<UserInfo | null>(() => {
+    const email = String(platformAccess.payload?.email ?? '').trim();
+    if (!email) return null;
 
-  useEffect(() => {
-    const payload = decodeAuthToken(getAuthToken());
-    const email = String(payload?.email ?? '').trim();
-    if (!email) return;
+    const roleLabel = platformAccess.platformRbacRoles.length > 0
+      ? platformAccess.platformRbacRoles.join(', ')
+      : 'Member';
 
-    setUser({
+    return {
       email,
-      role: String(payload?.role ?? ''),
-      platformRole: String(payload?.platformRole ?? ''),
-      isSuperAdmin: Boolean(payload?.isSuperAdmin) || String(payload?.systemRole ?? '').toLowerCase() === 'super_admin',
-    });
-  }, []);
+      roleLabel: roleLabel || 'Member',
+    };
+  }, [platformAccess.payload?.email, platformAccess.platformRbacRoles]);
 
   useEffect(() => {
     if (!open) return;
@@ -80,17 +69,8 @@ export default function UserBar() {
 
   const email = user?.email ?? '';
   const initials = toInitials(email);
-
-  const roleLabel = useMemo(
-    () => prettifyRole(user?.platformRole || user?.role || ''),
-    [user?.platformRole, user?.role]
-  );
-
-  const canViewBilling = useMemo(() => {
-    if (!user) return false;
-    const role = `${user.role} ${user.platformRole}`.toLowerCase();
-    return user.isSuperAdmin || role.includes('owner');
-  }, [user]);
+  const roleLabel = user?.roleLabel ?? 'Member';
+  const canViewBilling = platformAccess.canViewBilling;
 
   return (
     <div className="relative" ref={containerRef}>

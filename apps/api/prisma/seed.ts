@@ -1,5 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import { CAPABILITY_REGISTRY } from '@repo/schemas';
+import { buildSystemRoleDefinitions } from '../src/modules/rbac/system-role-definitions';
 
 const prisma = new PrismaClient();
 
@@ -393,80 +395,14 @@ async function main() {
   // ============================================
   console.log('\n🔐 Seeding RBAC...');
 
-  // Define all capabilities
-  const capabilitiesData = [
-    // Organization module
-    { key: 'org.view_dashboard', module: 'org', label: 'View Dashboard', description: 'View organization dashboard', riskLevel: 'LOW', isDangerous: false },
-    { key: 'org.users.view', module: 'org', label: 'View Users', description: 'View organization users', riskLevel: 'LOW', isDangerous: false },
-    { key: 'org.users.invite', module: 'org', label: 'Invite Users', description: 'Invite new users to organization', riskLevel: 'MED', isDangerous: false },
-    { key: 'org.users.remove', module: 'org', label: 'Remove Users', description: 'Remove users from organization', riskLevel: 'HIGH', isDangerous: true },
-    { key: 'org.roles.view', module: 'org', label: 'View Roles', description: 'View organization roles', riskLevel: 'LOW', isDangerous: false },
-    { key: 'org.roles.manage', module: 'org', label: 'Manage Roles', description: 'Create and manage roles (Owner only)', riskLevel: 'HIGH', isDangerous: true },
-    { key: 'org.policies.view', module: 'org', label: 'View Policies', description: 'View organization policies', riskLevel: 'LOW', isDangerous: false },
-    { key: 'org.policies.manage', module: 'org', label: 'Manage Policies', description: 'Manage organization policies', riskLevel: 'HIGH', isDangerous: true },
-    
-    // Billing module (Owner only)
-    { key: 'billing.view_plan', module: 'billing', label: 'View Plan', description: 'View subscription plan', riskLevel: 'LOW', isDangerous: false },
-    { key: 'billing.change_plan', module: 'billing', label: 'Change Plan', description: 'Change subscription plan', riskLevel: 'HIGH', isDangerous: true },
-    { key: 'billing.view_invoices', module: 'billing', label: 'View Invoices', description: 'View billing invoices', riskLevel: 'LOW', isDangerous: false },
-    { key: 'billing.manage_payment_methods', module: 'billing', label: 'Manage Payment Methods', description: 'Manage payment methods', riskLevel: 'HIGH', isDangerous: true },
-    
-    // Sites module
-    { key: 'sites.view', module: 'sites', label: 'View Sites', description: 'View sites', riskLevel: 'LOW', isDangerous: false },
-    { key: 'sites.create', module: 'sites', label: 'Create Sites', description: 'Create new sites', riskLevel: 'MED', isDangerous: false },
-    { key: 'sites.delete', module: 'sites', label: 'Delete Sites', description: 'Delete sites', riskLevel: 'HIGH', isDangerous: true },
-    { key: 'sites.settings.view', module: 'sites', label: 'View Site Settings', description: 'View site settings', riskLevel: 'LOW', isDangerous: false },
-    { key: 'sites.settings.manage', module: 'sites', label: 'Manage Site Settings', description: 'Manage site settings', riskLevel: 'MED', isDangerous: false },
-    
-    // Builder module
-    { key: 'builder.view', module: 'builder', label: 'View Builder', description: 'View builder interface', riskLevel: 'LOW', isDangerous: false },
-    { key: 'builder.edit', module: 'builder', label: 'Edit Builder', description: 'Edit in builder', riskLevel: 'MED', isDangerous: false },
-    { key: 'builder.draft.save', module: 'builder', label: 'Save Draft', description: 'Save draft changes', riskLevel: 'LOW', isDangerous: false },
-    { key: 'builder.publish', module: 'builder', label: 'Publish', description: 'Publish changes', riskLevel: 'HIGH', isDangerous: true },
-    { key: 'builder.rollback', module: 'builder', label: 'Rollback', description: 'Rollback published changes (⚠️ policy-controlled)', riskLevel: 'HIGH', isDangerous: true },
-    { key: 'builder.history.view', module: 'builder', label: 'View History', description: 'View builder history', riskLevel: 'LOW', isDangerous: false },
-    { key: 'builder.assets.upload', module: 'builder', label: 'Upload Assets', description: 'Upload builder assets', riskLevel: 'MED', isDangerous: false },
-    { key: 'builder.assets.delete', module: 'builder', label: 'Delete Assets', description: 'Delete builder assets', riskLevel: 'MED', isDangerous: false },
-    { key: 'builder.custom_code', module: 'builder', label: 'Custom Code', description: 'Manage custom code (Site Admin only)', riskLevel: 'HIGH', isDangerous: true },
-    { key: 'builder.site_roles.manage', module: 'builder', label: 'Manage Site Roles', description: 'Manage site roles (Site Admin only)', riskLevel: 'HIGH', isDangerous: true },
-    
-    // Content/CMS module
-    { key: 'content.view', module: 'content', label: 'View Content', description: 'View content', riskLevel: 'LOW', isDangerous: false },
-    { key: 'content.create', module: 'content', label: 'Create Content', description: 'Create content', riskLevel: 'MED', isDangerous: false },
-    { key: 'content.edit', module: 'content', label: 'Edit Content', description: 'Edit content', riskLevel: 'MED', isDangerous: false },
-    { key: 'content.delete', module: 'content', label: 'Delete Content', description: 'Delete content', riskLevel: 'HIGH', isDangerous: true },
-    { key: 'content.publish', module: 'content', label: 'Publish Content', description: 'Publish content', riskLevel: 'HIGH', isDangerous: true },
-    { key: 'content.media.manage', module: 'content', label: 'Manage Media', description: 'Upload and delete media', riskLevel: 'MED', isDangerous: false },
-    
-    // Hosting module (Owner + Org Admin only)
-    { key: 'hosting.usage.view', module: 'hosting', label: 'View Usage', description: 'View hosting usage', riskLevel: 'LOW', isDangerous: false },
-    { key: 'hosting.deploy', module: 'hosting', label: 'Deploy', description: 'Deploy sites', riskLevel: 'HIGH', isDangerous: true },
-    { key: 'hosting.files.view', module: 'hosting', label: 'View Files', description: 'View hosting files', riskLevel: 'LOW', isDangerous: false },
-    { key: 'hosting.files.edit', module: 'hosting', label: 'Edit Files', description: 'Edit hosting files', riskLevel: 'HIGH', isDangerous: true },
-    { key: 'hosting.logs.view', module: 'hosting', label: 'View Logs', description: 'View hosting logs', riskLevel: 'LOW', isDangerous: false },
-    { key: 'hosting.backups.manage', module: 'hosting', label: 'Manage Backups', description: 'Manage backups', riskLevel: 'HIGH', isDangerous: true },
-    { key: 'hosting.restart.manage', module: 'hosting', label: 'Restart Services', description: 'Restart hosting services', riskLevel: 'HIGH', isDangerous: true },
-    
-    // Domains module (Owner + Org Admin only)
-    { key: 'domains.view', module: 'domains', label: 'View Domains', description: 'View domains', riskLevel: 'LOW', isDangerous: false },
-    { key: 'domains.assign', module: 'domains', label: 'Assign Domains', description: 'Assign domains to sites', riskLevel: 'MED', isDangerous: false },
-    { key: 'domains.dns.manage', module: 'domains', label: 'Manage DNS', description: 'Manage DNS settings', riskLevel: 'HIGH', isDangerous: true },
-    { key: 'domains.ssl.manage', module: 'domains', label: 'Manage SSL', description: 'Manage SSL certificates', riskLevel: 'HIGH', isDangerous: true },
-    { key: 'domains.add_remove', module: 'domains', label: 'Add/Remove Domains', description: 'Add or remove domains', riskLevel: 'HIGH', isDangerous: true },
-    
-    // Marketing module
-    { key: 'marketing.view', module: 'marketing', label: 'View Marketing', description: 'View marketing dashboard', riskLevel: 'LOW', isDangerous: false },
-    { key: 'marketing.content.edit', module: 'marketing', label: 'Edit Marketing Content', description: 'Edit marketing content', riskLevel: 'MED', isDangerous: false },
-    { key: 'marketing.schedule', module: 'marketing', label: 'Schedule Posts', description: 'Schedule marketing posts (⚠️ policy-controlled)', riskLevel: 'MED', isDangerous: false },
-    { key: 'marketing.publish', module: 'marketing', label: 'Publish Marketing', description: 'Publish marketing content', riskLevel: 'HIGH', isDangerous: true },
-    { key: 'marketing.campaign.manage', module: 'marketing', label: 'Manage Campaigns', description: 'Manage marketing campaigns', riskLevel: 'HIGH', isDangerous: true },
-    { key: 'marketing.social.connect', module: 'marketing', label: 'Connect Social Accounts', description: 'Connect social media accounts', riskLevel: 'HIGH', isDangerous: true },
-    { key: 'marketing.ads.manage', module: 'marketing', label: 'Manage Ads', description: 'Manage advertising campaigns (⚠️ policy-controlled)', riskLevel: 'HIGH', isDangerous: true },
-    { key: 'marketing.stats.view', module: 'marketing', label: 'View Stats', description: 'View marketing statistics', riskLevel: 'LOW', isDangerous: false },
-    
-    // Analytics module
-    { key: 'analytics.view', module: 'analytics', label: 'View Analytics', description: 'View analytics', riskLevel: 'LOW', isDangerous: false },
-  ];
+  const capabilitiesData = CAPABILITY_REGISTRY.map((capability) => ({
+    key: capability.key,
+    module: capability.module,
+    label: capability.label,
+    description: capability.description,
+    riskLevel: capability.riskLevel,
+    isDangerous: capability.isDangerous,
+  }));
 
   // Seed capabilities
   const capabilities = new Map<string, any>();
@@ -488,6 +424,8 @@ async function main() {
       return cap.id;
     });
   };
+  const systemRoleDefinitions = buildSystemRoleDefinitions(capabilitiesData.map((capability) => capability.key));
+  const systemRoleMap = new Map(systemRoleDefinitions.map((role) => [`${role.scope}:${role.name}`, role]));
 
   // Seed system roles for org1 (Acme Corp)
   console.log('📋 Creating system roles for org1...');
@@ -512,8 +450,8 @@ async function main() {
     },
   });
 
-  // Org Owner gets ALL capabilities
-  const allCapabilityIds = getCapabilityIds(capabilitiesData.map(c => c.key));
+  // Org Owner gets all tenant capabilities (without platform.*)
+  const allCapabilityIds = getCapabilityIds(systemRoleMap.get('ORG:Org Owner')?.capabilityKeys || []);
   await prisma.roleCapability.deleteMany({ where: { roleId: orgOwnerRole.id } });
   await prisma.roleCapability.createMany({
     data: allCapabilityIds.map(capId => ({
@@ -541,10 +479,7 @@ async function main() {
     },
   });
 
-  // Org Admin gets everything except billing.* and org.roles.manage
-  const orgAdminCapabilities = capabilitiesData
-    .filter(c => !c.key.startsWith('billing.') && c.key !== 'org.roles.manage')
-    .map(c => c.key);
+  const orgAdminCapabilities = systemRoleMap.get('ORG:Org Admin')?.capabilityKeys || [];
   await prisma.roleCapability.deleteMany({ where: { roleId: orgAdminRole.id } });
   await prisma.roleCapability.createMany({
     data: getCapabilityIds(orgAdminCapabilities).map(capId => ({
@@ -601,16 +536,7 @@ async function main() {
     },
   });
 
-  // Site Admin gets builder.*, content.*, sites.settings.*, builder.custom_code, builder.site_roles.manage
-  const siteAdminCapabilities = [
-    'builder.view', 'builder.edit', 'builder.draft.save', 'builder.publish',
-    'builder.rollback', 'builder.history.view', 'builder.assets.upload',
-    'builder.assets.delete', 'builder.custom_code', 'builder.site_roles.manage',
-    'content.view', 'content.create', 'content.edit', 'content.delete', 'content.publish',
-    'content.media.manage', 'sites.settings.view', 'sites.settings.manage',
-    'marketing.view', 'marketing.content.edit', 'marketing.publish',
-    'marketing.campaign.manage', 'marketing.stats.view',
-  ];
+  const siteAdminCapabilities = systemRoleMap.get('SITE:Site Admin')?.capabilityKeys || [];
   await prisma.roleCapability.deleteMany({ where: { roleId: siteAdminRole.id } });
   await prisma.roleCapability.createMany({
     data: getCapabilityIds(siteAdminCapabilities).map(capId => ({
@@ -641,10 +567,7 @@ async function main() {
   await prisma.roleCapability.deleteMany({ where: { roleId: editorInChiefRole.id } });
   await prisma.roleCapability.createMany({
     data: getCapabilityIds([
-      'builder.view', 'builder.edit', 'builder.draft.save', 'builder.publish',
-      'builder.rollback', 'builder.history.view',
-      'content.view', 'content.create', 'content.edit', 'content.publish',
-      'content.media.manage',
+      ...(systemRoleMap.get('SITE:Editor-in-Chief')?.capabilityKeys || []),
     ]).map(capId => ({
       roleId: editorInChiefRole.id,
       capabilityId: capId,
@@ -673,8 +596,7 @@ async function main() {
   await prisma.roleCapability.deleteMany({ where: { roleId: editorRole.id } });
   await prisma.roleCapability.createMany({
     data: getCapabilityIds([
-      'builder.view', 'builder.edit', 'builder.draft.save', 'builder.history.view',
-      'content.view', 'content.create', 'content.edit', 'content.media.manage',
+      ...(systemRoleMap.get('SITE:Editor')?.capabilityKeys || []),
     ]).map(capId => ({
       roleId: editorRole.id,
       capabilityId: capId,
@@ -703,8 +625,7 @@ async function main() {
   await prisma.roleCapability.deleteMany({ where: { roleId: publisherRole.id } });
   await prisma.roleCapability.createMany({
     data: getCapabilityIds([
-      'builder.view', 'builder.publish', 'builder.rollback', 'builder.history.view',
-      'content.view', 'content.publish',
+      ...(systemRoleMap.get('SITE:Publisher')?.capabilityKeys || []),
     ]).map(capId => ({
       roleId: publisherRole.id,
       capabilityId: capId,
@@ -733,7 +654,7 @@ async function main() {
   await prisma.roleCapability.deleteMany({ where: { roleId: viewerRole.id } });
   await prisma.roleCapability.createMany({
     data: getCapabilityIds([
-      'builder.view', 'content.view', 'analytics.view',
+      ...(systemRoleMap.get('SITE:Viewer')?.capabilityKeys || []),
     ]).map(capId => ({
       roleId: viewerRole.id,
       capabilityId: capId,
@@ -763,9 +684,7 @@ async function main() {
   await prisma.roleCapability.deleteMany({ where: { roleId: marketingManagerRole.id } });
   await prisma.roleCapability.createMany({
     data: getCapabilityIds([
-      'marketing.view', 'marketing.content.edit', 'marketing.publish',
-      'marketing.campaign.manage', 'marketing.stats.view', 'marketing.schedule',
-      'marketing.ads.manage',
+      ...(systemRoleMap.get('SITE:Marketing Manager')?.capabilityKeys || []),
     ]).map(capId => ({
       roleId: marketingManagerRole.id,
       capabilityId: capId,
@@ -794,7 +713,7 @@ async function main() {
   await prisma.roleCapability.deleteMany({ where: { roleId: marketingEditorRole.id } });
   await prisma.roleCapability.createMany({
     data: getCapabilityIds([
-      'marketing.view', 'marketing.content.edit',
+      ...(systemRoleMap.get('SITE:Marketing Editor')?.capabilityKeys || []),
     ]).map(capId => ({
       roleId: marketingEditorRole.id,
       capabilityId: capId,
@@ -823,7 +742,7 @@ async function main() {
   await prisma.roleCapability.deleteMany({ where: { roleId: marketingPublisherRole.id } });
   await prisma.roleCapability.createMany({
     data: getCapabilityIds([
-      'marketing.view', 'marketing.publish',
+      ...(systemRoleMap.get('SITE:Marketing Publisher')?.capabilityKeys || []),
     ]).map(capId => ({
       roleId: marketingPublisherRole.id,
       capabilityId: capId,
@@ -852,7 +771,7 @@ async function main() {
   await prisma.roleCapability.deleteMany({ where: { roleId: marketingViewerRole.id } });
   await prisma.roleCapability.createMany({
     data: getCapabilityIds([
-      'marketing.view', 'marketing.stats.view',
+      ...(systemRoleMap.get('SITE:Marketing Viewer')?.capabilityKeys || []),
     ]).map(capId => ({
       roleId: marketingViewerRole.id,
       capabilityId: capId,
@@ -860,6 +779,37 @@ async function main() {
   });
 
   console.log('✅ Created system roles for org1');
+
+  const platformRoles = new Map<string, any>();
+  const platformRoleDefinitions = systemRoleDefinitions.filter((role) => role.scope === 'PLATFORM');
+  for (const roleDef of platformRoleDefinitions) {
+    const role = await prisma.platformRole.upsert({
+      where: { name: roleDef.name },
+      update: {
+        description: roleDef.description,
+        type: 'SYSTEM',
+        isImmutable: true,
+      },
+      create: {
+        name: roleDef.name,
+        description: roleDef.description,
+        type: 'SYSTEM',
+        isImmutable: true,
+      },
+    });
+
+    await prisma.platformRoleCapability.deleteMany({ where: { roleId: role.id } });
+    await prisma.platformRoleCapability.createMany({
+      data: getCapabilityIds(roleDef.capabilityKeys).map((capId) => ({
+        roleId: role.id,
+        capabilityId: capId,
+      })),
+    });
+
+    platformRoles.set(role.name, role);
+  }
+
+  console.log(`✅ Created platform roles: ${platformRoleDefinitions.length}`);
 
   // Seed default OrgPolicy for org1
   // Most capabilities enabled by default, but risky ones disabled
@@ -869,7 +819,8 @@ async function main() {
     'marketing.schedule',
   ];
 
-  for (const capData of capabilitiesData) {
+  const tenantCapabilitiesData = capabilitiesData.filter((capability) => !capability.key.startsWith('platform.'));
+  for (const capData of tenantCapabilitiesData) {
     const enabled = !riskyCapabilities.includes(capData.key);
     await prisma.orgPolicy.upsert({
       where: {
@@ -952,6 +903,23 @@ async function main() {
 
   console.log('✅ Created/Updated super admin user:', superAdminUser.email);
 
+  const platformRootRole = platformRoles.get('Platform Root');
+  if (platformRootRole) {
+    await prisma.platformUserRole.upsert({
+      where: {
+        userId_roleId: {
+          userId: superAdminUser.id,
+          roleId: platformRootRole.id,
+        },
+      },
+      update: {},
+      create: {
+        userId: superAdminUser.id,
+        roleId: platformRootRole.id,
+      },
+    });
+  }
+
   console.log('\n📋 Summary:');
   console.log(`  - Tenants: 3 (acme-corp, demo-company, platform-admin)`);
   console.log(`  - Users: 5 (3 for acme-corp, 1 for demo-company, 1 super admin)`);
@@ -961,8 +929,8 @@ async function main() {
   console.log(`  - Collection Items: 2`);
   console.log(`  - Media Files: 2`);
   console.log(`  - Capabilities: ${capabilities.size}`);
-  console.log(`  - System Roles: 12 (3 ORG scope, 9 SITE scope)`);
-  console.log(`  - Org Policies: ${capabilities.size} (for org1)`);
+  console.log(`  - System Roles: ${systemRoleDefinitions.length} (4 PLATFORM, 3 ORG, 9 SITE)`);
+  console.log(`  - Org Policies: ${tenantCapabilitiesData.length} (for org1)`);
   console.log('\n🔐 Default password for all users: password123');
   console.log('🔐 Super admin (liwiusz01@gmail.com) password: Liwia2015!');
 }

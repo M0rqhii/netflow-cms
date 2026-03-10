@@ -21,7 +21,7 @@ import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { RbacService } from './rbac.service';
 import { RbacEvaluatorService } from './rbac-evaluator.service';
-import { isPlatformAdminValue, isPlatformPowerUser } from '../../common/auth/platform-admin.util';
+import { coercePublicRbacUserRoleKey, getPublicRbacUserRoleByName } from '@repo/schemas';
 import {
   createRoleSchema,
   updateRoleSchema,
@@ -54,30 +54,54 @@ export class RbacController {
    */
   @Get('users')
   async getOrgUsers(@CurrentOrg() orgId: string) {
-    // Get users via UserOrg membership
-    const memberships = await this.prisma.userOrg.findMany({
+    const users = await this.prisma.userOrg.findMany({
       where: { orgId },
       include: {
         user: {
           select: {
             id: true,
             email: true,
-            role: true,
-            siteRole: true,
-            platformRole: true,
             createdAt: true,
           },
         },
       },
+      orderBy: { createdAt: 'desc' },
     });
+    const orgAssignments = await this.prisma.userRole.findMany({
+      where: {
+        orgId,
+        siteId: null,
+        role: {
+          scope: 'ORG',
+        },
+      },
+      include: {
+        role: {
+          select: {
+            name: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+    const assignmentMap = new Map<string, string>();
+    for (const assignment of orgAssignments) {
+      if (!assignmentMap.has(assignment.userId)) {
+        assignmentMap.set(
+          assignment.userId,
+          getPublicRbacUserRoleByName(assignment.role.name, 'ORG')?.key || 'org_member',
+        );
+      }
+    }
 
-    return memberships.map((m) => ({
-      id: m.user.id,
-      email: m.user.email,
-      role: m.role,
-      siteRole: m.user.siteRole,
-      platformRole: m.user.platformRole,
-      createdAt: m.user.createdAt.toISOString(),
+    return users.map((membership) => ({
+      id: membership.user.id,
+      email: membership.user.email,
+      role:
+        assignmentMap.get(membership.user.id) ||
+        coercePublicRbacUserRoleKey(membership.role, 'ORG') ||
+        'org_member',
+      createdAt: membership.user.createdAt.toISOString(),
     }));
   }
 
@@ -360,33 +384,15 @@ export class RbacController {
    * Checks if user has Owner role (system role) or is super admin
    */
   private async isOwner(orgId: string, userId: string): Promise<boolean> {
-    // Get user to check system role
-    const user = await this.prisma.user.findFirst({
-      where: {
-        id: userId,
-        orgId: orgId,
-      },
-      select: {
-        isSuperAdmin: true,
-        systemRole: true,
-        platformRole: true,
-        role: true,
-      },
-    });
-
-    if (!user) {
-      return false;
-    }
-
-    // Super admin / platform admin is always owner
-    if (isPlatformPowerUser(user) || isPlatformAdminValue(user.platformRole) || isPlatformAdminValue(user.role)) {
+    const platformProfile = await this.rbacService.getEffectivePlatformProfile(userId);
+    if (platformProfile.isPlatformPowerUser) {
       return true;
     }
 
     // Check if user has Owner role in org
     const assignments = await this.rbacService.getAssignments(orgId, userId);
     const hasOwnerRole = assignments.some(
-      a => a.role.name === 'Org Owner' && a.role.type === 'SYSTEM' && a.role.scope === 'ORG'
+      a => a.role.name === 'Org Owner' && a.role.type === 'SYSTEM' && a.role.scope === 'ORG' && !a.siteId
     );
 
     return hasOwnerRole;

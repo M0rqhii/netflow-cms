@@ -2,11 +2,10 @@
 
 import { DevPanelLayout } from "@/components/dev-panel/DevPanelLayout";
 import { DevPanelTabs } from "@/components/dev-panel/DevPanelTabs";
-import { useEffect, useMemo, useState } from "react";
-import { decodeAuthToken, getAuthToken, getDevDashboard } from "@/lib/api";
+import { useEffect, useState } from "react";
+import { getDevDashboard } from "@/lib/api";
 import { useTranslations } from "@/hooks/useTranslations";
-
-const PRIVILEGED_ROLES = ["super_admin", "org_admin", "site_admin", "tenant_admin", "platform_admin"];
+import { usePlatformAccess } from "@/hooks/usePlatformAccess";
 
 type DashboardData = {
   totals: { orgs: number; sites: number; users: number; media: number };
@@ -27,14 +26,8 @@ function formatBytes(bytes: number): string {
 
 export default function DevDashboardPage() {
   const t = useTranslations();
-  const token = getAuthToken();
-  const payload = useMemo(() => decodeAuthToken(token), [token]);
-  const isSuperAdmin = (payload?.isSuperAdmin as boolean) || false;
-  const isPrivileged =
-    PRIVILEGED_ROLES.includes((payload?.role as string) || "") ||
-    PRIVILEGED_ROLES.includes((payload?.platformRole as string) || "") ||
-    isSuperAdmin ||
-    (payload?.systemRole as string) === "super_admin";
+  const platformAccess = usePlatformAccess();
+  const isPrivileged = platformAccess.canAccessDevTools;
 
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(false);

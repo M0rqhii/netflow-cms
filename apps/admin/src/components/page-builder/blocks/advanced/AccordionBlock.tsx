@@ -63,16 +63,17 @@ export const AccordionBlock: React.FC<BlockComponentProps> = ({ node, children, 
     }
   };
 
-  // When children change: clear when none; open first when items exist but none open
+  // When children change: filter stale IDs (e.g. after undo), open first if none open
   React.useEffect(() => {
     if (childIds.length === 0) {
       setOpenItems(new Set());
       return;
     }
     setOpenItems((prev) => {
-      const hasAnyOpen = childIds.some((id) => prev.has(id));
-      if (!hasAnyOpen) return new Set([childIds[0]]);
-      return prev;
+      // Filter out IDs that no longer exist in children (fixes stale state after undo)
+      const filtered = new Set([...prev].filter((id) => childIds.includes(id)));
+      if (filtered.size === 0) return new Set([childIds[0]]);
+      return filtered;
     });
   }, [childIds]);
 

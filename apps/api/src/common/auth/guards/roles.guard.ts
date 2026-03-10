@@ -1,9 +1,15 @@
 import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { SiteRole, SystemRole } from '../roles.enum';
+import { SiteRole } from '../roles.enum';
 import { ROLES_KEY } from '../decorators/roles.decorator';
 import { CurrentUserPayload } from '../decorators/current-user.decorator';
+import {
+  getCapabilityCandidatesForSiteRole,
+  matchesRequiredSiteRole,
+  resolveAuthorizationContext,
+} from '../legacy-rbac-bridge';
 import { isPlatformPowerUser } from '../platform-admin.util';
+import { RbacService } from '../../../modules/rbac/rbac.service';
 
 /**
  * RolesGuard - checks if user has required site role
@@ -11,9 +17,12 @@ import { isPlatformPowerUser } from '../platform-admin.util';
  */
 @Injectable()
 export class RolesGuard implements CanActivate {
-  constructor(private reflector: Reflector) {}
+  constructor(
+    private reflector: Reflector,
+    private rbacService: RbacService,
+  ) {}
 
-  canActivate(context: ExecutionContext): boolean {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const requiredRoles = this.reflector.getAllAndOverride<SiteRole[]>(ROLES_KEY, [
       context.getHandler(),
       context.getClass(),
@@ -32,19 +41,16 @@ export class RolesGuard implements CanActivate {
     }
 
     // Super/platform admin has access to everything
-    if (isPlatformPowerUser(user) || user.systemRole === SystemRole.SUPER_ADMIN) {
+    if (isPlatformPowerUser(user)) {
       return true;
     }
 
-    const userSiteRole = user.siteRole as SiteRole | undefined;
-
-    // Site owner has access to everything within the site
-    if (userSiteRole === SiteRole.OWNER) {
+    const { orgId, siteId } = resolveAuthorizationContext(request, user);
+    if (await this.hasMappedRoleAccess(requiredRoles, user, orgId, siteId)) {
       return true;
     }
 
-    // Check if user site role is in required roles
-    if (!userSiteRole || !requiredRoles.includes(userSiteRole)) {
+    if (!matchesRequiredSiteRole(user, requiredRoles)) {
       throw new ForbiddenException(
         `Access denied. Required role: ${requiredRoles.join(' or ')}`,
       );
@@ -52,5 +58,33 @@ export class RolesGuard implements CanActivate {
 
     return true;
   }
-}
 
+  private async hasMappedRoleAccess(
+    requiredRoles: SiteRole[],
+    user: CurrentUserPayload,
+    orgId?: string,
+    siteId?: string,
+  ): Promise<boolean> {
+    if (!user.id || !orgId || !siteId) {
+      return false;
+    }
+
+    const capabilityKeys = Array.from(
+      new Set(requiredRoles.flatMap((role) => getCapabilityCandidatesForSiteRole(role))),
+    );
+
+    for (const capabilityKey of capabilityKeys) {
+      const canPerform = await this.rbacService.canUserPerform(
+        orgId,
+        user.id,
+        capabilityKey,
+        siteId,
+      );
+      if (canPerform) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+}

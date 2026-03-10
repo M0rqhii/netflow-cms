@@ -11,8 +11,16 @@ import type { Cache } from 'cache-manager';
 import { randomBytes, randomInt, randomUUID, createHash } from 'crypto';
 import { AuditService, AuditEvent } from '../../common/audit/audit.service';
 import { Mailer } from '../../common/providers/interfaces';
-import { isPlatformAdminValue, isPlatformPowerUser } from '../../common/auth/platform-admin.util';
 import { AccountNotificationsService } from '../../common/notifications/account-notifications.service';
+import {
+  coercePublicRbacUserRoleKey,
+  getPublicRbacUserRole,
+  getPublicRbacUserRoleByName,
+  type PublicRbacUserRoleDefinition,
+  type PublicRbacUserRoleKey,
+  type PublicRbacUserRoleScope,
+} from '@repo/schemas';
+import { RbacService } from '../rbac/rbac.service';
 
 export interface AuthResponse {
   access_token: string;
@@ -45,14 +53,7 @@ export type LoginResponse = LoginSuccessResponse | TwoFactorChallengeResponse;
 
 type TwoFactorChallengePayload = {
   userId: string;
-  email: string;
-  role: string;
-  baseOrgId: string;
   finalOrgId?: string;
-  siteRole: string;
-  platformRole: string;
-  systemRole?: string;
-  isSuperAdmin: boolean;
   isGlobalLogin: boolean;
   twoFactorMethod: TwoFactorMethod;
   codeDelivery: TwoFactorCodeDelivery;
@@ -60,6 +61,13 @@ type TwoFactorChallengePayload = {
 };
 
 type PasswordActionPurpose = 'reset_password' | 'account_setup';
+
+type EffectivePlatformAuthProfile = {
+  role: string;
+  isSuperAdmin: boolean;
+  isPlatformPowerUser: boolean;
+  platformRbacRoles: string[];
+};
 
 @Injectable()
 export class AuthService {
@@ -71,6 +79,7 @@ export class AuthService {
     private configService: ConfigService,
     @Inject(CACHE_MANAGER) private cache: Cache,
     private auditService: AuditService,
+    private readonly rbacService: RbacService,
     private readonly notifications: AccountNotificationsService,
     @Optional() @Inject('Mailer') private readonly mailer?: Mailer,
   ) {}
@@ -332,29 +341,25 @@ export class AuthService {
   private async buildLoginResponse(params: {
     userId: string;
     email: string;
-    role: string;
     finalOrgId?: string;
     baseOrgId: string;
-    siteRole: string;
-    platformRole: string;
-    systemRole?: string;
-    isSuperAdmin: boolean;
     preferredLanguage?: string | null;
     languageChosenAt?: Date | null;
     mustCompleteOnboarding?: boolean | null;
     onboardingCompletedAt?: Date | null;
     mustChangePassword?: boolean | null;
+    platformProfile?: EffectivePlatformAuthProfile;
   }): Promise<LoginSuccessResponse> {
-    const payload: JwtPayload = {
-      sub: params.userId,
+    const platformProfile =
+      params.platformProfile ||
+      (await this.getEffectivePlatformAuthProfile(params.userId));
+
+    const payload = await this.buildJwtPayload({
+      userId: params.userId,
       email: params.email,
       orgId: params.finalOrgId,
-      role: params.role, // Backward compatibility
-      siteRole: params.siteRole !== params.role ? params.siteRole : undefined,
-      platformRole: params.platformRole,
-      systemRole: params.systemRole,
-      isSuperAdmin: params.isSuperAdmin,
-    };
+      platformProfile,
+    });
 
     const onboarding = this.getOnboardingState({
       preferredLanguage: params.preferredLanguage,
@@ -370,7 +375,7 @@ export class AuthService {
       user: {
         id: params.userId,
         email: params.email,
-        role: params.role,
+        role: platformProfile.role,
         orgId: params.finalOrgId || params.baseOrgId,
         preferredLanguage: onboarding.preferredLanguage,
         onboardingRequired: onboarding.onboardingRequired,
@@ -399,11 +404,6 @@ export class AuthService {
           id: true,
           email: true,
           passwordHash: true,
-          role: true, // Backward compatibility
-          siteRole: true,
-          platformRole: true,
-          systemRole: true,
-          isSuperAdmin: true,
           orgId: true,
           billingInfo: true,
           preferredLanguage: true,
@@ -435,11 +435,6 @@ export class AuthService {
             id: true,
             email: true,
             passwordHash: true,
-            role: true, // Backward compatibility
-            siteRole: true,
-            platformRole: true,
-            systemRole: true,
-            isSuperAdmin: true,
             orgId: true,
             billingInfo: true,
             preferredLanguage: true,
@@ -464,11 +459,6 @@ export class AuthService {
         id: true,
         email: true,
         passwordHash: true,
-        role: true, // Backward compatibility
-        siteRole: true,
-        platformRole: true,
-        systemRole: true,
-        isSuperAdmin: true,
         orgId: true,
         billingInfo: true,
         preferredLanguage: true,
@@ -513,22 +503,239 @@ export class AuthService {
     return this.jwtService.sign(payload, { secret: refreshSecret, expiresIn: ttlSec, jwtid: jti });
   }
 
-  private mapRoleToSiteRole(role?: string): string {
-    const normalized = String(role || '').toLowerCase();
-    if (normalized === 'platform_admin') return 'owner';
-    if (normalized === 'org_admin') return 'admin';
-    if (normalized === 'super_admin') return 'owner';
-    if (normalized === 'editor') return 'editor';
-    if (normalized === 'viewer') return 'viewer';
-    return 'viewer';
+  private async resolvePublicInviteRole(
+    orgId: string,
+    roleKey: string,
+    scope: PublicRbacUserRoleScope,
+  ): Promise<PublicRbacUserRoleDefinition & { id: string }> {
+    const normalizedRoleKey = coercePublicRbacUserRoleKey(roleKey, scope) || roleKey;
+    const definition = getPublicRbacUserRole(normalizedRoleKey);
+    if (!definition || definition.scope !== scope) {
+      throw new BadRequestException('Invite role is not allowed');
+    }
+
+    await this.rbacService.getRoles(orgId, scope);
+
+    const role = await this.prisma.role.findUnique({
+      where: {
+        orgId_name_scope: {
+          orgId,
+          name: definition.roleName,
+          scope,
+        },
+      },
+      select: { id: true },
+    });
+
+    if (!role) {
+      throw new NotFoundException(`RBAC role not found: ${definition.roleName}`);
+    }
+
+    return { ...definition, id: role.id };
   }
 
-  private mapRoleToPlatformRole(role?: string): string {
-    const normalized = String(role || '').toLowerCase();
-    if (normalized === 'platform_admin') return 'platform_admin';
-    if (normalized === 'super_admin') return 'admin';
-    if (normalized === 'org_admin') return 'admin';
-    return 'user';
+  private async getPrimaryOrgRoleKey(
+    orgId: string,
+    userId: string,
+  ): Promise<PublicRbacUserRoleKey> {
+    const assignment = await this.prisma.userRole.findFirst({
+      where: {
+        orgId,
+        userId,
+        siteId: null,
+        role: {
+          scope: 'ORG',
+        },
+      },
+      include: {
+        role: {
+          select: {
+            name: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    if (!assignment) {
+      return 'org_member';
+    }
+
+    return getPublicRbacUserRoleByName(assignment.role.name, 'ORG')?.key || 'org_member';
+  }
+
+  private async syncCompatibilityForOrgRole(
+    orgId: string,
+    userId: string,
+    roleKey: PublicRbacUserRoleKey,
+  ) {
+    const role = getPublicRbacUserRole(roleKey);
+    if (!role || role.scope !== 'ORG') {
+      return;
+    }
+
+    await this.prisma.userOrg.upsert({
+      where: { userId_orgId: { userId, orgId } },
+      update: { role: role.key },
+      create: { userId, orgId, role: role.key },
+    });
+  }
+
+  private async syncCompatibilityForSiteRole(
+    orgId: string,
+    userId: string,
+    roleKey: PublicRbacUserRoleKey,
+  ) {
+    const siteRole = getPublicRbacUserRole(roleKey);
+    if (!siteRole || siteRole.scope !== 'SITE') {
+      return;
+    }
+
+    const orgRoleKey = await this.getPrimaryOrgRoleKey(orgId, userId);
+
+    await this.prisma.userOrg.upsert({
+      where: { userId_orgId: { userId, orgId } },
+      update: { role: orgRoleKey },
+      create: { userId, orgId, role: orgRoleKey },
+    });
+  }
+
+  private getSiteRolePriority(roleKey?: string | null): number {
+    switch (roleKey) {
+      case 'site_admin':
+        return 100;
+      case 'editor_in_chief':
+        return 80;
+      case 'editor':
+        return 70;
+      case 'marketing_manager':
+        return 60;
+      case 'publisher':
+        return 50;
+      case 'marketing_editor':
+        return 40;
+      case 'marketing_publisher':
+        return 35;
+      case 'marketing_viewer':
+        return 20;
+      case 'viewer':
+        return 10;
+      default:
+        return 0;
+    }
+  }
+
+  private async getJwtTenantRoleClaims(params: {
+    userId: string;
+    orgId?: string;
+    siteId?: string;
+    fallbackOrgRoleKey?: PublicRbacUserRoleKey | null;
+    fallbackSiteRoleKey?: PublicRbacUserRoleKey | null;
+  }) {
+    if (!params.orgId) {
+      return {
+        orgRoleKey: params.fallbackOrgRoleKey ?? undefined,
+        orgRoleName: undefined,
+        siteRoleKey: params.fallbackSiteRoleKey ?? undefined,
+        siteRoleName: undefined,
+      };
+    }
+
+    await this.rbacService.backfillLegacyOrgAssignments(params.userId, params.orgId);
+
+    const assignments = await this.prisma.userRole.findMany({
+      where: {
+        userId: params.userId,
+        orgId: params.orgId,
+        OR: params.siteId ? [{ siteId: null }, { siteId: params.siteId }] : [{ siteId: null }],
+      },
+      select: {
+        siteId: true,
+        role: {
+          select: {
+            name: true,
+            scope: true,
+          },
+        },
+      },
+    });
+
+    const orgAssignments = assignments.filter(
+      (assignment) => assignment.role.scope === 'ORG' && assignment.siteId === null,
+    );
+    const orgAssignment =
+      orgAssignments.find(
+        (assignment) => getPublicRbacUserRoleByName(assignment.role.name, 'ORG')?.key === 'org_admin',
+      ) || orgAssignments[0];
+
+    const siteAssignments = params.siteId
+      ? assignments.filter(
+          (assignment) => assignment.role.scope === 'SITE' && assignment.siteId === params.siteId,
+        )
+      : [];
+    const siteAssignment = [...siteAssignments].sort((left, right) => {
+      const leftKey = getPublicRbacUserRoleByName(left.role.name, 'SITE')?.key;
+      const rightKey = getPublicRbacUserRoleByName(right.role.name, 'SITE')?.key;
+      return this.getSiteRolePriority(rightKey) - this.getSiteRolePriority(leftKey);
+    })[0];
+
+    return {
+      orgRoleKey:
+        getPublicRbacUserRoleByName(orgAssignment?.role.name || '', 'ORG')?.key ||
+        params.fallbackOrgRoleKey ||
+        undefined,
+      orgRoleName: orgAssignment?.role.name,
+      siteRoleKey:
+        getPublicRbacUserRoleByName(siteAssignment?.role.name || '', 'SITE')?.key ||
+        params.fallbackSiteRoleKey ||
+        undefined,
+      siteRoleName: siteAssignment?.role.name,
+    };
+  }
+
+  private async getEffectivePlatformAuthProfile(userId: string): Promise<EffectivePlatformAuthProfile> {
+    const platformProfile = await this.rbacService.getEffectivePlatformProfile(userId);
+
+    return {
+      role: platformProfile.legacyRole || 'viewer',
+      isSuperAdmin: platformProfile.isSuperAdmin,
+      isPlatformPowerUser: platformProfile.isPlatformPowerUser,
+      platformRbacRoles: platformProfile.roleNames,
+    };
+  }
+
+  private async buildJwtPayload(params: {
+    userId: string;
+    email: string;
+    orgId?: string;
+    siteId?: string;
+    platformProfile?: EffectivePlatformAuthProfile;
+    fallbackOrgRoleKey?: PublicRbacUserRoleKey | null;
+    fallbackSiteRoleKey?: PublicRbacUserRoleKey | null;
+  }): Promise<JwtPayload> {
+    const platformProfile =
+      params.platformProfile ||
+      (await this.getEffectivePlatformAuthProfile(params.userId));
+    const tenantRoleClaims = await this.getJwtTenantRoleClaims({
+      userId: params.userId,
+      orgId: params.orgId,
+      siteId: params.siteId,
+      fallbackOrgRoleKey: params.fallbackOrgRoleKey ?? (params.orgId ? 'org_member' : undefined),
+      fallbackSiteRoleKey: params.fallbackSiteRoleKey ?? (params.siteId ? 'viewer' : undefined),
+    });
+
+    return {
+      sub: params.userId,
+      email: params.email,
+      orgId: params.orgId,
+      siteId: params.siteId,
+      isSuperAdmin: platformProfile.isSuperAdmin,
+      orgRoleKey: tenantRoleClaims.orgRoleKey,
+      orgRoleName: tenantRoleClaims.orgRoleName,
+      siteRoleKey: tenantRoleClaims.siteRoleKey,
+      siteRoleName: tenantRoleClaims.siteRoleName,
+      platformRbacRoles: platformProfile.platformRbacRoles,
+    };
   }
 
   async login(loginDto: LoginDto): Promise<LoginResponse> {
@@ -567,11 +774,7 @@ export class AuthService {
       }
     }
 
-    // Get roles from user - use new fields if available, fall back to old role field
-    const siteRole = user.siteRole || this.mapRoleToSiteRole(user.role);
-    const platformRole = user.platformRole || this.mapRoleToPlatformRole(user.role);
-    const systemRole = user.systemRole || (user.role === 'super_admin' ? 'super_admin' : undefined);
-    const isSuperAdmin = user.isSuperAdmin || user.role === 'super_admin' || user.systemRole === 'super_admin';
+    const platformProfile = await this.getEffectivePlatformAuthProfile(user.id);
 
     const twoFactor = this.readTwoFactorSettings(user.billingInfo);
     if (twoFactor.enabled) {
@@ -593,14 +796,7 @@ export class AuthService {
 
       const challengePayload: TwoFactorChallengePayload = {
         userId: user.id,
-        email: user.email,
-        role: user.role,
-        baseOrgId: user.orgId,
         finalOrgId,
-        siteRole,
-        platformRole,
-        systemRole,
-        isSuperAdmin,
         isGlobalLogin,
         twoFactorMethod: twoFactor.method,
         codeDelivery,
@@ -625,18 +821,14 @@ export class AuthService {
     const response = await this.buildLoginResponse({
       userId: user.id,
       email: user.email,
-      role: user.role,
       finalOrgId,
       baseOrgId: user.orgId,
-      siteRole,
-      platformRole,
-      systemRole,
-      isSuperAdmin,
       preferredLanguage: user.preferredLanguage,
       languageChosenAt: user.languageChosenAt,
       mustCompleteOnboarding: user.mustCompleteOnboarding,
       onboardingCompletedAt: user.onboardingCompletedAt,
       mustChangePassword: user.mustChangePassword,
+      platformProfile,
     });
 
     // Audit log: Global login
@@ -675,11 +867,6 @@ export class AuthService {
       select: {
         id: true,
         email: true,
-        role: true, // Backward compatibility
-        siteRole: true,
-        platformRole: true,
-        systemRole: true,
-        isSuperAdmin: true,
         orgId: true,
         preferredLanguage: true,
         languageChosenAt: true,
@@ -695,29 +882,19 @@ export class AuthService {
 
     await this.cache.del(this.getTwoFactorChallengeCacheKey(dto.token) as any);
 
-    const siteRole = currentUser.siteRole || this.mapRoleToSiteRole(currentUser.role);
-    const platformRole = currentUser.platformRole || this.mapRoleToPlatformRole(currentUser.role);
-    const systemRole = currentUser.systemRole || (currentUser.role === 'super_admin' ? 'super_admin' : undefined);
-    const isSuperAdmin =
-      currentUser.isSuperAdmin ||
-      currentUser.role === 'super_admin' ||
-      currentUser.systemRole === 'super_admin';
+    const platformProfile = await this.getEffectivePlatformAuthProfile(currentUser.id);
 
     const response = await this.buildLoginResponse({
       userId: currentUser.id,
       email: currentUser.email,
-      role: currentUser.role,
       finalOrgId: challenge.finalOrgId,
       baseOrgId: currentUser.orgId,
-      siteRole,
-      platformRole,
-      systemRole,
-      isSuperAdmin,
       preferredLanguage: currentUser.preferredLanguage,
       languageChosenAt: currentUser.languageChosenAt,
       mustCompleteOnboarding: currentUser.mustCompleteOnboarding,
       onboardingCompletedAt: currentUser.onboardingCompletedAt,
       mustChangePassword: currentUser.mustChangePassword,
+      platformProfile,
     });
 
     await this.auditService.log({
@@ -764,12 +941,11 @@ export class AuthService {
       throw new ConflictException('Organization does not exist');
     }
 
-    // Security: super_admin role is not allowed in registration schema
-    // Only existing super_admin can create new super_admin users via admin endpoint
-    // registerDto.role can only be 'org_admin', 'editor', or 'viewer'
-    const role = registerDto.role || 'viewer';
-    const siteRole = this.mapRoleToSiteRole(role);
-    const platformRole = this.mapRoleToPlatformRole(role);
+    const publicRole = await this.resolvePublicInviteRole(
+      orgId,
+      registerDto.role || 'org_member',
+      'ORG',
+    );
     const preferredLanguage = registerDto.preferredLanguage || 'en';
     const languageChosenAt = registerDto.preferredLanguage ? new Date() : null;
     
@@ -782,9 +958,6 @@ export class AuthService {
         email: registerDto.email,
         passwordHash,
         orgId,
-        role,
-        siteRole,
-        platformRole,
         preferredLanguage,
         languageChosenAt,
         mustCompleteOnboarding: true,
@@ -792,20 +965,20 @@ export class AuthService {
       },
     });
 
-    await this.prisma.userOrg.upsert({
-      where: { userId_orgId: { userId: user.id, orgId } },
-      update: { role },
-      create: { userId: user.id, orgId, role },
-    });
+    await this.rbacService.createAssignment(
+      orgId,
+      { userId: user.id, roleId: publicRole.id, siteId: null },
+      user.id,
+    );
+    await this.syncCompatibilityForOrgRole(orgId, user.id, publicRole.key);
 
-    const payload: JwtPayload = {
-      sub: user.id,
+    const payload = await this.buildJwtPayload({
+      userId: user.id,
       email: user.email,
       orgId: user.orgId,
-      role: user.role,
-      siteRole,
-      platformRole, // Platform role (platform_admin, org_owner, user)
-    };
+      fallbackOrgRoleKey: publicRole.scope === 'ORG' ? publicRole.key : 'org_member',
+      fallbackSiteRoleKey: publicRole.scope === 'SITE' ? publicRole.key : undefined,
+    });
 
     const onboarding = this.getOnboardingState({
       preferredLanguage: user.preferredLanguage,
@@ -821,7 +994,7 @@ export class AuthService {
       user: {
         id: user.id,
         email: user.email,
-        role: user.role,
+        role: publicRole.legacyRole,
         orgId: user.orgId,
         preferredLanguage: onboarding.preferredLanguage,
         onboardingRequired: onboarding.onboardingRequired,
@@ -836,7 +1009,7 @@ export class AuthService {
       event: AuditEvent.USER_INVITE, // Registration is similar to invite
       userId: user.id,
       metadata: {
-        role: user.role,
+        role: publicRole.key,
         action: 'register',
       },
     });
@@ -875,7 +1048,7 @@ export class AuthService {
     return {
       id: invite.id,
       email: invite.email,
-      role: invite.role,
+      role: coercePublicRbacUserRoleKey(invite.role, invite.site ? 'SITE' : 'ORG') || invite.role,
       expiresAt: invite.expiresAt,
       organization: invite.organization,
       site: invite.site,
@@ -905,10 +1078,6 @@ export class AuthService {
       throw new BadRequestException('Invite token is invalid or expired');
     }
 
-    if (invite.role === 'super_admin') {
-      throw new BadRequestException('Invite role is not allowed');
-    }
-
     const existingUser = await this.prisma.user.findUnique({
       where: {
         orgId_email: {
@@ -922,64 +1091,80 @@ export class AuthService {
       throw new ConflictException('User with this email already exists');
     }
 
-    const role = invite.role === 'site_admin' ? 'org_admin' : invite.role || 'viewer';
-    const siteRole = this.mapRoleToSiteRole(role);
-    const platformRole = this.mapRoleToPlatformRole(role);
+    const inviteScope: PublicRbacUserRoleScope = invite.siteId ? 'SITE' : 'ORG';
+    const publicRole = await this.resolvePublicInviteRole(invite.orgId, invite.role, inviteScope);
     const passwordHash = await bcrypt.hash(dto.password, 12);
     const preferredLanguage = dto.preferredLanguage || 'en';
     const languageChosenAt = dto.preferredLanguage ? new Date() : null;
 
-    const user = await this.prisma.user.create({
+    const createdUser = await this.prisma.user.create({
       data: {
         email: invite.email,
         passwordHash,
         orgId: invite.orgId,
-        role,
-        siteRole,
-        platformRole,
         preferredLanguage,
         languageChosenAt,
         mustCompleteOnboarding: true,
         mustChangePassword: false,
       },
+      select: {
+        id: true,
+        email: true,
+        orgId: true,
+        preferredLanguage: true,
+        languageChosenAt: true,
+        mustCompleteOnboarding: true,
+        onboardingCompletedAt: true,
+        mustChangePassword: true,
+      },
     });
 
-    await this.prisma.userOrg.upsert({
-      where: { userId_orgId: { userId: user.id, orgId: invite.orgId } },
-      update: { role },
-      create: { userId: user.id, orgId: invite.orgId, role },
-    });
+    await this.rbacService.createAssignment(
+      invite.orgId,
+      {
+        userId: createdUser.id,
+        roleId: publicRole.id,
+        siteId: invite.siteId || null,
+      },
+      createdUser.id,
+    );
+
+    if (publicRole.scope === 'ORG') {
+      await this.syncCompatibilityForOrgRole(invite.orgId, createdUser.id, publicRole.key);
+    } else {
+      await this.syncCompatibilityForSiteRole(invite.orgId, createdUser.id, publicRole.key);
+    }
 
     await this.prisma.userInvite.update({
       where: { id: invite.id },
       data: { status: 'accepted', acceptedAt: new Date() },
     });
 
-    const payload: JwtPayload = {
-      sub: user.id,
-      email: user.email,
-      orgId: user.orgId,
-      role: user.role,
-      siteRole,
-      platformRole,
-    };
+    const platformProfile = await this.getEffectivePlatformAuthProfile(createdUser.id);
+
+    const payload = await this.buildJwtPayload({
+      userId: createdUser.id,
+      email: createdUser.email,
+      orgId: createdUser.orgId,
+      platformProfile,
+    });
 
     const onboarding = this.getOnboardingState({
-      preferredLanguage: user.preferredLanguage,
-      languageChosenAt: user.languageChosenAt,
-      mustCompleteOnboarding: user.mustCompleteOnboarding,
-      onboardingCompletedAt: user.onboardingCompletedAt,
-      mustChangePassword: user.mustChangePassword,
+      preferredLanguage: createdUser.preferredLanguage,
+      languageChosenAt: createdUser.languageChosenAt,
+      mustCompleteOnboarding: createdUser.mustCompleteOnboarding,
+      onboardingCompletedAt: createdUser.onboardingCompletedAt,
+      mustChangePassword: createdUser.mustChangePassword,
     });
 
     const response = {
       access_token: await this.issueAccessToken(payload),
       refresh_token: await this.issueRefreshToken(payload),
       user: {
-        id: user.id,
-        email: user.email,
-        role: user.role,
-        orgId: user.orgId,
+        id: createdUser.id,
+        email: createdUser.email,
+        role: platformProfile.role,
+        orgId: createdUser.orgId,
         preferredLanguage: onboarding.preferredLanguage,
         onboardingRequired: onboarding.onboardingRequired,
         mustChangePassword: onboarding.mustChangePassword,
@@ -990,7 +1175,7 @@ export class AuthService {
 
     await this.auditService.log({
       event: AuditEvent.USER_INVITE,
-      userId: user.id,
+      userId: createdUser.id,
       orgId: invite.orgId,
       siteId: invite.siteId || undefined,
       metadata: {
@@ -1151,7 +1336,7 @@ export class AuthService {
     } catch (e) {
       throw new UnauthorizedException('Invalid refresh token');
     }
-    const { sub, orgId, role, jti } = decoded as JwtPayload & { jti: string };
+    const { sub, orgId, siteId, jti } = decoded as JwtPayload & { jti: string };
     if (!jti) throw new UnauthorizedException('Invalid refresh token');
 
     const key = `refresh:${sub}:${jti}`;
@@ -1167,34 +1352,21 @@ export class AuthService {
       select: { 
         id: true, 
         email: true, 
-        role: true, // Backward compatibility
-        siteRole: true,
-        platformRole: true,
-        systemRole: true,
-        isSuperAdmin: true,
         orgId: true 
       } 
     });
     if (!user) throw new UnauthorizedException('User not found');
 
-    // Use values from database (most up-to-date) or fall back to token payload
-    const siteRole = user.siteRole || decoded.siteRole || this.mapRoleToSiteRole(role ?? user.role);
-    const platformRole = user.platformRole || decoded.platformRole || this.mapRoleToPlatformRole(user.role);
-    const systemRole = user.systemRole || decoded.systemRole || (user.role === 'super_admin' ? 'super_admin' : undefined);
-    const isSuperAdmin = user.isSuperAdmin || decoded.isSuperAdmin || user.role === 'super_admin' || user.systemRole === 'super_admin';
-
+    const platformProfile = await this.getEffectivePlatformAuthProfile(user.id);
     const finalOrgId = orgId ?? user.orgId;
 
-    const payload: JwtPayload = {
-      sub: user.id,
+    const payload = await this.buildJwtPayload({
+      userId: user.id,
       email: user.email,
       orgId: finalOrgId,
-      role: role ?? user.role, // Backward compatibility
-      siteRole: siteRole !== user.role ? siteRole : undefined,
-      platformRole,
-      systemRole,
-      isSuperAdmin,
-    };
+      siteId,
+      platformProfile,
+    });
     const access_token = await this.issueAccessToken(payload);
     const refresh_token = await this.issueRefreshToken(payload);
     return { access_token, refresh_token };
@@ -1225,17 +1397,26 @@ export class AuthService {
   }
 
   async findById(id: string) {
-    return this.prisma.user.findUnique({
+    const user = await this.prisma.user.findUnique({
       where: { id },
       select: {
         id: true,
         email: true,
-        role: true,
         orgId: true,
         createdAt: true,
         updatedAt: true,
       },
     });
+
+    if (!user) {
+      return null;
+    }
+
+    const platformProfile = await this.getEffectivePlatformAuthProfile(user.id);
+    return {
+      ...user,
+      role: platformProfile.role,
+    };
   }
 
   async getUserOrgs(userId: string) {
@@ -1261,7 +1442,6 @@ export class AuthService {
     const legacy = await this.prisma.user.findUnique({
       where: { id: userId },
       select: {
-        role: true,
         orgId: true,
         organization: { select: { id: true, name: true, slug: true, plan: true } },
       },
@@ -1270,7 +1450,7 @@ export class AuthService {
     return [
       {
         orgId: legacy.orgId,
-        role: legacy.role,
+        role: 'org_member',
         organization: legacy.organization,
       },
     ];
@@ -1282,42 +1462,30 @@ export class AuthService {
       select: { role: true },
     });
 
-    let role = membership?.role;
-    if (!role) {
-      const user = await this.prisma.user.findUnique({
-        where: { id: userId },
-        select: { orgId: true, role: true, platformRole: true, systemRole: true, isSuperAdmin: true, email: true },
-      });
-      if (!user) {
-        throw new UnauthorizedException('Not a member of this organization');
-      }
-      const canCrossOrg = isPlatformPowerUser(user);
-      if (!canCrossOrg && user.orgId !== orgId) {
-        throw new UnauthorizedException('Not a member of this organization');
-      }
-      role = user.role;
-    }
-
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, email: true },
+      select: {
+        id: true,
+        email: true,
+        orgId: true,
+      },
     });
     if (!user) {
       throw new UnauthorizedException('User not found');
     }
 
-    const finalRole = role ?? 'viewer';
-    const platformRole = this.mapRoleToPlatformRole(finalRole);
-    const siteRole = this.mapRoleToSiteRole(finalRole);
+    const platformProfile = await this.getEffectivePlatformAuthProfile(user.id);
 
-    const payload: JwtPayload = {
-      sub: user.id,
+    if (!membership && !platformProfile.isPlatformPowerUser && user.orgId !== orgId) {
+      throw new UnauthorizedException('Not a member of this organization');
+    }
+
+    const payload = await this.buildJwtPayload({
+      userId: user.id,
       email: user.email,
       orgId,
-      role: finalRole,
-      siteRole,
-      platformRole,
-    };
+      platformProfile,
+    });
     const orgTokenExpiresIn = 60 * 60;
     return {
       access_token: this.jwtService.sign(payload, { expiresIn: orgTokenExpiresIn }),
@@ -1338,51 +1506,37 @@ export class AuthService {
     // First check if user is super_admin - they have access to all sites
     const currentUser = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, orgId: true, role: true, platformRole: true, email: true, isSuperAdmin: true, systemRole: true },
+      select: {
+        id: true,
+        orgId: true,
+        email: true,
+      },
     });
 
     if (!currentUser) {
       throw new UnauthorizedException('User not found');
     }
 
-    const isSuperAdmin = isPlatformPowerUser(currentUser) || currentUser.systemRole === 'super_admin';
+    const platformProfile = await this.getEffectivePlatformAuthProfile(currentUser.id);
 
-    let role: string | undefined;
-    if (isSuperAdmin) {
-      // Super admins get super_admin role for all sites
-      role = isPlatformAdminValue(currentUser.platformRole) || isPlatformAdminValue(currentUser.role)
-        ? 'platform_admin'
-        : 'super_admin';
-    } else {
+    if (!platformProfile.isPlatformPowerUser) {
       const membership = await this.prisma.userOrg.findUnique({
         where: { userId_orgId: { userId, orgId: site.orgId } },
         select: { role: true },
       });
 
-      role = membership?.role;
-      if (!role) {
-        if (currentUser.orgId !== site.orgId) {
-          throw new UnauthorizedException('Not a member of the organization that owns this site');
-        }
-        role = currentUser.role;
+      if (!membership && currentUser.orgId !== site.orgId) {
+        throw new UnauthorizedException('Not a member of the organization that owns this site');
       }
     }
 
-    const finalRole = role ?? 'viewer';
-    const platformRole = this.mapRoleToPlatformRole(finalRole);
-    const siteRole = this.mapRoleToSiteRole(finalRole);
-
-    const payload: JwtPayload = {
-      sub: currentUser.id,
+    const payload = await this.buildJwtPayload({
+      userId: currentUser.id,
       email: currentUser.email,
       orgId: site.orgId,
       siteId: site.id,
-      role: finalRole,
-      siteRole,
-      platformRole,
-      isSuperAdmin: isSuperAdmin || undefined,
-      systemRole: currentUser.systemRole || undefined,
-    };
+      platformProfile,
+    });
     const siteTokenExpiresIn = 60 * 60;
     return {
       access_token: this.jwtService.sign(payload, { expiresIn: siteTokenExpiresIn }),
@@ -1400,15 +1554,18 @@ export class AuthService {
     // Check if user is super_admin - they have access to all organizations
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { orgId: true, isSuperAdmin: true, systemRole: true, platformRole: true, role: true },
+      select: {
+        id: true,
+        orgId: true,
+      },
     });
 
     if (!user) {
       throw new UnauthorizedException('User not found');
     }
 
-    const isSuperAdmin = isPlatformPowerUser(user) || user.systemRole === 'super_admin';
-    if (isSuperAdmin) {
+    const platformProfile = await this.getEffectivePlatformAuthProfile(user.id);
+    if (platformProfile.isPlatformPowerUser) {
       // Super admins have access to all organizations
       return organization;
     }
@@ -1431,7 +1588,6 @@ export class AuthService {
       select: {
         id: true,
         email: true,
-        role: true,
         orgId: true,
         preferredLanguage: true,
         languageChosenAt: true,
@@ -1445,6 +1601,7 @@ export class AuthService {
       throw new NotFoundException('User not found');
     }
 
+    const platformProfile = await this.getEffectivePlatformAuthProfile(user.id);
     const onboarding = this.getOnboardingState({
       preferredLanguage: user.preferredLanguage,
       languageChosenAt: user.languageChosenAt,
@@ -1456,7 +1613,7 @@ export class AuthService {
     return {
       id: user.id,
       email: user.email,
-      role: user.role,
+      role: platformProfile.role,
       orgId: user.orgId,
       preferredLanguage: onboarding.preferredLanguage,
       onboardingRequired: onboarding.onboardingRequired,

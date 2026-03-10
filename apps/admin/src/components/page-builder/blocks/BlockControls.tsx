@@ -35,6 +35,15 @@ export const BlockControls: React.FC<BlockControlsProps> = memo(({ nodeId }) => 
   
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
+
+    // Confirm when block has children to prevent accidental subtree deletion
+    if (node.childIds.length > 0) {
+      const confirmed = window.confirm(
+        `Delete this block and its ${node.childIds.length} child block(s)?`
+      );
+      if (!confirmed) return;
+    }
+
     deleteBlock(nodeId);
     commit('delete');
   };

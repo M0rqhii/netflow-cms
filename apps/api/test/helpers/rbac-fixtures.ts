@@ -9,6 +9,12 @@ export const RbacFixtures = {
    * Capability keys for testing
    */
   capabilities: {
+    platform: {
+      dashboardView: 'platform.dashboard.view',
+      rolesManage: 'platform.roles.manage',
+      devToolsAccess: 'platform.dev.tools.access',
+      impersonate: 'platform.support.impersonate',
+    },
     builder: {
       edit: 'builder.edit',
       publish: 'builder.publish',
@@ -43,6 +49,12 @@ export const RbacFixtures = {
    * Custom role definitions
    */
   customRoles: {
+    platformDeveloper: {
+      name: 'Platform Developer',
+      description: 'System platform developer role',
+      scope: 'PLATFORM' as const,
+      capabilityKeys: ['platform.dashboard.view', 'platform.dev.tools.access', 'platform.dev.logs.view'],
+    },
     siteEditor: {
       name: 'SITE Editor',
       description: 'Custom role for site editing',

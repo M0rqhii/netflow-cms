@@ -6,19 +6,19 @@ import clsx from "clsx";
 import {
   fetchRbacCapabilities,
   updateRbacPolicy,
-  getAuthToken,
-  decodeAuthToken,
 } from "@/lib/api";
 import { CAPABILITY_MODULES, type CapabilityModule, type RbacCapability } from "@repo/schemas";
 import SearchAndFilters from "@/components/ui/SearchAndFilters";
 import { useToast } from "@/components/ui/Toast";
 import { toFriendlyMessage } from "@/lib/errors";
 import { useTranslations } from "@/hooks/useTranslations";
+import { usePlatformAccess } from "@/hooks/usePlatformAccess";
 
 const MODULE_LABEL_KEYS: Record<CapabilityModule, string> = {
   org: "orgRbac.modules.org",
   billing: "orgRbac.modules.billing",
   sites: "orgRbac.modules.sites",
+  platform: "orgRbac.modules.platform",
   builder: "orgRbac.modules.builder",
   content: "orgRbac.modules.content",
   hosting: "orgRbac.modules.hosting",
@@ -40,17 +40,6 @@ function getRiskLabel(riskLevel?: string | null, isDangerous?: boolean) {
   if (normalized === "MED" || normalized === "MEDIUM") return "Medium";
   if (normalized === "HIGH" || normalized === "DANGEROUS" || normalized === "CRITICAL") return "Dangerous";
   return normalized || "Unknown";
-}
-
-function getOwnerFlag(): boolean {
-  const payload = decodeAuthToken(getAuthToken());
-  const roleMarker = String(payload?.platformRole ?? payload?.role ?? "").toLowerCase();
-  return (
-    roleMarker === "org_owner" ||
-    roleMarker === "owner" ||
-    roleMarker === "platform_owner" ||
-    roleMarker === "platform_admin"
-  );
 }
 
 function ToggleSwitch({
@@ -88,6 +77,7 @@ export default function OrgPoliciesPage() {
   const orgId = params?.orgId ?? "";
   const { push } = useToast();
   const t = useTranslations();
+  const platformAccess = usePlatformAccess();
   const moduleLabel = useCallback((module: CapabilityModule) => t(MODULE_LABEL_KEYS[module]), [t]);
 
   const [loading, setLoading] = useState(true);
@@ -97,7 +87,7 @@ export default function OrgPoliciesPage() {
   const [moduleFilter, setModuleFilter] = useState("all");
   const [updatingKey, setUpdatingKey] = useState<string | null>(null);
 
-  const isOwner = useMemo(() => getOwnerFlag(), []);
+  const isOwner = platformAccess.canViewBilling;
 
   const loadCapabilities = useCallback(async () => {
     setLoading(true);

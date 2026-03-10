@@ -358,11 +358,9 @@ const typographyItems: CatalogItem[] = [
   { type: 'caption', title: 'Caption', category: 'typography', component: 'text', defaultContent: { text: 'Caption text', tag: 'span' }, defaultStyle: { fontSize: '12px', color: '#94a3b8' } },
   { type: 'quote', title: 'Quote', category: 'typography', component: 'text', defaultContent: { text: 'Quote text', tag: 'blockquote' } },
   { type: 'list', title: 'List', category: 'typography', component: 'list', defaultContent: { items: ['Item 1', 'Item 2', 'Item 3'] } },
-  { type: 'definition-list', title: 'Definition List', category: 'typography', component: 'text', defaultContent: { html: '<dl><dt>Term</dt><dd>Definition</dd></dl>' } },
   { type: 'code-block', title: 'Code Block', category: 'typography', component: 'text', defaultContent: { text: 'const greeting = "Hello";', tag: 'pre' } },
   { type: 'inline-code', title: 'Inline Code', category: 'typography', component: 'text', defaultContent: { text: 'inline-code', tag: 'code' } },
   { type: 'kpi-text', title: 'KPI / Stat Text', category: 'typography', component: 'text', defaultContent: { text: '92% Uptime', tag: 'h2' } },
-  { type: 'markdown', title: 'Markdown', category: 'typography', component: 'text', defaultContent: { text: '# Markdown content', tag: 'pre' } },
 ];
 
 const mediaItems: CatalogItem[] = [
@@ -373,7 +371,6 @@ const mediaItems: CatalogItem[] = [
   { type: 'audio-player', title: 'Audio Player', category: 'media', component: 'media', defaultContent: { kind: 'audio' } },
   { type: 'icon', title: 'Icon', category: 'media', component: 'text', defaultContent: { text: '?', tag: 'span' } },
   { type: 'icon-list', title: 'Icon List', category: 'media', component: 'list', defaultContent: { items: ['? Feature', '? Benefit'] } },
-  { type: 'lottie-animation', title: 'Lottie Animation', category: 'media', component: 'media', defaultContent: { kind: 'embed' } },
   { type: 'svg', title: 'SVG', category: 'media', component: 'media', defaultContent: { kind: 'image' } },
 ];
 
@@ -394,7 +391,6 @@ const marketingItems: CatalogItem[] = [
   { type: 'hero', title: 'Hero', category: 'components', component: 'container', defaultContent: { display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '32px' } },
   { type: 'feature-grid', title: 'Feature Grid', category: 'components', component: 'container', defaultContent: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px' } },
   { type: 'feature-list', title: 'Feature List', category: 'components', component: 'list', defaultContent: { items: ['Feature A', 'Feature B', 'Feature C'] } },
-  { type: 'callout', title: 'Callout / Highlight', category: 'components', component: 'alert', defaultContent: { title: 'Callout', message: 'Highlight important message here.' } },
   { type: 'stats-strip', title: 'Stats Strip', category: 'components', component: 'container', defaultContent: { display: 'flex', gap: '24px', justifyContent: 'space-between' } },
   { type: 'testimonial-card', title: 'Testimonial Card', category: 'components', component: 'container', defaultStyle: { backgroundColor: '#0f172a', color: '#e2e8f0', borderRadius: '12px', padding: '20px' } },
   { type: 'testimonials-slider', title: 'Testimonials Slider', category: 'components', component: 'container', defaultContent: { display: 'flex', gap: '16px', overflow: 'auto' } },

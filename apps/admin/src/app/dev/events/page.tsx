@@ -2,11 +2,10 @@
 
 import { DevPanelLayout } from "@/components/dev-panel/DevPanelLayout";
 import { DevPanelTabs } from "@/components/dev-panel/DevPanelTabs";
-import { useEffect, useMemo, useState } from "react";
-import { decodeAuthToken, getAuthToken, getDevEvents } from "@/lib/api";
+import { useEffect, useState } from "react";
+import { getDevEvents } from "@/lib/api";
 import { useTranslations } from "@/hooks/useTranslations";
-
-const PRIVILEGED_ROLES = ["super_admin", "org_admin", "site_admin", "tenant_admin", "platform_admin"];
+import { usePlatformAccess } from "@/hooks/usePlatformAccess";
 
 type EventData = {
   id: string;
@@ -34,14 +33,8 @@ function typeBadge(type: string): string {
 
 export default function DevEventsPage() {
   const t = useTranslations();
-  const token = getAuthToken();
-  const payload = useMemo(() => decodeAuthToken(token), [token]);
-  const isSuperAdmin = (payload?.isSuperAdmin as boolean) || false;
-  const isPrivileged =
-    PRIVILEGED_ROLES.includes((payload?.role as string) || "") ||
-    PRIVILEGED_ROLES.includes((payload?.platformRole as string) || "") ||
-    isSuperAdmin ||
-    (payload?.systemRole as string) === "super_admin";
+  const platformAccess = usePlatformAccess();
+  const isPrivileged = platformAccess.canAccessDevTools;
 
   const [events, setEvents] = useState<EventData[]>([]);
   const [loading, setLoading] = useState(false);

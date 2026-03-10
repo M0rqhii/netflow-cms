@@ -2,7 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { RolesGuard } from './roles.guard';
-import { SiteRole, SystemRole } from '../roles.enum';
+import { SiteRole } from '../roles.enum';
+import { RbacService } from '../../../modules/rbac/rbac.service';
 
 describe('RolesGuard', () => {
   let guard: RolesGuard;
@@ -18,6 +19,12 @@ describe('RolesGuard', () => {
             getAllAndOverride: jest.fn(),
           },
         },
+        {
+          provide: RbacService,
+          useValue: {
+            canUserPerform: jest.fn().mockResolvedValue(false),
+          },
+        },
       ],
     }).compile();
 
@@ -26,14 +33,23 @@ describe('RolesGuard', () => {
   });
 
   const createMockContext = (
-    user: { siteRole?: SiteRole; systemRole?: SystemRole; isSuperAdmin?: boolean } | undefined,
+    user:
+      | {
+          siteRoleKey?: string;
+          siteRoleName?: string;
+          platformRbacRoles?: string[];
+          isSuperAdmin?: boolean;
+        }
+      | undefined,
     requiredRoles?: SiteRole[]
   ): ExecutionContext => {
     const request: any = {
       user: user
         ? {
-            siteRole: user.siteRole,
-            systemRole: user.systemRole,
+            id: 'user-1',
+            siteRoleKey: user.siteRoleKey,
+            siteRoleName: user.siteRoleName,
+            platformRbacRoles: user.platformRbacRoles,
             isSuperAdmin: user.isSuperAdmin,
           }
         : undefined,
@@ -51,56 +67,54 @@ describe('RolesGuard', () => {
   };
 
   describe('canActivate', () => {
-    it('should allow access if no roles are required', () => {
-      const context = createMockContext({ siteRole: SiteRole.VIEWER }, undefined);
-      expect(guard.canActivate(context)).toBe(true);
+    it('should allow access if no roles are required', async () => {
+      const context = createMockContext({ siteRoleKey: 'viewer', siteRoleName: 'Viewer' }, undefined);
+      await expect(guard.canActivate(context)).resolves.toBe(true);
     });
 
-    it('should allow access if user is super admin', () => {
+    it('should allow access if user has platform root access', async () => {
       const context = createMockContext(
-        { isSuperAdmin: true },
+        { platformRbacRoles: ['Platform Root'], isSuperAdmin: true },
         [SiteRole.ADMIN, SiteRole.EDITOR]
       );
-      expect(guard.canActivate(context)).toBe(true);
+      await expect(guard.canActivate(context)).resolves.toBe(true);
     });
 
-    it('should allow access if user has SUPER_ADMIN system role', () => {
+    it('should allow access if user has platform admin access', async () => {
       const context = createMockContext(
-        { systemRole: SystemRole.SUPER_ADMIN },
+        { platformRbacRoles: ['Platform Admin'] },
         [SiteRole.ADMIN, SiteRole.EDITOR]
       );
-      expect(guard.canActivate(context)).toBe(true);
+      await expect(guard.canActivate(context)).resolves.toBe(true);
     });
 
-    it('should allow access if user is site owner', () => {
+    it('should allow access if user is mapped to site admin', async () => {
       const context = createMockContext(
-        { siteRole: SiteRole.OWNER },
+        { siteRoleKey: 'site_admin', siteRoleName: 'Site Admin' },
         [SiteRole.ADMIN, SiteRole.EDITOR]
       );
-      expect(guard.canActivate(context)).toBe(true);
+      await expect(guard.canActivate(context)).resolves.toBe(true);
     });
 
-    it('should allow access if user site role is in required roles', () => {
+    it('should allow access if user site role is in required roles', async () => {
       const context = createMockContext(
-        { siteRole: SiteRole.ADMIN },
+        { siteRoleKey: 'site_admin', siteRoleName: 'Site Admin' },
         [SiteRole.ADMIN, SiteRole.EDITOR]
       );
-      expect(guard.canActivate(context)).toBe(true);
+      await expect(guard.canActivate(context)).resolves.toBe(true);
     });
 
-    it('should deny access if user site role is not in required roles', () => {
+    it('should deny access if user site role is not in required roles', async () => {
       const context = createMockContext(
-        { siteRole: SiteRole.VIEWER },
+        { siteRoleKey: 'viewer', siteRoleName: 'Viewer' },
         [SiteRole.ADMIN, SiteRole.EDITOR]
       );
-      expect(() => guard.canActivate(context)).toThrow(ForbiddenException);
+      await expect(guard.canActivate(context)).rejects.toThrow(ForbiddenException);
     });
 
-    it('should deny access if user is not authenticated', () => {
+    it('should deny access if user is not authenticated', async () => {
       const context = createMockContext(undefined, [SiteRole.ADMIN]);
-      expect(() => guard.canActivate(context)).toThrow(ForbiddenException);
+      await expect(guard.canActivate(context)).rejects.toThrow(ForbiddenException);
     });
   });
 });
-
-

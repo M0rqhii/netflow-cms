@@ -35,7 +35,17 @@ function removeLocalValue(key: string): void {
 
 function getRoleMarker(): string {
   const payload = decodeAuthToken(getAuthToken());
-  return String(payload?.platformRole ?? payload?.role ?? '').toLowerCase();
+  const platformRoles = Array.isArray(payload?.platformRbacRoles)
+    ? payload.platformRbacRoles.map((value) => String(value).toLowerCase())
+    : [];
+  if (platformRoles.includes('platform root') || platformRoles.includes('platform admin')) {
+    return 'platform_admin';
+  }
+  return String(
+    payload?.orgRoleKey ??
+      payload?.siteRoleKey ??
+      '',
+  ).toLowerCase();
 }
 
 function isOwnerOrAdmin(): boolean {

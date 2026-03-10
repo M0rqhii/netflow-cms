@@ -146,7 +146,6 @@ export class AccountService {
       select: {
         id: true,
         email: true,
-        role: true,
         preferredLanguage: true,
         firstName: true,
         lastName: true,
@@ -242,7 +241,6 @@ export class AccountService {
       select: {
         id: true,
         email: true,
-        role: true,
         preferredLanguage: true,
         firstName: true,
         lastName: true,

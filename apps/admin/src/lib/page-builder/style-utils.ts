@@ -309,9 +309,8 @@ export function toSpacingCSS(
   }
   
   if (typeof value === 'string') {
-    return value.includes('px') || value.includes('%') || value.includes('rem')
-      ? value
-      : `${value}px`;
+    // Check if value already has a CSS unit
+    return /[a-z%]+$/i.test(value.trim()) ? value : `${value}px`;
   }
   
   if (typeof value === 'object' && value !== null) {

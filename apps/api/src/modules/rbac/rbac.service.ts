@@ -9,178 +9,209 @@ import {
   CAPABILITY_REGISTRY,
   getCapabilityByKey,
   isCapabilityBlocked,
+  coercePublicRbacUserRoleKey,
+  getPublicRbacUserRole,
   type CapabilityDefinition,
 } from '@repo/schemas';
 import { CreateRoleDto, UpdateRoleDto, CreateAssignmentDto, UpdatePolicyDto } from './dto';
-import { isPlatformPowerUser } from '../../common/auth/platform-admin.util';
+import { getPlatformAccessProfile } from '../../common/auth/platform-admin.util';
+import { buildSystemRoleDefinitions, type SystemRoleDefinition } from './system-role-definitions';
 
+type TenantRoleScope = 'ORG' | 'SITE';
 @Injectable()
 export class RbacService {
   constructor(private readonly prisma: PrismaService) {}
 
-  private async ensureSystemRoles(orgId: string) {
-    const existingSystemRoles = await this.prisma.role.findMany({
-      where: { orgId, type: 'SYSTEM' },
-      select: { name: true, scope: true },
-    });
-    const existingSystemSet = new Set(existingSystemRoles.map((role) => `${role.name}:${role.scope}`));
+  private isPlatformCapabilityKey(capabilityKey: string): boolean {
+    return capabilityKey.startsWith('platform.');
+  }
 
+  private getSystemDefinitions(allCapabilityKeys: string[]) {
+    return buildSystemRoleDefinitions(allCapabilityKeys);
+  }
+
+  private haveSameKeys(currentKeys: Iterable<string>, expectedKeys: Iterable<string>) {
+    const current = new Set(currentKeys);
+    const expected = new Set(expectedKeys);
+    if (current.size !== expected.size) {
+      return false;
+    }
+    for (const key of expected) {
+      if (!current.has(key)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private async getCapabilityMap() {
     const capabilities = await this.prisma.capability.findMany({
       select: { id: true, key: true },
     });
-    const capMap = new Map(capabilities.map((cap) => [cap.key, cap.id]));
-    const allCapabilityKeys = capabilities.map((cap) => cap.key);
 
-    const roleDefinitions: Array<{
-      name: string;
-      description: string;
-      scope: 'ORG' | 'SITE';
-      capabilityKeys: string[];
-    }> = [
-      {
-        name: 'Org Owner',
-        description: 'Full access to organization including billing and role management',
-        scope: 'ORG',
-        capabilityKeys: allCapabilityKeys,
-      },
-      {
-        name: 'Org Admin',
-        description: 'Full technical access except billing and role management',
-        scope: 'ORG',
-        capabilityKeys: allCapabilityKeys.filter((key) => !key.startsWith('billing.') && key !== 'org.roles.manage'),
-      },
-      {
-        name: 'Org Member',
-        description: 'Basic organization member with minimal permissions',
-        scope: 'ORG',
-        capabilityKeys: ['org.view_dashboard', 'sites.view'],
-      },
-      {
-        name: 'Site Admin',
-        description: 'Full access to site builder, content, and site settings',
-        scope: 'SITE',
-        capabilityKeys: [
-          'builder.view', 'builder.edit', 'builder.draft.save', 'builder.publish',
-          'builder.rollback', 'builder.history.view', 'builder.assets.upload',
-          'builder.assets.delete', 'builder.custom_code', 'builder.site_roles.manage',
-          'content.view', 'content.create', 'content.edit', 'content.delete', 'content.publish',
-          'content.media.manage', 'sites.settings.view', 'sites.settings.manage',
-          'marketing.view', 'marketing.content.edit', 'marketing.publish',
-          'marketing.campaign.manage', 'marketing.stats.view',
-        ],
-      },
-      {
-        name: 'Editor-in-Chief',
-        description: 'Can edit, save drafts, publish, and rollback',
-        scope: 'SITE',
-        capabilityKeys: [
-          'builder.view', 'builder.edit', 'builder.draft.save', 'builder.publish',
-          'builder.rollback', 'builder.history.view',
-          'content.view', 'content.create', 'content.edit', 'content.publish',
-          'content.media.manage',
-        ],
-      },
-      {
-        name: 'Editor',
-        description: 'Can edit and save drafts, but cannot publish',
-        scope: 'SITE',
-        capabilityKeys: [
-          'builder.view', 'builder.edit', 'builder.draft.save', 'builder.history.view',
-          'content.view', 'content.create', 'content.edit', 'content.media.manage',
-        ],
-      },
-      {
-        name: 'Publisher',
-        description: 'Can publish and rollback, but cannot edit',
-        scope: 'SITE',
-        capabilityKeys: [
-          'builder.view', 'builder.publish', 'builder.rollback', 'builder.history.view',
-          'content.view', 'content.publish',
-        ],
-      },
-      {
-        name: 'Viewer',
-        description: 'Read-only access to builder, content, and analytics',
-        scope: 'SITE',
-        capabilityKeys: [
-          'builder.view', 'content.view', 'analytics.view',
-        ],
-      },
-      {
-        name: 'Marketing Manager',
-        description: 'Full marketing access including campaigns and ads',
-        scope: 'SITE',
-        capabilityKeys: [
-          'marketing.view', 'marketing.content.edit', 'marketing.publish',
-          'marketing.campaign.manage', 'marketing.stats.view', 'marketing.schedule',
-          'marketing.ads.manage',
-        ],
-      },
-      {
-        name: 'Marketing Editor',
-        description: 'Can edit marketing content',
-        scope: 'SITE',
-        capabilityKeys: [
-          'marketing.view', 'marketing.content.edit',
-        ],
-      },
-      {
-        name: 'Marketing Publisher',
-        description: 'Can publish marketing content',
-        scope: 'SITE',
-        capabilityKeys: [
-          'marketing.view', 'marketing.publish',
-        ],
-      },
-      {
-        name: 'Marketing Viewer',
-        description: 'Read-only access to marketing',
-        scope: 'SITE',
-        capabilityKeys: [
-          'marketing.view', 'marketing.stats.view',
-        ],
-      },
-    ];
+    return {
+      capabilities,
+      capMap: new Map(capabilities.map((cap) => [cap.key, cap.id])),
+      allCapabilityKeys: capabilities.map((cap) => cap.key),
+    };
+  }
 
-    const missingDefinitions = roleDefinitions.filter((roleDef) => !existingSystemSet.has(`${roleDef.name}:${roleDef.scope}`));
-    if (missingDefinitions.length == 0) return;
-
-    for (const roleDef of missingDefinitions) {
-      const role = await this.prisma.role.upsert({
-        where: {
-          orgId_name_scope: {
-            orgId,
-            name: roleDef.name,
-            scope: roleDef.scope,
-          },
-        },
-        update: {
-          description: roleDef.description,
-          type: 'SYSTEM',
-          isImmutable: true,
-        },
-        create: {
+  private async syncTenantSystemRole(orgId: string, roleDef: SystemRoleDefinition, capMap: Map<string, string>) {
+    const role = await this.prisma.role.upsert({
+      where: {
+        orgId_name_scope: {
           orgId,
           name: roleDef.name,
-          description: roleDef.description,
-          type: 'SYSTEM',
           scope: roleDef.scope,
-          isImmutable: true,
         },
+      },
+      update: {
+        description: roleDef.description,
+        type: 'SYSTEM',
+        isImmutable: true,
+      },
+      create: {
+        orgId,
+        name: roleDef.name,
+        description: roleDef.description,
+        type: 'SYSTEM',
+        scope: roleDef.scope,
+        isImmutable: true,
+      },
+    });
+
+    const capabilityIds = roleDef.capabilityKeys
+      .map((key) => capMap.get(key))
+      .filter((id): id is string => Boolean(id));
+
+    await this.prisma.roleCapability.deleteMany({ where: { roleId: role.id } });
+    if (capabilityIds.length > 0) {
+      await this.prisma.roleCapability.createMany({
+        data: capabilityIds.map((capabilityId) => ({
+          roleId: role.id,
+          capabilityId,
+        })),
       });
+    }
+  }
 
-      const capabilityIds = roleDef.capabilityKeys
-        .map((key) => capMap.get(key))
-        .filter((id): id is string => Boolean(id));
+  private async syncPlatformSystemRole(roleDef: SystemRoleDefinition, capMap: Map<string, string>) {
+    const role = await this.prisma.platformRole.upsert({
+      where: {
+        name: roleDef.name,
+      },
+      update: {
+        description: roleDef.description,
+        type: 'SYSTEM',
+        isImmutable: true,
+      },
+      create: {
+        name: roleDef.name,
+        description: roleDef.description,
+        type: 'SYSTEM',
+        isImmutable: true,
+      },
+    });
 
-      await this.prisma.roleCapability.deleteMany({ where: { roleId: role.id } });
-      if (capabilityIds.length > 0) {
-        await this.prisma.roleCapability.createMany({
-          data: capabilityIds.map((capId) => ({
-            roleId: role.id,
-            capabilityId: capId,
-          })),
-        });
+    const capabilityIds = roleDef.capabilityKeys
+      .map((key) => capMap.get(key))
+      .filter((id): id is string => Boolean(id));
+
+    await this.prisma.platformRoleCapability.deleteMany({ where: { roleId: role.id } });
+    if (capabilityIds.length > 0) {
+      await this.prisma.platformRoleCapability.createMany({
+        data: capabilityIds.map((capabilityId) => ({
+          roleId: role.id,
+          capabilityId,
+        })),
+      });
+    }
+  }
+
+  private async ensureSystemRoles(orgId: string) {
+    const existingSystemRoles = await this.prisma.role.findMany({
+      where: { orgId, type: 'SYSTEM' },
+      select: {
+        name: true,
+        scope: true,
+        description: true,
+        type: true,
+        isImmutable: true,
+        roleCapabilities: {
+          select: {
+            capability: {
+              select: {
+                key: true,
+              },
+            },
+          },
+        },
+      },
+    });
+    const { capMap, allCapabilityKeys } = await this.getCapabilityMap();
+    const roleDefinitions = this.getSystemDefinitions(allCapabilityKeys).filter(
+      (roleDef): roleDef is SystemRoleDefinition & { scope: TenantRoleScope } =>
+        roleDef.scope === 'ORG' || roleDef.scope === 'SITE',
+    );
+    const existingByKey = new Map(
+      existingSystemRoles.map((role) => [`${role.name}:${role.scope}`, role]),
+    );
+
+    for (const roleDef of roleDefinitions) {
+      const existing = existingByKey.get(`${roleDef.name}:${roleDef.scope}`);
+      const expectedCapabilityKeys = roleDef.capabilityKeys.filter((key) => capMap.has(key));
+      const currentCapabilityKeys = existing?.roleCapabilities.map((item) => item.capability.key) ?? [];
+      const needsSync =
+        !existing ||
+        existing.description !== roleDef.description ||
+        existing.type !== 'SYSTEM' ||
+        existing.isImmutable !== true ||
+        !this.haveSameKeys(currentCapabilityKeys, expectedCapabilityKeys);
+
+      if (needsSync) {
+        await this.syncTenantSystemRole(orgId, roleDef, capMap);
+      }
+    }
+  }
+
+  private async ensurePlatformRoles() {
+    const existingSystemRoles = await this.prisma.platformRole.findMany({
+      where: { type: 'SYSTEM' },
+      select: {
+        name: true,
+        description: true,
+        type: true,
+        isImmutable: true,
+        roleCapabilities: {
+          select: {
+            capability: {
+              select: {
+                key: true,
+              },
+            },
+          },
+        },
+      },
+    });
+    const { capMap, allCapabilityKeys } = await this.getCapabilityMap();
+    const roleDefinitions = this.getSystemDefinitions(allCapabilityKeys).filter(
+      (roleDef) => roleDef.scope === 'PLATFORM',
+    );
+    const existingByName = new Map(existingSystemRoles.map((role) => [role.name, role]));
+
+    for (const roleDef of roleDefinitions) {
+      const existing = existingByName.get(roleDef.name);
+      const expectedCapabilityKeys = roleDef.capabilityKeys.filter((key) => capMap.has(key));
+      const currentCapabilityKeys = existing?.roleCapabilities.map((item) => item.capability.key) ?? [];
+      const needsSync =
+        !existing ||
+        existing.description !== roleDef.description ||
+        existing.type !== 'SYSTEM' ||
+        existing.isImmutable !== true ||
+        !this.haveSameKeys(currentCapabilityKeys, expectedCapabilityKeys);
+
+      if (needsSync) {
+        await this.syncPlatformSystemRole(roleDef, capMap);
       }
     }
   }
@@ -199,7 +230,7 @@ export class RbacService {
     );
 
     // Return capabilities with policy status
-    return CAPABILITY_REGISTRY.map((cap: CapabilityDefinition) => ({
+    return CAPABILITY_REGISTRY.filter((cap) => !this.isPlatformCapabilityKey(cap.key)).map((cap: CapabilityDefinition) => ({
       key: cap.key,
       module: cap.module,
       label: cap.label,
@@ -208,6 +239,24 @@ export class RbacService {
       isDangerous: cap.isDangerous,
       canBePolicyControlled: cap.canBePolicyControlled,
       policyEnabled: policyMap.get(cap.key) ?? cap.defaultPolicyEnabled,
+      metadata: {
+        blockedForCustomRoles: cap.blockedForCustomRoles || false,
+      },
+    }));
+  }
+
+  async getPlatformCapabilities() {
+    await this.ensurePlatformRoles();
+
+    return CAPABILITY_REGISTRY.filter((cap) => this.isPlatformCapabilityKey(cap.key)).map((cap: CapabilityDefinition) => ({
+      key: cap.key,
+      module: cap.module,
+      label: cap.label,
+      description: cap.description,
+      riskLevel: cap.riskLevel,
+      isDangerous: cap.isDangerous,
+      canBePolicyControlled: false,
+      policyEnabled: true,
       metadata: {
         blockedForCustomRoles: cap.blockedForCustomRoles || false,
       },
@@ -256,6 +305,40 @@ export class RbacService {
     }));
   }
 
+  async getPlatformRoles() {
+    await this.ensurePlatformRoles();
+
+    const roles = await this.prisma.platformRole.findMany({
+      include: {
+        roleCapabilities: {
+          include: {
+            capability: true,
+          },
+        },
+      },
+      orderBy: [
+        { type: 'asc' },
+        { name: 'asc' },
+      ],
+    });
+
+    return roles.map((role) => ({
+      id: role.id,
+      name: role.name,
+      description: role.description,
+      type: role.type,
+      scope: 'PLATFORM' as const,
+      isImmutable: role.isImmutable,
+      capabilities: role.roleCapabilities.map((rc: any) => ({
+        key: rc.capability.key,
+        module: rc.capability.module,
+        label: rc.capability.label,
+      })),
+      createdAt: role.createdAt,
+      updatedAt: role.updatedAt,
+    }));
+  }
+
   /**
    * Create custom role
    * 
@@ -283,6 +366,13 @@ export class RbacService {
     if (invalidCapabilities.length > 0) {
       throw new BadRequestException(
         `Invalid capabilities: ${invalidCapabilities.join(', ')}`
+      );
+    }
+
+    const platformCapabilities = dto.capabilityKeys.filter((key) => this.isPlatformCapabilityKey(key));
+    if (platformCapabilities.length > 0) {
+      throw new BadRequestException(
+        `Platform capabilities cannot be assigned to ${dto.scope} roles: ${platformCapabilities.join(', ')}`,
       );
     }
 
@@ -404,6 +494,13 @@ export class RbacService {
       if (invalidCapabilities.length > 0) {
         throw new BadRequestException(
           `Invalid capabilities: ${invalidCapabilities.join(', ')}`
+        );
+      }
+
+      const platformCapabilities = dto.capabilityKeys.filter((key) => this.isPlatformCapabilityKey(key));
+      if (platformCapabilities.length > 0) {
+        throw new BadRequestException(
+          `Platform capabilities cannot be assigned to ${role.scope} roles: ${platformCapabilities.join(', ')}`,
         );
       }
 
@@ -607,6 +704,124 @@ export class RbacService {
     }));
   }
 
+  async getPlatformAssignments(userId?: string) {
+    await this.ensurePlatformRoles();
+
+    const assignments = await this.prisma.platformUserRole.findMany({
+      where: userId ? { userId } : undefined,
+      include: {
+        role: {
+          include: {
+            roleCapabilities: {
+              include: {
+                capability: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return assignments.map((assignment) => ({
+      id: assignment.id,
+      userId: assignment.userId,
+      roleId: assignment.roleId,
+      siteId: null,
+      role: {
+        id: assignment.role.id,
+        name: assignment.role.name,
+        type: assignment.role.type,
+        scope: 'PLATFORM' as const,
+        capabilities: assignment.role.roleCapabilities.map((rc: any) => ({
+          key: rc.capability.key,
+          module: rc.capability.module,
+        })),
+      },
+      createdAt: assignment.createdAt,
+    }));
+  }
+
+  async createPlatformAssignment(userId: string, roleId: string) {
+    await this.ensurePlatformRoles();
+
+    const role = await this.prisma.platformRole.findUnique({
+      where: { id: roleId },
+    });
+
+    if (!role) {
+      throw new NotFoundException('Platform role not found');
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const assignment = await this.prisma.platformUserRole.upsert({
+      where: {
+        userId_roleId: {
+          userId,
+          roleId,
+        },
+      },
+      update: {},
+      create: {
+        userId,
+        roleId,
+      },
+      include: {
+        role: {
+          include: {
+            roleCapabilities: {
+              include: {
+                capability: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    return {
+      id: assignment.id,
+      userId: assignment.userId,
+      roleId: assignment.roleId,
+      siteId: null,
+      role: {
+        id: assignment.role.id,
+        name: assignment.role.name,
+        type: assignment.role.type,
+        scope: 'PLATFORM' as const,
+        capabilities: assignment.role.roleCapabilities.map((rc: any) => ({
+          key: rc.capability.key,
+          module: rc.capability.module,
+        })),
+      },
+      createdAt: assignment.createdAt,
+    };
+  }
+
+  async deletePlatformAssignment(assignmentId: string) {
+    const assignment = await this.prisma.platformUserRole.findUnique({
+      where: { id: assignmentId },
+    });
+
+    if (!assignment) {
+      throw new NotFoundException('Platform assignment not found');
+    }
+
+    await this.prisma.platformUserRole.delete({
+      where: { id: assignmentId },
+    });
+
+    return { success: true };
+  }
+
   /**
    * Get or create Org Member role for organization
    * This is the default lowest ORG scope role
@@ -660,6 +875,189 @@ export class RbacService {
     }
 
     return orgMemberRole;
+  }
+
+  async getPlatformRoleNames(userId: string): Promise<string[]> {
+    const assignments = await this.prisma.platformUserRole.findMany({
+      where: { userId },
+      select: {
+        role: {
+          select: {
+            name: true,
+          },
+        },
+      },
+    });
+
+    return assignments.map((assignment) => assignment.role.name);
+  }
+
+  private normalizeLegacyOrgRoleKey(rawRole: string | null | undefined) {
+    return coercePublicRbacUserRoleKey(String(rawRole || ''), 'ORG') || 'org_member';
+  }
+
+  async backfillLegacyPlatformAssignments(userId: string): Promise<string[]> {
+    await this.ensurePlatformRoles();
+    return this.getPlatformRoleNames(userId);
+  }
+
+  async backfillLegacyOrgAssignments(userId: string, orgId?: string): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        orgId: true,
+      },
+    });
+    if (!user) {
+      return;
+    }
+
+    if (user.orgId) {
+      const existingPrimaryMembership = await this.prisma.userOrg.findUnique({
+        where: { userId_orgId: { userId, orgId: user.orgId } },
+        select: { role: true },
+      });
+      if (!existingPrimaryMembership) {
+        await this.prisma.userOrg.create({
+          data: {
+            userId,
+            orgId: user.orgId,
+            role: 'org_member',
+          },
+        });
+      }
+    }
+
+    const memberships = await this.prisma.userOrg.findMany({
+      where: orgId ? { userId, orgId } : { userId },
+      select: {
+        orgId: true,
+        role: true,
+      },
+    });
+
+    for (const membership of memberships) {
+      const normalizedRoleKey = this.normalizeLegacyOrgRoleKey(membership.role);
+
+      if (membership.role !== normalizedRoleKey) {
+        await this.prisma.userOrg.update({
+          where: {
+            userId_orgId: {
+              userId,
+              orgId: membership.orgId,
+            },
+          },
+          data: { role: normalizedRoleKey },
+        });
+      }
+
+      const existingAssignment = await this.prisma.userRole.findFirst({
+        where: {
+          orgId: membership.orgId,
+          userId,
+          siteId: null,
+          role: {
+            scope: 'ORG',
+          },
+        },
+        select: { id: true },
+      });
+      if (existingAssignment) {
+        continue;
+      }
+
+      const roleDefinition = getPublicRbacUserRole(normalizedRoleKey);
+      if (!roleDefinition || roleDefinition.scope !== 'ORG') {
+        continue;
+      }
+
+      await this.ensureSystemRoles(membership.orgId);
+      const role = await this.prisma.role.findUnique({
+        where: {
+          orgId_name_scope: {
+            orgId: membership.orgId,
+            name: roleDefinition.roleName,
+            scope: 'ORG',
+          },
+        },
+        select: { id: true },
+      });
+      if (!role) {
+        continue;
+      }
+
+      await this.prisma.userRole.create({
+        data: {
+          orgId: membership.orgId,
+          userId,
+          roleId: role.id,
+          siteId: null,
+        },
+      });
+    }
+  }
+
+  async hasPlatformManagementAccess(userId: string): Promise<boolean> {
+    const platformProfile = await this.getEffectivePlatformProfile(userId);
+    return platformProfile.isPlatformPowerUser;
+  }
+
+  async getEffectivePlatformProfile(userId: string) {
+    const roleNames = await this.backfillLegacyPlatformAssignments(userId);
+    return getPlatformAccessProfile({
+      platformRbacRoles: roleNames,
+    });
+  }
+
+  async getEffectivePlatformCapabilities(userId: string) {
+    await this.ensurePlatformRoles();
+
+    const capabilities = CAPABILITY_REGISTRY.filter((cap) => this.isPlatformCapabilityKey(cap.key));
+    const platformProfile = await this.getEffectivePlatformProfile(userId);
+    const roleSourcesByCapability = new Map<string, Set<string>>();
+
+    const assignments = await this.prisma.platformUserRole.findMany({
+      where: { userId },
+      include: {
+        role: {
+          include: {
+            roleCapabilities: {
+              include: {
+                capability: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    for (const assignment of assignments) {
+      const roleName = assignment.role.name;
+      for (const roleCapability of assignment.role.roleCapabilities) {
+        const key = roleCapability.capability.key;
+        if (!roleSourcesByCapability.has(key)) {
+          roleSourcesByCapability.set(key, new Set());
+        }
+        roleSourcesByCapability.get(key)?.add(roleName);
+      }
+    }
+
+    return capabilities.map((capability) => {
+      const roleSources = Array.from(roleSourcesByCapability.get(capability.key) ?? []).sort();
+      const hasBypass = platformProfile.isPlatformPowerUser;
+      const allowed = hasBypass || roleSources.length > 0;
+
+      return {
+        key: capability.key,
+        allowed,
+        reason: allowed ? 'allowed' : 'missing_role_capability',
+        policyEnabled: true,
+        roleSources: hasBypass
+          ? [platformProfile.roleNames[0] ?? 'Platform Root']
+          : roleSources,
+      };
+    });
   }
 
   /**
@@ -909,18 +1307,30 @@ export class RbacService {
     capabilityKey: string,
     siteId?: string
   ): Promise<boolean> {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        isSuperAdmin: true,
-        systemRole: true,
-        role: true,
-        platformRole: true,
-      },
-    });
-
-    if (isPlatformPowerUser(user)) {
+    const effectivePlatformProfile = await this.getEffectivePlatformProfile(userId);
+    if (effectivePlatformProfile.isPlatformPowerUser) {
       return true;
+    }
+
+    if (this.isPlatformCapabilityKey(capabilityKey)) {
+      const platformAssignments = await this.prisma.platformUserRole.findMany({
+        where: { userId },
+        include: {
+          role: {
+            include: {
+              roleCapabilities: {
+                include: {
+                  capability: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      return platformAssignments.some((assignment) =>
+        assignment.role.roleCapabilities.some((roleCapability) => roleCapability.capability.key === capabilityKey),
+      );
     }
 
     // Get user's roles

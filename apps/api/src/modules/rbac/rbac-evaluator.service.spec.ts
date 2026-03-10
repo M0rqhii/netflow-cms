@@ -6,14 +6,14 @@ describe('RbacEvaluatorService', () => {
   let service: RbacEvaluatorService;
 
   const mockPrismaService = {
+    platformUserRole: {
+      findMany: jest.fn(),
+    },
     userRole: {
       findMany: jest.fn(),
     },
     orgPolicy: {
       findMany: jest.fn(),
-    },
-    user: {
-      findUnique: jest.fn(),
     },
   };
 
@@ -36,7 +36,7 @@ describe('RbacEvaluatorService', () => {
   });
 
   it('allows when role grants capability and policy is enabled', async () => {
-    mockPrismaService.user.findUnique.mockResolvedValue({ isSuperAdmin: false, systemRole: null, role: 'viewer' });
+    mockPrismaService.platformUserRole.findMany.mockResolvedValue([]);
     mockPrismaService.userRole.findMany.mockResolvedValue([
       {
         role: {
@@ -66,7 +66,7 @@ describe('RbacEvaluatorService', () => {
   });
 
   it('blocks when policy disables capability', async () => {
-    mockPrismaService.user.findUnique.mockResolvedValue({ isSuperAdmin: false, systemRole: null, role: 'viewer' });
+    mockPrismaService.platformUserRole.findMany.mockResolvedValue([]);
     mockPrismaService.userRole.findMany.mockResolvedValue([
       {
         role: {
@@ -99,7 +99,14 @@ describe('RbacEvaluatorService', () => {
 
 
   it('allows all capabilities for super admin', async () => {
-    mockPrismaService.user.findUnique.mockResolvedValue({ isSuperAdmin: true, systemRole: null, role: 'viewer' });
+    mockPrismaService.platformUserRole.findMany.mockResolvedValue([
+      {
+        role: {
+          name: 'Platform Root',
+          roleCapabilities: [],
+        },
+      },
+    ]);
     mockPrismaService.userRole.findMany.mockResolvedValue([]);
     mockPrismaService.orgPolicy.findMany.mockResolvedValue([
       { capabilityKey: 'builder.edit', enabled: false },
@@ -118,7 +125,7 @@ describe('RbacEvaluatorService', () => {
   });
 
   it('denies when user lacks role capability', async () => {
-    mockPrismaService.user.findUnique.mockResolvedValue({ isSuperAdmin: false, systemRole: null, role: 'viewer' });
+    mockPrismaService.platformUserRole.findMany.mockResolvedValue([]);
     mockPrismaService.userRole.findMany.mockResolvedValue([]);
     mockPrismaService.orgPolicy.findMany.mockResolvedValue([]);
 

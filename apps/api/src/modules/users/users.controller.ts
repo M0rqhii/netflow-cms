@@ -66,9 +66,9 @@ export class UsersController {
   @Permissions(Permission.USERS_READ)
   listUsers(
     @CurrentOrg() orgId: string,
-    @CurrentUser() user: { role?: string; orgRole?: string; platformRole?: string }
+    @CurrentSite({ required: false }) siteId?: string,
   ) {
-    return this.usersService.listUsers(orgId, user.orgRole || user.platformRole || user.role || '');
+    return this.usersService.listUsers(orgId, siteId || undefined);
   }
 
   /**
@@ -98,7 +98,7 @@ export class UsersController {
     @CurrentUser() user: { id: string },
     @Body(new ZodValidationPipe(z.object({
       email: z.string().email('Invalid email format'),
-      role: z.enum(['org_admin', 'admin', 'editor-in-chief', 'editor', 'marketing', 'viewer', 'site_admin']).default('viewer'),
+      role: z.string().min(1, 'Role is required').default('org_member'),
       siteId: z.string().uuid().optional(),
     }))) body: { email: string; role: string; siteId?: string }
   ) {
@@ -133,48 +133,48 @@ export class UsersController {
   getUserById(
     @Param('id') userId: string,
     @CurrentOrg() orgId: string,
-    @CurrentUser() user: { role?: string; orgRole?: string; platformRole?: string }
+    @CurrentSite({ required: false }) siteId?: string,
   ) {
-    return this.usersService.getUserById(userId, orgId, user.orgRole || user.platformRole || user.role || '');
+    return this.usersService.getUserById(userId, orgId, siteId || undefined);
   }
 
   /**
    * POST /api/v1/users
-   * Create a new user (admin only)
-   * Security: Only super_admin can create super_admin users
+   * Create a new ORG or SITE user via public RBAC role key
    */
   @Post()
   @Permissions(Permission.USERS_WRITE)
   @HttpCode(HttpStatus.CREATED)
   createUser(
     @CurrentOrg() orgId: string,
-    @CurrentUser() user: { role?: string; orgRole?: string; platformRole?: string },
+    @CurrentSite({ required: false }) siteId: string | undefined,
+    @CurrentUser() user: { id: string },
     @Body(new ZodValidationPipe(z.object({
       email: z.string().email('Invalid email format'),
       password: z.string().min(8, 'Password must be at least 8 characters').optional(),
-      role: z.enum(['super_admin', 'org_admin', 'admin', 'editor-in-chief', 'editor', 'marketing', 'viewer', 'site_admin']),
+      role: z.string().min(1, 'Role is required'),
       preferredLanguage: z.enum(['pl', 'en']).optional().default('en'),
       siteId: z.string().uuid().optional(),
     }))) body: { email: string; password?: string; role: string; preferredLanguage?: 'pl' | 'en'; siteId?: string }
   ) {
-    return this.usersService.createUser(orgId, body, user.orgRole || user.platformRole || user.role || '');
+    return this.usersService.createUser(orgId, body, body.siteId || siteId || undefined, user.id);
   }
 
   /**
    * PATCH /api/v1/users/:id/role
-   * Update user role (admin only)
-   * Security: Only super_admin can assign super_admin role
+   * Update ORG or SITE role via public RBAC role key
    */
   @Patch(':id/role')
   @Permissions(Permission.USERS_WRITE)
   updateUserRole(
     @Param('id') userId: string,
     @CurrentOrg() orgId: string,
-    @CurrentUser() user: { role?: string; orgRole?: string; platformRole?: string },
+    @CurrentSite({ required: false }) siteId: string | undefined,
+    @CurrentUser() user: { id: string },
     @Body(new ZodValidationPipe(z.object({
-      role: z.enum(['super_admin', 'org_admin', 'admin', 'editor-in-chief', 'editor', 'marketing', 'viewer', 'site_admin']),
+      role: z.string().min(1, 'Role is required'),
     }))) body: { role: string }
   ) {
-    return this.usersService.updateUserRole(userId, orgId, body.role, user.orgRole || user.platformRole || user.role || '');
+    return this.usersService.updateUserRole(userId, orgId, body.role, siteId || undefined, user.id);
   }
 }

@@ -85,12 +85,17 @@ export function moveNode(
   if (!node) {
     throw new Error(`Node "${nodeId}" not found`);
   }
-  
+
   const oldParentId = node.parentId;
   if (!oldParentId) {
     throw new Error(`Cannot move root node`);
   }
-  
+
+  // Cycle prevention: cannot move node into its own descendant
+  if (isAncestor(content, nodeId, newParentId)) {
+    throw new Error(`Cannot move node "${nodeId}" into its own descendant "${newParentId}"`);
+  }
+
   const oldParent = content.nodes[oldParentId];
   const newParent = content.nodes[newParentId];
   

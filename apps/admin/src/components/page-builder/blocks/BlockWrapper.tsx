@@ -90,6 +90,7 @@ function BlockWrapperComponent({
       onKeyDown={handleKeyDown}
       role="button"
       tabIndex={0}
+      aria-label={`${node.meta?.label || node.type} block`}
       data-block-id={nodeId}
       data-block-type={node.type}
       data-block-wrapper
@@ -139,22 +140,9 @@ function BlockWrapperComponent({
   );
 }
 
-// Custom comparison for memo
-function arePropsEqual(
-  prevProps: BlockWrapperProps,
-  nextProps: BlockWrapperProps
-): boolean {
-  return (
-    prevProps.nodeId === nextProps.nodeId &&
-    prevProps.isSelected === nextProps.isSelected &&
-    prevProps.isPreview === nextProps.isPreview &&
-    prevProps.isStructure === nextProps.isStructure &&
-    prevProps.isDragging === nextProps.isDragging &&
-    prevProps.isLocked === nextProps.isLocked
-  );
-}
-
-export const BlockWrapper = memo(BlockWrapperComponent, arePropsEqual);
+// Use default React.memo shallow comparison — custom comparator was skipping
+// children and event handler changes, causing stale content in blocks.
+export const BlockWrapper = memo(BlockWrapperComponent);
 
 
 

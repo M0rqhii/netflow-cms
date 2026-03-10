@@ -204,9 +204,18 @@ export const BlockRenderer: React.FC<BlockRendererProps> = memo(({ nodeId, isPre
 
   const handleStructureDelete = useCallback(() => {
     if (!node?.parentId || node.meta?.locked) return;
+
+    if (node.childIds.length > 0) {
+      const label = node.meta?.label || definition?.title || node.type;
+      const confirmed = window.confirm(
+        `Delete "${label}" and its ${node.childIds.length} child block(s)?`
+      );
+      if (!confirmed) return;
+    }
+
     deleteBlock(nodeId);
     commit('delete');
-  }, [nodeId, node?.parentId, node?.meta?.locked, deleteBlock, commit]);
+  }, [nodeId, node?.parentId, node?.meta?.locked, node?.childIds.length, node?.meta?.label, node?.type, definition?.title, deleteBlock, commit]);
 
   if (!node) {
     console.warn(`[BlockRenderer] Node "${nodeId}" not found`);

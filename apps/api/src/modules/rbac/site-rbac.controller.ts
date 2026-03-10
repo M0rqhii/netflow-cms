@@ -21,7 +21,6 @@ import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { RbacService } from './rbac.service';
 import { RbacEvaluatorService } from './rbac-evaluator.service';
-import { isPlatformAdminValue, isPlatformPowerUser } from '../../common/auth/platform-admin.util';
 import {
   createRoleSchema,
   updateRoleSchema,
@@ -289,32 +288,15 @@ export class SiteRbacController {
    * Helper: Check if user is Owner
    */
   private async isOwner(orgId: string, userId: string): Promise<boolean> {
-    const user = await this.prisma.user.findFirst({
-      where: {
-        id: userId,
-        orgId,
-      },
-      select: {
-        isSuperAdmin: true,
-        systemRole: true,
-        platformRole: true,
-        role: true,
-      },
-    });
-
-    if (!user) {
-      return false;
-    }
-
-    // Super admin / platform admin is always owner
-    if (isPlatformPowerUser(user) || isPlatformAdminValue(user.platformRole) || isPlatformAdminValue(user.role)) {
+    const platformProfile = await this.rbacService.getEffectivePlatformProfile(userId);
+    if (platformProfile.isPlatformPowerUser) {
       return true;
     }
 
     // Check if user has Owner role in org
     const assignments = await this.rbacService.getAssignments(orgId, userId);
     const hasOwnerRole = assignments.some(
-      a => a.role.name === 'Org Owner' && a.role.type === 'SYSTEM' && a.role.scope === 'ORG'
+      a => a.role.name === 'Org Owner' && a.role.type === 'SYSTEM' && a.role.scope === 'ORG' && !a.siteId
     );
 
     return hasOwnerRole;

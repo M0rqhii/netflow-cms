@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { decodeAuthToken, fetchRbacAssignments, getAuthToken, getProfile } from '@/lib/api';
 import { loadSitesWithCache } from '@/hooks/useSites';
+import { usePlatformAccess } from '@/hooks/usePlatformAccess';
 
 export type ShellNavSubItem = {
   href: string;
@@ -165,6 +166,8 @@ export function useShellRoleState(): ShellRoleState {
   const [orgId, setOrgId] = useState<string | null>(null);
   const [hasOrgOwnerRole, setHasOrgOwnerRole] = useState<boolean | null>(null);
   const [hasOrgAdminRole, setHasOrgAdminRole] = useState<boolean | null>(null);
+  const [hasSiteAdminRole, setHasSiteAdminRole] = useState<boolean | null>(null);
+  const platformAccess = usePlatformAccess();
 
   const appProfile = process.env.NEXT_PUBLIC_APP_PROFILE || process.env.NODE_ENV || 'development';
   const isDev = appProfile !== 'production';
@@ -173,49 +176,17 @@ export function useShellRoleState(): ShellRoleState {
   const payload = useMemo(() => decodeAuthToken(token), [token]);
 
   const userId = String(payload?.sub ?? '');
-
-  const platformRole = String(payload?.platformRole ?? '').toLowerCase();
-  const role = String(payload?.role ?? '').toLowerCase();
-  const systemRole = String(payload?.systemRole ?? '').toLowerCase();
-
-  const isSuperFromToken = Boolean(payload?.isSuperAdmin) || role === 'super_admin' || systemRole === 'super_admin';
-
-  const isOwnerFromToken =
-    platformRole === 'org_owner' ||
-    platformRole === 'owner' ||
-    platformRole === 'platform_admin' ||
-    platformRole === 'platform_owner' ||
-    role === 'org_owner' ||
-    role === 'owner' ||
-    role === 'platform_admin' ||
-    role === 'platform_owner' ||
-    systemRole === 'org_owner' ||
-    systemRole === 'owner';
-
-  const isAdminFromToken =
-    platformRole === 'org_admin' ||
-    platformRole === 'admin' ||
-    platformRole === 'platform_admin' ||
-    role === 'org_admin' ||
-    role === 'admin' ||
-    role === 'platform_admin' ||
-    systemRole === 'org_admin' ||
-    systemRole === 'admin';
-
-  const isSiteAdmin = role === 'site_admin' || systemRole === 'site_admin';
-
-  // RBAC lookup can confirm extra privileges, but it should never downgrade
-  // privileges already present in a valid session token/platform role.
-  const isOwner = isSuperFromToken || isOwnerFromToken || hasOrgOwnerRole === true;
-  const isAdmin = isSuperFromToken || isAdminFromToken || hasOrgAdminRole === true;
-
-  const canAccessOrgSettings = isSuperFromToken || isOwner || isAdmin || isSiteAdmin;
-
-  const isPrivileged =
+  const isSuperFromToken = platformAccess.isSuperAdmin;
+  const isOwner = platformAccess.canViewBilling || isSuperFromToken || hasOrgOwnerRole === true;
+  const isAdmin =
+    platformAccess.canManageOrganizations ||
+    platformAccess.canManagePlatformUsers ||
     isSuperFromToken ||
-    ['org_admin', 'site_admin', 'platform_admin'].includes(role) ||
-    ['admin', 'owner', 'platform_admin'].includes(platformRole) ||
-    systemRole === 'system_admin';
+    hasOrgAdminRole === true;
+  const isSiteAdmin = hasSiteAdminRole === true;
+  const canAccessOrgSettings = isOwner || isAdmin || isSiteAdmin;
+
+  const isPrivileged = platformAccess.canAccessDevTools;
 
   useEffect(() => {
     let cancelled = false;
@@ -259,6 +230,7 @@ export function useShellRoleState(): ShellRoleState {
     if (!orgId || !userId) {
       setHasOrgOwnerRole(null);
       setHasOrgAdminRole(null);
+      setHasSiteAdminRole(null);
       return;
     }
 
@@ -277,13 +249,18 @@ export function useShellRoleState(): ShellRoleState {
         const hasAdmin = assignments.some(
           (item) => item.role.name === 'Org Admin' && item.role.type === 'SYSTEM' && item.role.scope === 'ORG'
         );
+        const hasSiteAdmin = assignments.some(
+          (item) => item.role.name === 'Site Admin' && item.role.type === 'SYSTEM' && item.role.scope === 'SITE'
+        );
 
         setHasOrgOwnerRole(hasOwner);
         setHasOrgAdminRole(hasAdmin);
+        setHasSiteAdminRole(hasSiteAdmin);
       } catch {
         if (!cancelled) {
           setHasOrgOwnerRole(null);
           setHasOrgAdminRole(null);
+          setHasSiteAdminRole(null);
         }
       }
     };
@@ -303,6 +280,6 @@ export function useShellRoleState(): ShellRoleState {
     isSiteAdmin,
     isPrivileged,
     canAccessOrgSettings,
-    isDev: isDev || isSuperFromToken,
+    isDev: isDev || platformAccess.canAccessDevTools,
   };
 }
