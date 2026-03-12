@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Global, Module } from '@nestjs/common';
 import { RbacController } from './rbac.controller';
 import { SiteRbacController } from './site-rbac.controller';
 import { PlatformRbacController } from './platform-rbac.controller';
@@ -17,6 +17,7 @@ import { RbacEvaluatorService } from './rbac-evaluator.service';
  * - Role assignments
  * - Organization policies
  */
+@Global()
 @Module({
   controllers: [RbacController, SiteRbacController, PlatformRbacController],
   providers: [RbacService, RbacEvaluatorService, PrismaService],
