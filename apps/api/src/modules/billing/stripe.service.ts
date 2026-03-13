@@ -218,16 +218,19 @@ export class StripeService {
   /**
    * Map Stripe plan ID to internal plan
    */
-  private mapStripePlanToPlan(stripePlanId: string | undefined): 'free' | 'professional' | 'enterprise' {
+  private mapStripePlanToPlan(stripePlanId: string | undefined): 'free' | 'pro' | 'max' | 'enterprise' {
     // Map Stripe plan IDs to internal plans
     // In production, store this mapping in database or config
     if (!stripePlanId) return 'free';
-    
-    if (stripePlanId.includes('professional') || stripePlanId.includes('pro')) {
-      return 'professional';
-    }
+
     if (stripePlanId.includes('enterprise')) {
       return 'enterprise';
+    }
+    if (stripePlanId.includes('max')) {
+      return 'max';
+    }
+    if (stripePlanId.includes('pro') || stripePlanId.includes('professional')) {
+      return 'pro';
     }
     return 'free';
   }

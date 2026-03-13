@@ -31,20 +31,20 @@ export class BillingService {
     return String(value ?? '').trim().toLowerCase();
   }
 
-  private toDisplayPlan(plan: string | null | undefined): 'BASIC' | 'PRO' {
+  private toDisplayPlan(plan: string | null | undefined): 'free' | 'pro' | 'max' | 'enterprise' {
     const normalized = this.normalizeValue(plan);
-    if (normalized === 'pro' || normalized === 'professional' || normalized === 'enterprise') {
-      return 'PRO';
-    }
-    return 'BASIC';
+    if (normalized === 'enterprise') return 'enterprise';
+    if (normalized === 'max') return 'max';
+    if (normalized === 'pro' || normalized === 'professional') return 'pro';
+    return 'free';
   }
 
-  private toDisplayStatus(status: string | null | undefined, plan: 'BASIC' | 'PRO'): string {
+  private toDisplayStatus(status: string | null | undefined, plan: string): string {
     const normalized = this.normalizeValue(status);
     if (normalized.length > 0) {
       return status as string;
     }
-    return plan === 'PRO' ? 'active' : 'none';
+    return plan !== 'free' ? 'active' : 'none';
   }
 
   private async getPrivilegedOrgSet(orgIds: string[]): Promise<Set<string>> {
@@ -546,7 +546,7 @@ export class BillingService {
       updatedSubscription = await this.prisma.subscription.create({
         data: {
           orgId: orgId,
-          plan: dto.plan || 'BASIC',
+          plan: dto.plan || 'free',
           status: dto.status || 'active',
           currentPeriodStart: now,
           currentPeriodEnd: renewalDate,

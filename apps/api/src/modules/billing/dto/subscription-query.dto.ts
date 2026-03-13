@@ -5,7 +5,7 @@ import { z } from 'zod';
  */
 export const SubscriptionQueryDtoSchema = z.object({
   status: z.enum(['active', 'cancelled', 'past_due', 'trialing']).optional(),
-  plan: z.enum(['free', 'professional', 'enterprise']).optional(),
+  plan: z.enum(['free', 'pro', 'max', 'enterprise']).optional(),
   page: z.coerce.number().int().min(1).optional().default(1),
   pageSize: z.coerce.number().int().min(1).max(100).optional().default(20),
 });

@@ -10,7 +10,7 @@ export const OrganizationSchema = z.object({
   id: z.string().uuid(),
   name: z.string().min(1).max(255),
   slug: z.string().min(1).max(100).regex(/^[a-z0-9-]+$/),
-  plan: z.enum(['free', 'professional', 'enterprise']).default('free'),
+  plan: z.enum(['free', 'pro', 'max', 'enterprise']).default('free'),
   settings: z.record(z.unknown()).default({}),
   createdAt: z.date(),
   updatedAt: z.date(),
@@ -19,13 +19,13 @@ export const OrganizationSchema = z.object({
 export const CreateOrganizationSchema = z.object({
   name: z.string().min(1).max(255),
   slug: z.string().min(1).max(100).regex(/^[a-z0-9-]+$/),
-  plan: z.enum(['free', 'professional', 'enterprise']).optional(),
+  plan: z.enum(['free', 'pro', 'max', 'enterprise']).optional(),
   settings: z.record(z.unknown()).optional(),
 });
 
 export const UpdateOrganizationSchema = z.object({
   name: z.string().min(1).max(255).optional(),
-  plan: z.enum(['free', 'professional', 'enterprise']).optional(),
+  plan: z.enum(['free', 'pro', 'max', 'enterprise']).optional(),
   settings: z.record(z.unknown()).optional(),
 });
 
@@ -659,7 +659,7 @@ export const PlanLimitsSchema = z.object({
 export const SubscriptionSchema = z.object({
   id: z.string().uuid(),
   orgId: z.string().uuid(),
-  plan: z.enum(['free', 'professional', 'enterprise']),
+  plan: z.enum(['free', 'pro', 'max', 'enterprise']),
   status: z.enum(['active', 'cancelled', 'past_due', 'trialing']).default('active'),
   currentPeriodStart: z.date(),
   currentPeriodEnd: z.date(),
@@ -674,12 +674,12 @@ export const SubscriptionSchema = z.object({
 });
 
 export const CreateSubscriptionSchema = z.object({
-  plan: z.enum(['free', 'professional', 'enterprise']),
+  plan: z.enum(['free', 'pro', 'max', 'enterprise']),
   stripeCustomerId: z.string().optional(),
 });
 
 export const UpdateSubscriptionSchema = z.object({
-  plan: z.enum(['free', 'professional', 'enterprise']).optional(),
+  plan: z.enum(['free', 'pro', 'max', 'enterprise']).optional(),
   cancelAtPeriodEnd: z.boolean().optional(),
 });
 

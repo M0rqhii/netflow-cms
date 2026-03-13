@@ -314,6 +314,10 @@ html[data-theme="light"] .card {
   border-color: rgba(168, 85, 247, 0.35);
   background: rgba(168, 85, 247, 0.12);
 }
+.badge.gold {
+  border-color: rgba(217, 165, 32, 0.4);
+  background: rgba(217, 165, 32, 0.14);
+}
 
 html[data-theme="light"] .badge {
   background: rgb(var(--surface));

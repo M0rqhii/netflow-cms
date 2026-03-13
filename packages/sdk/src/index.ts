@@ -791,7 +791,7 @@ export class ApiClient {
   async updateSiteBilling(
     token: string,
     siteId: string,
-    data: { plan?: 'BASIC' | 'PRO'; status?: string; renewalDate?: string }
+    data: { plan?: 'free' | 'pro' | 'max' | 'enterprise'; status?: string; renewalDate?: string }
   ): Promise<{
     siteId: string;
     plan: string;

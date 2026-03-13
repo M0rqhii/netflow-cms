@@ -4,7 +4,7 @@ import { z } from 'zod';
  * CreateSubscriptionDto - DTO dla tworzenia subskrypcji
  */
 export const CreateSubscriptionDtoSchema = z.object({
-  plan: z.enum(['free', 'professional', 'enterprise']),
+  plan: z.enum(['free', 'pro', 'max', 'enterprise']),
   stripePriceId: z.string().optional(),
   stripeCustomerId: z.string().optional(),
   trialDays: z.number().int().min(0).max(30).optional(),

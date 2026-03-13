@@ -17,7 +17,7 @@ model Organization {
   id        String   @id @default(uuid())
   name      String
   slug      String   @unique
-  plan      String   @default("free") // free, professional, enterprise
+  plan      String   @default("free") // free, pro, max, enterprise
   settings  Json     @default("{}")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -512,7 +512,7 @@ model Subscription {
   id                  String    @id @default(uuid())
   orgId               String    // ID organizacji
   organization        Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  plan                String     @default("free") // free, pro, enterprise
+  plan                String     @default("free") // free, pro, max, enterprise
   status              String     @default("active") // active, cancelled, past_due, trialing
   currentPeriodStart  DateTime
   currentPeriodEnd    DateTime   // renewalDate (mapowane w API)

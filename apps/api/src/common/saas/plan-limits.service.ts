@@ -3,17 +3,12 @@ import { PrismaService } from '../prisma/prisma.service';
 
 /**
  * Plan Limits Service
- * AI Note: Manages resource limits per plan (free, professional, enterprise)
- * Integrates with UsageTracking for billing and monitoring
+ * Manages resource limits per plan (free, pro, max, enterprise)
  */
 @Injectable()
 export class PlanLimitsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  /**
-   * Plan limits configuration
-   * Note: Infinity is represented as -1 in database queries
-   */
   private readonly PLAN_LIMITS = {
     free: {
       collections: 5,
@@ -24,17 +19,26 @@ export class PlanLimitsService {
       webhooks: 5,
       apiRequestsPerMonth: 10000,
     },
-    professional: {
-      collections: 50,
-      contentTypes: 100,
-      mediaFiles: 1000,
+    pro: {
+      collections: 15,
+      contentTypes: 30,
+      mediaFiles: 500,
       storageMB: 1000,
-      users: 20,
+      users: 10,
+      webhooks: 10,
+      apiRequestsPerMonth: 25000,
+    },
+    max: {
+      collections: 100,
+      contentTypes: 200,
+      mediaFiles: 5000,
+      storageMB: 10000,
+      users: 50,
       webhooks: 50,
       apiRequestsPerMonth: 100000,
     },
     enterprise: {
-      collections: -1, // Infinity
+      collections: -1,
       contentTypes: -1,
       mediaFiles: -1,
       storageMB: -1,
@@ -45,7 +49,7 @@ export class PlanLimitsService {
   } as const;
 
   private resolveKnownPlan(plan: string | null | undefined): keyof typeof this.PLAN_LIMITS {
-    if (plan === 'free' || plan === 'professional' || plan === 'enterprise') {
+    if (plan === 'free' || plan === 'pro' || plan === 'max' || plan === 'enterprise') {
       return plan;
     }
     return 'free';
@@ -85,7 +89,7 @@ export class PlanLimitsService {
   /**
    * Get limits for a plan
    */
-  getLimits(plan: 'free' | 'professional' | 'enterprise') {
+  getLimits(plan: 'free' | 'pro' | 'max' | 'enterprise') {
     return this.PLAN_LIMITS[plan];
   }
 

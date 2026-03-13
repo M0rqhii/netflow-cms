@@ -58,7 +58,7 @@ export class FeatureFlagsService {
    */
   private isValidPlan(plan: string | null | undefined): boolean {
     if (!plan) return false;
-    const validPlans = ['free', 'basic', 'professional', 'pro', 'enterprise', 'BASIC', 'PRO'];
+    const validPlans = ['free', 'pro', 'max', 'enterprise'];
     return validPlans.includes(plan);
   }
 

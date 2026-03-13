@@ -138,7 +138,7 @@ export default function DevDashboardPage() {
               <div className="spacer-sm" />
               {Object.entries(data.plans).map(([plan, count]) => (
                 <div key={plan} className="row-between py-1">
-                  <span className={`badge ${plan === "enterprise" ? "green" : plan === "professional" ? "blue" : "gray"}`}>{plan}</span>
+                  <span className={`badge ${plan === "enterprise" ? "purple" : plan === "max" ? "gold" : plan === "pro" ? "green" : "gray"}`}>{plan.toUpperCase()}</span>
                   <span className="font-bold">{count}</span>
                 </div>
               ))}

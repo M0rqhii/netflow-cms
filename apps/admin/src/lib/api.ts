@@ -1711,15 +1711,15 @@ export async function getSiteBilling(siteSlug: string): Promise<SiteBillingData>
   // Handle no subscription scenario
   if (!subscriptionData || subscriptionData.status === 'none') {
     return {
-      plan: 'BASIC',
+      plan: 'free',
       status: 'none',
       renewalDate: null,
       invoices: invoicesData.invoices || [],
     };
   }
-  
+
   return {
-    plan: subscriptionData.plan || 'BASIC',
+    plan: subscriptionData.plan || 'free',
     status: (subscriptionData.status as 'active' | 'past_due' | 'canceled') || 'none',
     renewalDate: subscriptionData.renewalDate,
     invoices: invoicesData.invoices || [],

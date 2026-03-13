@@ -34,6 +34,7 @@ function formatDateTime(value?: string): string {
 function getPlanBadgeClass(plan?: string): string {
   const tier = normalizePlanTier(plan);
   if (tier === "enterprise") return "badge purple";
+  if (tier === "max") return "badge gold";
   if (tier === "pro") return "badge green";
   return "badge gray";
 }

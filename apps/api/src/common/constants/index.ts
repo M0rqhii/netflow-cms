@@ -32,7 +32,8 @@ export const ITEM_STATUS = {
 // Organization Plans
 export const ORG_PLANS = {
   FREE: 'free',
-  PROFESSIONAL: 'professional',
+  PRO: 'pro',
+  MAX: 'max',
   ENTERPRISE: 'enterprise',
 } as const;
 

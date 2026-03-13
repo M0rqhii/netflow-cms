@@ -624,8 +624,10 @@ export default function DashboardPage() {
                     onChange={(e) => setPlanFilter(e.target.value)}
                   >
                     <option value="all">{t('dashboard.allPlans')}</option>
-                    <option value="basic">BASIC</option>
+                    <option value="free">FREE</option>
                     <option value="pro">PRO</option>
+                    <option value="max">MAX</option>
+                    <option value="enterprise">ENTERPRISE</option>
                   </select>
                   <select
                     className="input" style={{ width: 'auto', height: '36px', fontSize: '13px', padding: '0 12px' }}

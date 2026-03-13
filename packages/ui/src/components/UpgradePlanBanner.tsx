@@ -2,7 +2,7 @@ import React from 'react';
 import { Button } from './Button';
 
 export interface UpgradePlanBannerProps {
-  currentPlan: 'free' | 'professional' | 'enterprise';
+  currentPlan: 'free' | 'pro' | 'max' | 'enterprise';
   limitType: string;
   currentUsage: number;
   limit: number;

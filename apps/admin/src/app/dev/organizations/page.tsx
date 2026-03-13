@@ -93,8 +93,8 @@ export default function DevOrganizationsPage() {
                     <td className="font-semibold">{org.name}</td>
                     <td className="mono text-xs">{org.slug}</td>
                     <td>
-                      <span className={`badge ${org.plan === "enterprise" ? "green" : org.plan === "professional" ? "blue" : "gray"}`}>
-                        {org.plan}
+                      <span className={`badge ${org.plan === "enterprise" ? "purple" : org.plan === "max" ? "gold" : org.plan === "pro" ? "green" : "gray"}`}>
+                        {(org.plan || "free").toUpperCase()}
                       </span>
                     </td>
                     <td className="font-bold">{org.stats.sites}</td>

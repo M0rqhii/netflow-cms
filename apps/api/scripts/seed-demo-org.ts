@@ -28,7 +28,7 @@ async function main() {
     create: {
       name: 'TechFlow Solutions',
       slug: 'techflow-solutions',
-      plan: 'professional',
+      plan: 'pro',
       settings: {
         default_language: 'pl',
         timezone: 'Europe/Warsaw',
