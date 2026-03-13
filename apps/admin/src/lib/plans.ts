@@ -1,21 +1,16 @@
-export type NormalizedPlanTier = "basic" | "pro";
+export type PlanTier = "free" | "pro" | "enterprise";
 
-const PRO_PLAN_ALIASES = new Set([
-  "pro",
-  "professional",
-  "enterprise",
-  "premium",
-  "business",
-  "max",
-]);
-
-export function normalizePlanTier(value: string | null | undefined): NormalizedPlanTier {
-  const normalized = String(value ?? "").trim().toLowerCase();
-  if (PRO_PLAN_ALIASES.has(normalized)) return "pro";
-  return "basic";
+export function normalizePlanTier(value: string | null | undefined): PlanTier {
+  const v = String(value ?? "").trim().toLowerCase();
+  if (v === "enterprise") return "enterprise";
+  if (v === "pro" || v === "professional" || v === "premium" || v === "business") return "pro";
+  return "free";
 }
 
-export function formatPlanTierLabel(value: string | null | undefined): "BASIC" | "PRO" {
-  return normalizePlanTier(value) === "pro" ? "PRO" : "BASIC";
+export function formatPlanTierLabel(value: string | null | undefined): "FREE" | "PRO" | "ENTERPRISE" {
+  const tier = normalizePlanTier(value);
+  if (tier === "enterprise") return "ENTERPRISE";
+  if (tier === "pro") return "PRO";
+  return "FREE";
 }
 

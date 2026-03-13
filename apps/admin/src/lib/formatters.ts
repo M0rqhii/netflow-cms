@@ -46,8 +46,10 @@ export function statusToBadge(status?: string | null): BadgeStyle {
   if (s === "published" || s === "live") return ["Published", "badge green"] as const;
   if (s === "draft") return ["Draft", "badge orange"] as const;
   if (s === "pending") return ["Pending", "badge blue"] as const;
-  if (normalizePlanTier(s) === "pro") return ["PRO", "badge green"] as const;
-  if (normalizePlanTier(s) === "basic") return ["BASIC", "badge gray"] as const;
+  const tier = normalizePlanTier(s);
+  if (tier === "enterprise") return ["ENTERPRISE", "badge purple"] as const;
+  if (tier === "pro") return ["PRO", "badge green"] as const;
+  if (tier === "free") return ["FREE", "badge gray"] as const;
   return [status || "Unknown", "badge gray"] as const;
 }
 

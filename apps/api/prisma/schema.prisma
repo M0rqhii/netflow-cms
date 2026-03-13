@@ -236,12 +236,6 @@ enum ItemStatus {
   ARCHIVED
 }
 
-// Plan enum - plany subskrypcyjne
-enum Plan {
-  BASIC
-  PRO
-}
-
 // MediaItem model - stored media assets per site
 model MediaItem {
   id           String   @id @default(cuid())
@@ -518,7 +512,7 @@ model Subscription {
   id                  String    @id @default(uuid())
   orgId               String    // ID organizacji
   organization        Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  plan                String     @default("BASIC") // BASIC, PRO (używa Plan enum wartości jako string)
+  plan                String     @default("free") // free, pro, enterprise
   status              String     @default("active") // active, cancelled, past_due, trialing
   currentPeriodStart  DateTime
   currentPeriodEnd    DateTime   // renewalDate (mapowane w API)

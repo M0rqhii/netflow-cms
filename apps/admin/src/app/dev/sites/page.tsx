@@ -32,7 +32,10 @@ function formatDateTime(value?: string): string {
 }
 
 function getPlanBadgeClass(plan?: string): string {
-  return normalizePlanTier(plan) === "pro" ? "badge green" : "badge gray";
+  const tier = normalizePlanTier(plan);
+  if (tier === "enterprise") return "badge purple";
+  if (tier === "pro") return "badge green";
+  return "badge gray";
 }
 
 export default function DevSitesPage() {
