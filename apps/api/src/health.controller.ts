@@ -11,6 +11,10 @@ import { DatabaseHealthIndicator } from './common/health/database-health.indicat
 
 @Controller('health')
 export class HealthController {
+  private isRedisEnabled() {
+    return process.env.REDIS_DISABLED !== '1';
+  }
+
   constructor(
     private health: HealthCheckService,
     private memory: MemoryHealthIndicator,
@@ -23,7 +27,7 @@ export class HealthController {
   @Throttle(10000, 60) // Very high limit for health checks (10000 per minute)
   @HealthCheck()
   check() {
-    return this.health.check([
+    const indicators = [
       // Database health check
       () => this.databaseHealth.isHealthy('database'),
       // Memory health check (warn if > 80% used)
@@ -35,9 +39,13 @@ export class HealthController {
           path: process.platform === 'win32' ? 'C:\\' : '/',
           thresholdPercent: 0.8,
         }),
-      // Redis health check
-      () => this.redisHealth.isHealthy('redis'),
-    ]);
+    ];
+
+    if (this.isRedisEnabled()) {
+      indicators.push(() => this.redisHealth.isHealthy('redis'));
+    }
+
+    return this.health.check(indicators);
   }
 
   @Get('liveness')
@@ -50,10 +58,13 @@ export class HealthController {
   @Throttle(10000, 60) // Very high limit for health checks
   @HealthCheck()
   readiness() {
-    return this.health.check([
-      () => this.databaseHealth.isHealthy('database'),
-      () => this.redisHealth.isHealthy('redis'),
-    ]);
+    const indicators = [() => this.databaseHealth.isHealthy('database')];
+
+    if (this.isRedisEnabled()) {
+      indicators.push(() => this.redisHealth.isHealthy('redis'));
+    }
+
+    return this.health.check(indicators);
   }
 }
 

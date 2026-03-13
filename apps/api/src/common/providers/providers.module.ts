@@ -1,4 +1,4 @@
-import { Module, Global } from '@nestjs/common';
+import { Module, Global, Logger } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import {
@@ -15,16 +15,8 @@ import {
   DevDomainProvider,
 } from './implementations';
 
-/**
- * ProvidersModule
- * 
- * Provides dependency injection for external service providers.
- * Uses APP_PROFILE environment variable to determine which implementations to use:
- * - 'dev' or 'development': Uses dev implementations (no external calls)
- * - 'production': Will use real implementations (Stripe, S3, etc.) - to be added later
- * 
- * In dev mode, providers simulate behavior without calling external services.
- */
+const logger = new Logger('ProvidersModule');
+
 @Global()
 @Module({
   imports: [ConfigModule],
@@ -33,15 +25,7 @@ import {
     {
       provide: 'PaymentProvider',
       useFactory: (configService: ConfigService, prisma: PrismaService): PaymentProvider => {
-        const profile = configService.get<string>('APP_PROFILE') || 
-                       (configService.get<string>('NODE_ENV') === 'production' ? 'production' : 'dev');
-        
-        if (profile === 'dev' || profile === 'development') {
-          return new DevPaymentProvider(prisma);
-        }
-        
-        // Production: Will use StripePaymentProvider when implemented
-        // For now, fallback to dev in production if no real provider is configured
+        // TODO: Implement StripePaymentProvider for production
         return new DevPaymentProvider(prisma);
       },
       inject: [ConfigService, PrismaService],
@@ -49,23 +33,23 @@ import {
     {
       provide: 'Mailer',
       useFactory: (configService: ConfigService, prisma: PrismaService): Mailer => {
-        const profile = configService.get<string>('APP_PROFILE') || 
-                       (configService.get<string>('NODE_ENV') === 'production' ? 'production' : 'dev');
         const explicitProvider = (configService.get<string>('MAIL_PROVIDER') || '').toLowerCase();
         const resendApiKey = (configService.get<string>('RESEND_API_KEY') || '').trim();
-        
+
         if (explicitProvider === 'dev') {
           return new DevMailer(prisma);
         }
 
         if (explicitProvider === 'resend') {
           if (!resendApiKey) {
-            // eslint-disable-next-line no-console
-            console.warn('[ProvidersModule] MAIL_PROVIDER=resend but RESEND_API_KEY is missing. Falling back to DevMailer.');
+            logger.warn('MAIL_PROVIDER=resend but RESEND_API_KEY is missing. Falling back to DevMailer.');
             return new DevMailer(prisma);
           }
           return new ResendMailer(configService);
         }
+
+        const profile = configService.get<string>('APP_PROFILE') ||
+                       (configService.get<string>('NODE_ENV') === 'production' ? 'production' : 'dev');
 
         if (profile === 'dev' || profile === 'development') {
           return new DevMailer(prisma);
@@ -74,11 +58,8 @@ import {
         if (resendApiKey) {
           return new ResendMailer(configService);
         }
-        
-        // Production: Will use ResendMailer or SendGridMailer when implemented
-        // For now, fallback to dev in production if no real provider is configured
-        // eslint-disable-next-line no-console
-        console.warn('[ProvidersModule] Production profile without configured email provider. Falling back to DevMailer.');
+
+        logger.warn('No email provider configured. Falling back to DevMailer.');
         return new DevMailer(prisma);
       },
       inject: [ConfigService, PrismaService],
@@ -86,15 +67,7 @@ import {
     {
       provide: 'FileStorage',
       useFactory: (configService: ConfigService): FileStorage => {
-        const profile = configService.get<string>('APP_PROFILE') || 
-                       (configService.get<string>('NODE_ENV') === 'production' ? 'production' : 'dev');
-        
-        if (profile === 'dev' || profile === 'development') {
-          return new LocalFileStorage(configService);
-        }
-        
-        // Production: Will use S3FileStorage or R2FileStorage when implemented
-        // For now, fallback to local in production if no real provider is configured
+        // TODO: Implement S3/R2 FileStorage for production
         return new LocalFileStorage(configService);
       },
       inject: [ConfigService],
@@ -102,15 +75,7 @@ import {
     {
       provide: 'DomainProvider',
       useFactory: (configService: ConfigService, prisma: PrismaService): DomainProvider => {
-        const profile = configService.get<string>('APP_PROFILE') || 
-                       (configService.get<string>('NODE_ENV') === 'production' ? 'production' : 'dev');
-        
-        if (profile === 'dev' || profile === 'development') {
-          return new DevDomainProvider(prisma);
-        }
-        
-        // Production: Will use CloudflareDomainProvider when implemented
-        // For now, fallback to dev in production if no real provider is configured
+        // TODO: Implement CloudflareDomainProvider for production
         return new DevDomainProvider(prisma);
       },
       inject: [ConfigService, PrismaService],

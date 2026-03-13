@@ -109,7 +109,7 @@
 
 ### 5. Environment Configuration ✅
 
-- ✅ `env.example` - Kompletny przykład zmiennych środowiskowych
+- ✅ `.env.example` - Kompletny przykład zmiennych środowiskowych
   - Database (PostgreSQL)
   - Redis
   - API configuration
@@ -222,7 +222,7 @@
 - [x] GitHub Release creation
 
 ### Environment ✅
-- [x] env.example file
+- [x] .env.example file
 - [x] All required variables documented
 
 ### Project ✅

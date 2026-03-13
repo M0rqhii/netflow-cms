@@ -116,7 +116,7 @@ async function bootstrap() {
       .addTag('billing', 'Billing and subscriptions')
       .addTag('rbac', 'Role-based access control')
       .addServer(`http://localhost:${port}${API_PREFIX}`, 'Development')
-      .addServer(`https://api.net-flow.pl${API_PREFIX}`, 'Production')
+      .addServer(`${process.env.API_BASE_URL || 'https://netflow-cms.onrender.com'}${API_PREFIX}`, 'Production')
       .build();
 
     const document = SwaggerModule.createDocument(app, config);

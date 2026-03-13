@@ -1,79 +1,38 @@
-# Start Development Environment (PowerShell)
-# This script starts all services: database, redis, backend, and frontend
+$root = Resolve-Path (Join-Path $PSScriptRoot "..")
+Set-Location $root
 
-Write-Host "🚀 Starting Netflow CMS Development Environment..." -ForegroundColor Green
+Write-Host "Starting Netflow CMS development environment..." -ForegroundColor Green
 
-# Check if Docker is running
 try {
     docker info | Out-Null
 } catch {
-    Write-Host "❌ Docker is not running. Please start Docker and try again." -ForegroundColor Red
+    Write-Host "Docker is not running. Start Docker Desktop and try again." -ForegroundColor Red
     exit 1
 }
 
-# Check if .env file exists
 if (-not (Test-Path .env)) {
-    Write-Host "⚠️  .env file not found. Creating from env.example..." -ForegroundColor Yellow
-    Copy-Item env.example .env
-    Write-Host "✅ Created .env file. Please review and update if needed." -ForegroundColor Green
+    Write-Host "Creating .env from .env.example..." -ForegroundColor Yellow
+    Copy-Item .env.example .env
 }
 
-# Start Docker services (postgres, redis)
-Write-Host "📦 Starting Docker services (PostgreSQL, Redis)..." -ForegroundColor Cyan
-docker-compose up -d postgres redis
-
-# Wait for services to be ready
-Write-Host "⏳ Waiting for services to be ready..." -ForegroundColor Yellow
-Start-Sleep -Seconds 5
-
-# Check if postgres is ready
-$postgresReady = $false
-$maxRetries = 30
-$retryCount = 0
-
-while (-not $postgresReady -and $retryCount -lt $maxRetries) {
-    try {
-        docker-compose exec -T postgres pg_isready -U netflow | Out-Null
-        $postgresReady = $true
-    } catch {
-        $retryCount++
-        Write-Host "⏳ Waiting for PostgreSQL... ($retryCount/$maxRetries)" -ForegroundColor Yellow
-        Start-Sleep -Seconds 2
-    }
+if (-not (Test-Path apps/admin/.env.local) -and (Test-Path apps/admin/.env.example)) {
+    Write-Host "Creating apps/admin/.env.local from apps/admin/.env.example..." -ForegroundColor Yellow
+    Copy-Item apps/admin/.env.example apps/admin/.env.local
 }
 
-# Check if redis is ready
-$redisReady = $false
-$retryCount = 0
+Write-Host "Starting PostgreSQL and Redis..." -ForegroundColor Cyan
+docker compose up -d postgres redis
 
-while (-not $redisReady -and $retryCount -lt $maxRetries) {
-    try {
-        docker-compose exec -T redis redis-cli ping | Out-Null
-        $redisReady = $true
-    } catch {
-        $retryCount++
-        Write-Host "⏳ Waiting for Redis... ($retryCount/$maxRetries)" -ForegroundColor Yellow
-        Start-Sleep -Seconds 2
-    }
-}
-
-Write-Host "✅ Docker services are ready!" -ForegroundColor Green
-
-# Install dependencies if needed
+Write-Host "Installing dependencies if needed..." -ForegroundColor Cyan
 if (-not (Test-Path node_modules)) {
-    Write-Host "📦 Installing dependencies..." -ForegroundColor Cyan
     pnpm install
 }
 
-# Generate Prisma client
-Write-Host "🔧 Generating Prisma client..." -ForegroundColor Cyan
-pnpm --filter api db:generate
+Write-Host "Generating Prisma client..." -ForegroundColor Cyan
+pnpm db:generate
 
-# Run database migrations
-Write-Host "🗄️  Running database migrations..." -ForegroundColor Cyan
-pnpm --filter api db:migrate
+Write-Host "Running database migrations..." -ForegroundColor Cyan
+pnpm db:migrate
 
-# Start backend and frontend
-Write-Host "🚀 Starting backend and frontend..." -ForegroundColor Green
+Write-Host "Starting monorepo dev servers..." -ForegroundColor Green
 pnpm dev
-

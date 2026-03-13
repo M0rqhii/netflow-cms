@@ -65,7 +65,7 @@ Konfiguracja infrastruktury projektu została w pełni ukończona. Wszystkie wym
 
 ### ✅ Environment Configuration
 
-- ✅ `env.example` - kompletny przykład zmiennych środowiskowych:
+- ✅ `.env.example` - kompletny przykład zmiennych środowiskowych:
   - Database (PostgreSQL)
   - Redis
   - API configuration

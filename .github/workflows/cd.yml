@@ -129,27 +129,24 @@ jobs:
     if: needs.determine-environment.outputs.environment == 'staging'
     environment:
       name: staging
-      url: https://staging.example.com
+      url: https://netflow-cms-admin.vercel.app
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Deploy to staging
         run: |
-          echo "🚀 Deploying to staging environment..."
+          echo "Deploying to staging environment..."
           echo "API Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_API }}:main"
           echo "Admin Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_ADMIN }}:main"
-          # Add your deployment commands here
-          # Example: kubectl, docker-compose, terraform, etc.
-          # kubectl set image deployment/api api=${{ env.REGISTRY }}/${{ env.IMAGE_NAME_API }}:main
-          # kubectl set image deployment/admin admin=${{ env.REGISTRY }}/${{ env.IMAGE_NAME_ADMIN }}:main
+          # Render auto-deploys from main branch
+          # Vercel auto-deploys from main branch
 
       - name: Run smoke tests
         run: |
-          echo "🧪 Running smoke tests..."
-          # Add smoke test commands here
-          # curl -f https://staging-api.example.com/api/v1/health || exit 1
-          # curl -f https://staging.example.com || exit 1
+          echo "Running smoke tests..."
+          curl -f https://netflow-cms.onrender.com/api/v1/health/liveness || exit 1
+          curl -f https://netflow-cms-admin.vercel.app || exit 1
 
       - name: Notify deployment
         if: success()
@@ -164,7 +161,7 @@ jobs:
     if: needs.determine-environment.outputs.environment == 'production'
     environment:
       name: production
-      url: https://example.com
+      url: https://netflow-cms-admin.vercel.app
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -183,21 +180,18 @@ jobs:
 
       - name: Deploy to production
         run: |
-          echo "🚀 Deploying to production environment..."
+          echo "Deploying to production environment..."
           echo "Version: ${{ steps.get_version.outputs.version }}"
           echo "API Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_API }}:${{ steps.get_version.outputs.version }}"
           echo "Admin Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_ADMIN }}:${{ steps.get_version.outputs.version }}"
-          # Add your deployment commands here
-          # Example: kubectl, docker-compose, terraform, etc.
-          # kubectl set image deployment/api api=${{ env.REGISTRY }}/${{ env.IMAGE_NAME_API }}:${{ steps.get_version.outputs.version }}
-          # kubectl set image deployment/admin admin=${{ env.REGISTRY }}/${{ env.IMAGE_NAME_ADMIN }}:${{ steps.get_version.outputs.version }}
+          # Render auto-deploys from tags
+          # Vercel auto-deploys from main branch
 
       - name: Run smoke tests
         run: |
-          echo "🧪 Running smoke tests..."
-          # Add smoke test commands here
-          # curl -f https://api.example.com/api/v1/health || exit 1
-          # curl -f https://example.com || exit 1
+          echo "Running smoke tests..."
+          curl -f https://netflow-cms.onrender.com/api/v1/health/liveness || exit 1
+          curl -f https://netflow-cms-admin.vercel.app || exit 1
 
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/')

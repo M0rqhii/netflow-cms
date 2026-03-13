@@ -1,67 +1,39 @@
-# Getting Started (Local Docker)
+# Getting Started
 
-This repo runs as a Docker Compose stack with Postgres, Redis, API (NestJS), and Admin (Next.js).
+This repo can be run in two clean ways.
 
-## Prerequisites
+## Option A: Root Workflow
 
-- Docker Desktop installed and running
-- PowerShell (Windows) or a POSIX shell
+Use this if you want the normal pnpm/turbo setup.
 
-## 1) Build and start
-
-PowerShell:
-
-```powershell
-cd E:\\\\netflow-cms
-powershell -File .\\\\scripts\\\\dev.ps1 build
-powershell -File .\\\\scripts\\\\dev.ps1 up
+```bash
+cp .env.example .env
+docker compose up -d postgres redis
+pnpm install
+pnpm db:generate
+pnpm db:migrate
+pnpm dev
 ```
 
-## 2) Migrate and seed
+## Option B: Docker Compose Workflow
 
-```powershell
-powershell -File .\\\\scripts\\\\dev.ps1 migrate
-powershell -File .\\\\scripts\\\\dev.ps1 seed
+Use this if you want API and Admin inside containers.
+
+```bash
+docker compose up --build
 ```
 
-## 3) Verify health
+This path uses `.env.docker`.
 
-Open <http://localhost:4000/api/v1/health> — should return `{ "status": "ok" }`.
+## URLs
 
-Or run:
+- API: `http://localhost:4000/api/v1`
+- Admin: `http://localhost:3000`
+- Liveness: `http://localhost:4000/api/v1/health/liveness`
 
-```powershell
-powershell -File .\\\\scripts\\\\dev.ps1 health
-```
+## Standalone Apps
 
-## 4) Login to Admin
+If you run only one app:
 
-- URL: <http://localhost:3000/login>
-- Email: `admin@acme-corp.com`
-- Password: `password123`
-
-After login, use the Dashboard (Hub) to enter the site CMS.
-
-## Useful commands
-
-```powershell
-# Tail API logs
-powershell -File .\\scripts\\dev.ps1 logs-api
-
-# Tail Admin logs
-powershell -File .\\scripts\\dev.ps1 logs-admin
-
-# Restart services
-powershell -File .\\scripts\\dev.ps1 restart-api
-powershell -File .\\scripts\\dev.ps1 restart-admin
-
-# Run API E2E tests (inside container)
-powershell -File .\\scripts\\dev.ps1 test-e2e
-```
-
-## Notes
-
-- Compose loads `.env.docker` for container env. Host dev can use `env.example` as a template.
-- Redis is required; if Redis is unavailable, the API will fail to start (no silent in-memory fallback).
-- Prisma Client is generated in the API container at boot.
-- For production deployment, see docs/DEPLOY.md and .env.production.example.
+- copy `apps/api/.env.example` to `apps/api/.env`
+- copy `apps/admin/.env.example` to `apps/admin/.env.local`

@@ -319,7 +319,7 @@ Stworzenie podstawowej struktury projektu, konfiguracja środowiska development 
 - `apps/api/Dockerfile`, `apps/admin/Dockerfile`
 - `.github/workflows/ci.yml`
 - `docker-compose.yml`
-- `env.example`
+- `.env.example`
 - `package.json` (skrypty i lint)
 
 ---

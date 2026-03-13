@@ -27,6 +27,10 @@ export class EnvironmentVariables {
   DATABASE_URL!: string;
 
   @IsString()
+  @IsNotEmpty()
+  DIRECT_URL!: string;
+
+  @IsString()
   @IsOptional()
   REDIS_HOST?: string;
 
@@ -43,6 +47,10 @@ export class EnvironmentVariables {
   @IsString()
   @IsOptional()
   REDIS_URL?: string;
+
+  @IsString()
+  @IsOptional()
+  REDIS_DISABLED?: string;
 
   @IsNumber()
   @IsOptional()
@@ -93,6 +101,42 @@ export class EnvironmentVariables {
   @IsString()
   @IsOptional()
   APP_PROFILE?: string;
+
+  @IsUrl({ require_tld: false })
+  @IsOptional()
+  API_BASE_URL?: string;
+
+  @IsString()
+  @IsOptional()
+  UPLOAD_DIR?: string;
+
+  @IsString()
+  @IsOptional()
+  MAIL_PROVIDER?: string;
+
+  @IsString()
+  @IsOptional()
+  RESEND_API_KEY?: string;
+
+  @IsString()
+  @IsOptional()
+  MAIL_FROM_EMAIL?: string;
+
+  @IsString()
+  @IsOptional()
+  MAIL_REPLY_TO?: string;
+
+  @IsString()
+  @IsOptional()
+  MAIL_SUPPORT_EMAIL?: string;
+
+  @IsString()
+  @IsOptional()
+  MAIL_BRAND_NAME?: string;
+
+  @IsUrl({ require_tld: false })
+  @IsOptional()
+  MAIL_BRAND_LOGO_URL?: string;
 }
 
 export function validate(config: Record<string, any>) {

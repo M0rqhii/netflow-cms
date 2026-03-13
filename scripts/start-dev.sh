@@ -1,62 +1,39 @@
 #!/bin/bash
 
-# Start Development Environment
-# This script starts all services: database, redis, backend, and frontend
+set -euo pipefail
 
-set -e
+cd "$(dirname "$0")/.."
 
-echo "🚀 Starting Netflow CMS Development Environment..."
+echo "Starting Netflow CMS development environment..."
 
-# Check if Docker is running
-if ! docker info > /dev/null 2>&1; then
-    echo "❌ Docker is not running. Please start Docker and try again."
-    exit 1
+if ! docker info >/dev/null 2>&1; then
+  echo "Docker is not running. Start Docker Desktop and try again."
+  exit 1
 fi
 
-# Check if .env file exists
 if [ ! -f .env ]; then
-    echo "⚠️  .env file not found. Creating from env.example..."
-    cp env.example .env
-    echo "✅ Created .env file. Please review and update if needed."
+  echo "Creating .env from .env.example..."
+  cp .env.example .env
 fi
 
-# Start Docker services (postgres, redis)
-echo "📦 Starting Docker services (PostgreSQL, Redis)..."
-docker-compose up -d postgres redis
-
-# Wait for services to be ready
-echo "⏳ Waiting for services to be ready..."
-sleep 5
-
-# Check if postgres is ready
-until docker-compose exec -T postgres pg_isready -U netflow > /dev/null 2>&1; do
-    echo "⏳ Waiting for PostgreSQL..."
-    sleep 2
-done
-
-# Check if redis is ready
-until docker-compose exec -T redis redis-cli ping > /dev/null 2>&1; do
-    echo "⏳ Waiting for Redis..."
-    sleep 2
-done
-
-echo "✅ Docker services are ready!"
-
-# Install dependencies if needed
-if [ ! -d "node_modules" ]; then
-    echo "📦 Installing dependencies..."
-    pnpm install
+if [ ! -f apps/admin/.env.local ] && [ -f apps/admin/.env.example ]; then
+  echo "Creating apps/admin/.env.local from apps/admin/.env.example..."
+  cp apps/admin/.env.example apps/admin/.env.local
 fi
 
-# Generate Prisma client
-echo "🔧 Generating Prisma client..."
-pnpm --filter api db:generate
+echo "Starting PostgreSQL and Redis..."
+docker compose up -d postgres redis
 
-# Run database migrations
-echo "🗄️  Running database migrations..."
-pnpm --filter api db:migrate
+echo "Installing dependencies if needed..."
+if [ ! -d node_modules ]; then
+  pnpm install
+fi
 
-# Start backend and frontend in parallel
-echo "🚀 Starting backend and frontend..."
+echo "Generating Prisma client..."
+pnpm db:generate
+
+echo "Running database migrations..."
+pnpm db:migrate
+
+echo "Starting monorepo dev servers..."
 pnpm dev
-

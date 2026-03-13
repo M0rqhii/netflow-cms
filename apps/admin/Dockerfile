@@ -1,26 +1,20 @@
-# Multi-stage build for Next.js Admin
-FROM node:18-alpine AS base
+FROM node:20-alpine AS deps
 
-# Install pnpm
-RUN npm install -g pnpm@8.15.0 next@14.2.7
+RUN apk add --no-cache libc6-compat
+RUN npm install -g pnpm@8.15.0
 
-# Set working directory
 WORKDIR /app
 
-# Copy workspace files
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY turbo.json tsconfig.json ./
-
-# Copy package files
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json tsconfig.json ./
 COPY packages/schemas/package.json ./packages/schemas/
 COPY packages/sdk/package.json ./packages/sdk/
 COPY packages/ui/package.json ./packages/ui/
 COPY apps/admin/package.json ./apps/admin/
 
-# Install dependencies
-RUN pnpm install
+RUN pnpm install --frozen-lockfile
 
-# Copy source code
+FROM deps AS builder
+
 COPY packages/schemas ./packages/schemas
 COPY packages/sdk ./packages/sdk
 COPY packages/ui ./packages/ui
@@ -28,10 +22,21 @@ COPY apps/admin ./apps/admin
 
 WORKDIR /app/apps/admin
 
-# Expose port
+RUN pnpm --filter @repo/admin build
+
+FROM node:20-alpine AS runner
+
+RUN apk add --no-cache libc6-compat
+
+WORKDIR /app
+ENV NODE_ENV=production
+ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
+
+COPY --from=builder /app/apps/admin/.next/standalone ./
+COPY --from=builder /app/apps/admin/.next/static ./apps/admin/.next/static
+COPY --from=builder /app/apps/admin/public ./apps/admin/public
+
 EXPOSE 3000
 
-# In docker-compose we override CMD with pnpm --filter admin dev
-CMD ["node", "server.js"]
-
-
+CMD ["node", "apps/admin/server.js"]

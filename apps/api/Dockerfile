@@ -1,46 +1,32 @@
-FROM node:18-bullseye-slim
+FROM node:20-bullseye-slim
 
-# Install pnpm and dependencies required by Prisma (OpenSSL)
 RUN apt-get update \
     && apt-get install -y --no-install-recommends openssl ca-certificates \
     && rm -rf /var/lib/apt/lists/* \
-    && npm install -g pnpm@8.15.0 @nestjs/cli@10.4.9
+    && npm install -g pnpm@8.15.0
 
 WORKDIR /app
 
-# Copy workspace manifests
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY turbo.json tsconfig.json ./
+# Workspace manifests
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json tsconfig.json ./
 COPY packages/schemas/package.json ./packages/schemas/
 COPY apps/api/package.json ./apps/api/
 
-# Install all workspace dependencies (dev)
 RUN pnpm install --frozen-lockfile
 
-# Copy source code
+# Source
 COPY packages/schemas ./packages/schemas
 COPY apps/api ./apps/api
 
-# Default working directory for API
+RUN pnpm --filter @repo/schemas build
+RUN pnpm --filter @repo/api db:generate
+RUN pnpm --filter @repo/api build
+
 WORKDIR /app/apps/api
 
-# Expose port
 EXPOSE 4000
 
-# Health check (dev server)
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:4000/api/v1/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+  CMD node -e "require('http').get('http://127.0.0.1:4000/api/v1/health/liveness', (res) => process.exit(res.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"
 
-# Build shared packages first
-RUN pnpm --filter @repo/schemas build
-
-# Generate Prisma client
-RUN pnpm --filter api db:generate
-
-# Build the project
-RUN pnpm --filter api build
-
-# Run migrations then start the app
-CMD ["sh", "-c", "cd /app && pnpm --filter api db:migrate:deploy && node /app/apps/api/dist/apps/api/src/main"]
-
-
+CMD ["sh", "-lc", "cd /app && pnpm --filter @repo/api db:migrate:deploy && node apps/api/dist/main.js"]
