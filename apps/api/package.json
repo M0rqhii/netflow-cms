@@ -21,6 +21,7 @@
         "type-check": "tsc --noEmit",
         "db:generate": "prisma generate",
         "db:migrate": "prisma migrate dev",
+        "db:validate-url": "node scripts/validate-db-url.cjs",
         "db:migrate:deploy": "prisma migrate deploy",
         "db:studio": "prisma studio",
         "db:seed": "ts-node prisma/seed.ts",

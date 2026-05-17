@@ -47,6 +47,15 @@ For platforms like Render:
 - deploy `apps/admin` with `NEXT_PUBLIC_API_URL` pointing at the public API URL
 - run Prisma migrations during the API release phase
 
+## Supabase Database URLs
+
+Copy `DATABASE_URL` and `DIRECT_URL` from the Supabase Dashboard `Connect` panel for the same active project. Do not hand-build the pooler hostname or project ref.
+
+- `DATABASE_URL`: runtime connection. Use Session pooler `:5432` for long-lived containers such as Render. Use Transaction pooler `:6543` only for serverless/auto-scaling runtime traffic.
+- `DIRECT_URL`: Prisma migration/admin connection. Use direct `db.<project-ref>.supabase.co:5432` when IPv6 is available, otherwise Session pooler `:5432`. Do not point `DIRECT_URL` at Transaction pooler `:6543`.
+
+If deploy logs contain `FATAL: (ENOTFOUND) tenant/user postgres.<project-ref> not found`, the Supabase pooler did not recognize that `user.project-ref` pair. Replace both database variables with fresh strings from the dashboard and verify that the project ref in the username matches the target project and the pooler host/region shown by Supabase.
+
 ## Current Limitation
 
 Billing, domain provisioning, and file storage still use local/dev implementations unless you replace the provider layer in `apps/api/src/common/providers/`.
