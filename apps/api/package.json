@@ -5,7 +5,7 @@
     "description": "Backend API - NestJS + Prisma",
     "scripts": {
         "dev": "node scripts/dev-with-link.js",
-        "build": "node -e \"const fs=require('fs');for(const p of ['dist','.tsbuildinfo','tsconfig.tsbuildinfo']){try{fs.rmSync(p,{recursive:true,force:true});}catch{}}\" && tsc -p tsconfig.build.json",
+        "build": "pnpm db:generate && node -e \"const fs=require('fs');for(const p of ['dist','.tsbuildinfo','tsconfig.tsbuildinfo']){try{fs.rmSync(p,{recursive:true,force:true});}catch{}}\" && tsc -p tsconfig.build.json",
         "postbuild": "node scripts/ensure-dist-main.js",
         "watch:link": "node scripts/ensure-dist-main.js --watch",
         "start": "node dist/main.js",
